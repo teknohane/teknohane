@@ -353,7 +353,7 @@
           <button onclick="setMarketTab('favorites',this)" style="flex:none;padding:8px 16px;border-radius:10px;background:var(--surface);border:1px solid var(--border-2);color:var(--text-2);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">❤️ Favoriler</button>
           <button onclick="setMarketTab('mine',this)" style="flex:none;padding:8px 16px;border-radius:10px;background:var(--surface);border:1px solid var(--border-2);color:var(--text-2);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">İlanlarım</button>
         </div>
-        <div class="listing-grid" id="listing-grid">
+        <div id="listing-grid" style="display:flex;flex-direction:column;gap:12px">
           <div class="loading-wrap"><div class="spinner"></div><div class="loading-text">İlanlar yükleniyor…</div></div>
         </div>
       </div>
@@ -968,9 +968,18 @@ window.switchTab = (el) => {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   el.classList.add('active');
   const screen = el.dataset.screen;
-  document.getElementById('screen-' + screen).classList.add('active');
+  const screenEl = document.getElementById('screen-' + screen);
+  if (screenEl) screenEl.classList.add('active');
   if (screen === 'market') {
-    setTimeout(() => renderListings(), 50);
+    const grid = document.getElementById('listing-grid');
+    if (grid) {
+      if (allListings.length > 0) {
+        renderListings();
+      } else {
+        grid.innerHTML = '<div class="loading-wrap"><div class="spinner"></div><div class="loading-text">İlanlar yükleniyor…</div></div>';
+        loadListings();
+      }
+    }
   }
 };
 window.openLink = (url) => { location.href = '/teknohane/go.html?url=' + encodeURIComponent(url); };
