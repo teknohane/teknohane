@@ -499,25 +499,22 @@
 </div>
 
 <!-- FIREBASE -->
-<script type="module">
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc, setDoc, getDoc, query, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
 const firebaseConfig = {
   apiKey: "AIzaSyADpIRNLQEIer_gplTgwKi_EKkfcyrYoqY",
   authDomain: "maasgunu-bd353.firebaseapp.com",
   projectId: "maasgunu-bd353",
   storageBucket: "maasgunu-bd353.firebasestorage.app",
   messagingSenderId: "485904329467",
-  appId: "1:485904329467:web:579d932ae8f25958901e5e",
-  measurementId: "G-GQT1Q7FGDM"
+  appId: "1:485904329467:web:579d932ae8f25958901e5e"
 };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const googleProvider = new GoogleAuthProvider();
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
 
 let currentUser = null;
 let userFavorites = new Set();
@@ -525,34 +522,38 @@ let allListings = [];
 let marketTab = 'all';
 
 // ── AUTH STATE ──
-onAuthStateChanged(auth, async user => {
-  currentUser = user;
-  if (user) {
-    document.getElementById('profile-btn').style.display = 'flex';
-    document.getElementById('login-btn').style.display = 'none';
-    const img = document.getElementById('header-avatar');
-    if (user.photoURL) img.src = user.photoURL;
-    else img.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName||user.email)}&background=0D1526&color=00D4FF&size=64`;
-    await loadUserData();
-  } else {
-    document.getElementById('profile-btn').style.display = 'none';
-    document.getElementById('login-btn').style.display = 'flex';
-    userFavorites = new Set();
+auth.onAuthStateChanged( async user => {
+  try {
+    currentUser = user;
+    if (user) {
+      document.getElementById('profile-btn').style.display = 'flex';
+      document.getElementById('login-btn').style.display = 'none';
+      const img = document.getElementById('header-avatar');
+      if (user.photoURL) img.src = user.photoURL;
+      else img.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName||user.email)}&background=0D1526&color=00D4FF&size=64`;
+      await loadUserData();
+    } else {
+      document.getElementById('profile-btn').style.display = 'none';
+      document.getElementById('login-btn').style.display = 'flex';
+      userFavorites = new Set();
+    }
+    await renderProfile();
+    await loadListings();
+  } catch(e) {
+    console.error('Auth state error:', e);
+    loadListings();
   }
-  renderProfile();
-  loadListings();
 });
 
 // ── LOAD USER DATA ──
 async function loadUserData() {
   if (!currentUser) return;
   try {
-    const ref = doc(db, 'teknohane_users', currentUser.uid);
-    const snap = await getDoc(ref);
-    if (snap.exists()) {
+    const snap = await db.collection('teknohane_users').doc(currentUser.uid).get();
+    if (snap.exists) {
       userFavorites = new Set(snap.data().favorites || []);
     } else {
-      await setDoc(ref, { favorites: [], createdAt: serverTimestamp() });
+      await db.collection('teknohane_users').doc(currentUser.uid).set({ favorites: [], createdAt: firebase.firestore.FieldValue.serverTimestamp() });
     }
   } catch(e) { console.error(e); }
 }
@@ -563,7 +564,7 @@ async function loadListings() {
   if (!grid) return;
   grid.innerHTML = '<div class="loading-wrap"><div class="spinner"></div><div class="loading-text">İlanlar yükleniyor…</div></div>';
   try {
-    const snap = await getDocs(collection(db, 'teknohane_listings'));
+    const snap = await db.collection('teknohane_listings').get();
     allListings = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     allListings.sort((a, b) => {
       const ta = a.createdAt?.seconds || 0;
@@ -633,14 +634,14 @@ window.toggleFav = async (id, btn) => {
   if (userFavorites.has(id)) { userFavorites.delete(id); btn.classList.remove('active'); }
   else { userFavorites.add(id); btn.classList.add('active'); }
   try {
-    await setDoc(doc(db, 'teknohane_users', currentUser.uid), { favorites: [...userFavorites] }, { merge: true });
+    await db.collection('teknohane_users').doc(currentUser.uid).set({ favorites: [...userFavorites] }, { merge: true });
   } catch(e) { console.error(e); }
 };
 
 window.deleteListing = async (id) => {
   if (!confirm('İlanı silmek istediğinize emin misiniz?')) return;
   try {
-    await deleteDoc(doc(db, 'teknohane_listings', id));
+    await db.collection('teknohane_listings').doc(id).delete();
     allListings = allListings.filter(l => l.id !== id);
     renderListings();
   } catch(e) { alert('Silinemedi'); }
@@ -657,13 +658,15 @@ window.submitListing = async () => {
   const price = document.getElementById('listing-price').value.trim();
   if (!model || !price) { alert('Model ve fiyat zorunlu!'); return; }
   try {
-    const ref = await addDoc(collection(db, 'teknohane_listings'), {
-      model, price, condition: document.getElementById('listing-condition').value,
+    await db.collection('teknohane_listings').add({
+      model, price,
+      condition: document.getElementById('listing-condition').value,
       location: document.getElementById('listing-location').value.trim(),
       desc: document.getElementById('listing-desc').value.trim(),
       phone: document.getElementById('listing-phone').value.trim(),
-      uid: currentUser.uid, ownerName: currentUser.displayName || currentUser.email?.split('@')[0] || 'Anonim',
-      createdAt: serverTimestamp()
+      uid: currentUser.uid,
+      ownerName: currentUser.displayName || currentUser.email?.split('@')[0] || 'Anonim',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     closeModal('new-listing-modal');
     ['listing-model','listing-price','listing-location','listing-desc','listing-phone'].forEach(id => document.getElementById(id).value = '');
@@ -707,7 +710,7 @@ window.adminDeleteListing = async () => {
   const id = prompt('Silinecek ilan ID:');
   if (!id) return;
   try {
-    await deleteDoc(doc(db, 'teknohane_listings', id));
+    await db.collection('teknohane_listings').doc(id).delete();
     allListings = allListings.filter(l => l.id !== id);
     renderListings();
     alert('İlan silindi');
@@ -797,7 +800,7 @@ window.doEmailAuth = async () => {
   const errEl = document.getElementById('auth-error');
   if (!email || !pass) return;
   try {
-    await signInWithEmailAndPassword(auth, email, pass);
+    await auth.signInWithEmailAndPassword(email, pass);
   } catch(e) {
     errEl.textContent = e.code === 'auth/invalid-credential' ? 'E-posta veya şifre hatalı' : e.message;
     errEl.classList.add('show');
@@ -811,8 +814,8 @@ window.doRegister = async () => {
   const errEl = document.getElementById('auth-error');
   if (!email || !pass || !name) { errEl.textContent = 'Tüm alanları doldurun'; errEl.classList.add('show'); return; }
   try {
-    const cred = await createUserWithEmailAndPassword(auth, email, pass);
-    await updateProfile(cred.user, { displayName: name });
+    const cred = await auth.createUserWithEmailAndPassword(email, pass);
+    await cred.user.updateProfile({ displayName: name });
   } catch(e) {
     errEl.textContent = e.code === 'auth/email-already-in-use' ? 'Bu e-posta zaten kayıtlı' : e.message;
     errEl.classList.add('show');
@@ -820,12 +823,14 @@ window.doRegister = async () => {
 };
 
 window.doGoogleAuth = async () => {
-  try { await signInWithPopup(auth, googleProvider); }
-  catch(e) { console.error(e); }
+  try {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    await auth.signInWithPopup(provider);
+  } catch(e) { console.error(e); }
 };
 
 window.doSignOut = async () => {
-  await signOut(auth);
+  await auth.signOut();
 };
 
 // ── YOUTUBE ──
