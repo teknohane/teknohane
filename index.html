@@ -12,997 +12,833 @@
 <link rel="apple-touch-icon" href="icons/icon-152.png">
 <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-<link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
-<meta name="apple-touch-fullscreen" content="yes">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #00040F; --bg-2: #070D1A; --surface: #0D1526; --surface-2: #111D33; --surface-3: #162240;
-    --cyan: #00D4FF; --cyan-dim: rgba(0,212,255,0.12); --cyan-glow: rgba(0,212,255,0.25);
-    --text: #FFFFFF; --text-2: #8E9BB5; --text-3: #4A5568;
-    --red: #FF453A; --green: #30D158; --orange: #FF9500;
-    --border: rgba(0,212,255,0.1); --border-2: rgba(255,255,255,0.06);
-    --safe-top: env(safe-area-inset-top,0px); --safe-bottom: env(safe-area-inset-bottom,0px);
-    --tab-height: 83px;
-  }
-  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none; }
-  input, textarea, .form-input, .search-input { user-select:text !important; -webkit-user-select:text !important; }
-  html,body { height:100%; background:var(--bg); color:var(--text); font-family:'DM Sans',-apple-system,sans-serif; overflow:hidden; overscroll-behavior:none; }
-  #app { display:flex; flex-direction:column; height:100%; height:100dvh; }
+:root {
+  --bg:#00040F;--bg2:#070D1A;--surf:#0D1526;--surf2:#111D33;--surf3:#162240;
+  --cyan:#00D4FF;--cyan-dim:rgba(0,212,255,0.12);--cyan-glow:rgba(0,212,255,0.25);
+  --text:#FFF;--text2:#8E9BB5;--text3:#4A5568;
+  --red:#FF453A;--green:#30D158;
+  --border:rgba(0,212,255,0.1);--border2:rgba(255,255,255,0.06);
+  --safe-top:env(safe-area-inset-top,0px);--safe-bot:env(safe-area-inset-bottom,0px);
+  --tab:83px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;}
+input,textarea{user-select:text;-webkit-user-select:text;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,sans-serif;overflow:hidden;}
+#app{display:flex;flex-direction:column;height:100dvh;}
 
-  /* HEADER */
-  #header { position:fixed; top:0; left:0; right:0; z-index:100; padding-top:var(--safe-top); background:rgba(0,4,15,0.72); backdrop-filter:blur(24px) saturate(180%); -webkit-backdrop-filter:blur(24px) saturate(180%); border-bottom:1px solid var(--border); }
-  .header-inner { display:flex; align-items:center; justify-content:space-between; padding:12px 20px; }
-  .logo-wrap { display:flex; align-items:center; gap:10px; }
-  .logo-icon { width:34px; height:34px; border-radius:10px; object-fit:cover; box-shadow:0 0 12px var(--cyan-glow); }
-  .logo-text { font-size:20px; font-weight:700; letter-spacing:-0.5px; background:linear-gradient(135deg,#fff 0%,var(--cyan) 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
-  .header-actions { display:flex; gap:8px; align-items:center; }
-  .header-btn { width:36px; height:36px; border-radius:50%; background:var(--surface); border:1px solid var(--border-2); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:background 0.2s; position:relative; }
-  .header-btn:active { background:var(--surface-2); }
-  .header-btn svg { width:18px; height:18px; stroke:var(--text-2); fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
-  .avatar-btn { overflow:hidden; }
-  .avatar-btn img { width:36px; height:36px; object-fit:cover; border-radius:50%; }
+/* HEADER */
+#hdr{position:fixed;top:0;left:0;right:0;z-index:100;padding-top:var(--safe-top);background:rgba(0,4,15,.72);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-bottom:1px solid var(--border);}
+.hdr-in{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo img{width:34px;height:34px;border-radius:10px;object-fit:cover;box-shadow:0 0 12px var(--cyan-glow);}
+.logo span{font-size:20px;font-weight:700;letter-spacing:-.5px;background:linear-gradient(135deg,#fff,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.hdr-acts{display:flex;gap:8px;align-items:center;}
+.hbtn{width:36px;height:36px;border-radius:50%;background:var(--surf);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.hbtn svg{width:18px;height:18px;stroke:var(--text2);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+.hbtn img{width:36px;height:36px;border-radius:50%;object-fit:cover;}
 
-  /* TABS */
-  #tabs { position:fixed; bottom:0; left:0; right:0; z-index:100; background:rgba(0,4,15,0.88); backdrop-filter:blur(24px) saturate(180%); -webkit-backdrop-filter:blur(24px) saturate(180%); border-top:1px solid var(--border); padding-bottom:var(--safe-bottom); height:var(--tab-height); display:flex; align-items:flex-start; padding-top:10px; }
-  .tab-bar { display:flex; width:100%; justify-content:space-around; }
-  .tab { display:flex; flex-direction:column; align-items:center; gap:4px; padding:0 12px; cursor:pointer; min-width:60px; }
-  .tab:active { opacity:0.6; }
-  .tab-icon { width:26px; height:26px; display:flex; align-items:center; justify-content:center; border-radius:8px; transition:all 0.25s; }
-  .tab svg { width:22px; height:22px; stroke:var(--text-3); transition:stroke 0.25s; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
-  .tab.active svg { stroke:var(--cyan); }
-  .tab-label { font-size:10px; font-weight:500; color:var(--text-3); transition:color 0.25s; letter-spacing:0.2px; }
-  .tab.active .tab-label { color:var(--cyan); }
-  .tab.active .tab-icon { background:var(--cyan-dim); }
+/* TABS */
+#tabs{position:fixed;bottom:0;left:0;right:0;z-index:100;background:rgba(0,4,15,.88);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid var(--border);padding-bottom:var(--safe-bot);height:var(--tab);display:flex;align-items:flex-start;padding-top:10px;}
+.tbar{display:flex;width:100%;justify-content:space-around;}
+.tab{display:flex;flex-direction:column;align-items:center;gap:4px;padding:0 8px;cursor:pointer;min-width:52px;}
+.tab svg{width:22px;height:22px;stroke:var(--text3);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:stroke .2s;}
+.tab span{font-size:10px;font-weight:500;color:var(--text3);transition:color .2s;}
+.tab .tico{width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:8px;transition:background .2s;}
+.tab.active svg{stroke:var(--cyan);}
+.tab.active span{color:var(--cyan);}
+.tab.active .tico{background:var(--cyan-dim);}
 
-  /* SCREENS */
-  #screens { flex:1; overflow:hidden; position:relative; margin-top:calc(var(--safe-top) + 58px); margin-bottom:var(--tab-height); }
-  .screen { position:absolute; inset:0; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; opacity:0; pointer-events:none; transition:opacity 0.2s; }
-  .screen.active { opacity:1; pointer-events:all; }
-  .screen-content { padding:16px 16px 24px; min-height:100%; }
-  .screen::-webkit-scrollbar { display:none; }
+/* SCREENS */
+#screens{flex:1;overflow:hidden;position:relative;margin-top:calc(var(--safe-top) + 58px);margin-bottom:var(--tab);}
+.screen{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;opacity:0;pointer-events:none;transition:opacity .2s;}
+.screen.active{opacity:1;pointer-events:all;}
+.screen::-webkit-scrollbar{display:none;}
+.sc{padding:16px 16px 24px;}
 
-  /* SECTION */
-  .section-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
-  .section-title { font-size:20px; font-weight:700; letter-spacing:-0.4px; }
-  .section-link { font-size:13px; font-weight:500; color:var(--cyan); text-decoration:none; cursor:pointer; }
+/* UTILS */
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.st{font-size:20px;font-weight:700;letter-spacing:-.4px;}
+.sl{font-size:13px;font-weight:500;color:var(--cyan);cursor:pointer;}
+.glow{height:1px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);margin:20px 0;opacity:.3;}
+.spin{width:28px;height:28px;border:2px solid var(--border);border-top-color:var(--cyan);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.load{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;gap:14px;color:var(--text2);font-size:14px;}
+.empty{text-align:center;padding:60px 20px;}
+.empty-ico{font-size:48px;margin-bottom:12px;}
+.empty-t{font-size:16px;font-weight:600;margin-bottom:8px;}
+.empty-d{font-size:13px;color:var(--text2);}
+.no-res{text-align:center;padding:30px;color:var(--text2);font-size:14px;}
 
-  /* SEARCH */
-  .search-wrap { position:relative; margin-bottom:16px; }
-  .search-input { width:100%; background:var(--surface); border:1px solid var(--border-2); border-radius:12px; padding:11px 16px 11px 40px; color:var(--text); font-size:15px; font-family:inherit; outline:none; transition:border-color 0.2s; }
-  .search-input:focus { border-color:var(--cyan); }
-  .search-input::placeholder { color:var(--text-3); }
-  .search-icon { position:absolute; left:12px; top:50%; transform:translateY(-50%); width:18px; height:18px; stroke:var(--text-3); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; pointer-events:none; }
+/* CHANNEL */
+.ch-hero{background:linear-gradient(135deg,var(--surf),var(--surf2));border-radius:20px;border:1px solid var(--border);padding:20px;margin-bottom:20px;}
+.ch-top{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
+.ch-av{width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid var(--cyan);animation:pglow 3s ease-in-out infinite;}
+@keyframes pglow{0%,100%{box-shadow:0 0 8px var(--cyan-glow);}50%{box-shadow:0 0 20px var(--cyan-glow);}}
+.ch-name{font-size:18px;font-weight:700;}
+.ch-hand{font-size:13px;color:var(--text2);margin-top:2px;}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.stat{background:rgba(0,212,255,.05);border:1px solid var(--border);border-radius:12px;padding:10px;text-align:center;}
+.stat-n{font-size:18px;font-weight:700;color:var(--cyan);}
+.stat-l{font-size:10px;color:var(--text2);margin-top:2px;text-transform:uppercase;letter-spacing:.5px;}
 
-  /* YOUTUBE */
-  .channel-hero { background:linear-gradient(135deg,var(--surface) 0%,var(--surface-2) 100%); border-radius:20px; border:1px solid var(--border); padding:20px; margin-bottom:20px; box-shadow:0 8px 32px rgba(0,212,255,0.06); }
-  .channel-top { display:flex; align-items:center; gap:14px; margin-bottom:16px; }
-  .channel-avatar { width:60px; height:60px; border-radius:50%; object-fit:cover; border:2px solid var(--cyan); box-shadow:0 0 16px var(--cyan-glow); animation:pulse-glow 3s ease-in-out infinite; }
-  @keyframes pulse-glow { 0%,100% { box-shadow:0 0 8px var(--cyan-glow); } 50% { box-shadow:0 0 20px var(--cyan-glow),0 0 40px rgba(0,212,255,0.1); } }
-  .channel-name { font-size:18px; font-weight:700; letter-spacing:-0.4px; }
-  .channel-handle { font-size:13px; color:var(--text-2); margin-top:2px; }
-  .channel-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
-  .stat-box { background:rgba(0,212,255,0.05); border:1px solid var(--border); border-radius:12px; padding:10px; text-align:center; }
-  .stat-num { font-size:18px; font-weight:700; color:var(--cyan); letter-spacing:-0.5px; }
-  .stat-label { font-size:10px; color:var(--text-2); margin-top:2px; font-weight:500; text-transform:uppercase; letter-spacing:0.5px; }
-  .featured-card { border-radius:20px; overflow:hidden; background:var(--surface); border:1px solid var(--border); margin-bottom:24px; cursor:pointer; transition:transform 0.2s; box-shadow:0 8px 32px rgba(0,212,255,0.08); }
-  .featured-card:active { transform:scale(0.98); }
-  .featured-thumb { position:relative; width:100%; aspect-ratio:16/9; background:var(--surface-2); overflow:hidden; }
-  .featured-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
-  .featured-thumb .play-btn { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.3); }
-  .play-circle { width:56px; height:56px; border-radius:50%; background:rgba(0,212,255,0.2); backdrop-filter:blur(8px); border:1px solid rgba(0,212,255,0.5); display:flex; align-items:center; justify-content:center; }
-  .play-circle svg { width:22px; height:22px; fill:var(--cyan); margin-left:3px; }
-  .duration-badge { position:absolute; bottom:10px; right:10px; background:rgba(0,0,0,0.8); color:#fff; font-size:11px; font-weight:600; padding:3px 7px; border-radius:6px; }
-  .featured-info { padding:14px 16px 16px; }
-  .featured-badge { display:inline-flex; align-items:center; gap:5px; background:var(--cyan-dim); border:1px solid rgba(0,212,255,0.2); color:var(--cyan); font-size:10px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; padding:3px 8px; border-radius:6px; margin-bottom:8px; }
-  .featured-badge::before { content:''; width:5px; height:5px; border-radius:50%; background:var(--cyan); }
-  .featured-title { font-size:16px; font-weight:600; line-height:1.4; margin-bottom:10px; }
-  .featured-meta { display:flex; align-items:center; gap:12px; }
-  .meta-pill { display:flex; align-items:center; gap:5px; font-size:12px; color:var(--text-2); }
-  .meta-pill svg { width:13px; height:13px; stroke:var(--text-3); fill:none; stroke-width:1.8; }
-  .video-list { display:flex; flex-direction:column; gap:12px; }
-  .video-card { display:flex; gap:12px; background:var(--surface); border-radius:16px; overflow:hidden; border:1px solid var(--border-2); cursor:pointer; transition:background 0.2s; }
-  .video-card:active { background:var(--surface-2); }
-  .video-thumb { position:relative; width:120px; min-width:120px; aspect-ratio:16/9; background:var(--surface-2); overflow:hidden; }
-  .video-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
-  .video-dur { position:absolute; bottom:5px; right:5px; background:rgba(0,0,0,0.85); color:#fff; font-size:10px; font-weight:600; padding:2px 5px; border-radius:4px; }
-  .video-info { flex:1; padding:10px 12px 10px 0; display:flex; flex-direction:column; justify-content:center; gap:4px; }
-  .video-title { font-size:13px; font-weight:500; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-  .video-meta { font-size:11px; color:var(--text-2); display:flex; gap:6px; }
-  .video-meta span::after { content:'·'; margin-left:6px; color:var(--text-3); }
-  .video-meta span:last-child::after { content:''; }
+/* FEATURED */
+.feat{border-radius:20px;overflow:hidden;background:var(--surf);border:1px solid var(--border);margin-bottom:24px;cursor:pointer;box-shadow:0 8px 32px rgba(0,212,255,.08);}
+.feat:active{transform:scale(.98);}
+.fthumb{position:relative;width:100%;aspect-ratio:16/9;background:var(--surf2);}
+.fthumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.play-btn{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.3);}
+.play-c{width:56px;height:56px;border-radius:50%;background:rgba(0,212,255,.2);backdrop-filter:blur(8px);border:1px solid rgba(0,212,255,.5);display:flex;align-items:center;justify-content:center;}
+.play-c svg{width:22px;height:22px;fill:var(--cyan);margin-left:3px;}
+.dur{position:absolute;bottom:10px;right:10px;background:rgba(0,0,0,.8);color:#fff;font-size:11px;font-weight:600;padding:3px 7px;border-radius:6px;}
+.finfo{padding:14px 16px 16px;}
+.fbadge{display:inline-flex;align-items:center;gap:5px;background:var(--cyan-dim);border:1px solid rgba(0,212,255,.2);color:var(--cyan);font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;padding:3px 8px;border-radius:6px;margin-bottom:8px;}
+.fbadge::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--cyan);}
+.ftitle{font-size:16px;font-weight:600;line-height:1.4;margin-bottom:10px;}
+.fmeta{display:flex;gap:12px;}
+.mpill{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2);}
+.mpill svg{width:13px;height:13px;stroke:var(--text3);fill:none;stroke-width:1.8;}
 
-  /* COMMUNITY */
-  .wa-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:24px; }
-  .wa-card { background:var(--surface); border:1px solid var(--border-2); border-radius:16px; padding:16px; display:flex; flex-direction:column; gap:8px; cursor:pointer; transition:background 0.2s; }
-  .wa-card:active { background:var(--surface-2); }
-  .wa-card-icon { width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; }
+/* VIDEO LIST */
+.vlist{display:flex;flex-direction:column;gap:12px;}
+.vcard{display:flex;gap:12px;background:var(--surf);border-radius:16px;overflow:hidden;border:1px solid var(--border2);cursor:pointer;}
+.vcard:active{background:var(--surf2);}
+.vthumb{position:relative;width:120px;min-width:120px;aspect-ratio:16/9;background:var(--surf2);}
+.vthumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.vdur{position:absolute;bottom:5px;right:5px;background:rgba(0,0,0,.85);color:#fff;font-size:10px;font-weight:600;padding:2px 5px;border-radius:4px;}
+.vinfo{flex:1;padding:10px 12px 10px 0;display:flex;flex-direction:column;justify-content:center;gap:4px;}
+.vtitle{font-size:13px;font-weight:500;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.vmeta{font-size:11px;color:var(--text2);display:flex;gap:6px;}
+.vmeta span::after{content:'·';margin-left:6px;color:var(--text3);}
+.vmeta span:last-child::after{content:'';}
 
-  /* MARKET */
-  .market-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
-  .new-listing-btn { display:flex; align-items:center; gap:6px; background:var(--cyan); color:#000; font-size:13px; font-weight:700; padding:9px 14px; border-radius:12px; border:none; cursor:pointer; font-family:inherit; }
-  .new-listing-btn svg { width:16px; height:16px; stroke:#000; fill:none; stroke-width:2.5; stroke-linecap:round; }
-  .listing-grid { display:flex; flex-direction:column; gap:12px; }
-  .listing-card { background:var(--surface); border:1px solid var(--border-2); border-radius:16px; padding:14px; cursor:pointer; transition:background 0.2s; }
-  .listing-card:active { background:var(--surface-2); }
-  .listing-title { font-size:15px; font-weight:600; margin-bottom:6px; }
-  .listing-row { display:flex; align-items:center; justify-content:space-between; margin-top:8px; }
-  .listing-price { font-size:18px; font-weight:700; color:var(--cyan); }
-  .listing-condition { font-size:11px; font-weight:600; padding:3px 8px; border-radius:6px; }
-  .cond-new { background:rgba(48,209,88,0.12); color:var(--green); border:1px solid rgba(48,209,88,0.2); }
-  .cond-used { background:rgba(0,212,255,0.1); color:var(--cyan); border:1px solid rgba(0,212,255,0.2); }
-  .listing-footer { display:flex; align-items:center; justify-content:space-between; margin-top:10px; }
-  .listing-loc { font-size:11px; color:var(--text-2); }
-  .listing-actions { display:flex; gap:8px; }
-  .fav-btn { width:32px; height:32px; border-radius:50%; background:var(--surface-2); border:1px solid var(--border-2); display:flex; align-items:center; justify-content:center; cursor:pointer; }
-  .fav-btn svg { width:16px; height:16px; stroke:var(--text-3); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; transition:all 0.2s; }
-  .fav-btn.active svg { stroke:#FF453A; fill:#FF453A; }
-  .wa-contact-btn { display:flex; align-items:center; gap:5px; background:rgba(37,211,102,0.12); border:1px solid rgba(37,211,102,0.2); color:#25D366; font-size:12px; font-weight:600; padding:6px 12px; border-radius:10px; text-decoration:none; cursor:pointer; }
-  .listing-owner { display:flex; align-items:center; gap:6px; margin-top:8px; }
-  .owner-avatar { width:20px; height:20px; border-radius:50%; object-fit:cover; background:var(--surface-3); }
-  .owner-name { font-size:11px; color:var(--text-2); }
-  .my-listing-badge { font-size:10px; color:var(--cyan); font-weight:600; background:var(--cyan-dim); padding:2px 7px; border-radius:6px; border:1px solid rgba(0,212,255,0.2); }
-  .delete-btn { background:rgba(255,69,58,0.12); border:1px solid rgba(255,69,58,0.2); color:var(--red); font-size:12px; font-weight:600; padding:6px 12px; border-radius:10px; cursor:pointer; font-family:inherit; }
+/* SEARCH */
+.sw{position:relative;margin-bottom:16px;}
+.si{width:100%;background:var(--surf);border:1px solid var(--border2);border-radius:12px;padding:11px 16px 11px 40px;color:var(--text);font-size:15px;font-family:inherit;outline:none;}
+.si:focus{border-color:var(--cyan);}
+.si::placeholder{color:var(--text3);}
+.sico{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:18px;height:18px;stroke:var(--text3);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;pointer-events:none;}
 
-  /* PROFILE SCREEN */
-  .profile-hero { background:linear-gradient(135deg,var(--surface) 0%,var(--surface-2) 100%); border-radius:20px; border:1px solid var(--border); padding:24px; margin-bottom:20px; text-align:center; }
-  .profile-avatar { width:80px; height:80px; border-radius:50%; object-fit:cover; border:3px solid var(--cyan); box-shadow:0 0 20px var(--cyan-glow); margin:0 auto 12px; display:block; }
-  .profile-name { font-size:20px; font-weight:700; letter-spacing:-0.4px; }
-  .profile-email { font-size:13px; color:var(--text-2); margin-top:4px; }
-  .profile-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:16px; }
-  .profile-menu { display:flex; flex-direction:column; gap:8px; }
-  .menu-item { display:flex; align-items:center; justify-content:space-between; background:var(--surface); border:1px solid var(--border-2); border-radius:14px; padding:14px 16px; cursor:pointer; transition:background 0.2s; }
-  .menu-item:active { background:var(--surface-2); }
-  .menu-item-left { display:flex; align-items:center; gap:12px; }
-  .menu-icon { width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; }
-  .menu-icon svg { width:18px; height:18px; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
-  .menu-label { font-size:14px; font-weight:500; }
-  .menu-arrow { color:var(--text-3); font-size:18px; }
-  .signout-btn { width:100%; background:rgba(255,69,58,0.1); border:1px solid rgba(255,69,58,0.2); color:var(--red); font-size:15px; font-weight:600; padding:14px; border-radius:14px; cursor:pointer; font-family:inherit; margin-top:8px; }
+/* COMMUNITY */
+.wgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px;}
+.wcard{background:var(--surf);border:1px solid var(--border2);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:8px;cursor:pointer;}
+.wcard:active{background:var(--surf2);}
+.wico{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;}
 
-  /* AUTH SCREEN */
-  .auth-screen { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100%; padding:40px 24px; }
-  .auth-logo { width:80px; height:80px; border-radius:24px; object-fit:cover; box-shadow:0 0 30px var(--cyan-glow); margin-bottom:16px; }
-  .auth-title { font-size:28px; font-weight:700; letter-spacing:-0.6px; margin-bottom:6px; background:linear-gradient(135deg,#fff,var(--cyan)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
-  .auth-sub { font-size:14px; color:var(--text-2); margin-bottom:40px; text-align:center; }
-  .auth-form { width:100%; max-width:360px; }
-  .auth-tabs { display:flex; background:var(--surface); border-radius:12px; padding:4px; margin-bottom:20px; }
-  .auth-tab { flex:1; padding:9px; text-align:center; font-size:14px; font-weight:600; border-radius:9px; cursor:pointer; color:var(--text-3); transition:all 0.2s; }
-  .auth-tab.active { background:var(--surface-3); color:var(--text); }
-  .form-group { margin-bottom:14px; }
-  .form-label { font-size:12px; font-weight:600; color:var(--text-2); margin-bottom:6px; display:block; text-transform:uppercase; letter-spacing:0.5px; }
-  .form-input { width:100%; background:var(--surface); border:1px solid var(--border-2); border-radius:12px; padding:12px 14px; color:var(--text); font-size:15px; font-family:inherit; outline:none; transition:border-color 0.2s; }
-  .form-input:focus { border-color:var(--cyan); }
-  .submit-btn { width:100%; background:var(--cyan); color:#000; font-size:16px; font-weight:700; padding:14px; border-radius:14px; border:none; cursor:pointer; font-family:inherit; margin-top:4px; }
-  .submit-btn:active { opacity:0.85; }
-  .divider { display:flex; align-items:center; gap:12px; margin:16px 0; }
-  .divider-line { flex:1; height:1px; background:var(--border-2); }
-  .divider-text { font-size:12px; color:var(--text-3); font-weight:500; }
-  .google-btn { width:100%; background:var(--surface); border:1px solid var(--border-2); color:var(--text); font-size:15px; font-weight:600; padding:13px; border-radius:14px; cursor:pointer; font-family:inherit; display:flex; align-items:center; justify-content:center; gap:10px; }
-  .google-btn:active { background:var(--surface-2); }
-  .auth-error { background:rgba(255,69,58,0.1); border:1px solid rgba(255,69,58,0.2); color:var(--red); font-size:13px; padding:10px 14px; border-radius:10px; margin-bottom:12px; display:none; }
-  .auth-error.show { display:block; }
+/* MARKET */
+.mhdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+.new-btn{display:flex;align-items:center;gap:6px;background:var(--cyan);color:#000;font-size:13px;font-weight:700;padding:9px 14px;border-radius:12px;border:none;cursor:pointer;font-family:inherit;}
+.new-btn svg{width:16px;height:16px;stroke:#000;fill:none;stroke-width:2.5;stroke-linecap:round;}
+.mtabs{display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;}
+.mtabs::-webkit-scrollbar{display:none;}
+.mtab{flex:none;padding:8px 16px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;border:none;white-space:nowrap;}
+.mtab.on{background:var(--cyan-dim);border:1px solid rgba(0,212,255,.2);color:var(--cyan);}
+.mtab.off{background:var(--surf);border:1px solid var(--border2);color:var(--text2);}
+.lgrid{display:flex;flex-direction:column;gap:12px;}
+.lcard{background:var(--surf);border:1px solid var(--border2);border-radius:16px;padding:14px;cursor:pointer;}
+.lcard:active{background:var(--surf2);}
+.ltitle{font-size:15px;font-weight:600;margin-bottom:6px;}
+.lrow{display:flex;align-items:center;justify-content:space-between;margin-top:8px;}
+.lprice{font-size:18px;font-weight:700;color:var(--cyan);}
+.lcond{font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;}
+.cn{background:rgba(48,209,88,.12);color:var(--green);border:1px solid rgba(48,209,88,.2);}
+.cu{background:var(--cyan-dim);color:var(--cyan);border:1px solid rgba(0,212,255,.2);}
+.lfooter{display:flex;align-items:center;justify-content:space-between;margin-top:10px;}
+.lloc{font-size:11px;color:var(--text2);}
+.lacts{display:flex;gap:8px;align-items:center;}
+.fbtn{width:32px;height:32px;border-radius:50%;background:var(--surf2);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.fbtn svg{width:16px;height:16px;stroke:var(--text3);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.fbtn.on svg{stroke:var(--red);fill:var(--red);}
+.wabtn{display:flex;align-items:center;gap:5px;background:rgba(37,211,102,.12);border:1px solid rgba(37,211,102,.2);color:#25D366;font-size:12px;font-weight:600;padding:6px 12px;border-radius:10px;cursor:pointer;}
+.delbtn{background:rgba(255,69,58,.12);border:1px solid rgba(255,69,58,.2);color:var(--red);font-size:12px;font-weight:600;padding:6px 12px;border-radius:10px;cursor:pointer;font-family:inherit;}
+.owner{display:flex;align-items:center;gap:6px;margin-top:8px;}
+.ow-av{width:20px;height:20px;border-radius:50%;background:var(--cyan-dim);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:var(--cyan);}
+.ow-n{font-size:11px;color:var(--text2);}
+.mybadge{font-size:10px;color:var(--cyan);font-weight:600;background:var(--cyan-dim);padding:2px 7px;border-radius:6px;border:1px solid rgba(0,212,255,.2);}
 
-  /* MODAL */
-  .modal-overlay { display:none; position:fixed; inset:0; z-index:300; background:rgba(0,0,0,0.7); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); align-items:flex-end; }
-  .modal-overlay.show { display:flex; }
-  .modal-sheet { background:var(--bg-2); border-radius:24px 24px 0 0; width:100%; padding:20px 20px calc(20px + var(--safe-bottom)); border-top:1px solid var(--border); max-height:90vh; overflow-y:auto; animation:slideUp 0.3s ease; }
-  @keyframes slideUp { from { transform:translateY(20px); opacity:0; } to { transform:translateY(0); opacity:1; } }
-  .modal-handle { width:36px; height:4px; border-radius:2px; background:var(--text-3); margin:0 auto 20px; }
-  .modal-title { font-size:18px; font-weight:700; margin-bottom:16px; }
-  .form-select { width:100%; background:var(--surface); border:1px solid var(--border-2); border-radius:12px; padding:12px 14px; color:var(--text); font-size:15px; font-family:inherit; outline:none; appearance:none; }
+/* SUPPORT */
+.mitem{display:flex;align-items:center;justify-content:space-between;background:var(--surf);border:1px solid var(--border2);border-radius:14px;padding:14px 16px;cursor:pointer;margin-bottom:10px;}
+.mitem:active{background:var(--surf2);}
+.mitem-l{display:flex;align-items:center;gap:12px;}
+.mico{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;}
+.mico svg{width:18px;height:18px;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+.mlabel{font-size:14px;font-weight:500;}
+.msub{font-size:11px;color:var(--text2);margin-top:2px;}
+.marr{color:var(--text3);font-size:18px;}
 
-  /* COMPARE */
-  .compare-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px; }
-  .phone-slot { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:16px; min-height:160px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; cursor:pointer; transition:background 0.2s; }
-  .phone-slot.filled { justify-content:flex-start; align-items:flex-start; cursor:default; }
-  .phone-slot:active { background:var(--surface-2); }
-  .slot-plus { width:40px; height:40px; border-radius:50%; border:2px dashed var(--text-3); display:flex; align-items:center; justify-content:center; }
-  .slot-plus svg { width:20px; height:20px; stroke:var(--text-3); fill:none; stroke-width:2; }
-  .slot-label { font-size:12px; color:var(--text-3); }
-  .phone-brand { font-size:10px; color:var(--cyan); font-weight:600; text-transform:uppercase; letter-spacing:0.5px; }
-  .phone-name { font-size:13px; font-weight:600; line-height:1.3; margin-top:2px; }
-  .phone-price { font-size:14px; font-weight:700; color:var(--cyan); margin-top:4px; }
-  .clear-slot { font-size:10px; color:var(--text-3); margin-top:4px; padding:2px 6px; background:var(--surface-3); border-radius:6px; border:none; cursor:pointer; font-family:inherit; }
-  .compare-table { background:var(--surface); border-radius:16px; border:1px solid var(--border-2); overflow:hidden; margin-bottom:20px; }
-  .compare-row { display:grid; grid-template-columns:1fr 1fr 1fr; border-bottom:1px solid var(--border-2); }
-  .compare-row:last-child { border-bottom:none; }
-  .compare-cell { padding:12px; font-size:12px; }
-  .compare-cell.label { color:var(--text-2); font-weight:500; background:rgba(0,212,255,0.03); }
-  .compare-cell.val { font-weight:500; }
-  .phone-search-list { display:flex; flex-direction:column; gap:8px; max-height:300px; overflow-y:auto; }
-  .phone-item { display:flex; align-items:center; justify-content:space-between; padding:12px; background:var(--surface); border-radius:12px; border:1px solid var(--border-2); cursor:pointer; }
-  .phone-item:active { background:var(--surface-2); }
-  .phone-item-name { font-size:14px; font-weight:600; }
-  .phone-item-spec { font-size:11px; color:var(--text-2); margin-top:2px; }
-  .phone-item-price { font-size:13px; font-weight:700; color:var(--cyan); }
-  .add-badge { background:var(--cyan-dim); color:var(--cyan); font-size:11px; font-weight:600; padding:4px 10px; border-radius:8px; border:1px solid rgba(0,212,255,0.2); }
+/* PROFILE / AUTH */
+.phero{background:linear-gradient(135deg,var(--surf),var(--surf2));border-radius:20px;border:1px solid var(--border);padding:24px;margin-bottom:20px;text-align:center;}
+.pav{width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid var(--cyan);box-shadow:0 0 20px var(--cyan-glow);margin:0 auto 12px;display:block;}
+.pname{font-size:20px;font-weight:700;}
+.pemail{font-size:13px;color:var(--text2);margin-top:4px;}
+.pmenu{display:flex;flex-direction:column;gap:8px;}
+.signout{width:100%;background:rgba(255,69,58,.1);border:1px solid rgba(255,69,58,.2);color:var(--red);font-size:15px;font-weight:600;padding:14px;border-radius:14px;cursor:pointer;font-family:inherit;margin-top:8px;}
+.admin-badge{background:linear-gradient(135deg,var(--cyan),#0080ff);color:#000;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;margin-left:8px;}
+.apanel{background:rgba(0,212,255,.05);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:16px;}
+.aptitle{font-size:14px;font-weight:700;color:var(--cyan);margin-bottom:12px;display:flex;align-items:center;gap:6px;}
+.apstats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+.apbtn{width:100%;background:var(--surf2);border:1px solid var(--border2);color:var(--text);font-size:13px;font-weight:600;padding:10px;border-radius:10px;cursor:pointer;font-family:inherit;margin-bottom:8px;}
+.apbtn.red{background:rgba(255,69,58,.1);border-color:rgba(255,69,58,.2);color:var(--red);}
 
-  /* MISC */
-  .glow-line { height:1px; background:linear-gradient(90deg,transparent,var(--cyan),transparent); margin:20px 0; opacity:0.3; }
-  .loading-wrap { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:60px 20px; gap:16px; }
-  .spinner { width:32px; height:32px; border:2px solid var(--border); border-top-color:var(--cyan); border-radius:50%; animation:spin 0.8s linear infinite; }
-  @keyframes spin { to { transform:rotate(360deg); } }
-  .loading-text { font-size:14px; color:var(--text-2); }
-  .error-wrap { display:flex; flex-direction:column; align-items:center; padding:60px 20px; gap:12px; text-align:center; }
-  .retry-btn { background:var(--cyan-dim); border:1px solid rgba(0,212,255,0.3); color:var(--cyan); font-size:14px; font-weight:600; padding:10px 24px; border-radius:12px; cursor:pointer; font-family:inherit; }
-  .no-results { text-align:center; padding:40px 20px; color:var(--text-2); font-size:14px; }
-  .coming-soon { display:flex; flex-direction:column; align-items:center; padding:60px 24px; gap:16px; text-align:center; }
-  .cs-icon { width:64px; height:64px; background:var(--cyan-dim); border:1px solid rgba(0,212,255,0.2); border-radius:20px; display:flex; align-items:center; justify-content:center; }
-  .cs-icon svg { width:30px; height:30px; stroke:var(--cyan); fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
-  .cs-title { font-size:20px; font-weight:700; }
-  .cs-desc { font-size:14px; color:var(--text-2); line-height:1.6; max-width:280px; }
-  .empty-state { text-align:center; padding:60px 24px; }
-  .empty-icon { font-size:48px; margin-bottom:16px; }
-  .empty-title { font-size:18px; font-weight:600; margin-bottom:8px; }
-  .empty-desc { font-size:14px; color:var(--text-2); line-height:1.5; }
+/* AUTH FORM */
+.auth-wrap{display:flex;flex-direction:column;align-items:center;padding:40px 24px;}
+.auth-logo{width:80px;height:80px;border-radius:24px;object-fit:cover;box-shadow:0 0 30px var(--cyan-glow);margin-bottom:16px;}
+.auth-title{font-size:28px;font-weight:700;letter-spacing:-.6px;margin-bottom:6px;background:linear-gradient(135deg,#fff,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.auth-sub{font-size:14px;color:var(--text2);margin-bottom:32px;text-align:center;}
+.auth-form{width:100%;}
+.atabs{display:flex;background:var(--surf);border-radius:12px;padding:4px;margin-bottom:20px;}
+.atab{flex:1;padding:9px;text-align:center;font-size:14px;font-weight:600;border-radius:9px;cursor:pointer;color:var(--text3);}
+.atab.on{background:var(--surf3);color:var(--text);}
+.fg{margin-bottom:14px;}
+.fl{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px;display:block;text-transform:uppercase;letter-spacing:.5px;}
+.fi{width:100%;background:var(--surf);border:1px solid var(--border2);border-radius:12px;padding:12px 14px;color:var(--text);font-size:15px;font-family:inherit;outline:none;}
+.fi:focus{border-color:var(--cyan);}
+.sbtn{width:100%;background:var(--cyan);color:#000;font-size:16px;font-weight:700;padding:14px;border-radius:14px;border:none;cursor:pointer;font-family:inherit;margin-top:4px;}
+.divider{display:flex;align-items:center;gap:12px;margin:16px 0;}
+.dline{flex:1;height:1px;background:var(--border2);}
+.dtxt{font-size:12px;color:var(--text3);font-weight:500;}
+.gbtn{width:100%;background:var(--surf);border:1px solid var(--border2);color:var(--text);font-size:15px;font-weight:600;padding:13px;border-radius:14px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:10px;}
+.gbtn:active{background:var(--surf2);}
+.aerr{background:rgba(255,69,58,.1);border:1px solid rgba(255,69,58,.2);color:var(--red);font-size:13px;padding:10px 14px;border-radius:10px;margin-bottom:12px;display:none;}
+.aerr.on{display:block;}
+
+/* MODAL */
+.mo{display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);align-items:flex-end;}
+.mo.on{display:flex;}
+.ms{background:var(--bg2);border-radius:24px 24px 0 0;width:100%;padding:20px 20px calc(20px + var(--safe-bot));border-top:1px solid var(--border);max-height:90vh;overflow-y:auto;animation:su .3s ease;}
+@keyframes su{from{transform:translateY(20px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.mh{width:36px;height:4px;border-radius:2px;background:var(--text3);margin:0 auto 20px;}
+.mtitle{font-size:18px;font-weight:700;margin-bottom:16px;}
+.fsel{width:100%;background:var(--surf);border:1px solid var(--border2);border-radius:12px;padding:12px 14px;color:var(--text);font-size:15px;font-family:inherit;outline:none;appearance:none;}
+
+/* COMPARE */
+.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
+.cslot{background:var(--surf);border:1px solid var(--border);border-radius:16px;padding:16px;min-height:140px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer;}
+.cslot.filled{align-items:flex-start;cursor:default;}
+.cplus{width:40px;height:40px;border-radius:50%;border:2px dashed var(--text3);display:flex;align-items:center;justify-content:center;}
+.cplus svg{width:20px;height:20px;stroke:var(--text3);fill:none;stroke-width:2;}
+.clbl{font-size:12px;color:var(--text3);}
+.pbrand{font-size:10px;color:var(--cyan);font-weight:600;text-transform:uppercase;}
+.pname2{font-size:13px;font-weight:600;line-height:1.3;margin-top:2px;}
+.pprice{font-size:14px;font-weight:700;color:var(--cyan);margin-top:4px;}
+.clrbtn{font-size:10px;color:var(--text3);margin-top:4px;padding:2px 6px;background:var(--surf3);border-radius:6px;border:none;cursor:pointer;font-family:inherit;}
+.ctable{background:var(--surf);border-radius:16px;border:1px solid var(--border2);overflow:hidden;margin-bottom:20px;}
+.crow{display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--border2);}
+.crow:last-child{border-bottom:none;}
+.ccell{padding:11px;font-size:12px;}
+.ccell.lbl{color:var(--text2);font-weight:500;background:rgba(0,212,255,.03);}
+.ccell.val{font-weight:500;}
+.plist{display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto;}
+.pitem{display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--surf);border-radius:12px;border:1px solid var(--border2);cursor:pointer;}
+.pitem:active{background:var(--surf2);}
+.pname3{font-size:14px;font-weight:600;}
+.pspec{font-size:11px;color:var(--text2);margin-top:2px;}
+.pprice2{font-size:13px;font-weight:700;color:var(--cyan);}
+.addbdg{background:var(--cyan-dim);color:var(--cyan);font-size:11px;font-weight:600;padding:4px 10px;border-radius:8px;border:1px solid rgba(0,212,255,.2);}
 </style>
 </head>
 <body>
 <div id="app">
 
-  <!-- HEADER -->
-  <div id="header">
-    <div class="header-inner">
-      <div class="logo-wrap">
-        <img class="logo-icon" src="teknohane.png" alt="Teknohane" onerror="this.style.display='none'">
-        <span class="logo-text">Teknohane</span>
+<div id="hdr">
+  <div class="hdr-in">
+    <div class="logo">
+      <img src="teknohane.png" alt="" onerror="this.style.display='none'">
+      <span>Teknohane</span>
+    </div>
+    <div class="hdr-acts">
+      <div class="hbtn" onclick="openLink('https://youtube.com/@teknohaane')">
+        <svg viewBox="0 0 24 24"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z" stroke="var(--text2)"/><polygon fill="white" stroke="none" points="9.75,15.02 15.5,12 9.75,8.98 9.75,15.02"/></svg>
       </div>
-      <div class="header-actions">
-        <div class="header-btn" onclick="openLink('https://youtube.com/@teknohaane')">
-          <svg viewBox="0 0 24 24"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z" stroke="var(--text-2)"/><polygon fill="white" stroke="none" points="9.75,15.02 15.5,12 9.75,8.98 9.75,15.02"/></svg>
+      <div class="hbtn" id="hav" style="display:none;overflow:hidden" onclick="goTab('profile')">
+        <img id="hav-img" src="" alt="">
+      </div>
+      <div class="hbtn" id="hlogin" onclick="goTab('profile')">
+        <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="screens">
+
+  <!-- HOME -->
+  <div class="screen active" id="screen-home">
+    <div class="sc" id="home-content">
+      <div class="load"><div class="spin"></div><span>Videolar yükleniyor…</span></div>
+    </div>
+  </div>
+
+  <!-- COMPARE -->
+  <div class="screen" id="screen-compare">
+    <div class="sc">
+      <div class="sh"><span class="st">Karşılaştır</span></div>
+      <div class="cgrid">
+        <div class="cslot" id="slot-a" onclick="openPicker('a')">
+          <div class="cplus"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+          <div class="clbl">Telefon ekle</div>
         </div>
-        <div class="header-btn avatar-btn" id="profile-btn" onclick="switchTab(document.querySelector('[data-screen=profile]'))" style="display:none">
-          <img id="header-avatar" src="" alt="">
+        <div class="cslot" id="slot-b" onclick="openPicker('b')">
+          <div class="cplus"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+          <div class="clbl">Telefon ekle</div>
         </div>
-        <div class="header-btn" id="login-btn" onclick="switchTab(document.querySelector('[data-screen=profile]'))">
-          <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </div>
+      <div id="cmp-result"></div>
+    </div>
+  </div>
+
+  <!-- COMMUNITY -->
+  <div class="screen" id="screen-community">
+    <div class="sc">
+      <div class="sh"><span class="st">Topluluk</span></div>
+      <div class="wgrid">
+        <div class="wcard" onclick="openLink('https://chat.whatsapp.com/Ev6qkOSW0FjDRuEiQ80l61')" style="grid-column:span 2">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div class="wico" style="background:rgba(37,211,102,.12);width:48px;height:48px;min-width:48px">
+              <svg viewBox="0 0 24 24" fill="#25D366" width="26" height="26"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.998 2C6.477 2 2 6.477 2 12c0 1.989.574 3.842 1.565 5.408L2 22l4.757-1.535A9.958 9.958 0 0 0 11.998 22c5.523 0 10-4.477 10-10S17.521 2 11.998 2z"/></svg>
+            </div>
+            <div>
+              <div style="font-size:15px;font-weight:600">Teknohane WhatsApp Kanalı</div>
+              <div style="font-size:11px;color:var(--text2);margin-top:4px">Sohbet, Satış ve Fotoğraf gruplarına buradan katıl</div>
+            </div>
+          </div>
+        </div>
+        <div class="wcard" onclick="openLink('https://www.instagram.com/teknohaane/')">
+          <div class="wico" style="background:rgba(193,53,132,.1)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="url(#ig1)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><defs><linearGradient id="ig1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#F58529"/><stop offset="50%" stop-color="#DD2A7B"/><stop offset="100%" stop-color="#8134AF"/></linearGradient></defs><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.5" fill="#DD2A7B" stroke="none"/></svg>
+          </div>
+          <div style="font-size:13px;font-weight:600">Instagram</div>
+          <div style="font-size:11px;color:var(--text2)">Sayfamızı takip et</div>
+        </div>
+        <div class="wcard" onclick="openLink('https://youtube.com/@teknohaane')">
+          <div class="wico" style="background:rgba(255,0,0,.1)">
+            <svg viewBox="0 0 24 24" fill="none"><path stroke="#FF3B30" stroke-width="1.8" d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon fill="#FF3B30" stroke="none" points="9.75,15.02 15.5,12 9.75,8.98 9.75,15.02"/></svg>
+          </div>
+          <div style="font-size:13px;font-weight:600">YouTube</div>
+          <div style="font-size:11px;color:var(--text2)">Kanalımıza abone ol</div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- SCREENS -->
-  <div id="screens">
-
-    <!-- İÇERİK -->
-    <div class="screen active" id="screen-home">
-      <div class="screen-content" id="home-content">
-        <div class="loading-wrap"><div class="spinner"></div><div class="loading-text">Videolar yükleniyor…</div></div>
+  <!-- MARKET -->
+  <div class="screen" id="screen-market">
+    <div class="sc">
+      <div class="mhdr">
+        <span class="st">İkinci El</span>
+        <button class="new-btn" onclick="newListing()">
+          <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          İlan Ver
+        </button>
       </div>
-    </div>
-
-    <!-- KARŞILAŞTIRMA -->
-    <div class="screen" id="screen-compare">
-      <div class="screen-content">
-        <div class="section-head"><span class="section-title">Karşılaştır</span></div>
-        <div class="compare-grid">
-          <div class="phone-slot" id="slot-a" onclick="openPhonePicker('a')">
-            <div class="slot-plus"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
-            <div class="slot-label">Telefon ekle</div>
-          </div>
-          <div class="phone-slot" id="slot-b" onclick="openPhonePicker('b')">
-            <div class="slot-plus"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
-            <div class="slot-label">Telefon ekle</div>
-          </div>
-        </div>
-        <div id="compare-result"></div>
+      <div class="sw">
+        <svg class="sico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="si" type="text" placeholder="İlan ara…" id="market-search" oninput="renderListings()">
       </div>
-    </div>
-
-    <!-- TOPLULUK -->
-    <div class="screen" id="screen-community">
-      <div class="screen-content">
-        <div class="section-head"><span class="section-title">Topluluk</span></div>
-        <div class="wa-grid">
-          <div class="wa-card" onclick="openLink('https://chat.whatsapp.com/Ev6qkOSW0FjDRuEiQ80l61')" style="grid-column:span 2">
-            <div style="display:flex;align-items:center;gap:12px">
-              <div class="wa-card-icon" style="background:rgba(37,211,102,0.12);width:48px;height:48px;min-width:48px">
-                <svg viewBox="0 0 24 24" fill="#25D366" width="26" height="26"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.998 2C6.477 2 2 6.477 2 12c0 1.989.574 3.842 1.565 5.408L2 22l4.757-1.535A9.958 9.958 0 0 0 11.998 22c5.523 0 10-4.477 10-10S17.521 2 11.998 2z"/></svg>
-              </div>
-              <div>
-                <div style="font-size:15px;font-weight:600;color:var(--text)">Teknohane WhatsApp Kanalı</div>
-                <div style="font-size:11px;color:var(--text-2);margin-top:4px">Sohbet, Satış ve Fotoğraf gruplarına buradan katıl</div>
-              </div>
-            </div>
-          </div>
-          <div class="wa-card" onclick="openLink('https://www.instagram.com/teknohaane/')">
-            <div class="wa-card-icon" style="background:rgba(193,53,132,0.1)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="url(#ig-grad)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <defs><linearGradient id="ig-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#F58529"/><stop offset="50%" stop-color="#DD2A7B"/><stop offset="100%" stop-color="#8134AF"/></linearGradient></defs>
-                <rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.5" fill="#DD2A7B" stroke="none"/>
-              </svg>
-            </div>
-            <div style="font-size:13px;font-weight:600">Instagram</div>
-            <div style="font-size:11px;color:var(--text-2)">Sayfamızı takip et</div>
-          </div>
-          <div class="wa-card" onclick="openLink('https://youtube.com/@teknohaane')">
-            <div class="wa-card-icon" style="background:rgba(255,0,0,0.1)">
-              <svg viewBox="0 0 24 24" fill="none"><path stroke="#FF3B30" stroke-width="1.8" d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon fill="#FF3B30" stroke="none" points="9.75,15.02 15.5,12 9.75,8.98 9.75,15.02"/></svg>
-            </div>
-            <div style="font-size:13px;font-weight:600">YouTube</div>
-            <div style="font-size:11px;color:var(--text-2)">Kanalımıza abone ol</div>
-          </div>
-        </div>
-        <div class="glow-line"></div>
-        <div class="coming-soon" style="padding:40px 24px">
-          <div class="cs-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
-          <div class="cs-title">Topluluk Forumu</div>
-          <div class="cs-desc">Soru sor, deneyimlerini paylaş — yakında geliyor.</div>
-        </div>
+      <div class="mtabs">
+        <button class="mtab on" onclick="setMTab('all',this)">Tümü</button>
+        <button class="mtab off" onclick="setMTab('fav',this)">❤️ Favoriler</button>
+        <button class="mtab off" onclick="setMTab('mine',this)">İlanlarım</button>
       </div>
-    </div>
-
-    <!-- PAZAR -->
-    <div class="screen" id="screen-market">
-      <div class="screen-content" style="min-height:100%">
-        <div class="market-header">
-          <span class="section-title">İkinci El</span>
-          <button class="new-listing-btn" onclick="handleNewListing()">
-            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            İlan Ver
-          </button>
-        </div>
-        <div class="search-wrap">
-          <svg class="search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input class="search-input" type="text" placeholder="İlan ara…" oninput="filterListings(this.value)">
-        </div>
-        <div id="market-tabs" style="display:flex;gap:8px;margin-bottom:16px;overflow-x:auto">
-          <button onclick="setMarketTab('all',this)" style="flex:none;padding:8px 16px;border-radius:10px;background:var(--cyan-dim);border:1px solid rgba(0,212,255,0.2);color:var(--cyan);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">Tümü</button>
-          <button onclick="setMarketTab('favorites',this)" style="flex:none;padding:8px 16px;border-radius:10px;background:var(--surface);border:1px solid var(--border-2);color:var(--text-2);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">❤️ Favoriler</button>
-          <button onclick="setMarketTab('mine',this)" style="flex:none;padding:8px 16px;border-radius:10px;background:var(--surface);border:1px solid var(--border-2);color:var(--text-2);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">İlanlarım</button>
-        </div>
-        <div id="listing-grid" style="display:flex;flex-direction:column;gap:12px">
-          <div class="loading-wrap"><div class="spinner"></div><div class="loading-text">İlanlar yükleniyor…</div></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- DESTEK -->
-    <div class="screen" id="screen-support">
-      <div class="screen-content">
-        <div class="section-head"><span class="section-title">Destek</span></div>
-
-        <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px">
-          <div class="menu-item" onclick="openLink('https://wa.me/905519589317')">
-            <div class="menu-item-left">
-              <div class="menu-icon" style="background:rgba(37,211,102,0.12)">
-                <svg viewBox="0 0 24 24" fill="#25D366" width="18" height="18"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.998 2C6.477 2 2 6.477 2 12c0 1.989.574 3.842 1.565 5.408L2 22l4.757-1.535A9.958 9.958 0 0 0 11.998 22c5.523 0 10-4.477 10-10S17.521 2 11.998 2z"/></svg>
-              </div>
-              <div>
-                <div class="menu-label">WhatsApp Destek</div>
-                <div style="font-size:11px;color:var(--text-2);margin-top:2px">+90 551 958 93 17</div>
-              </div>
-            </div>
-            <span class="menu-arrow">›</span>
-          </div>
-
-          <div class="menu-item" onclick="openLink('mailto:teknohaane@hotmail.com')">
-            <div class="menu-item-left">
-              <div class="menu-icon" style="background:rgba(0,212,255,0.1)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-              </div>
-              <div>
-                <div class="menu-label">E-posta Destek</div>
-                <div style="font-size:11px;color:var(--text-2);margin-top:2px">teknohaane@hotmail.com</div>
-              </div>
-            </div>
-            <span class="menu-arrow">›</span>
-          </div>
-
-          <div class="menu-item" onclick="openLink('https://youtube.com/@teknohaane')">
-            <div class="menu-item-left">
-              <div class="menu-icon" style="background:rgba(255,0,0,0.1)">
-                <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path stroke="#FF3B30" stroke-width="1.8" d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon fill="#FF3B30" stroke="none" points="9.75,15.02 15.5,12 9.75,8.98 9.75,15.02"/></svg>
-              </div>
-              <div>
-                <div class="menu-label">YouTube Kanalı</div>
-                <div style="font-size:11px;color:var(--text-2);margin-top:2px">@teknohaane</div>
-              </div>
-            </div>
-            <span class="menu-arrow">›</span>
-          </div>
-
-          <div class="menu-item" onclick="openLink('https://www.instagram.com/teknohaane/')">
-            <div class="menu-item-left">
-              <div class="menu-icon" style="background:rgba(193,53,132,0.1)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="url(#ig-grad2)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
-                  <defs><linearGradient id="ig-grad2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#F58529"/><stop offset="50%" stop-color="#DD2A7B"/><stop offset="100%" stop-color="#8134AF"/></linearGradient></defs>
-                  <rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.5" fill="#DD2A7B" stroke="none"/>
-                </svg>
-              </div>
-              <div>
-                <div class="menu-label">Instagram</div>
-                <div style="font-size:11px;color:var(--text-2);margin-top:2px">@teknohaane</div>
-              </div>
-            </div>
-            <span class="menu-arrow">›</span>
-          </div>
-        </div>
-
-        <div class="glow-line"></div>
-        <div style="text-align:center;padding:20px 0">
-          <div style="font-size:13px;color:var(--text-3)">Teknohane v1.0</div>
-          <div style="font-size:11px;color:var(--text-3);margin-top:4px">Telefon meraklıları topluluğu</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- PROFİL / GİRİŞ -->
-    <div class="screen" id="screen-profile">
-      <div class="screen-content" id="profile-content">
-        <div class="loading-wrap"><div class="spinner"></div></div>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- TAB BAR -->
-  <div id="tabs">
-    <div class="tab-bar">
-      <div class="tab active" data-screen="home" onclick="switchTab(this)">
-        <div class="tab-icon"><svg viewBox="0 0 24 24"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon fill="currentColor" stroke="none" points="9.75,15.02 15.5,12 9.75,8.98 9.75,15.02"/></svg></div>
-        <span class="tab-label">İçerik</span>
-      </div>
-      <div class="tab" data-screen="compare" onclick="switchTab(this)">
-        <div class="tab-icon"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="9" height="18" rx="2"/><rect x="13" y="3" width="9" height="18" rx="2"/></svg></div>
-        <span class="tab-label">Karşılaştır</span>
-      </div>
-      <div class="tab" data-screen="community" onclick="switchTab(this)">
-        <div class="tab-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
-        <span class="tab-label">Topluluk</span>
-      </div>
-      <div class="tab" data-screen="market" onclick="switchTab(this)">
-        <div class="tab-icon"><svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div>
-        <span class="tab-label">Pazar</span>
-      </div>
-      <div class="tab" data-screen="support" onclick="switchTab(this)">
-        <div class="tab-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
-        <span class="tab-label">Destek</span>
-      </div>
-      <div class="tab" data-screen="profile" onclick="switchTab(this)">
-        <div class="tab-icon"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
-        <span class="tab-label">Profil</span>
+      <div id="lgrid" class="lgrid">
+        <div class="load"><div class="spin"></div><span>İlanlar yükleniyor…</span></div>
       </div>
     </div>
   </div>
+
+  <!-- SUPPORT -->
+  <div class="screen" id="screen-support">
+    <div class="sc">
+      <div class="sh"><span class="st">Destek</span></div>
+      <div class="mitem" onclick="openLink('https://wa.me/905519589317')">
+        <div class="mitem-l">
+          <div class="mico" style="background:rgba(37,211,102,.12)"><svg viewBox="0 0 24 24" fill="#25D366" width="18" height="18"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.998 2C6.477 2 2 6.477 2 12c0 1.989.574 3.842 1.565 5.408L2 22l4.757-1.535A9.958 9.958 0 0 0 11.998 22c5.523 0 10-4.477 10-10S17.521 2 11.998 2z"/></svg></div>
+          <div><div class="mlabel">WhatsApp Destek</div><div class="msub">+90 551 958 93 17</div></div>
+        </div><span class="marr">›</span>
+      </div>
+      <div class="mitem" onclick="openLink('mailto:teknohaane@hotmail.com')">
+        <div class="mitem-l">
+          <div class="mico" style="background:rgba(0,212,255,.1)"><svg viewBox="0 0 24 24" stroke="var(--cyan)" width="18" height="18"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+          <div><div class="mlabel">E-posta</div><div class="msub">teknohaane@hotmail.com</div></div>
+        </div><span class="marr">›</span>
+      </div>
+      <div class="mitem" onclick="openLink('https://youtube.com/@teknohaane')">
+        <div class="mitem-l">
+          <div class="mico" style="background:rgba(255,0,0,.1)"><svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path stroke="#FF3B30" stroke-width="1.8" d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon fill="#FF3B30" stroke="none" points="9.75,15.02 15.5,12 9.75,8.98 9.75,15.02"/></svg></div>
+          <div><div class="mlabel">YouTube</div><div class="msub">@teknohaane</div></div>
+        </div><span class="marr">›</span>
+      </div>
+      <div class="glow"></div>
+      <div style="text-align:center;padding:16px 0"><div style="font-size:13px;color:var(--text3)">Teknohane v1.0</div></div>
+    </div>
+  </div>
+
+  <!-- PROFILE -->
+  <div class="screen" id="screen-profile">
+    <div class="sc" id="profile-content">
+      <div class="load"><div class="spin"></div></div>
+    </div>
+  </div>
+
+</div>
+
+<div id="tabs">
+  <div class="tbar">
+    <div class="tab active" data-s="home" onclick="goTab('home')">
+      <div class="tico"><svg viewBox="0 0 24 24"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon fill="currentColor" stroke="none" points="9.75,15.02 15.5,12 9.75,8.98 9.75,15.02"/></svg></div>
+      <span>İçerik</span>
+    </div>
+    <div class="tab" data-s="compare" onclick="goTab('compare')">
+      <div class="tico"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="9" height="18" rx="2"/><rect x="13" y="3" width="9" height="18" rx="2"/></svg></div>
+      <span>Karşılaştır</span>
+    </div>
+    <div class="tab" data-s="community" onclick="goTab('community')">
+      <div class="tico"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+      <span>Topluluk</span>
+    </div>
+    <div class="tab" data-s="market" onclick="goTab('market')">
+      <div class="tico"><svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div>
+      <span>Pazar</span>
+    </div>
+    <div class="tab" data-s="support" onclick="goTab('support')">
+      <div class="tico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+      <span>Destek</span>
+    </div>
+    <div class="tab" data-s="profile" onclick="goTab('profile')">
+      <div class="tico"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+      <span>Profil</span>
+    </div>
+  </div>
+</div>
 
 </div>
 
 <!-- PHONE PICKER MODAL -->
-<div class="modal-overlay" id="phone-picker-modal" onclick="closeModal('phone-picker-modal')">
-  <div class="modal-sheet" onclick="event.stopPropagation()">
-    <div class="modal-handle"></div>
-    <div class="modal-title">Telefon Seç</div>
-    <div class="search-wrap" style="margin-bottom:12px">
-      <svg class="search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input class="search-input" type="text" placeholder="Marka veya model ara…" oninput="filterPhones(this.value)" id="phone-search-input">
+<div class="mo" id="picker-mo" onclick="closeMo('picker-mo')">
+  <div class="ms" onclick="event.stopPropagation()">
+    <div class="mh"></div>
+    <div class="mtitle">Telefon Seç</div>
+    <div class="sw" style="margin-bottom:12px">
+      <svg class="sico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="si" type="text" id="psearch" placeholder="Marka veya model ara…" oninput="filterPhones(this.value)">
     </div>
-    <div class="phone-search-list" id="phone-search-list"></div>
+    <div class="plist" id="plist"></div>
   </div>
 </div>
 
 <!-- NEW LISTING MODAL -->
-<div class="modal-overlay" id="new-listing-modal" onclick="closeModal('new-listing-modal')">
-  <div class="modal-sheet" onclick="event.stopPropagation()">
-    <div class="modal-handle"></div>
-    <div class="modal-title">İlan Ver</div>
-    <div class="form-group"><label class="form-label">Telefon Modeli</label><input class="form-input" type="text" placeholder="Örn: Samsung Galaxy S24" id="listing-model"></div>
-    <div class="form-group"><label class="form-label">Fiyat (₺)</label><input class="form-input" type="number" placeholder="25000" id="listing-price"></div>
-    <div class="form-group"><label class="form-label">Durum</label><select class="form-select" id="listing-condition"><option>Sıfır</option><option>Az Kullanılmış</option><option>İkinci El</option></select></div>
-    <div class="form-group"><label class="form-label">Konum</label><input class="form-input" type="text" placeholder="Şehir / İlçe" id="listing-location"></div>
-    <div class="form-group"><label class="form-label">Açıklama</label><input class="form-input" type="text" placeholder="Kısa açıklama…" id="listing-desc"></div>
-    <div class="form-group"><label class="form-label">WhatsApp Numaranız</label><input class="form-input" type="tel" placeholder="5XXXXXXXXX" id="listing-phone"></div>
-    <button class="submit-btn" onclick="submitListing()">İlanı Yayınla</button>
+<div class="mo" id="listing-mo" onclick="closeMo('listing-mo')">
+  <div class="ms" onclick="event.stopPropagation()">
+    <div class="mh"></div>
+    <div class="mtitle">İlan Ver</div>
+    <div class="fg"><label class="fl">Telefon Modeli</label><input class="fi" type="text" id="l-model" placeholder="Örn: Samsung Galaxy S24"></div>
+    <div class="fg"><label class="fl">Fiyat (₺)</label><input class="fi" type="number" id="l-price" placeholder="25000"></div>
+    <div class="fg"><label class="fl">Durum</label><select class="fsel" id="l-cond"><option>Sıfır</option><option>Az Kullanılmış</option><option>İkinci El</option></select></div>
+    <div class="fg"><label class="fl">Konum</label><input class="fi" type="text" id="l-loc" placeholder="Şehir / İlçe"></div>
+    <div class="fg"><label class="fl">Açıklama</label><input class="fi" type="text" id="l-desc" placeholder="Kısa açıklama…"></div>
+    <div class="fg"><label class="fl">WhatsApp Numaranız</label><input class="fi" type="tel" id="l-phone" placeholder="5XXXXXXXXX"></div>
+    <button class="sbtn" onclick="submitListing()">İlanı Yayınla</button>
   </div>
 </div>
 
 <!-- FIREBASE -->
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script>
-// Debug kutusu
-function showDebug(msg) {
-  let d = document.getElementById('_debug');
-  if (!d) { d = document.createElement('div'); d.id = '_debug'; d.style.cssText = 'position:fixed;top:60px;left:0;right:0;z-index:9999;background:#FF453A;color:#fff;font-size:11px;padding:8px 12px;word-break:break-all;max-height:120px;overflow-y:auto'; document.body.appendChild(d); }
-  d.innerHTML += '<div>' + msg + '</div>';
-}
-window.onerror = (msg, src, line) => { showDebug('JS HATA: ' + msg + ' (satır:' + line + ')'); };
-window.onunhandledrejection = (e) => { showDebug('PROMISE HATA: ' + e.reason); };
-
-const firebaseConfig = {
-  apiKey: "AIzaSyADpIRNLQEIer_gplTgwKi_EKkfcyrYoqY",
-  authDomain: "maasgunu-bd353.firebaseapp.com",
-  projectId: "maasgunu-bd353",
-  storageBucket: "maasgunu-bd353.firebasestorage.app",
-  messagingSenderId: "485904329467",
-  appId: "1:485904329467:web:579d932ae8f25958901e5e"
-};
-
-firebase.initializeApp(firebaseConfig);
+firebase.initializeApp({
+  apiKey:"AIzaSyADpIRNLQEIer_gplTgwKi_EKkfcyrYoqY",
+  authDomain:"maasgunu-bd353.firebaseapp.com",
+  projectId:"maasgunu-bd353",
+  storageBucket:"maasgunu-bd353.firebasestorage.app",
+  messagingSenderId:"485904329467",
+  appId:"1:485904329467:web:579d932ae8f25958901e5e"
+});
 const auth = firebase.auth();
 const db = firebase.firestore();
+const ADMINS = ['yusuf.aykac@gmail.com','memetklc5933@gmail.com'];
 
-let currentUser = null;
-let userFavorites = new Set();
-let allListings = [];
-let marketTab = 'all';
+let user = null;
+let favs = new Set();
+let listings = [];
+let mTab = 'all';
+let listingsLoaded = false;
 
-// ── AUTH STATE ──
-auth.onAuthStateChanged( async user => {
-  try {
-    currentUser = user;
-    if (user) {
-      document.getElementById('profile-btn').style.display = 'flex';
-      document.getElementById('login-btn').style.display = 'none';
-      const img = document.getElementById('header-avatar');
-      if (user.photoURL) img.src = user.photoURL;
-      else img.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName||user.email)}&background=0D1526&color=00D4FF&size=64`;
-      await loadUserData();
-    } else {
-      document.getElementById('profile-btn').style.display = 'none';
-      document.getElementById('login-btn').style.display = 'flex';
-      userFavorites = new Set();
-    }
-    await renderProfile();
-    await loadListings();
-  } catch(e) {
-    console.error('Auth state error:', e);
-    loadListings();
+// ── AUTH ──
+auth.onAuthStateChanged(async u => {
+  user = u;
+  if (u) {
+    document.getElementById('hav').style.display = 'flex';
+    document.getElementById('hlogin').style.display = 'none';
+    document.getElementById('hav-img').src = u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.displayName||u.email)}&background=0D1526&color=00D4FF&size=64`;
+    try {
+      const snap = await db.collection('teknohane_users').doc(u.uid).get();
+      if (snap.exists) favs = new Set(snap.data().favorites || []);
+      else await db.collection('teknohane_users').doc(u.uid).set({favorites:[],createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+    } catch(e) {}
+  } else {
+    document.getElementById('hav').style.display = 'none';
+    document.getElementById('hlogin').style.display = 'flex';
+    favs = new Set();
   }
+  renderProfile();
+  loadListings();
 });
-
-// ── LOAD USER DATA ──
-async function loadUserData() {
-  if (!currentUser) return;
-  try {
-    const snap = await db.collection('teknohane_users').doc(currentUser.uid).get();
-    if (snap.exists) {
-      userFavorites = new Set(snap.data().favorites || []);
-    } else {
-      await db.collection('teknohane_users').doc(currentUser.uid).set({ favorites: [], createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-    }
-  } catch(e) { console.error(e); }
-}
 
 // ── LISTINGS ──
 async function loadListings() {
+  listingsLoaded = false;
   try {
     const snap = await db.collection('teknohane_listings').get();
-    allListings = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    allListings.sort((a, b) => (b.createdAt?.seconds||0) - (a.createdAt?.seconds||0));
+    listings = snap.docs.map(d => ({id:d.id,...d.data()}));
+    listings.sort((a,b) => (b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+    listingsLoaded = true;
     renderListings();
   } catch(e) {
-    console.error('loadListings hatası:', e);
-    showDebug('Firestore hata: ' + e.message);
+    listingsLoaded = true;
+    document.getElementById('lgrid').innerHTML = `<div class="empty"><div class="empty-ico">📡</div><div class="empty-t">Bağlantı hatası</div><div class="empty-d">${e.message}</div></div>`;
   }
 }
 
 function renderListings() {
-  const grid = document.getElementById('listing-grid');
+  const grid = document.getElementById('lgrid');
   if (!grid) return;
-  const search = document.querySelector('#screen-market .search-input')?.value?.toLowerCase() || '';
-  let items = allListings;
-  if (search) items = items.filter(l => l.model?.toLowerCase().includes(search));
-  if (marketTab === 'favorites') items = items.filter(l => userFavorites.has(l.id));
-  if (marketTab === 'mine') items = currentUser ? items.filter(l => l.uid === currentUser.uid) : [];
-
+  if (!listingsLoaded) { grid.innerHTML = '<div class="load"><div class="spin"></div><span>İlanlar yükleniyor…</span></div>'; return; }
+  const q = (document.getElementById('market-search')?.value||'').toLowerCase();
+  let items = listings.filter(l => !q || l.model?.toLowerCase().includes(q));
+  if (mTab === 'fav') items = items.filter(l => favs.has(l.id));
+  if (mTab === 'mine') items = user ? items.filter(l => l.uid === user.uid) : [];
   if (!items.length) {
-    grid.innerHTML = `<div class="empty-state"><div class="empty-icon">${marketTab==='favorites'?'❤️':marketTab==='mine'?'📋':'📭'}</div><div class="empty-title">${marketTab==='favorites'?'Favori yok':marketTab==='mine'?'İlan yok':'Henüz ilan yok'}</div><div class="empty-desc">${marketTab==='favorites'?'İlanları favorilere ekle':'İlk ilanı sen ver!'}</div></div>`;
+    grid.innerHTML = `<div class="empty"><div class="empty-ico">${mTab==='fav'?'❤️':mTab==='mine'?'📋':'📭'}</div><div class="empty-t">${mTab==='fav'?'Favori yok':mTab==='mine'?'İlan yok':'Henüz ilan yok'}</div><div class="empty-d">${mTab==='fav'?'İlan favorile':'İlk ilanı sen ver!'}</div></div>`;
     return;
   }
   grid.innerHTML = items.map(l => {
-    const isMine = currentUser && l.uid === currentUser.uid;
-    const isFav = userFavorites.has(l.id);
-    return `<div class="listing-card">
-      <div class="listing-title">${l.model||''}</div>
-      <div class="listing-row">
-        <div class="listing-price">₺${parseInt(l.price||0).toLocaleString('tr-TR')}</div>
-        <div class="listing-condition ${l.condition==='Sıfır'?'cond-new':'cond-used'}">${l.condition||''}</div>
+    const mine = user && l.uid === user.uid;
+    const fav = favs.has(l.id);
+    return `<div class="lcard">
+      <div class="ltitle">${l.model||''}</div>
+      <div class="lrow">
+        <div class="lprice">₺${parseInt(l.price||0).toLocaleString('tr-TR')}</div>
+        <div class="lcond ${l.condition==='Sıfır'?'cn':'cu'}">${l.condition||''}</div>
       </div>
-      ${l.desc?`<div style="font-size:12px;color:var(--text-2);margin-top:6px">${l.desc}</div>`:''}
-      <div class="listing-footer">
-        <div class="listing-loc">📍 ${l.location||'Belirtilmedi'}</div>
-        <div class="listing-actions">
-          <div class="fav-btn ${isFav?'active':''}" onclick="toggleFav('${l.id}',this)">
+      ${l.desc?`<div style="font-size:12px;color:var(--text2);margin-top:6px">${l.desc}</div>`:''}
+      <div class="lfooter">
+        <div class="lloc">📍 ${l.location||'Belirtilmedi'}</div>
+        <div class="lacts">
+          <div class="fbtn ${fav?'on':''}" onclick="toggleFav('${l.id}',this)">
             <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
           </div>
-          ${l.phone?`<div class="wa-contact-btn" onclick="openLink('https://wa.me/90${l.phone}')">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.998 2C6.477 2 2 6.477 2 12c0 1.989.574 3.842 1.565 5.408L2 22l4.757-1.535A9.958 9.958 0 0 0 11.998 22c5.523 0 10-4.477 10-10S17.521 2 11.998 2z"/></svg>
-            İletişim
-          </div>`:''}
-          ${isMine?`<button class="delete-btn" onclick="deleteListing('${l.id}')">Sil</button>`:''}
+          ${l.phone?`<div class="wabtn" onclick="openLink('https://wa.me/90${l.phone}')"><svg viewBox="0 0 24 24" width="14" height="14" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.998 2C6.477 2 2 6.477 2 12c0 1.989.574 3.842 1.565 5.408L2 22l4.757-1.535A9.958 9.958 0 0 0 11.998 22c5.523 0 10-4.477 10-10S17.521 2 11.998 2z"/></svg>İletişim</div>`:''}
+          ${mine?`<button class="delbtn" onclick="delListing('${l.id}')">Sil</button>`:''}
         </div>
       </div>
-      ${l.ownerName?`<div class="listing-owner"><div style="width:20px;height:20px;border-radius:50%;background:var(--cyan-dim);display:flex;align-items:center;justify-content:center;font-size:10px">${(l.ownerName||'?')[0]}</div><span class="owner-name">${l.ownerName}</span>${isMine?'<span class="my-listing-badge">Benim ilanım</span>':''}</div>`:''}
+      ${l.ownerName?`<div class="owner"><div class="ow-av">${(l.ownerName||'?')[0].toUpperCase()}</div><span class="ow-n">${l.ownerName}</span>${mine?'<span class="mybadge">Benim</span>':''}</div>`:''}
     </div>`;
   }).join('');
 }
 
-window.filterListings = (q) => renderListings();
-window.setMarketTab = (tab, el) => {
-  marketTab = tab;
-  document.querySelectorAll('#market-tabs button').forEach(b => {
-    b.style.background = 'var(--surface)'; b.style.color = 'var(--text-2)'; b.style.borderColor = 'var(--border-2)';
-  });
-  el.style.background = 'var(--cyan-dim)'; el.style.color = 'var(--cyan)'; el.style.borderColor = 'rgba(0,212,255,0.2)';
+function setMTab(t, el) {
+  mTab = t;
+  document.querySelectorAll('.mtab').forEach(b => { b.className = 'mtab off'; });
+  el.className = 'mtab on';
   renderListings();
-};
+}
 
-window.toggleFav = async (id, btn) => {
-  if (!currentUser) { switchTab(document.querySelector('[data-screen=profile]')); return; }
-  if (userFavorites.has(id)) { userFavorites.delete(id); btn.classList.remove('active'); }
-  else { userFavorites.add(id); btn.classList.add('active'); }
-  try {
-    await db.collection('teknohane_users').doc(currentUser.uid).set({ favorites: [...userFavorites] }, { merge: true });
-  } catch(e) { console.error(e); }
-};
+function newListing() {
+  if (!user) { goTab('profile'); return; }
+  document.getElementById('listing-mo').classList.add('on');
+}
 
-window.deleteListing = async (id) => {
-  if (!confirm('İlanı silmek istediğinize emin misiniz?')) return;
-  try {
-    await db.collection('teknohane_listings').doc(id).delete();
-    allListings = allListings.filter(l => l.id !== id);
-    renderListings();
-  } catch(e) { alert('Silinemedi'); }
-};
-
-window.handleNewListing = () => {
-  if (!currentUser) { switchTab(document.querySelector('[data-screen=profile]')); return; }
-  document.getElementById('new-listing-modal').classList.add('show');
-};
-
-window.submitListing = async () => {
-  if (!currentUser) return;
-  const model = document.getElementById('listing-model').value.trim();
-  const price = document.getElementById('listing-price').value.trim();
+async function submitListing() {
+  if (!user) return;
+  const model = document.getElementById('l-model').value.trim();
+  const price = document.getElementById('l-price').value.trim();
   if (!model || !price) { alert('Model ve fiyat zorunlu!'); return; }
   try {
     await db.collection('teknohane_listings').add({
       model, price,
-      condition: document.getElementById('listing-condition').value,
-      location: document.getElementById('listing-location').value.trim(),
-      desc: document.getElementById('listing-desc').value.trim(),
-      phone: document.getElementById('listing-phone').value.trim(),
-      uid: currentUser.uid,
-      ownerName: currentUser.displayName || currentUser.email?.split('@')[0] || 'Anonim',
+      condition: document.getElementById('l-cond').value,
+      location: document.getElementById('l-loc').value.trim(),
+      desc: document.getElementById('l-desc').value.trim(),
+      phone: document.getElementById('l-phone').value.trim(),
+      uid: user.uid,
+      ownerName: user.displayName || user.email?.split('@')[0] || 'Anonim',
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
-    closeModal('new-listing-modal');
-    ['listing-model','listing-price','listing-location','listing-desc','listing-phone'].forEach(id => document.getElementById(id).value = '');
+    closeMo('listing-mo');
+    ['l-model','l-price','l-loc','l-desc','l-phone'].forEach(id => document.getElementById(id).value = '');
     await loadListings();
-  } catch(e) { alert('İlan yayınlanamadı: ' + e.message); }
-};
-
-// ── ADMIN ──
-const ADMIN_EMAILS = ['yusuf.aykac@gmail.com', 'memetklc5933@gmail.com'];
-let isAdmin = false;
-
-async function checkAdmin() {
-  if (!currentUser) { isAdmin = false; return; }
-  isAdmin = ADMIN_EMAILS.includes(currentUser.email);
+  } catch(e) { alert('Hata: ' + e.message); }
 }
 
-window.renderAdminPanel = async () => {
-  const totalUsers = allListings.map(l => l.uid).filter((v,i,a) => a.indexOf(v)===i).length;
-  return `
-    <div class="admin-panel">
-      <div class="admin-title">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        Yönetici Paneli
-      </div>
-      <div class="admin-stat-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">
-        <div class="stat-box" style="padding:8px;text-align:center"><div class="stat-num" style="font-size:16px">${allListings.length}</div><div class="stat-label" style="font-size:9px">İlan</div></div>
-        <div class="stat-box" style="padding:8px;text-align:center"><div class="stat-num" style="font-size:16px">${totalUsers}</div><div class="stat-label" style="font-size:9px">Satıcı</div></div>
-        <div class="stat-box" style="padding:8px;text-align:center"><div class="stat-num" style="font-size:16px">${allListings.filter(l=>l.condition==='Sıfır').length}</div><div class="stat-label" style="font-size:9px">Sıfır</div></div>
-      </div>
-      <button class="admin-action-btn" onclick="adminLoadAllListings()">📋 Tüm İlanları Gör</button>
-      <button class="admin-action-btn danger" onclick="adminDeleteListing()">🗑️ İlan Sil (ID ile)</button>
-    </div>`;
-};
+async function toggleFav(id, btn) {
+  if (!user) { goTab('profile'); return; }
+  if (favs.has(id)) { favs.delete(id); btn.classList.remove('on'); }
+  else { favs.add(id); btn.classList.add('on'); }
+  try { await db.collection('teknohane_users').doc(user.uid).set({favorites:[...favs]},{merge:true}); } catch(e) {}
+}
 
-window.adminLoadAllListings = () => {
-  setMarketTab('all', document.querySelectorAll('#market-tabs button')[0]);
-  switchTab(document.querySelector('[data-screen=market]'));
-};
-
-window.adminDeleteListing = async () => {
-  const id = prompt('Silinecek ilan ID:');
-  if (!id) return;
+async function delListing(id) {
+  if (!confirm('İlan silinsin mi?')) return;
   try {
     await db.collection('teknohane_listings').doc(id).delete();
-    allListings = allListings.filter(l => l.id !== id);
+    listings = listings.filter(l => l.id !== id);
     renderListings();
-    alert('İlan silindi');
-  } catch(e) { alert('Hata: ' + e.message); }
-};
+  } catch(e) { alert('Silinemedi'); }
+}
 
-// ── PROFILE (Admin dahil) ──
-window.renderProfile = async () => {
-  const container = document.getElementById('profile-content');
-  if (currentUser) {
-    await checkAdmin();
-    const myListings = allListings.filter(l => l.uid === currentUser.uid);
-    const avatar = currentUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.displayName||currentUser.email)}&background=0D1526&color=00D4FF&size=128`;
-    const adminHTML = isAdmin ? await renderAdminPanel() : '';
-    container.innerHTML = `
-      <div class="profile-hero">
-        <img class="profile-avatar" src="${avatar}" alt="">
+// ── PROFILE ──
+async function renderProfile() {
+  const c = document.getElementById('profile-content');
+  if (!c) return;
+  const isAdmin = user && ADMINS.includes(user.email);
+  if (user) {
+    const myCount = listings.filter(l => l.uid === user.uid).length;
+    const av = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName||user.email)}&background=0D1526&color=00D4FF&size=128`;
+    const adminHtml = isAdmin ? `
+      <div class="apanel">
+        <div class="aptitle"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Yönetici Paneli</div>
+        <div class="apstats">
+          <div class="stat"><div class="stat-n">${listings.length}</div><div class="stat-l">İlan</div></div>
+          <div class="stat"><div class="stat-n">${[...new Set(listings.map(l=>l.uid))].length}</div><div class="stat-l">Satıcı</div></div>
+          <div class="stat"><div class="stat-n">${listings.filter(l=>l.condition==='Sıfır').length}</div><div class="stat-l">Sıfır</div></div>
+        </div>
+        <button class="apbtn" onclick="goTab('market')">📋 Tüm İlanları Gör</button>
+        <button class="apbtn red" onclick="adminDel()">🗑️ İlan Sil (ID ile)</button>
+      </div>` : '';
+    c.innerHTML = `
+      <div class="phero">
+        <img class="pav" src="${av}" alt="">
         <div style="display:flex;align-items:center;justify-content:center;gap:8px">
-          <div class="profile-name">${currentUser.displayName || 'Kullanıcı'}</div>
-          ${isAdmin ? '<span class="admin-badge">ADMIN</span>' : ''}
+          <div class="pname">${user.displayName||'Kullanıcı'}</div>
+          ${isAdmin?'<span class="admin-badge">ADMIN</span>':''}
         </div>
-        <div class="profile-email">${currentUser.email}</div>
-        <div class="profile-stats">
-          <div class="stat-box"><div class="stat-num">${myListings.length}</div><div class="stat-label">İlanım</div></div>
-          <div class="stat-box"><div class="stat-num">${userFavorites.size}</div><div class="stat-label">Favori</div></div>
-          <div class="stat-box"><div class="stat-num">${allListings.length}</div><div class="stat-label">Toplam İlan</div></div>
-        </div>
-      </div>
-      ${adminHTML}
-      <div class="profile-menu">
-        <div class="menu-item" onclick="switchTab(document.querySelector('[data-screen=market]'));setMarketTab('mine',document.querySelectorAll('#market-tabs button')[2])">
-          <div class="menu-item-left">
-            <div class="menu-icon" style="background:var(--cyan-dim)"><svg viewBox="0 0 24 24" stroke="var(--cyan)" fill="none" stroke-width="1.8" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div>
-            <span class="menu-label">İlanlarım</span>
-          </div>
-          <span class="menu-arrow">›</span>
-        </div>
-        <div class="menu-item" onclick="switchTab(document.querySelector('[data-screen=market]'));setMarketTab('favorites',document.querySelectorAll('#market-tabs button')[1])">
-          <div class="menu-item-left">
-            <div class="menu-icon" style="background:rgba(255,69,58,0.1)"><svg viewBox="0 0 24 24" stroke="#FF453A" fill="none" stroke-width="1.8" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
-            <span class="menu-label">Favorilerim</span>
-          </div>
-          <span class="menu-arrow">›</span>
+        <div class="pemail">${user.email}</div>
+        <div class="stats" style="margin-top:16px">
+          <div class="stat"><div class="stat-n">${myCount}</div><div class="stat-l">İlanım</div></div>
+          <div class="stat"><div class="stat-n">${favs.size}</div><div class="stat-l">Favori</div></div>
+          <div class="stat"><div class="stat-n">${listings.length}</div><div class="stat-l">Toplam İlan</div></div>
         </div>
       </div>
-      <button class="signout-btn" onclick="doSignOut()">Çıkış Yap</button>
-    `;
+      ${adminHtml}
+      <div class="pmenu">
+        <div class="mitem" onclick="goTab('market');setMTab('mine',document.querySelectorAll('.mtab')[2])">
+          <div class="mitem-l"><div class="mico" style="background:var(--cyan-dim)"><svg viewBox="0 0 24 24" stroke="var(--cyan)"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div><span class="mlabel">İlanlarım</span></div><span class="marr">›</span>
+        </div>
+        <div class="mitem" onclick="goTab('market');setMTab('fav',document.querySelectorAll('.mtab')[1])">
+          <div class="mitem-l"><div class="mico" style="background:rgba(255,69,58,.1)"><svg viewBox="0 0 24 24" stroke="#FF453A"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div><span class="mlabel">Favorilerim</span></div><span class="marr">›</span>
+        </div>
+      </div>
+      <button class="signout" onclick="auth.signOut()">Çıkış Yap</button>`;
   } else {
-    container.innerHTML = `
-      <div class="auth-screen">
-        <img class="auth-logo" src="teknohane.png" alt="Teknohane">
+    c.innerHTML = `
+      <div class="auth-wrap">
+        <img class="auth-logo" src="teknohane.png" alt="">
         <div class="auth-title">Teknohane</div>
-        <div class="auth-sub">İlan vermek, favorilere eklemek ve daha fazlası için giriş yap</div>
+        <div class="auth-sub">İlan vermek ve favorilere eklemek için giriş yap</div>
         <div class="auth-form">
-          <div class="auth-tabs">
-            <div class="auth-tab active" onclick="setAuthTab('login',this)">Giriş Yap</div>
-            <div class="auth-tab" onclick="setAuthTab('register',this)">Kayıt Ol</div>
-          </div>
-          <div class="auth-error" id="auth-error"></div>
-          <div class="form-group"><label class="form-label">E-posta</label><input class="form-input" type="email" id="auth-email" placeholder="ornek@mail.com"></div>
-          <div class="form-group"><label class="form-label">Şifre</label><input class="form-input" type="password" id="auth-password" placeholder="••••••••"></div>
-          <div class="form-group" id="name-group" style="display:none"><label class="form-label">Ad Soyad</label><input class="form-input" type="text" id="auth-name" placeholder="Adınız Soyadınız"></div>
-          <button class="submit-btn" id="auth-submit" onclick="doEmailAuth()">Giriş Yap</button>
-          <div class="divider"><div class="divider-line"></div><div class="divider-text">veya</div><div class="divider-line"></div></div>
-          <button class="google-btn" onclick="doGoogleAuth()">
+          <div class="atabs"><div class="atab on" onclick="setATab('login',this)">Giriş Yap</div><div class="atab" onclick="setATab('register',this)">Kayıt Ol</div></div>
+          <div class="aerr" id="aerr"></div>
+          <div class="fg"><label class="fl">E-posta</label><input class="fi" type="email" id="aemail" placeholder="ornek@mail.com"></div>
+          <div class="fg"><label class="fl">Şifre</label><input class="fi" type="password" id="apass" placeholder="••••••••"></div>
+          <div class="fg" id="aname-g" style="display:none"><label class="fl">Ad Soyad</label><input class="fi" type="text" id="aname" placeholder="Adınız"></div>
+          <button class="sbtn" id="asbtn" onclick="doLogin()">Giriş Yap</button>
+          <div class="divider"><div class="dline"></div><div class="dtxt">veya</div><div class="dline"></div></div>
+          <button class="gbtn" onclick="doGoogle()">
             <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
             Google ile Giriş Yap
           </button>
         </div>
-      </div>
-    `;
+      </div>`;
   }
-};
+}
 
-window.setAuthTab = (tab, el) => {
-  document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
-  const isLogin = tab === 'login';
-  document.getElementById('name-group').style.display = isLogin ? 'none' : 'block';
-  document.getElementById('auth-submit').textContent = isLogin ? 'Giriş Yap' : 'Kayıt Ol';
-  document.getElementById('auth-submit').onclick = isLogin ? doEmailAuth : doRegister;
-};
+function setATab(t, el) {
+  document.querySelectorAll('.atab').forEach(x => x.classList.remove('on'));
+  el.classList.add('on');
+  const isLogin = t === 'login';
+  document.getElementById('aname-g').style.display = isLogin ? 'none' : 'block';
+  document.getElementById('asbtn').textContent = isLogin ? 'Giriş Yap' : 'Kayıt Ol';
+  document.getElementById('asbtn').onclick = isLogin ? doLogin : doRegister;
+}
 
-window.doEmailAuth = async () => {
-  const email = document.getElementById('auth-email')?.value;
-  const pass = document.getElementById('auth-password')?.value;
-  const errEl = document.getElementById('auth-error');
-  if (!email || !pass) return;
-  try {
-    await auth.signInWithEmailAndPassword(email, pass);
-  } catch(e) {
-    errEl.textContent = e.code === 'auth/invalid-credential' ? 'E-posta veya şifre hatalı' : e.message;
-    errEl.classList.add('show');
-  }
-};
+async function doLogin() {
+  const e = document.getElementById('aemail')?.value;
+  const p = document.getElementById('apass')?.value;
+  const err = document.getElementById('aerr');
+  if (!e||!p) return;
+  try { await auth.signInWithEmailAndPassword(e,p); }
+  catch(ex) { err.textContent = ex.code==='auth/invalid-credential'?'E-posta veya şifre hatalı':ex.message; err.classList.add('on'); }
+}
 
-window.doRegister = async () => {
-  const email = document.getElementById('auth-email')?.value;
-  const pass = document.getElementById('auth-password')?.value;
-  const name = document.getElementById('auth-name')?.value;
-  const errEl = document.getElementById('auth-error');
-  if (!email || !pass || !name) { errEl.textContent = 'Tüm alanları doldurun'; errEl.classList.add('show'); return; }
-  try {
-    const cred = await auth.createUserWithEmailAndPassword(email, pass);
-    await cred.user.updateProfile({ displayName: name });
-  } catch(e) {
-    errEl.textContent = e.code === 'auth/email-already-in-use' ? 'Bu e-posta zaten kayıtlı' : e.message;
-    errEl.classList.add('show');
-  }
-};
+async function doRegister() {
+  const e = document.getElementById('aemail')?.value;
+  const p = document.getElementById('apass')?.value;
+  const n = document.getElementById('aname')?.value;
+  const err = document.getElementById('aerr');
+  if (!e||!p||!n) { err.textContent='Tüm alanları doldurun'; err.classList.add('on'); return; }
+  try { const c = await auth.createUserWithEmailAndPassword(e,p); await c.user.updateProfile({displayName:n}); }
+  catch(ex) { err.textContent = ex.code==='auth/email-already-in-use'?'Bu e-posta zaten kayıtlı':ex.message; err.classList.add('on'); }
+}
 
-window.doGoogleAuth = async () => {
-  try {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    await auth.signInWithPopup(provider);
-  } catch(e) { console.error(e); }
-};
+async function doGoogle() {
+  try { await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
+  catch(ex) { console.error(ex); }
+}
 
-window.doSignOut = async () => {
-  await auth.signOut();
-};
+async function adminDel() {
+  const id = prompt('Silinecek ilan ID:');
+  if (!id) return;
+  try { await db.collection('teknohane_listings').doc(id).delete(); listings=listings.filter(l=>l.id!==id); renderListings(); alert('Silindi'); }
+  catch(e) { alert('Hata: '+e.message); }
+}
 
 // ── YOUTUBE ──
-const YT_API_KEY = 'AIzaSyAKNSFQQ0FDdLiCkZl16FDSjdqPvCua_Gg';
+const YT_KEY = 'AIzaSyAKNSFQQ0FDdLiCkZl16FDSjdqPvCua_Gg';
 const YT_HANDLE = '@teknohaane';
-let CHANNEL_ID = null, videosCache = null, channelCache = null;
+let chanId = null, vCache = null, chCache = null;
 
-function formatViews(n) { n=parseInt(n)||0; if(n>=1000000) return (n/1000000).toFixed(1).replace('.0','')+'M'; if(n>=1000) return (n/1000).toFixed(0)+'B'; return n.toString(); }
-function formatDate(iso) { const d=Math.floor((Date.now()-new Date(iso))/1000); if(d<3600) return Math.floor(d/60)+' dk önce'; if(d<86400) return Math.floor(d/3600)+' saat önce'; if(d<2592000) return Math.floor(d/86400)+' gün önce'; if(d<31536000) return Math.floor(d/2592000)+' ay önce'; return Math.floor(d/31536000)+' yıl önce'; }
-function formatDuration(iso) { if(!iso) return ''; const m=iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/); if(!m) return ''; const h=parseInt(m[1]||0),min=parseInt(m[2]||0),s=parseInt(m[3]||0); return h>0?h+':'+String(min).padStart(2,'0')+':'+String(s).padStart(2,'0'):min+':'+String(s).padStart(2,'0'); }
-function formatSubs(n) { n=parseInt(n)||0; if(n>=1000000) return (n/1000000).toFixed(1)+'M'; if(n>=1000) return (n/1000).toFixed(1)+'B'; return n.toString(); }
+const fv = n => { n=parseInt(n)||0; if(n>=1e6) return (n/1e6).toFixed(1).replace('.0','')+'M'; if(n>=1000) return (n/1000).toFixed(0)+'B'; return ''+n; };
+const fd = iso => { const d=Math.floor((Date.now()-new Date(iso))/1000); if(d<3600) return Math.floor(d/60)+' dk önce'; if(d<86400) return Math.floor(d/3600)+' saat önce'; if(d<2592000) return Math.floor(d/86400)+' gün önce'; if(d<31536000) return Math.floor(d/2592000)+' ay önce'; return Math.floor(d/31536000)+' yıl önce'; };
+const fdur = iso => { if(!iso) return ''; const m=iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/); if(!m) return ''; const h=parseInt(m[1]||0),mn=parseInt(m[2]||0),s=parseInt(m[3]||0); return h>0?h+':'+String(mn).padStart(2,'0')+':'+String(s).padStart(2,'0'):mn+':'+String(s).padStart(2,'0'); };
+const fsubs = n => { n=parseInt(n)||0; if(n>=1e6) return (n/1e6).toFixed(1)+'M'; if(n>=1000) return (n/1000).toFixed(1)+'B'; return ''+n; };
 
-async function getChannelId() {
-  if(CHANNEL_ID) return CHANNEL_ID;
-  const res=await fetch(`https://www.googleapis.com/youtube/v3/channels?part=id,snippet,statistics&forHandle=${YT_HANDLE}&key=${YT_API_KEY}`);
-  const data=await res.json();
-  if(data.items?.length>0){channelCache=data.items[0];CHANNEL_ID=data.items[0].id;return CHANNEL_ID;}
+async function loadChannel() {
+  if (chanId) return chanId;
+  const r = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=id,snippet,statistics&forHandle=${YT_HANDLE}&key=${YT_KEY}`);
+  const d = await r.json();
+  if (d.items?.length) { chCache=d.items[0]; chanId=d.items[0].id; return chanId; }
   throw new Error('Kanal bulunamadı');
 }
-async function getVideos() {
-  if(videosCache) return videosCache;
-  const cid=await getChannelId();
-  const res=await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=UU${cid.slice(2)}&maxResults=15&key=${YT_API_KEY}`);
-  const data=await res.json();
-  if(!data.items) throw new Error('Video listesi alınamadı');
-  const ids=data.items.map(i=>i.snippet.resourceId.videoId).join(',');
-  const det=await fetch(`https://www.googleapis.com/youtube/v3/videos?part=contentDetails,statistics&id=${ids}&key=${YT_API_KEY}`);
-  const detData=await det.json();
-  const detMap={};
-  (detData.items||[]).forEach(v=>{detMap[v.id]=v;});
-  videosCache=data.items.map(item=>{const vid=item.snippet.resourceId.videoId;const d=detMap[vid]||{};return{id:vid,title:item.snippet.title,thumbnail:item.snippet.thumbnails?.high?.url||'',publishedAt:item.snippet.publishedAt,duration:formatDuration(d.contentDetails?.duration),views:d.statistics?.viewCount||'0',url:`https://www.youtube.com/watch?v=${vid}`};});
-  return videosCache;
+
+async function loadVideos() {
+  if (vCache) return vCache;
+  const cid = await loadChannel();
+  const r = await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=UU${cid.slice(2)}&maxResults=15&key=${YT_KEY}`);
+  const d = await r.json();
+  if (!d.items) throw new Error('Videolar alınamadı');
+  const ids = d.items.map(i=>i.snippet.resourceId.videoId).join(',');
+  const r2 = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=contentDetails,statistics&id=${ids}&key=${YT_KEY}`);
+  const d2 = await r2.json();
+  const dm = {}; (d2.items||[]).forEach(v=>dm[v.id]=v);
+  vCache = d.items.map(item => {
+    const vid=item.snippet.resourceId.videoId; const dt=dm[vid]||{};
+    return {id:vid,title:item.snippet.title,thumb:item.snippet.thumbnails?.high?.url||'',published:item.snippet.publishedAt,dur:fdur(dt.contentDetails?.duration),views:dt.statistics?.viewCount||'0',url:`https://www.youtube.com/watch?v=${vid}`};
+  });
+  return vCache;
 }
 
-let allVideos=[];
+let allVids = [];
 async function renderHome() {
-  const container=document.getElementById('home-content');
+  const c = document.getElementById('home-content');
   try {
-    const[videos]=await Promise.all([getVideos(),getChannelId()]);
-    allVideos=videos;
-    const ch=channelCache,stats=ch?.statistics||{},snippet=ch?.snippet||{};
-    const featured=videos[0],rest=videos.slice(1);
-    container.innerHTML=`
-      <div class="channel-hero">
-        <div class="channel-top">
-          <img class="channel-avatar" src="${snippet.thumbnails?.high?.url||snippet.thumbnails?.default?.url||''}" alt="Teknohane" onerror="this.src='teknohane.png'">
-          <div><div class="channel-name">${snippet.title||'Teknohane'}</div><div class="channel-handle">${YT_HANDLE}</div></div>
+    const [vids] = await Promise.all([loadVideos(),loadChannel()]);
+    allVids = vids;
+    const ch=chCache, st=ch?.statistics||{}, sn=ch?.snippet||{};
+    const f=vids[0], rest=vids.slice(1);
+    c.innerHTML = `
+      <div class="ch-hero">
+        <div class="ch-top">
+          <img class="ch-av" src="${sn.thumbnails?.high?.url||sn.thumbnails?.default?.url||''}" alt="" onerror="this.src='teknohane.png'">
+          <div><div class="ch-name">${sn.title||'Teknohane'}</div><div class="ch-hand">${YT_HANDLE}</div></div>
         </div>
-        <div class="channel-stats">
-          <div class="stat-box"><div class="stat-num">${formatSubs(stats.subscriberCount)}</div><div class="stat-label">Abone</div></div>
-          <div class="stat-box"><div class="stat-num">${formatViews(stats.viewCount)}</div><div class="stat-label">İzlenme</div></div>
-          <div class="stat-box"><div class="stat-num">${parseInt(stats.videoCount||0)}</div><div class="stat-label">Video</div></div>
+        <div class="stats">
+          <div class="stat"><div class="stat-n">${fsubs(st.subscriberCount)}</div><div class="stat-l">Abone</div></div>
+          <div class="stat"><div class="stat-n">${fv(st.viewCount)}</div><div class="stat-l">İzlenme</div></div>
+          <div class="stat"><div class="stat-n">${parseInt(st.videoCount||0)}</div><div class="stat-l">Video</div></div>
         </div>
       </div>
-      <div class="section-head"><span class="section-title">Son Video</span><a class="section-link" onclick="openLink('https://youtube.com/${YT_HANDLE}')">Tümü →</a></div>
-      <div class="featured-card" onclick="openLink('${featured.url}')">
-        <div class="featured-thumb"><img src="${featured.thumbnail}" alt="${featured.title}" loading="lazy"><div class="play-btn"><div class="play-circle"><svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg></div></div>${featured.duration?`<div class="duration-badge">${featured.duration}</div>`:''}</div>
-        <div class="featured-info"><div class="featured-badge">Son Yüklenen</div><div class="featured-title">${featured.title}</div><div class="featured-meta"><div class="meta-pill"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>${formatViews(featured.views)} izlenme</div><div class="meta-pill"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${formatDate(featured.publishedAt)}</div></div></div>
+      <div class="sh"><span class="st">Son Video</span><span class="sl" onclick="openLink('https://youtube.com/${YT_HANDLE}')">Tümü →</span></div>
+      <div class="feat" onclick="openLink('${f.url}')">
+        <div class="fthumb"><img src="${f.thumb}" alt="${f.title}" loading="lazy"><div class="play-btn"><div class="play-c"><svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg></div></div>${f.dur?`<div class="dur">${f.dur}</div>`:''}</div>
+        <div class="finfo"><div class="fbadge">Son Yüklenen</div><div class="ftitle">${f.title}</div><div class="fmeta"><div class="mpill"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>${fv(f.views)} izlenme</div><div class="mpill"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${fd(f.published)}</div></div></div>
       </div>
-      <div class="glow-line"></div>
-      <div class="section-head"><span class="section-title">Diğer Videolar</span></div>
-      <div class="search-wrap"><svg class="search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input class="search-input" type="text" placeholder="Video ara…" oninput="filterVideos(this.value)"></div>
-      <div class="video-list" id="video-list">${renderVideoList(rest)}</div>`;
+      <div class="glow"></div>
+      <div class="sh"><span class="st">Diğer Videolar</span></div>
+      <div class="sw"><svg class="sico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input class="si" type="text" placeholder="Video ara…" oninput="filterVids(this.value)"></div>
+      <div class="vlist" id="vlist">${renderVList(rest)}</div>`;
   } catch(e) {
-    container.innerHTML=`<div class="error-wrap"><div style="font-size:36px">📡</div><div style="font-size:16px;font-weight:600">Bağlantı Hatası</div><div style="font-size:13px;color:var(--text-2)">Videolar yüklenemedi</div><button class="retry-btn" onclick="retryHome()">Tekrar Dene</button></div>`;
+    c.innerHTML = `<div class="empty"><div class="empty-ico">📡</div><div class="empty-t">Bağlantı hatası</div><div class="empty-d">${e.message}</div><button class="sbtn" style="margin-top:16px" onclick="retryHome()">Tekrar Dene</button></div>`;
   }
 }
-function renderVideoList(videos) {
-  if(!videos.length) return '<div class="no-results">Video bulunamadı</div>';
-  return videos.map(v=>`<div class="video-card" onclick="openLink('${v.url}')"><div class="video-thumb"><img src="${v.thumbnail}" alt="${v.title}" loading="lazy">${v.duration?`<div class="video-dur">${v.duration}</div>`:''}</div><div class="video-info"><div class="video-title">${v.title}</div><div class="video-meta"><span>${formatViews(v.views)} izlenme</span><span>${formatDate(v.publishedAt)}</span></div></div></div>`).join('');
+
+function renderVList(vids) {
+  if (!vids.length) return '<div class="no-res">Video bulunamadı</div>';
+  return vids.map(v=>`<div class="vcard" onclick="openLink('${v.url}')"><div class="vthumb"><img src="${v.thumb}" alt="${v.title}" loading="lazy">${v.dur?`<div class="vdur">${v.dur}</div>`:''}</div><div class="vinfo"><div class="vtitle">${v.title}</div><div class="vmeta"><span>${fv(v.views)} izlenme</span><span>${fd(v.published)}</span></div></div></div>`).join('');
 }
-window.filterVideos=(q)=>{const l=document.getElementById('video-list');if(l)l.innerHTML=renderVideoList(allVideos.slice(1).filter(v=>v.title.toLowerCase().includes(q.toLowerCase())));};
-window.retryHome=()=>{videosCache=null;channelCache=null;CHANNEL_ID=null;document.getElementById('home-content').innerHTML='<div class="loading-wrap"><div class="spinner"></div><div class="loading-text">Yeniden yükleniyor…</div></div>';renderHome();};
+
+function filterVids(q) { const l=document.getElementById('vlist'); if(l) l.innerHTML=renderVList(allVids.slice(1).filter(v=>v.title.toLowerCase().includes(q.toLowerCase()))); }
+function retryHome() { vCache=null; chCache=null; chanId=null; document.getElementById('home-content').innerHTML='<div class="load"><div class="spin"></div><span>Yenileniyor…</span></div>'; renderHome(); }
 
 // ── COMPARE ──
 const PHONES=[
-  {brand:'Apple',name:'iPhone 16 Pro',price:'₺89.999',ram:'8GB',storage:'128GB',chip:'A18 Pro',camera:'48MP+48MP+12MP',battery:'3274mAh',screen:'6.3" 120Hz'},
-  {brand:'Apple',name:'iPhone 16',price:'₺59.999',ram:'8GB',storage:'128GB',chip:'A18',camera:'48MP+12MP',battery:'3561mAh',screen:'6.1" 60Hz'},
-  {brand:'Apple',name:'iPhone 15 Pro',price:'₺64.999',ram:'8GB',storage:'128GB',chip:'A17 Pro',camera:'48MP+12MP+12MP',battery:'3274mAh',screen:'6.1" 120Hz'},
-  {brand:'Samsung',name:'Galaxy S25 Ultra',price:'₺109.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite',camera:'200MP+50MP+10MP',battery:'5000mAh',screen:'6.9" 120Hz'},
-  {brand:'Samsung',name:'Galaxy S25+',price:'₺74.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite',camera:'50MP+12MP+10MP',battery:'4900mAh',screen:'6.7" 120Hz'},
-  {brand:'Samsung',name:'Galaxy S25',price:'₺54.999',ram:'12GB',storage:'128GB',chip:'SD 8 Elite',camera:'50MP+12MP+10MP',battery:'4000mAh',screen:'6.2" 120Hz'},
-  {brand:'Samsung',name:'Galaxy A55',price:'₺24.999',ram:'8GB',storage:'128GB',chip:'Exynos 1480',camera:'50MP+12MP+5MP',battery:'5000mAh',screen:'6.6" 120Hz'},
-  {brand:'Xiaomi',name:'14 Ultra',price:'₺69.999',ram:'16GB',storage:'512GB',chip:'SD 8 Gen 3',camera:'50MP×4',battery:'5300mAh',screen:'6.73" 120Hz'},
-  {brand:'Xiaomi',name:'Redmi Note 13 Pro',price:'₺18.999',ram:'8GB',storage:'256GB',chip:'SD 7s Gen 2',camera:'200MP+8MP',battery:'5100mAh',screen:'6.67" 120Hz'},
-  {brand:'OnePlus',name:'12',price:'₺44.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 3',camera:'50MP+48MP+64MP',battery:'5400mAh',screen:'6.82" 120Hz'},
-  {brand:'Google',name:'Pixel 9 Pro',price:'₺79.999',ram:'16GB',storage:'128GB',chip:'Tensor G4',camera:'50MP+48MP+48MP',battery:'4700mAh',screen:'6.3" 120Hz'},
-  {brand:'Google',name:'Pixel 9',price:'₺49.999',ram:'12GB',storage:'128GB',chip:'Tensor G4',camera:'50MP+48MP',battery:'4700mAh',screen:'6.3" 120Hz'},
+  {brand:'Apple',name:'iPhone 16 Pro',price:'₺89.999',ram:'8GB',storage:'128GB',chip:'A18 Pro',camera:'48+48+12MP',battery:'3274mAh',screen:'6.3" 120Hz'},
+  {brand:'Apple',name:'iPhone 16',price:'₺59.999',ram:'8GB',storage:'128GB',chip:'A18',camera:'48+12MP',battery:'3561mAh',screen:'6.1" 60Hz'},
+  {brand:'Apple',name:'iPhone 15 Pro',price:'₺64.999',ram:'8GB',storage:'128GB',chip:'A17 Pro',camera:'48+12+12MP',battery:'3274mAh',screen:'6.1" 120Hz'},
+  {brand:'Samsung',name:'Galaxy S25 Ultra',price:'₺109.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite',camera:'200+50+10MP',battery:'5000mAh',screen:'6.9" 120Hz'},
+  {brand:'Samsung',name:'Galaxy S25+',price:'₺74.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite',camera:'50+12+10MP',battery:'4900mAh',screen:'6.7" 120Hz'},
+  {brand:'Samsung',name:'Galaxy S25',price:'₺54.999',ram:'12GB',storage:'128GB',chip:'SD 8 Elite',camera:'50+12+10MP',battery:'4000mAh',screen:'6.2" 120Hz'},
+  {brand:'Samsung',name:'Galaxy A55',price:'₺24.999',ram:'8GB',storage:'128GB',chip:'Exynos 1480',camera:'50+12+5MP',battery:'5000mAh',screen:'6.6" 120Hz'},
+  {brand:'Xiaomi',name:'14 Ultra',price:'₺69.999',ram:'16GB',storage:'512GB',chip:'SD 8 Gen 3',camera:'50+50+50+50MP',battery:'5300mAh',screen:'6.73" 120Hz'},
+  {brand:'Xiaomi',name:'Redmi Note 13 Pro',price:'₺18.999',ram:'8GB',storage:'256GB',chip:'SD 7s Gen 2',camera:'200+8MP',battery:'5100mAh',screen:'6.67" 120Hz'},
+  {brand:'OnePlus',name:'12',price:'₺44.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 3',camera:'50+48+64MP',battery:'5400mAh',screen:'6.82" 120Hz'},
+  {brand:'Google',name:'Pixel 9 Pro',price:'₺79.999',ram:'16GB',storage:'128GB',chip:'Tensor G4',camera:'50+48+48MP',battery:'4700mAh',screen:'6.3" 120Hz'},
+  {brand:'Google',name:'Pixel 9',price:'₺49.999',ram:'12GB',storage:'128GB',chip:'Tensor G4',camera:'50+48MP',battery:'4700mAh',screen:'6.3" 120Hz'},
 ];
-let selectedSlot=null,phoneA=null,phoneB=null,filteredPhones=[...PHONES];
-window.openPhonePicker=(slot)=>{selectedSlot=slot;document.getElementById('phone-search-input').value='';filteredPhones=[...PHONES];renderPhoneList();document.getElementById('phone-picker-modal').classList.add('show');};
-window.filterPhones=(q)=>{filteredPhones=PHONES.filter(p=>(p.brand+' '+p.name).toLowerCase().includes(q.toLowerCase()));renderPhoneList();};
-function renderPhoneList(){const l=document.getElementById('phone-search-list');if(!filteredPhones.length){l.innerHTML='<div class="no-results">Bulunamadı</div>';return;}l.innerHTML=filteredPhones.map((p)=>`<div class="phone-item" onclick="selectPhone(${PHONES.indexOf(p)})"><div><div class="phone-item-name">${p.brand} ${p.name}</div><div class="phone-item-spec">${p.chip} · ${p.ram}</div></div><div style="display:flex;align-items:center;gap:8px"><div class="phone-item-price">${p.price}</div><div class="add-badge">Ekle</div></div></div>`).join('');}
-window.selectPhone=(idx)=>{const p=PHONES[idx];if(selectedSlot==='a')phoneA=p;else phoneB=p;closeModal('phone-picker-modal');renderSlots();if(phoneA&&phoneB)renderCompareTable();else document.getElementById('compare-result').innerHTML='';};
-function renderSlots(){['a','b'].forEach(s=>{const p=s==='a'?phoneA:phoneB;const slot=document.getElementById('slot-'+s);if(p){slot.className='phone-slot filled';slot.onclick=null;slot.innerHTML=`<div class="phone-brand">${p.brand}</div><div class="phone-name">${p.name}</div><div class="phone-price">${p.price}</div><button class="clear-slot" onclick="clearSlot('${s}')">Kaldır</button>`;}else{slot.className='phone-slot';slot.onclick=()=>openPhonePicker(s);slot.innerHTML=`<div class="slot-plus"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div><div class="slot-label">Telefon ekle</div>`;}});}
-window.clearSlot=(s)=>{if(s==='a')phoneA=null;else phoneB=null;renderSlots();document.getElementById('compare-result').innerHTML='';};
-function renderCompareTable(){const a=phoneA,b=phoneB;const rows=[{l:'Fiyat',va:a.price,vb:b.price},{l:'İşlemci',va:a.chip,vb:b.chip},{l:'RAM',va:a.ram,vb:b.ram},{l:'Depolama',va:a.storage,vb:b.storage},{l:'Kamera',va:a.camera,vb:b.camera},{l:'Batarya',va:a.battery,vb:b.battery},{l:'Ekran',va:a.screen,vb:b.screen}];document.getElementById('compare-result').innerHTML=`<div class="compare-table"><div class="compare-row" style="background:rgba(0,212,255,0.05)"><div class="compare-cell label"></div><div class="compare-cell" style="font-weight:700;font-size:12px;color:var(--cyan)">${a.brand}<br>${a.name}</div><div class="compare-cell" style="font-weight:700;font-size:12px;color:var(--cyan)">${b.brand}<br>${b.name}</div></div>${rows.map(r=>`<div class="compare-row"><div class="compare-cell label">${r.l}</div><div class="compare-cell val">${r.va}</div><div class="compare-cell val">${r.vb}</div></div>`).join('')}</div>`;}
+let pickSlot=null, phoneA=null, phoneB=null, filtP=[...PHONES];
 
-// ── PULL TO REFRESH ──
-function setupPullToRefresh(screenId, refreshFn) {
-  const screen = document.getElementById(screenId);
-  if (!screen) return;
-  let startY = 0, pulling = false;
-  const ind = document.createElement('div');
-  ind.className = 'ptr-indicator';
-  ind.innerHTML = '<div class="ptr-spinner"></div>';
-  screen.style.position = 'relative';
-  screen.prepend(ind);
-
-  screen.addEventListener('touchstart', e => {
-    if (screen.scrollTop === 0) { startY = e.touches[0].clientY; pulling = true; }
-  }, { passive: true });
-
-  screen.addEventListener('touchmove', e => {
-    if (!pulling) return;
-    const diff = e.touches[0].clientY - startY;
-    if (diff > 60) ind.classList.add('show');
-  }, { passive: true });
-
-  screen.addEventListener('touchend', async () => {
-    if (!pulling) return;
-    pulling = false;
-    if (ind.classList.contains('show')) {
-      await refreshFn();
-      ind.classList.remove('show');
-    }
+function openPicker(s) { pickSlot=s; document.getElementById('psearch').value=''; filtP=[...PHONES]; renderPList(); document.getElementById('picker-mo').classList.add('on'); }
+function filterPhones(q) { filtP=PHONES.filter(p=>(p.brand+' '+p.name).toLowerCase().includes(q.toLowerCase())); renderPList(); }
+function renderPList() {
+  const l=document.getElementById('plist');
+  if (!filtP.length) { l.innerHTML='<div class="no-res">Bulunamadı</div>'; return; }
+  l.innerHTML=filtP.map((p,i)=>`<div class="pitem" onclick="pickPhone(${PHONES.indexOf(p)})"><div><div class="pname3">${p.brand} ${p.name}</div><div class="pspec">${p.chip} · ${p.ram}</div></div><div style="display:flex;align-items:center;gap:8px"><div class="pprice2">${p.price}</div><div class="addbdg">Ekle</div></div></div>`).join('');
+}
+function pickPhone(i) {
+  const p=PHONES[i];
+  if(pickSlot==='a') phoneA=p; else phoneB=p;
+  closeMo('picker-mo');
+  renderSlots();
+  if(phoneA&&phoneB) renderCmpTable();
+  else document.getElementById('cmp-result').innerHTML='';
+}
+function renderSlots() {
+  ['a','b'].forEach(s=>{
+    const p=s==='a'?phoneA:phoneB;
+    const el=document.getElementById('slot-'+s);
+    if(p){el.className='cslot filled';el.onclick=null;el.innerHTML=`<div class="pbrand">${p.brand}</div><div class="pname2">${p.name}</div><div class="pprice">${p.price}</div><button class="clrbtn" onclick="clearSlot('${s}')">Kaldır</button>`;}
+    else{el.className='cslot';el.onclick=()=>openPicker(s);el.innerHTML=`<div class="cplus"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div><div class="clbl">Telefon ekle</div>`;}
   });
+}
+function clearSlot(s){if(s==='a')phoneA=null;else phoneB=null;renderSlots();document.getElementById('cmp-result').innerHTML='';}
+function renderCmpTable(){
+  const a=phoneA,b=phoneB;
+  const rows=[{l:'Fiyat',a:a.price,b:b.price},{l:'İşlemci',a:a.chip,b:b.chip},{l:'RAM',a:a.ram,b:b.ram},{l:'Depolama',a:a.storage,b:b.storage},{l:'Kamera',a:a.camera,b:b.camera},{l:'Batarya',a:a.battery,b:b.battery},{l:'Ekran',a:a.screen,b:b.screen}];
+  document.getElementById('cmp-result').innerHTML=`<div class="ctable"><div class="crow" style="background:rgba(0,212,255,.05)"><div class="ccell lbl"></div><div class="ccell" style="font-weight:700;font-size:12px;color:var(--cyan)">${a.brand}<br>${a.name}</div><div class="ccell" style="font-weight:700;font-size:12px;color:var(--cyan)">${b.brand}<br>${b.name}</div></div>${rows.map(r=>`<div class="crow"><div class="ccell lbl">${r.l}</div><div class="ccell val">${r.a}</div><div class="ccell val">${r.b}</div></div>`).join('')}</div>`;
 }
 
 // ── HELPERS ──
-window.switchTab = (el) => {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  el.classList.add('active');
-  const screen = el.dataset.screen;
-  const screenEl = document.getElementById('screen-' + screen);
+function goTab(name) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const tabEl = document.querySelector(`.tab[data-s="${name}"]`);
+  if (tabEl) tabEl.classList.add('active');
+  const screenEl = document.getElementById('screen-'+name);
   if (screenEl) screenEl.classList.add('active');
-  if (screen === 'market') {
-    const grid = document.getElementById('listing-grid');
-    if (grid) {
-      if (allListings.length > 0) {
-        renderListings();
-      } else {
-        grid.innerHTML = '<div class="loading-wrap"><div class="spinner"></div><div class="loading-text">İlanlar yükleniyor…</div></div>';
-        loadListings();
-      }
-    }
-  }
-};
-window.openLink = (url) => { location.href = '/teknohane/go.html?url=' + encodeURIComponent(url); };
-window.closeModal = (id) => document.getElementById(id).classList.remove('show');
+  if (name === 'market') renderListings();
+}
+
+function openLink(url) { location.href='/teknohane/go.html?url='+encodeURIComponent(url); }
+function closeMo(id) { document.getElementById(id).classList.remove('on'); }
 
 // ── INIT ──
 renderHome();
 
-// Pull-to-refresh kur
-setTimeout(() => {
-  setupPullToRefresh('screen-home', async () => {
-    videosCache = null; channelCache = null; CHANNEL_ID = null;
-    document.getElementById('home-content').innerHTML = '<div class="loading-wrap"><div class="spinner"></div><div class="loading-text">Yenileniyor…</div></div>';
-    await renderHome();
-  });
-  setupPullToRefresh('screen-market', async () => {
-    await loadListings();
-  });
-}, 500);
-
-if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('/teknohane/sw.js',{scope:'/teknohane/'}).catch(e=>console.log(e));});}
-const tabParam=new URLSearchParams(location.search).get('tab');
-if(tabParam){const t=document.querySelector(`.tab[data-screen="${tabParam}"]`);if(t)switchTab(t);}
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/teknohane/sw.js',{scope:'/teknohane/'}).catch(()=>{}));
+}
 </script>
 </body>
 </html>
