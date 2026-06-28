@@ -502,7 +502,7 @@
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc, updateDoc, setDoc, getDoc, query, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc, setDoc, getDoc, query, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyADpIRNLQEIer_gplTgwKi_EKkfcyrYoqY",
@@ -561,9 +561,14 @@ async function loadUserData() {
 async function loadListings() {
   const grid = document.getElementById('listing-grid');
   try {
-    const q = query(collection(db, 'teknohane_listings'), orderBy('createdAt', 'desc'));
-    const snap = await getDocs(q);
+    const snap = await getDocs(collection(db, 'teknohane_listings'));
     allListings = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    // Client-side sırala — en yeni önce
+    allListings.sort((a, b) => {
+      const ta = a.createdAt?.seconds || 0;
+      const tb = b.createdAt?.seconds || 0;
+      return tb - ta;
+    });
     renderListings();
   } catch(e) {
     grid.innerHTML = '<div class="error-wrap"><div style="font-size:36px">📡</div><div class="no-results">İlanlar yüklenemedi</div></div>';
@@ -680,10 +685,10 @@ window.renderAdminPanel = async () => {
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         Yönetici Paneli
       </div>
-      <div class="admin-stat-grid">
-        <div class="stat-box"><div class="stat-num">${allListings.length}</div><div class="stat-label">İlan</div></div>
-        <div class="stat-box"><div class="stat-num">${totalUsers}</div><div class="stat-label">Satıcı</div></div>
-        <div class="stat-box"><div class="stat-num">${allListings.filter(l=>l.condition==='Sıfır').length}</div><div class="stat-label">Sıfır</div></div>
+      <div class="admin-stat-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">
+        <div class="stat-box" style="padding:8px;text-align:center"><div class="stat-num" style="font-size:16px">${allListings.length}</div><div class="stat-label" style="font-size:9px">İlan</div></div>
+        <div class="stat-box" style="padding:8px;text-align:center"><div class="stat-num" style="font-size:16px">${totalUsers}</div><div class="stat-label" style="font-size:9px">Satıcı</div></div>
+        <div class="stat-box" style="padding:8px;text-align:center"><div class="stat-num" style="font-size:16px">${allListings.filter(l=>l.condition==='Sıfır').length}</div><div class="stat-label" style="font-size:9px">Sıfır</div></div>
       </div>
       <button class="admin-action-btn" onclick="adminLoadAllListings()">📋 Tüm İlanları Gör</button>
       <button class="admin-action-btn danger" onclick="adminDeleteListing()">🗑️ İlan Sil (ID ile)</button>
