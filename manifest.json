@@ -5,6 +5,7 @@
   "start_url": "/teknohane/",
   "scope": "/teknohane/",
   "display": "standalone",
+  "handle_links": "preferred",
   "orientation": "portrait",
   "background_color": "#00040F",
   "theme_color": "#00040F",
