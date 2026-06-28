@@ -503,6 +503,15 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script>
+// Debug kutusu
+function showDebug(msg) {
+  let d = document.getElementById('_debug');
+  if (!d) { d = document.createElement('div'); d.id = '_debug'; d.style.cssText = 'position:fixed;top:60px;left:0;right:0;z-index:9999;background:#FF453A;color:#fff;font-size:11px;padding:8px 12px;word-break:break-all;max-height:120px;overflow-y:auto'; document.body.appendChild(d); }
+  d.innerHTML += '<div>' + msg + '</div>';
+}
+window.onerror = (msg, src, line) => { showDebug('JS HATA: ' + msg + ' (satır:' + line + ')'); };
+window.onunhandledrejection = (e) => { showDebug('PROMISE HATA: ' + e.reason); };
+
 const firebaseConfig = {
   apiKey: "AIzaSyADpIRNLQEIer_gplTgwKi_EKkfcyrYoqY",
   authDomain: "maasgunu-bd353.firebaseapp.com",
