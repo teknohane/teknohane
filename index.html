@@ -213,6 +213,57 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .mtitle{font-size:18px;font-weight:700;margin-bottom:16px;}
 .fsel{width:100%;background:var(--surf);border:1px solid var(--border2);border-radius:12px;padding:12px 14px;color:var(--text);font-size:15px;font-family:inherit;outline:none;appearance:none;}
 
+/* İLAN DETAY */
+.detail-mo{display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);align-items:flex-end;}
+.detail-mo.on{display:flex;}
+.detail-sheet{background:var(--bg2);border-radius:24px 24px 0 0;width:100%;max-height:92vh;overflow-y:auto;border-top:1px solid var(--border);animation:su .3s ease;}
+.detail-sheet::-webkit-scrollbar{display:none;}
+.detail-sticky{position:sticky;top:0;background:rgba(7,13,26,.95);backdrop-filter:blur(12px);padding:12px 20px;border-bottom:1px solid var(--border2);z-index:10;display:flex;align-items:center;justify-content:space-between;}
+.detail-handle{width:36px;height:4px;border-radius:2px;background:var(--text3);}
+.detail-close{width:32px;height:32px;border-radius:50%;background:var(--surf2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px;color:var(--text2);line-height:1;}
+.detail-body{padding:20px 20px calc(20px + var(--safe-bot));}
+.detail-model{font-size:22px;font-weight:700;letter-spacing:-.4px;margin-bottom:4px;}
+.detail-price{font-size:28px;font-weight:700;color:var(--cyan);margin-bottom:8px;}
+.detail-cond{display:inline-block;font-size:12px;font-weight:600;padding:4px 10px;border-radius:8px;margin-bottom:16px;}
+.detail-info{background:var(--surf);border-radius:14px;padding:4px 14px;margin-bottom:16px;}
+.detail-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border2);font-size:14px;}
+.detail-row:last-child{border-bottom:none;}
+.detail-lbl{color:var(--text2);width:80px;flex-shrink:0;font-size:13px;}
+.detail-val{font-weight:500;}
+.detail-desc{font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:20px;padding:14px;background:var(--surf);border-radius:14px;}
+.action-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px;}
+.abtn{padding:14px 10px;border-radius:14px;border:none;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px;}
+.abtn svg{width:22px;height:22px;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.abtn-lbl{font-size:12px;font-weight:600;}
+.act-wa{background:rgba(37,211,102,.15);color:#25D366;border:1px solid rgba(37,211,102,.3);}
+.act-wa svg{stroke:#25D366;}
+.act-offer{background:var(--cyan-dim);color:var(--cyan);border:1px solid rgba(0,212,255,.3);}
+.act-offer svg{stroke:var(--cyan);}
+.act-ref{background:rgba(255,149,0,.12);color:#FF9500;border:1px solid rgba(255,149,0,.3);}
+.act-ref svg{stroke:#FF9500;}
+.act-fav{background:rgba(255,69,58,.12);color:var(--red);border:1px solid rgba(255,69,58,.3);}
+.act-fav svg{stroke:var(--red);}
+.act-fav.on svg{fill:var(--red);}
+.offer-box{background:var(--surf);border-radius:14px;padding:14px;margin-bottom:20px;display:none;}
+.offer-box.on{display:block;}
+.offer-box-t{font-size:14px;font-weight:600;margin-bottom:10px;}
+.offer-row{display:flex;gap:8px;}
+.sec-t{font-size:16px;font-weight:700;margin-bottom:12px;}
+.cmt-list{display:flex;flex-direction:column;gap:10px;margin-bottom:16px;}
+.cmt{background:var(--surf);border-radius:12px;padding:12px;}
+.cmt-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.cmt-author{font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;}
+.cmt-av{width:24px;height:24px;border-radius:50%;background:var(--cyan-dim);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--cyan);}
+.cmt-time{font-size:11px;color:var(--text3);}
+.cmt-text{font-size:13px;color:var(--text2);line-height:1.5;}
+.cmt-del{font-size:11px;color:var(--red);cursor:pointer;margin-top:6px;display:inline-block;}
+.cmt-input{display:flex;gap:8px;align-items:flex-end;}
+.cmt-ta{flex:1;background:var(--surf);border:1px solid var(--border2);border-radius:12px;padding:10px 14px;color:var(--text);font-size:14px;font-family:inherit;outline:none;resize:none;min-height:44px;max-height:100px;}
+.cmt-ta:focus{border-color:var(--cyan);}
+.cmt-send{width:44px;height:44px;border-radius:12px;background:var(--cyan);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.cmt-send svg{width:20px;height:20px;stroke:#000;fill:none;stroke-width:2.5;stroke-linecap:round;}
+.no-cmt{text-align:center;padding:24px;color:var(--text3);font-size:13px;}
+
 /* COMPARE */
 .cgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
 .cslot{background:var(--surf);border:1px solid var(--border);border-radius:16px;padding:16px;min-height:140px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer;}
@@ -415,6 +466,17 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 
 </div>
 
+<!-- İLAN DETAY MODAL -->
+<div class="detail-mo" id="detail-mo" onclick="closeDetail()">
+  <div class="detail-sheet" onclick="event.stopPropagation()">
+    <div class="detail-sticky">
+      <div class="detail-handle"></div>
+      <div class="detail-close" onclick="closeDetail()">×</div>
+    </div>
+    <div class="detail-body" id="detail-body"></div>
+  </div>
+</div>
+
 <!-- PHONE PICKER MODAL -->
 <div class="mo" id="picker-mo" onclick="closeMo('picker-mo')">
   <div class="ms" onclick="event.stopPropagation()">
@@ -518,14 +580,14 @@ function renderListings() {
   grid.innerHTML = items.map(l => {
     const mine = user && l.uid === user.uid;
     const fav = favs.has(l.id);
-    return `<div class="lcard">
+    return `<div class="lcard" onclick="openDetail('${l.id}')">
       <div class="ltitle">${l.model||''}</div>
       <div class="lrow">
         <div class="lprice">₺${parseInt(l.price||0).toLocaleString('tr-TR')}</div>
         <div class="lcond ${l.condition==='Sıfır'?'cn':'cu'}">${l.condition||''}</div>
       </div>
       ${l.desc?`<div style="font-size:12px;color:var(--text2);margin-top:6px">${l.desc}</div>`:''}
-      <div class="lfooter">
+      <div class="lfooter" onclick="event.stopPropagation()">
         <div class="lloc">📍 ${l.location||'Belirtilmedi'}</div>
         <div class="lacts">
           <div class="fbtn ${fav?'on':''}" onclick="toggleFav('${l.id}',this)">
@@ -535,7 +597,7 @@ function renderListings() {
           ${mine?`<button class="delbtn" onclick="delListing('${l.id}')">Sil</button>`:''}
         </div>
       </div>
-      ${l.ownerName?`<div class="owner"><div class="ow-av">${(l.ownerName||'?')[0].toUpperCase()}</div><span class="ow-n">${l.ownerName}</span>${mine?'<span class="mybadge">Benim</span>':''}</div>`:''}
+      ${l.ownerName?`<div class="owner" onclick="event.stopPropagation()"><div class="ow-av">${(l.ownerName||'?')[0].toUpperCase()}</div><span class="ow-n">${l.ownerName}</span>${mine?'<span class="mybadge">Benim</span>':''}</div>`:''}
     </div>`;
   }).join('');
 }
@@ -696,7 +758,176 @@ async function adminDel() {
   catch(e) { alert('Hata: '+e.message); }
 }
 
-// ── YOUTUBE ──
+// ── İLAN DETAY ──
+let currentListing = null;
+let offerOpen = false;
+
+async function openDetail(id) {
+  currentListing = listings.find(l => l.id === id);
+  if (!currentListing) return;
+  offerOpen = false;
+  const l = currentListing;
+  const mine = user && l.uid === user.uid;
+  const fav = favs.has(l.id);
+  const body = document.getElementById('detail-body');
+  body.innerHTML = `
+    <div class="detail-model">${l.model||''}</div>
+    <div class="detail-price">₺${parseInt(l.price||0).toLocaleString('tr-TR')}</div>
+    <div class="detail-cond ${l.condition==='Sıfır'?'cn':'cu'}">${l.condition||''}</div>
+    <div class="detail-info">
+      ${l.location?`<div class="detail-row"><span class="detail-lbl">Konum</span><span class="detail-val">📍 ${l.location}</span></div>`:''}
+      ${l.ownerName?`<div class="detail-row"><span class="detail-lbl">Satıcı</span><span class="detail-val">${l.ownerName}${mine?' (Ben)':''}</span></div>`:''}
+    </div>
+    ${l.desc?`<div class="detail-desc">${l.desc}</div>`:''}
+
+    <div class="action-grid">
+      ${l.phone?`<button class="abtn act-wa" onclick="openLink('https://wa.me/90${l.phone}')">
+        <svg viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.998 2C6.477 2 2 6.477 2 12c0 1.989.574 3.842 1.565 5.408L2 22l4.757-1.535A9.958 9.958 0 0 0 11.998 22c5.523 0 10-4.477 10-10S17.521 2 11.998 2z"/></svg>
+        <span class="abtn-lbl">İletişim</span>
+      </button>`:`<div></div>`}
+      <button class="abtn act-offer" onclick="toggleOffer()">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span class="abtn-lbl">Teklif Ver</span>
+      </button>
+      ${l.phone?`<button class="abtn act-ref" onclick="sendRef()">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span class="abtn-lbl">Referans Ol</span>
+      </button>`:`<div></div>`}
+      <button class="abtn act-fav ${fav?'on':''}" id="detail-fav-btn" onclick="toggleDetailFav()">
+        <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        <span class="abtn-lbl">${fav?'Favoride':'Favorile'}</span>
+      </button>
+    </div>
+
+    <div class="offer-box" id="offer-box">
+      <div class="offer-box-t">💰 Teklif Ver</div>
+      <div class="offer-row">
+        <input class="fi" type="number" id="offer-price" placeholder="Teklif tutarı (₺)" style="flex:1">
+        <button class="sbtn" style="width:auto;padding:0 16px;height:44px;border-radius:12px" onclick="sendOffer()">Gönder</button>
+      </div>
+    </div>
+
+    <div class="sec-t">💬 Yorumlar & Sorular</div>
+    <div class="cmt-list" id="cmt-list">
+      <div class="no-cmt">Yorumlar yükleniyor…</div>
+    </div>
+    ${user ? `
+    <div class="cmt-input">
+      <textarea class="cmt-ta" id="cmt-ta" placeholder="Soru sor veya yorum yap…" rows="2"></textarea>
+      <button class="cmt-send" onclick="sendComment()">
+        <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>` : `<div class="no-cmt">Yorum yapmak için <span style="color:var(--cyan);cursor:pointer" onclick="closeDetail();goTab('profile')">giriş yap</span></div>`}
+  `;
+  document.getElementById('detail-mo').classList.add('on');
+  loadComments(id);
+}
+
+function closeDetail() {
+  document.getElementById('detail-mo').classList.remove('on');
+  currentListing = null;
+}
+
+function toggleOffer() {
+  offerOpen = !offerOpen;
+  const box = document.getElementById('offer-box');
+  if (box) box.classList.toggle('on', offerOpen);
+}
+
+function sendOffer() {
+  if (!currentListing) return;
+  const price = document.getElementById('offer-price')?.value;
+  if (!price) { alert('Teklif tutarı gir'); return; }
+  const msg = `Merhaba! "${currentListing.model}" ilanınız için ₺${parseInt(price).toLocaleString('tr-TR')} teklif veriyorum.`;
+  if (currentListing.phone) {
+    openLink(`https://wa.me/90${currentListing.phone}?text=${encodeURIComponent(msg)}`);
+  } else {
+    alert('Satıcının WhatsApp numarası yok');
+  }
+}
+
+function sendRef() {
+  if (!currentListing) return;
+  const refName = user ? (user.displayName || user.email?.split('@')[0]) : 'Bir kullanıcı';
+  const msg = `Merhaba! "${currentListing.model}" ilanınızı ${refName} aracılığıyla gördüm ve ilgileniyorum. İletişime geçebilir miyiz?`;
+  if (currentListing.phone) {
+    openLink(`https://wa.me/90${currentListing.phone}?text=${encodeURIComponent(msg)}`);
+  } else {
+    alert('Satıcının WhatsApp numarası yok');
+  }
+}
+
+async function toggleDetailFav() {
+  if (!user || !currentListing) { goTab('profile'); return; }
+  const id = currentListing.id;
+  const btn = document.getElementById('detail-fav-btn');
+  if (favs.has(id)) {
+    favs.delete(id);
+    btn?.classList.remove('on');
+    if (btn) btn.querySelector('.abtn-lbl').textContent = 'Favorile';
+  } else {
+    favs.add(id);
+    btn?.classList.add('on');
+    if (btn) btn.querySelector('.abtn-lbl').textContent = 'Favoride';
+  }
+  try { await db.collection('teknohane_users').doc(user.uid).set({favorites:[...favs]},{merge:true}); } catch(e) {}
+  renderListings();
+}
+
+// ── YORUMLAR ──
+async function loadComments(listingId) {
+  const list = document.getElementById('cmt-list');
+  if (!list) return;
+  try {
+    const snap = await db.collection('teknohane_comments')
+      .where('listingId', '==', listingId)
+      .get();
+    const cmts = snap.docs.map(d => ({id:d.id,...d.data()}));
+    cmts.sort((a,b) => (a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
+    if (!cmts.length) { list.innerHTML = '<div class="no-cmt">Henüz yorum yok. İlk soruyu sen sor!</div>'; return; }
+    const isAdmin = user && ADMINS.includes(user.email);
+    list.innerHTML = cmts.map(c => `
+      <div class="cmt" id="cmt-${c.id}">
+        <div class="cmt-top">
+          <div class="cmt-author">
+            <div class="cmt-av">${(c.authorName||'?')[0].toUpperCase()}</div>
+            ${c.authorName||'Kullanıcı'}
+          </div>
+          <div class="cmt-time">${c.createdAt ? fd(c.createdAt.toDate?.()?.toISOString() || new Date().toISOString()) : ''}</div>
+        </div>
+        <div class="cmt-text">${c.text}</div>
+        ${(user && (c.uid === user.uid || isAdmin)) ? `<span class="cmt-del" onclick="delComment('${c.id}')">Sil</span>` : ''}
+      </div>`).join('');
+  } catch(e) {
+    list.innerHTML = '<div class="no-cmt">Yorumlar yüklenemedi</div>';
+  }
+}
+
+async function sendComment() {
+  if (!user || !currentListing) return;
+  const ta = document.getElementById('cmt-ta');
+  const text = ta?.value?.trim();
+  if (!text) return;
+  try {
+    await db.collection('teknohane_comments').add({
+      listingId: currentListing.id,
+      text,
+      uid: user.uid,
+      authorName: user.displayName || user.email?.split('@')[0] || 'Anonim',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    if (ta) ta.value = '';
+    await loadComments(currentListing.id);
+  } catch(e) { alert('Yorum gönderilemedi: ' + e.message); }
+}
+
+async function delComment(commentId) {
+  if (!confirm('Yorum silinsin mi?')) return;
+  try {
+    await db.collection('teknohane_comments').doc(commentId).delete();
+    document.getElementById('cmt-' + commentId)?.remove();
+  } catch(e) { alert('Silinemedi'); }
+}
 const YT_KEY = 'AIzaSyAKNSFQQ0FDdLiCkZl16FDSjdqPvCua_Gg';
 const YT_HANDLE = '@teknohaane';
 let chanId = null, vCache = null, chCache = null;
