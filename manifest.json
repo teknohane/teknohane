@@ -1,0 +1,82 @@
+{
+  "name": "Teknohane",
+  "short_name": "Teknohane",
+  "description": "Telefon meraklıları topluluğu — videolar, karşılaştırma, pazar",
+  "start_url": "/teknohane/",
+  "scope": "/teknohane/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#00040F",
+  "theme_color": "#00040F",
+  "lang": "tr",
+  "icons": [
+    {
+      "src": "icons/icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-152.png",
+      "sizes": "152x152",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-384.png",
+      "sizes": "384x384",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "teknohane.png",
+      "sizes": "1080x1080",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Teknohane Ana Sayfa"
+    }
+  ],
+  "categories": ["entertainment", "news", "technology"],
+  "shortcuts": [
+    {
+      "name": "Son Videolar",
+      "short_name": "Videolar",
+      "description": "Teknohane son videolarını izle",
+      "url": "/teknohane/?tab=home",
+      "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Topluluk",
+      "short_name": "Topluluk",
+      "description": "WhatsApp grupları ve sosyal medya",
+      "url": "/teknohane/?tab=community",
+      "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96" }]
+    }
+  ]
+}

@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#00040F">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Teknohane">
+<title>Teknohane</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-152.png">
+<link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+<meta name="apple-touch-fullscreen" content="yes">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #00040F;
+    --bg-2: #070D1A;
+    --surface: #0D1526;
+    --surface-2: #111D33;
+    --surface-3: #162240;
+    --cyan: #00D4FF;
+    --cyan-dim: rgba(0, 212, 255, 0.12);
+    --cyan-glow: rgba(0, 212, 255, 0.25);
+    --blue: #0A84FF;
+    --text: #FFFFFF;
+    --text-2: #8E9BB5;
+    --text-3: #4A5568;
+    --red: #FF453A;
+    --green: #30D158;
+    --border: rgba(0, 212, 255, 0.1);
+    --border-2: rgba(255,255,255,0.06);
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --tab-height: 83px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', -apple-system, sans-serif;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  /* ── APP SHELL ── */
+  #app {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    height: 100dvh;
+  }
+
+  /* ── HEADER ── */
+  #header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding-top: var(--safe-top);
+    background: rgba(0, 4, 15, 0.72);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+  }
+
+  .logo-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    object-fit: cover;
+    box-shadow: 0 0 12px var(--cyan-glow);
+  }
+
+  .logo-text {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, #FFFFFF 0%, var(--cyan) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .header-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1px solid var(--border-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .header-btn:active { background: var(--surface-2); }
+  .header-btn svg { width: 18px; height: 18px; stroke: var(--text-2); }
+
+  /* ── TABS ── */
+  #tabs {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 100;
+    background: rgba(0, 4, 15, 0.88);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border-top: 1px solid var(--border);
+    padding-bottom: var(--safe-bottom);
+    height: var(--tab-height);
+    display: flex;
+    align-items: flex-start;
+    padding-top: 10px;
+  }
+
+  .tab-bar {
+    display: flex;
+    width: 100%;
+    justify-content: space-around;
+  }
+
+  .tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 0 12px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    min-width: 60px;
+  }
+
+  .tab:active { opacity: 0.6; }
+
+  .tab-icon {
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: all 0.25s;
+  }
+
+  .tab svg {
+    width: 22px;
+    height: 22px;
+    stroke: var(--text-3);
+    transition: stroke 0.25s;
+    fill: none;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .tab.active svg { stroke: var(--cyan); }
+
+  .tab-label {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text-3);
+    transition: color 0.25s;
+    letter-spacing: 0.2px;
+  }
+
+  .tab.active .tab-label { color: var(--cyan); }
+
+  .tab.active .tab-icon {
+    background: var(--cyan-dim);
+  }
+
+  /* ── SCREENS ── */
+  #screens {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    margin-top: calc(var(--safe-top) + 58px);
+    margin-bottom: var(--tab-height);
+  }
+
+  .screen {
+    position: absolute;
+    inset: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+
+  .screen.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  /* ── SCROLL CONTENT ── */
+  .screen-content {
+    padding: 16px 16px 24px;
+    min-height: 100%;
+  }
+
+  /* ── SECTION HEADER ── */
+  .section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .section-title {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.4px;
+  }
+
+  .section-link {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--cyan);
+    text-decoration: none;
+  }
+
+  /* ── FEATURED VIDEO CARD ── */
+  .featured-card {
+    border-radius: 20px;
+    overflow: hidden;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    margin-bottom: 24px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 8px 32px rgba(0, 212, 255, 0.08);
+  }
+
+  .featured-card:active { transform: scale(0.98); }
+
+  .featured-thumb {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16/9;
+    background: var(--surface-2);
+    overflow: hidden;
+  }
+
+  .featured-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .featured-thumb .play-btn {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.3);
+  }
+
+  .play-circle {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: rgba(0, 212, 255, 0.2);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(0, 212, 255, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .play-circle svg {
+    width: 22px;
+    height: 22px;
+    fill: var(--cyan);
+    margin-left: 3px;
+  }
+
+  .duration-badge {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(4px);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 7px;
+    border-radius: 6px;
+  }
+
+  .featured-info {
+    padding: 14px 16px 16px;
+  }
+
+  .featured-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--cyan-dim);
+    border: 1px solid rgba(0,212,255,0.2);
+    color: var(--cyan);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+  }
+
+  .featured-badge::before {
+    content: '';
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--cyan);
+  }
+
+  .featured-title {
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: -0.2px;
+    margin-bottom: 10px;
+  }
+
+  .featured-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .meta-pill {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: var(--text-2);
+    font-weight: 400;
+  }
+
+  .meta-pill svg {
+    width: 13px;
+    height: 13px;
+    stroke: var(--text-3);
+    fill: none;
+    stroke-width: 1.8;
+  }
+
+  /* ── VIDEO LIST CARD ── */
+  .video-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .video-card {
+    display: flex;
+    gap: 12px;
+    background: var(--surface);
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid var(--border-2);
+    cursor: pointer;
+    transition: background 0.2s, transform 0.15s;
+    padding: 0;
+  }
+
+  .video-card:active { background: var(--surface-2); transform: scale(0.99); }
+
+  .video-thumb {
+    position: relative;
+    width: 120px;
+    min-width: 120px;
+    aspect-ratio: 16/9;
+    background: var(--surface-2);
+    overflow: hidden;
+    border-radius: 0;
+  }
+
+  .video-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .video-dur {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    background: rgba(0,0,0,0.85);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 5px;
+    border-radius: 4px;
+  }
+
+  .video-info {
+    flex: 1;
+    padding: 10px 12px 10px 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  .video-title {
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    letter-spacing: -0.1px;
+  }
+
+  .video-meta {
+    font-size: 11px;
+    color: var(--text-2);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .video-meta span::after {
+    content: '·';
+    margin-left: 6px;
+    color: var(--text-3);
+  }
+
+  .video-meta span:last-child::after { content: ''; }
+
+  /* ── CHANNEL STATS ── */
+  .channel-hero {
+    background: linear-gradient(135deg, var(--surface) 0%, var(--surface-2) 100%);
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 8px 32px rgba(0,212,255,0.06);
+  }
+
+  .channel-top {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+
+  .channel-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--cyan);
+    box-shadow: 0 0 16px var(--cyan-glow);
+  }
+
+  .channel-name {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.4px;
+  }
+
+  .channel-handle {
+    font-size: 13px;
+    color: var(--text-2);
+    margin-top: 2px;
+  }
+
+  .channel-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  .stat-box {
+    background: rgba(0,212,255,0.05);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px;
+    text-align: center;
+  }
+
+  .stat-num {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--cyan);
+    letter-spacing: -0.5px;
+  }
+
+  .stat-label {
+    font-size: 10px;
+    color: var(--text-2);
+    margin-top: 2px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── LOADING ── */
+  .loading-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    gap: 16px;
+  }
+
+  .spinner {
+    width: 32px;
+    height: 32px;
+    border: 2px solid var(--border);
+    border-top-color: var(--cyan);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-text {
+    font-size: 14px;
+    color: var(--text-2);
+  }
+
+  /* ── ERROR ── */
+  .error-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 60px 20px;
+    gap: 12px;
+    text-align: center;
+  }
+
+  .error-icon {
+    font-size: 40px;
+  }
+
+  .error-title {
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  .error-desc {
+    font-size: 13px;
+    color: var(--text-2);
+    line-height: 1.5;
+  }
+
+  .retry-btn {
+    margin-top: 8px;
+    background: var(--cyan-dim);
+    border: 1px solid rgba(0,212,255,0.3);
+    color: var(--cyan);
+    font-size: 14px;
+    font-weight: 600;
+    padding: 10px 24px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  /* ── HABER/DUYURU KARTLARI ── */
+  .coming-soon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 24px;
+    gap: 16px;
+    text-align: center;
+  }
+
+  .cs-icon {
+    width: 64px;
+    height: 64px;
+    background: var(--cyan-dim);
+    border: 1px solid rgba(0,212,255,0.2);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .cs-icon svg {
+    width: 30px;
+    height: 30px;
+    stroke: var(--cyan);
+    fill: none;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .cs-title {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.4px;
+  }
+
+  .cs-desc {
+    font-size: 14px;
+    color: var(--text-2);
+    line-height: 1.6;
+    max-width: 280px;
+  }
+
+  .cs-badge {
+    background: var(--cyan-dim);
+    border: 1px solid rgba(0,212,255,0.25);
+    color: var(--cyan);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 6px 14px;
+    border-radius: 20px;
+  }
+
+  /* ── WHATSAPP BUTTONS ── */
+  .wa-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+
+  .wa-card {
+    background: var(--surface);
+    border: 1px solid var(--border-2);
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.15s;
+    text-decoration: none;
+  }
+
+  .wa-card:active { background: var(--surface-2); transform: scale(0.97); }
+
+  .wa-card-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .wa-card-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .wa-card-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .wa-card-desc {
+    font-size: 11px;
+    color: var(--text-2);
+    line-height: 1.4;
+  }
+
+  /* ── GLOW EFFECT ── */
+  .glow-line {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+    margin: 20px 0;
+    opacity: 0.3;
+  }
+
+  /* ── PULSE ANIMATION ── */
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 8px var(--cyan-glow); }
+    50% { box-shadow: 0 0 20px var(--cyan-glow), 0 0 40px rgba(0,212,255,0.1); }
+  }
+
+  .channel-avatar { animation: pulse-glow 3s ease-in-out infinite; }
+
+  /* ── SCROLL BAR ── */
+  .screen::-webkit-scrollbar { display: none; }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- HEADER -->
+  <div id="header">
+    <div class="header-inner">
+      <div class="logo-wrap">
+        <img class="logo-icon" src="teknohane.png" alt="Teknohane" onerror="this.style.display='none'">
+        <span class="logo-text">Teknohane</span>
+      </div>
+      <div class="header-btn" onclick="window.open('https://youtube.com/@teknohaane','_blank')">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/>
+          <polygon fill="white" stroke="none" points="9.75,15.02 15.5,12 9.75,8.98 9.75,15.02"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREENS -->
+  <div id="screens">
+
+    <!-- İÇERİK / ANA SAYFA -->
+    <div class="screen active" id="screen-home">
+      <div class="screen-content" id="home-content">
+        <div class="loading-wrap">
+          <div class="spinner"></div>
+          <div class="loading-text">Videolar yükleniyor…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KARŞILAŞTIRMA -->
+    <div class="screen" id="screen-compare">
+      <div class="screen-content">
+        <div class="coming-soon">
+          <div class="cs-icon">
+            <svg viewBox="0 0 24 24"><rect x="2" y="3" width="9" height="18" rx="2"/><rect x="13" y="3" width="9" height="18" rx="2"/></svg>
+          </div>
+          <div class="cs-title">Telefon Karşılaştırma</div>
+          <div class="cs-desc">Yan yana teknik özellik karşılaştırması ve fiyat takibi yakında geliyor.</div>
+          <div class="cs-badge">Yakında</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOPLULUK -->
+    <div class="screen" id="screen-community">
+      <div class="screen-content">
+        <div class="section-head">
+          <span class="section-title">Topluluk</span>
+        </div>
+        <div class="wa-grid">
+          <a class="wa-card" href="https://wa.me" target="_blank">
+            <div class="wa-card-icon" style="background:rgba(37,211,102,0.12)">
+              <svg viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.998 2C6.477 2 2 6.477 2 12c0 1.989.574 3.842 1.565 5.408L2 22l4.757-1.535A9.958 9.958 0 0 0 11.998 22c5.523 0 10-4.477 10-10S17.521 2 11.998 2z" fill-rule="evenodd" clip-rule="evenodd"/></svg>
+            </div>
+            <div class="wa-card-name">Sohbet</div>
+            <div class="wa-card-desc">Genel teknoloji sohbeti</div>
+          </a>
+          <a class="wa-card" href="https://wa.me" target="_blank">
+            <div class="wa-card-icon" style="background:rgba(0,212,255,0.1)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8l4 4-4 4"/></svg>
+            </div>
+            <div class="wa-card-name">Satış</div>
+            <div class="wa-card-desc">Telefon alım-satım</div>
+          </a>
+          <a class="wa-card" href="https://wa.me" target="_blank">
+            <div class="wa-card-icon" style="background:rgba(255,149,0,0.1)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#FF9500" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            </div>
+            <div class="wa-card-name">Fotoğraf</div>
+            <div class="wa-card-desc">Kamera paylaşımları</div>
+          </a>
+          <a class="wa-card" href="https://www.instagram.com" target="_blank">
+            <div class="wa-card-icon" style="background:rgba(193,53,132,0.1)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="url(#ig-grad)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <defs><linearGradient id="ig-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#F58529"/><stop offset="50%" stop-color="#DD2A7B"/><stop offset="100%" stop-color="#8134AF"/></linearGradient></defs>
+                <rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.5" fill="#DD2A7B" stroke="none"/>
+              </svg>
+            </div>
+            <div class="wa-card-name">Instagram</div>
+            <div class="wa-card-desc">Sayfamızı takip et</div>
+          </a>
+        </div>
+
+        <div class="coming-soon" style="padding: 40px 24px">
+          <div class="cs-icon">
+            <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <div class="cs-title">Topluluk Forumu</div>
+          <div class="cs-desc">Soru sor, deneyimlerini paylaş — topluluk özelliği geliştiriliyor.</div>
+          <div class="cs-badge">Yakında</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- İKİNCİ EL -->
+    <div class="screen" id="screen-market">
+      <div class="screen-content">
+        <div class="coming-soon">
+          <div class="cs-icon">
+            <svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+          </div>
+          <div class="cs-title">İkinci El Pazar</div>
+          <div class="cs-desc">Telefonunu sat, aradığını bul. Güvenli topluluk pazarı geliyor.</div>
+          <div class="cs-badge">Yakında</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- TAB BAR -->
+  <div id="tabs">
+    <div class="tab-bar">
+      <div class="tab active" data-screen="home" onclick="switchTab(this)">
+        <div class="tab-icon">
+          <svg viewBox="0 0 24 24"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon fill="currentColor" stroke="none" points="9.75,15.02 15.5,12 9.75,8.98 9.75,15.02"/></svg>
+        </div>
+        <span class="tab-label">İçerik</span>
+      </div>
+      <div class="tab" data-screen="compare" onclick="switchTab(this)">
+        <div class="tab-icon">
+          <svg viewBox="0 0 24 24"><rect x="2" y="3" width="9" height="18" rx="2"/><rect x="13" y="3" width="9" height="18" rx="2"/></svg>
+        </div>
+        <span class="tab-label">Karşılaştır</span>
+      </div>
+      <div class="tab" data-screen="community" onclick="switchTab(this)">
+        <div class="tab-icon">
+          <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <span class="tab-label">Topluluk</span>
+      </div>
+      <div class="tab" data-screen="market" onclick="switchTab(this)">
+        <div class="tab-icon">
+          <svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        </div>
+        <span class="tab-label">Pazar</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── CONFIG ──
+const YT_API_KEY = 'AIzaSyAKNSFQQ0FDdLiCkZl16FDSjdqPvCua_Gg';
+const YT_HANDLE = '@teknohaane';
+let CHANNEL_ID = null;
+let videosCache = null;
+let channelCache = null;
+
+// ── TAB SWITCH ──
+function switchTab(el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  const screen = el.dataset.screen;
+  document.getElementById('screen-' + screen).classList.add('active');
+}
+
+// ── FORMAT HELPERS ──
+function formatViews(n) {
+  n = parseInt(n) || 0;
+  if (n >= 1000000) return (n/1000000).toFixed(1).replace('.0','') + 'M';
+  if (n >= 1000) return (n/1000).toFixed(0) + 'B';
+  return n.toString();
+}
+
+function formatDate(iso) {
+  const d = new Date(iso);
+  const now = new Date();
+  const diff = Math.floor((now - d) / 1000);
+  if (diff < 3600) return Math.floor(diff/60) + ' dk önce';
+  if (diff < 86400) return Math.floor(diff/3600) + ' saat önce';
+  if (diff < 2592000) return Math.floor(diff/86400) + ' gün önce';
+  if (diff < 31536000) return Math.floor(diff/2592000) + ' ay önce';
+  return Math.floor(diff/31536000) + ' yıl önce';
+}
+
+function formatDuration(iso) {
+  if (!iso) return '';
+  const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  if (!m) return '';
+  const h = parseInt(m[1]||0), min = parseInt(m[2]||0), s = parseInt(m[3]||0);
+  if (h > 0) return h + ':' + String(min).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  return min + ':' + String(s).padStart(2,'0');
+}
+
+function formatSubs(n) {
+  n = parseInt(n) || 0;
+  if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
+  if (n >= 1000) return (n/1000).toFixed(1) + 'B';
+  return n.toString();
+}
+
+// ── API CALLS ──
+async function getChannelId() {
+  if (CHANNEL_ID) return CHANNEL_ID;
+  const res = await fetch(
+    `https://www.googleapis.com/youtube/v3/channels?part=id,snippet,statistics&forHandle=${YT_HANDLE}&key=${YT_API_KEY}`
+  );
+  const data = await res.json();
+  if (data.items && data.items.length > 0) {
+    channelCache = data.items[0];
+    CHANNEL_ID = data.items[0].id;
+    return CHANNEL_ID;
+  }
+  throw new Error('Kanal bulunamadı');
+}
+
+async function getVideos() {
+  if (videosCache) return videosCache;
+  const cid = await getChannelId();
+
+  // Playlist ID = UC → UU
+  const playlistId = 'UU' + cid.slice(2);
+  const res = await fetch(
+    `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${playlistId}&maxResults=10&key=${YT_API_KEY}`
+  );
+  const data = await res.json();
+  if (!data.items) throw new Error('Video listesi alınamadı');
+
+  // Get durations
+  const ids = data.items.map(i => i.snippet.resourceId.videoId).join(',');
+  const detailRes = await fetch(
+    `https://www.googleapis.com/youtube/v3/videos?part=contentDetails,statistics&id=${ids}&key=${YT_API_KEY}`
+  );
+  const detailData = await detailRes.json();
+  const detailMap = {};
+  (detailData.items || []).forEach(v => { detailMap[v.id] = v; });
+
+  videosCache = data.items.map(item => {
+    const vid = item.snippet.resourceId.videoId;
+    const detail = detailMap[vid] || {};
+    return {
+      id: vid,
+      title: item.snippet.title,
+      thumbnail: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.medium?.url || '',
+      publishedAt: item.snippet.publishedAt,
+      duration: formatDuration(detail.contentDetails?.duration),
+      views: detail.statistics?.viewCount || '0',
+      url: `https://www.youtube.com/watch?v=${vid}`
+    };
+  });
+
+  return videosCache;
+}
+
+// ── RENDER HOME ──
+async function renderHome() {
+  const container = document.getElementById('home-content');
+  try {
+    const [videos, _] = await Promise.all([getVideos(), getChannelId()]);
+    const ch = channelCache;
+    const stats = ch?.statistics || {};
+    const snippet = ch?.snippet || {};
+
+    const featured = videos[0];
+    const rest = videos.slice(1);
+
+    container.innerHTML = `
+      <div class="channel-hero">
+        <div class="channel-top">
+          <img class="channel-avatar"
+            src="${snippet.thumbnails?.high?.url || snippet.thumbnails?.default?.url || ''}"
+            alt="Teknohane"
+            onerror="this.src='teknohane.png'"
+          >
+          <div>
+            <div class="channel-name">${snippet.title || 'Teknohane'}</div>
+            <div class="channel-handle">${YT_HANDLE}</div>
+          </div>
+        </div>
+        <div class="channel-stats">
+          <div class="stat-box">
+            <div class="stat-num">${formatSubs(stats.subscriberCount)}</div>
+            <div class="stat-label">Abone</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-num">${formatViews(stats.viewCount)}</div>
+            <div class="stat-label">İzlenme</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-num">${parseInt(stats.videoCount||0)}</div>
+            <div class="stat-label">Video</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-head">
+        <span class="section-title">Son Video</span>
+        <a class="section-link" href="https://youtube.com/${YT_HANDLE}" target="_blank">Tümü →</a>
+      </div>
+
+      <div class="featured-card" onclick="window.open('${featured.url}','_blank')">
+        <div class="featured-thumb">
+          <img src="${featured.thumbnail}" alt="${featured.title}" loading="lazy">
+          <div class="play-btn">
+            <div class="play-circle">
+              <svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+            </div>
+          </div>
+          ${featured.duration ? `<div class="duration-badge">${featured.duration}</div>` : ''}
+        </div>
+        <div class="featured-info">
+          <div class="featured-badge">Son Yüklenen</div>
+          <div class="featured-title">${featured.title}</div>
+          <div class="featured-meta">
+            <div class="meta-pill">
+              <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              ${formatViews(featured.views)} izlenme
+            </div>
+            <div class="meta-pill">
+              <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              ${formatDate(featured.publishedAt)}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="glow-line"></div>
+
+      <div class="section-head">
+        <span class="section-title">Diğer Videolar</span>
+      </div>
+
+      <div class="video-list">
+        ${rest.map(v => `
+          <div class="video-card" onclick="window.open('${v.url}','_blank')">
+            <div class="video-thumb">
+              <img src="${v.thumbnail}" alt="${v.title}" loading="lazy">
+              ${v.duration ? `<div class="video-dur">${v.duration}</div>` : ''}
+            </div>
+            <div class="video-info">
+              <div class="video-title">${v.title}</div>
+              <div class="video-meta">
+                <span>${formatViews(v.views)} izlenme</span>
+                <span>${formatDate(v.publishedAt)}</span>
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  } catch (err) {
+    console.error(err);
+    container.innerHTML = `
+      <div class="error-wrap">
+        <div class="error-icon">📡</div>
+        <div class="error-title">Bağlantı Hatası</div>
+        <div class="error-desc">Videolar yüklenirken bir sorun oluştu.<br>Lütfen tekrar dene.</div>
+        <button class="retry-btn" onclick="retryHome()">Tekrar Dene</button>
+      </div>
+    `;
+  }
+}
+
+function retryHome() {
+  videosCache = null;
+  channelCache = null;
+  CHANNEL_ID = null;
+  document.getElementById('home-content').innerHTML = `
+    <div class="loading-wrap">
+      <div class="spinner"></div>
+      <div class="loading-text">Yeniden yükleniyor…</div>
+    </div>
+  `;
+  renderHome();
+}
+
+// ── INIT ──
+renderHome();
+
+// ── SERVICE WORKER ──
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/teknohane/sw.js', { scope: '/teknohane/' })
+      .then(reg => console.log('SW kayıtlı:', reg.scope))
+      .catch(err => console.log('SW hatası:', err));
+  });
+}
+
+// ── URL TAB ROUTING ──
+const params = new URLSearchParams(window.location.search);
+const tabParam = params.get('tab');
+if (tabParam) {
+  const tabEl = document.querySelector(`.tab[data-screen="${tabParam}"]`);
+  if (tabEl) switchTab(tabEl);
+}
+</script>
+</body>
+</html>
