@@ -18,344 +18,224 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #00040F;
-    --bg-2: #070D1A;
-    --surface: #0D1526;
-    --surface-2: #111D33;
-    --surface-3: #162240;
-    --cyan: #00D4FF;
-    --cyan-dim: rgba(0, 212, 255, 0.12);
-    --cyan-glow: rgba(0, 212, 255, 0.25);
-    --blue: #0A84FF;
-    --text: #FFFFFF;
-    --text-2: #8E9BB5;
-    --text-3: #4A5568;
-    --red: #FF453A;
-    --green: #30D158;
-    --border: rgba(0, 212, 255, 0.1);
-    --border-2: rgba(255,255,255,0.06);
-    --safe-top: env(safe-area-inset-top, 0px);
-    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --bg: #00040F; --bg-2: #070D1A; --surface: #0D1526; --surface-2: #111D33; --surface-3: #162240;
+    --cyan: #00D4FF; --cyan-dim: rgba(0,212,255,0.12); --cyan-glow: rgba(0,212,255,0.25);
+    --text: #FFFFFF; --text-2: #8E9BB5; --text-3: #4A5568;
+    --red: #FF453A; --green: #30D158; --orange: #FF9500;
+    --border: rgba(0,212,255,0.1); --border-2: rgba(255,255,255,0.06);
+    --safe-top: env(safe-area-inset-top,0px); --safe-bottom: env(safe-area-inset-bottom,0px);
     --tab-height: 83px;
   }
-  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body {
-    height: 100%; background: var(--bg); color: var(--text);
-    font-family: 'DM Sans', -apple-system, sans-serif;
-    overflow: hidden; overscroll-behavior: none;
-  }
-  #app { display: flex; flex-direction: column; height: 100%; height: 100dvh; }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; background:var(--bg); color:var(--text); font-family:'DM Sans',-apple-system,sans-serif; overflow:hidden; overscroll-behavior:none; }
+  #app { display:flex; flex-direction:column; height:100%; height:100dvh; }
 
   /* HEADER */
-  #header {
-    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-    padding-top: var(--safe-top);
-    background: rgba(0, 4, 15, 0.72);
-    backdrop-filter: blur(24px) saturate(180%);
-    -webkit-backdrop-filter: blur(24px) saturate(180%);
-    border-bottom: 1px solid var(--border);
-  }
-  .header-inner { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; }
-  .logo-wrap { display: flex; align-items: center; gap: 10px; }
-  .logo-icon { width: 34px; height: 34px; border-radius: 10px; object-fit: cover; box-shadow: 0 0 12px var(--cyan-glow); }
-  .logo-text {
-    font-size: 20px; font-weight: 700; letter-spacing: -0.5px;
-    background: linear-gradient(135deg, #FFFFFF 0%, var(--cyan) 100%);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-  }
-  .header-actions { display: flex; gap: 8px; align-items: center; }
-  .header-btn {
-    width: 36px; height: 36px; border-radius: 50%; background: var(--surface);
-    border: 1px solid var(--border-2); display: flex; align-items: center;
-    justify-content: center; cursor: pointer; transition: background 0.2s;
-  }
-  .header-btn:active { background: var(--surface-2); }
-  .header-btn svg { width: 18px; height: 18px; stroke: var(--text-2); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-
-  /* INSTALL BANNER */
-  #install-banner {
-    display: none; position: fixed; bottom: calc(var(--tab-height) + 8px); left: 12px; right: 12px;
-    z-index: 200; background: var(--surface-2); border: 1px solid var(--border);
-    border-radius: 16px; padding: 14px 16px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(0,212,255,0.1);
-    animation: slideUp 0.3s ease;
-  }
-  #install-banner.show { display: flex; align-items: center; gap: 12px; }
-  @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-  .install-icon { width: 44px; height: 44px; border-radius: 12px; object-fit: cover; flex-shrink: 0; }
-  .install-text { flex: 1; }
-  .install-title { font-size: 14px; font-weight: 600; }
-  .install-desc { font-size: 12px; color: var(--text-2); margin-top: 2px; }
-  .install-btn {
-    background: var(--cyan); color: #000; font-size: 13px; font-weight: 700;
-    padding: 8px 14px; border-radius: 10px; border: none; cursor: pointer;
-    font-family: inherit; white-space: nowrap; flex-shrink: 0;
-  }
-  .install-close {
-    position: absolute; top: 8px; right: 8px; width: 20px; height: 20px;
-    display: flex; align-items: center; justify-content: center;
-    color: var(--text-3); cursor: pointer; font-size: 16px;
-  }
+  #header { position:fixed; top:0; left:0; right:0; z-index:100; padding-top:var(--safe-top); background:rgba(0,4,15,0.72); backdrop-filter:blur(24px) saturate(180%); -webkit-backdrop-filter:blur(24px) saturate(180%); border-bottom:1px solid var(--border); }
+  .header-inner { display:flex; align-items:center; justify-content:space-between; padding:12px 20px; }
+  .logo-wrap { display:flex; align-items:center; gap:10px; }
+  .logo-icon { width:34px; height:34px; border-radius:10px; object-fit:cover; box-shadow:0 0 12px var(--cyan-glow); }
+  .logo-text { font-size:20px; font-weight:700; letter-spacing:-0.5px; background:linear-gradient(135deg,#fff 0%,var(--cyan) 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  .header-actions { display:flex; gap:8px; align-items:center; }
+  .header-btn { width:36px; height:36px; border-radius:50%; background:var(--surface); border:1px solid var(--border-2); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:background 0.2s; position:relative; }
+  .header-btn:active { background:var(--surface-2); }
+  .header-btn svg { width:18px; height:18px; stroke:var(--text-2); fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  .avatar-btn { overflow:hidden; }
+  .avatar-btn img { width:36px; height:36px; object-fit:cover; border-radius:50%; }
 
   /* TABS */
-  #tabs {
-    position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
-    background: rgba(0, 4, 15, 0.88);
-    backdrop-filter: blur(24px) saturate(180%);
-    -webkit-backdrop-filter: blur(24px) saturate(180%);
-    border-top: 1px solid var(--border);
-    padding-bottom: var(--safe-bottom); height: var(--tab-height);
-    display: flex; align-items: flex-start; padding-top: 10px;
-  }
-  .tab-bar { display: flex; width: 100%; justify-content: space-around; }
-  .tab {
-    display: flex; flex-direction: column; align-items: center; gap: 4px;
-    padding: 0 12px; cursor: pointer; transition: opacity 0.2s; min-width: 60px;
-  }
-  .tab:active { opacity: 0.6; }
-  .tab-icon { width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border-radius: 8px; transition: all 0.25s; }
-  .tab svg { width: 22px; height: 22px; stroke: var(--text-3); transition: stroke 0.25s; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-  .tab.active svg { stroke: var(--cyan); }
-  .tab-label { font-size: 10px; font-weight: 500; color: var(--text-3); transition: color 0.25s; letter-spacing: 0.2px; }
-  .tab.active .tab-label { color: var(--cyan); }
-  .tab.active .tab-icon { background: var(--cyan-dim); }
+  #tabs { position:fixed; bottom:0; left:0; right:0; z-index:100; background:rgba(0,4,15,0.88); backdrop-filter:blur(24px) saturate(180%); -webkit-backdrop-filter:blur(24px) saturate(180%); border-top:1px solid var(--border); padding-bottom:var(--safe-bottom); height:var(--tab-height); display:flex; align-items:flex-start; padding-top:10px; }
+  .tab-bar { display:flex; width:100%; justify-content:space-around; }
+  .tab { display:flex; flex-direction:column; align-items:center; gap:4px; padding:0 12px; cursor:pointer; min-width:60px; }
+  .tab:active { opacity:0.6; }
+  .tab-icon { width:26px; height:26px; display:flex; align-items:center; justify-content:center; border-radius:8px; transition:all 0.25s; }
+  .tab svg { width:22px; height:22px; stroke:var(--text-3); transition:stroke 0.25s; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  .tab.active svg { stroke:var(--cyan); }
+  .tab-label { font-size:10px; font-weight:500; color:var(--text-3); transition:color 0.25s; letter-spacing:0.2px; }
+  .tab.active .tab-label { color:var(--cyan); }
+  .tab.active .tab-icon { background:var(--cyan-dim); }
 
   /* SCREENS */
-  #screens {
-    flex: 1; overflow: hidden; position: relative;
-    margin-top: calc(var(--safe-top) + 58px); margin-bottom: var(--tab-height);
-  }
-  .screen {
-    position: absolute; inset: 0; overflow-y: auto;
-    -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
-    opacity: 0; pointer-events: none; transition: opacity 0.2s;
-  }
-  .screen.active { opacity: 1; pointer-events: all; }
-  .screen-content { padding: 16px 16px 24px; min-height: 100%; }
-  .screen::-webkit-scrollbar { display: none; }
+  #screens { flex:1; overflow:hidden; position:relative; margin-top:calc(var(--safe-top) + 58px); margin-bottom:var(--tab-height); }
+  .screen { position:absolute; inset:0; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; opacity:0; pointer-events:none; transition:opacity 0.2s; }
+  .screen.active { opacity:1; pointer-events:all; }
+  .screen-content { padding:16px 16px 24px; min-height:100%; }
+  .screen::-webkit-scrollbar { display:none; }
 
-  /* SECTION HEADER */
-  .section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-  .section-title { font-size: 20px; font-weight: 700; letter-spacing: -0.4px; }
-  .section-link { font-size: 13px; font-weight: 500; color: var(--cyan); text-decoration: none; }
+  /* SECTION */
+  .section-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .section-title { font-size:20px; font-weight:700; letter-spacing:-0.4px; }
+  .section-link { font-size:13px; font-weight:500; color:var(--cyan); text-decoration:none; cursor:pointer; }
 
-  /* SEARCH BAR */
-  .search-wrap { position: relative; margin-bottom: 16px; }
-  .search-input {
-    width: 100%; background: var(--surface); border: 1px solid var(--border-2);
-    border-radius: 12px; padding: 11px 16px 11px 40px; color: var(--text);
-    font-size: 15px; font-family: inherit; outline: none; transition: border-color 0.2s;
-  }
-  .search-input:focus { border-color: var(--cyan); }
-  .search-input::placeholder { color: var(--text-3); }
-  .search-icon {
-    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
-    width: 18px; height: 18px; stroke: var(--text-3); fill: none;
-    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; pointer-events: none;
-  }
+  /* SEARCH */
+  .search-wrap { position:relative; margin-bottom:16px; }
+  .search-input { width:100%; background:var(--surface); border:1px solid var(--border-2); border-radius:12px; padding:11px 16px 11px 40px; color:var(--text); font-size:15px; font-family:inherit; outline:none; transition:border-color 0.2s; }
+  .search-input:focus { border-color:var(--cyan); }
+  .search-input::placeholder { color:var(--text-3); }
+  .search-icon { position:absolute; left:12px; top:50%; transform:translateY(-50%); width:18px; height:18px; stroke:var(--text-3); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; pointer-events:none; }
 
-  /* FEATURED VIDEO */
-  .featured-card {
-    border-radius: 20px; overflow: hidden; background: var(--surface);
-    border: 1px solid var(--border); margin-bottom: 24px; cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
-    box-shadow: 0 8px 32px rgba(0, 212, 255, 0.08);
-  }
-  .featured-card:active { transform: scale(0.98); }
-  .featured-thumb { position: relative; width: 100%; aspect-ratio: 16/9; background: var(--surface-2); overflow: hidden; }
-  .featured-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .featured-thumb .play-btn { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.3); }
-  .play-circle {
-    width: 56px; height: 56px; border-radius: 50%;
-    background: rgba(0, 212, 255, 0.2); backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(0, 212, 255, 0.5);
-    display: flex; align-items: center; justify-content: center;
-  }
-  .play-circle svg { width: 22px; height: 22px; fill: var(--cyan); margin-left: 3px; }
-  .duration-badge {
-    position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.8);
-    backdrop-filter: blur(4px); color: #fff; font-size: 11px; font-weight: 600;
-    padding: 3px 7px; border-radius: 6px;
-  }
-  .featured-info { padding: 14px 16px 16px; }
-  .featured-badge {
-    display: inline-flex; align-items: center; gap: 5px; background: var(--cyan-dim);
-    border: 1px solid rgba(0,212,255,0.2); color: var(--cyan); font-size: 10px;
-    font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase;
-    padding: 3px 8px; border-radius: 6px; margin-bottom: 8px;
-  }
-  .featured-badge::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--cyan); }
-  .featured-title { font-size: 16px; font-weight: 600; line-height: 1.4; letter-spacing: -0.2px; margin-bottom: 10px; }
-  .featured-meta { display: flex; align-items: center; gap: 12px; }
-  .meta-pill { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-2); }
-  .meta-pill svg { width: 13px; height: 13px; stroke: var(--text-3); fill: none; stroke-width: 1.8; }
-
-  /* VIDEO LIST */
-  .video-list { display: flex; flex-direction: column; gap: 12px; }
-  .video-card {
-    display: flex; gap: 12px; background: var(--surface); border-radius: 16px;
-    overflow: hidden; border: 1px solid var(--border-2); cursor: pointer;
-    transition: background 0.2s, transform 0.15s;
-  }
-  .video-card:active { background: var(--surface-2); transform: scale(0.99); }
-  .video-thumb { position: relative; width: 120px; min-width: 120px; aspect-ratio: 16/9; background: var(--surface-2); overflow: hidden; }
-  .video-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .video-dur { position: absolute; bottom: 5px; right: 5px; background: rgba(0,0,0,0.85); color: #fff; font-size: 10px; font-weight: 600; padding: 2px 5px; border-radius: 4px; }
-  .video-info { flex: 1; padding: 10px 12px 10px 0; display: flex; flex-direction: column; justify-content: center; gap: 4px; }
-  .video-title { font-size: 13px; font-weight: 500; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; letter-spacing: -0.1px; }
-  .video-meta { font-size: 11px; color: var(--text-2); display: flex; align-items: center; gap: 6px; }
-  .video-meta span::after { content: '·'; margin-left: 6px; color: var(--text-3); }
-  .video-meta span:last-child::after { content: ''; }
-
-  /* CHANNEL HERO */
-  .channel-hero {
-    background: linear-gradient(135deg, var(--surface) 0%, var(--surface-2) 100%);
-    border-radius: 20px; border: 1px solid var(--border); padding: 20px;
-    margin-bottom: 20px; box-shadow: 0 8px 32px rgba(0,212,255,0.06);
-  }
-  .channel-top { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
-  .channel-avatar { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid var(--cyan); box-shadow: 0 0 16px var(--cyan-glow); animation: pulse-glow 3s ease-in-out infinite; }
-  @keyframes pulse-glow { 0%, 100% { box-shadow: 0 0 8px var(--cyan-glow); } 50% { box-shadow: 0 0 20px var(--cyan-glow), 0 0 40px rgba(0,212,255,0.1); } }
-  .channel-name { font-size: 18px; font-weight: 700; letter-spacing: -0.4px; }
-  .channel-handle { font-size: 13px; color: var(--text-2); margin-top: 2px; }
-  .channel-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-  .stat-box { background: rgba(0,212,255,0.05); border: 1px solid var(--border); border-radius: 12px; padding: 10px; text-align: center; }
-  .stat-num { font-size: 18px; font-weight: 700; color: var(--cyan); letter-spacing: -0.5px; }
-  .stat-label { font-size: 10px; color: var(--text-2); margin-top: 2px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+  /* YOUTUBE */
+  .channel-hero { background:linear-gradient(135deg,var(--surface) 0%,var(--surface-2) 100%); border-radius:20px; border:1px solid var(--border); padding:20px; margin-bottom:20px; box-shadow:0 8px 32px rgba(0,212,255,0.06); }
+  .channel-top { display:flex; align-items:center; gap:14px; margin-bottom:16px; }
+  .channel-avatar { width:60px; height:60px; border-radius:50%; object-fit:cover; border:2px solid var(--cyan); box-shadow:0 0 16px var(--cyan-glow); animation:pulse-glow 3s ease-in-out infinite; }
+  @keyframes pulse-glow { 0%,100% { box-shadow:0 0 8px var(--cyan-glow); } 50% { box-shadow:0 0 20px var(--cyan-glow),0 0 40px rgba(0,212,255,0.1); } }
+  .channel-name { font-size:18px; font-weight:700; letter-spacing:-0.4px; }
+  .channel-handle { font-size:13px; color:var(--text-2); margin-top:2px; }
+  .channel-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .stat-box { background:rgba(0,212,255,0.05); border:1px solid var(--border); border-radius:12px; padding:10px; text-align:center; }
+  .stat-num { font-size:18px; font-weight:700; color:var(--cyan); letter-spacing:-0.5px; }
+  .stat-label { font-size:10px; color:var(--text-2); margin-top:2px; font-weight:500; text-transform:uppercase; letter-spacing:0.5px; }
+  .featured-card { border-radius:20px; overflow:hidden; background:var(--surface); border:1px solid var(--border); margin-bottom:24px; cursor:pointer; transition:transform 0.2s; box-shadow:0 8px 32px rgba(0,212,255,0.08); }
+  .featured-card:active { transform:scale(0.98); }
+  .featured-thumb { position:relative; width:100%; aspect-ratio:16/9; background:var(--surface-2); overflow:hidden; }
+  .featured-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+  .featured-thumb .play-btn { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.3); }
+  .play-circle { width:56px; height:56px; border-radius:50%; background:rgba(0,212,255,0.2); backdrop-filter:blur(8px); border:1px solid rgba(0,212,255,0.5); display:flex; align-items:center; justify-content:center; }
+  .play-circle svg { width:22px; height:22px; fill:var(--cyan); margin-left:3px; }
+  .duration-badge { position:absolute; bottom:10px; right:10px; background:rgba(0,0,0,0.8); color:#fff; font-size:11px; font-weight:600; padding:3px 7px; border-radius:6px; }
+  .featured-info { padding:14px 16px 16px; }
+  .featured-badge { display:inline-flex; align-items:center; gap:5px; background:var(--cyan-dim); border:1px solid rgba(0,212,255,0.2); color:var(--cyan); font-size:10px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; padding:3px 8px; border-radius:6px; margin-bottom:8px; }
+  .featured-badge::before { content:''; width:5px; height:5px; border-radius:50%; background:var(--cyan); }
+  .featured-title { font-size:16px; font-weight:600; line-height:1.4; margin-bottom:10px; }
+  .featured-meta { display:flex; align-items:center; gap:12px; }
+  .meta-pill { display:flex; align-items:center; gap:5px; font-size:12px; color:var(--text-2); }
+  .meta-pill svg { width:13px; height:13px; stroke:var(--text-3); fill:none; stroke-width:1.8; }
+  .video-list { display:flex; flex-direction:column; gap:12px; }
+  .video-card { display:flex; gap:12px; background:var(--surface); border-radius:16px; overflow:hidden; border:1px solid var(--border-2); cursor:pointer; transition:background 0.2s; }
+  .video-card:active { background:var(--surface-2); }
+  .video-thumb { position:relative; width:120px; min-width:120px; aspect-ratio:16/9; background:var(--surface-2); overflow:hidden; }
+  .video-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+  .video-dur { position:absolute; bottom:5px; right:5px; background:rgba(0,0,0,0.85); color:#fff; font-size:10px; font-weight:600; padding:2px 5px; border-radius:4px; }
+  .video-info { flex:1; padding:10px 12px 10px 0; display:flex; flex-direction:column; justify-content:center; gap:4px; }
+  .video-title { font-size:13px; font-weight:500; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .video-meta { font-size:11px; color:var(--text-2); display:flex; gap:6px; }
+  .video-meta span::after { content:'·'; margin-left:6px; color:var(--text-3); }
+  .video-meta span:last-child::after { content:''; }
 
   /* COMMUNITY */
-  .wa-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 24px; }
-  .wa-card {
-    background: var(--surface); border: 1px solid var(--border-2); border-radius: 16px;
-    padding: 16px; display: flex; flex-direction: column; gap: 8px;
-    cursor: pointer; transition: background 0.2s, transform 0.15s; text-decoration: none;
-  }
-  .wa-card:active { background: var(--surface-2); transform: scale(0.97); }
-  .wa-card-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
-  .wa-card-icon svg { width: 20px; height: 20px; }
-  .wa-card-name { font-size: 13px; font-weight: 600; color: var(--text); }
-  .wa-card-desc { font-size: 11px; color: var(--text-2); line-height: 1.4; }
-
-  /* COMPARE */
-  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-  .phone-slot {
-    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
-    padding: 16px; min-height: 160px; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; gap: 8px; cursor: pointer;
-    transition: background 0.2s, border-color 0.2s;
-  }
-  .phone-slot.filled { justify-content: flex-start; align-items: flex-start; cursor: default; }
-  .phone-slot:active { background: var(--surface-2); }
-  .slot-plus { width: 40px; height: 40px; border-radius: 50%; border: 2px dashed var(--text-3); display: flex; align-items: center; justify-content: center; }
-  .slot-plus svg { width: 20px; height: 20px; stroke: var(--text-3); fill: none; stroke-width: 2; }
-  .slot-label { font-size: 12px; color: var(--text-3); text-align: center; }
-  .phone-brand { font-size: 10px; color: var(--cyan); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-  .phone-name { font-size: 13px; font-weight: 600; line-height: 1.3; margin-top: 2px; }
-  .phone-price { font-size: 14px; font-weight: 700; color: var(--cyan); margin-top: 4px; }
-  .clear-slot { font-size: 10px; color: var(--text-3); margin-top: 4px; padding: 2px 6px; background: var(--surface-3); border-radius: 6px; border: none; color: var(--text-3); cursor: pointer; font-family: inherit; }
-  .compare-table { background: var(--surface); border-radius: 16px; border: 1px solid var(--border-2); overflow: hidden; margin-bottom: 20px; }
-  .compare-row { display: grid; grid-template-columns: 1fr 1fr 1fr; border-bottom: 1px solid var(--border-2); }
-  .compare-row:last-child { border-bottom: none; }
-  .compare-cell { padding: 12px; font-size: 12px; }
-  .compare-cell.label { color: var(--text-2); font-weight: 500; background: rgba(0,212,255,0.03); }
-  .compare-cell.val { font-weight: 500; color: var(--text); }
-  .compare-cell.best { color: var(--cyan); font-weight: 600; }
-  .phone-search-list { display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; }
-  .phone-item {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 12px; background: var(--surface); border-radius: 12px;
-    border: 1px solid var(--border-2); cursor: pointer; transition: background 0.2s;
-  }
-  .phone-item:active { background: var(--surface-2); }
-  .phone-item-info { flex: 1; }
-  .phone-item-name { font-size: 14px; font-weight: 600; }
-  .phone-item-spec { font-size: 11px; color: var(--text-2); margin-top: 2px; }
-  .phone-item-price { font-size: 13px; font-weight: 700; color: var(--cyan); }
-  .add-badge { background: var(--cyan-dim); color: var(--cyan); font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 8px; border: 1px solid rgba(0,212,255,0.2); }
+  .wa-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:24px; }
+  .wa-card { background:var(--surface); border:1px solid var(--border-2); border-radius:16px; padding:16px; display:flex; flex-direction:column; gap:8px; cursor:pointer; transition:background 0.2s; }
+  .wa-card:active { background:var(--surface-2); }
+  .wa-card-icon { width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; }
 
   /* MARKET */
-  .market-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-  .new-listing-btn {
-    display: flex; align-items: center; gap: 6px; background: var(--cyan);
-    color: #000; font-size: 13px; font-weight: 700; padding: 9px 14px;
-    border-radius: 12px; border: none; cursor: pointer; font-family: inherit;
-  }
-  .new-listing-btn svg { width: 16px; height: 16px; stroke: #000; fill: none; stroke-width: 2.5; stroke-linecap: round; }
-  .listing-grid { display: flex; flex-direction: column; gap: 12px; }
-  .listing-card {
-    background: var(--surface); border: 1px solid var(--border-2); border-radius: 16px;
-    overflow: hidden; cursor: pointer; transition: background 0.2s, transform 0.15s;
-  }
-  .listing-card:active { background: var(--surface-2); transform: scale(0.99); }
-  .listing-img { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: var(--surface-2); }
-  .listing-info { padding: 12px; }
-  .listing-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
-  .listing-meta { display: flex; align-items: center; justify-content: space-between; }
-  .listing-price { font-size: 18px; font-weight: 700; color: var(--cyan); }
-  .listing-condition { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 6px; }
-  .cond-new { background: rgba(48,209,88,0.12); color: var(--green); border: 1px solid rgba(48,209,88,0.2); }
-  .cond-used { background: rgba(0,212,255,0.1); color: var(--cyan); border: 1px solid rgba(0,212,255,0.2); }
-  .listing-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; }
-  .listing-location { font-size: 11px; color: var(--text-2); display: flex; align-items: center; gap: 4px; }
-  .listing-location svg { width: 11px; height: 11px; stroke: var(--text-3); fill: none; stroke-width: 2; }
-  .wa-contact-btn {
-    display: flex; align-items: center; gap: 5px; background: rgba(37,211,102,0.12);
-    border: 1px solid rgba(37,211,102,0.2); color: #25D366; font-size: 12px;
-    font-weight: 600; padding: 6px 12px; border-radius: 10px; text-decoration: none;
-  }
-  .wa-contact-btn svg { width: 14px; height: 14px; fill: #25D366; }
+  .market-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+  .new-listing-btn { display:flex; align-items:center; gap:6px; background:var(--cyan); color:#000; font-size:13px; font-weight:700; padding:9px 14px; border-radius:12px; border:none; cursor:pointer; font-family:inherit; }
+  .new-listing-btn svg { width:16px; height:16px; stroke:#000; fill:none; stroke-width:2.5; stroke-linecap:round; }
+  .listing-grid { display:flex; flex-direction:column; gap:12px; }
+  .listing-card { background:var(--surface); border:1px solid var(--border-2); border-radius:16px; padding:14px; cursor:pointer; transition:background 0.2s; }
+  .listing-card:active { background:var(--surface-2); }
+  .listing-title { font-size:15px; font-weight:600; margin-bottom:6px; }
+  .listing-row { display:flex; align-items:center; justify-content:space-between; margin-top:8px; }
+  .listing-price { font-size:18px; font-weight:700; color:var(--cyan); }
+  .listing-condition { font-size:11px; font-weight:600; padding:3px 8px; border-radius:6px; }
+  .cond-new { background:rgba(48,209,88,0.12); color:var(--green); border:1px solid rgba(48,209,88,0.2); }
+  .cond-used { background:rgba(0,212,255,0.1); color:var(--cyan); border:1px solid rgba(0,212,255,0.2); }
+  .listing-footer { display:flex; align-items:center; justify-content:space-between; margin-top:10px; }
+  .listing-loc { font-size:11px; color:var(--text-2); }
+  .listing-actions { display:flex; gap:8px; }
+  .fav-btn { width:32px; height:32px; border-radius:50%; background:var(--surface-2); border:1px solid var(--border-2); display:flex; align-items:center; justify-content:center; cursor:pointer; }
+  .fav-btn svg { width:16px; height:16px; stroke:var(--text-3); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; transition:all 0.2s; }
+  .fav-btn.active svg { stroke:#FF453A; fill:#FF453A; }
+  .wa-contact-btn { display:flex; align-items:center; gap:5px; background:rgba(37,211,102,0.12); border:1px solid rgba(37,211,102,0.2); color:#25D366; font-size:12px; font-weight:600; padding:6px 12px; border-radius:10px; text-decoration:none; cursor:pointer; }
+  .listing-owner { display:flex; align-items:center; gap:6px; margin-top:8px; }
+  .owner-avatar { width:20px; height:20px; border-radius:50%; object-fit:cover; background:var(--surface-3); }
+  .owner-name { font-size:11px; color:var(--text-2); }
+  .my-listing-badge { font-size:10px; color:var(--cyan); font-weight:600; background:var(--cyan-dim); padding:2px 7px; border-radius:6px; border:1px solid rgba(0,212,255,0.2); }
+  .delete-btn { background:rgba(255,69,58,0.12); border:1px solid rgba(255,69,58,0.2); color:var(--red); font-size:12px; font-weight:600; padding:6px 12px; border-radius:10px; cursor:pointer; font-family:inherit; }
+
+  /* PROFILE SCREEN */
+  .profile-hero { background:linear-gradient(135deg,var(--surface) 0%,var(--surface-2) 100%); border-radius:20px; border:1px solid var(--border); padding:24px; margin-bottom:20px; text-align:center; }
+  .profile-avatar { width:80px; height:80px; border-radius:50%; object-fit:cover; border:3px solid var(--cyan); box-shadow:0 0 20px var(--cyan-glow); margin:0 auto 12px; display:block; }
+  .profile-name { font-size:20px; font-weight:700; letter-spacing:-0.4px; }
+  .profile-email { font-size:13px; color:var(--text-2); margin-top:4px; }
+  .profile-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:16px; }
+  .profile-menu { display:flex; flex-direction:column; gap:8px; }
+  .menu-item { display:flex; align-items:center; justify-content:space-between; background:var(--surface); border:1px solid var(--border-2); border-radius:14px; padding:14px 16px; cursor:pointer; transition:background 0.2s; }
+  .menu-item:active { background:var(--surface-2); }
+  .menu-item-left { display:flex; align-items:center; gap:12px; }
+  .menu-icon { width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; }
+  .menu-icon svg { width:18px; height:18px; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  .menu-label { font-size:14px; font-weight:500; }
+  .menu-arrow { color:var(--text-3); font-size:18px; }
+  .signout-btn { width:100%; background:rgba(255,69,58,0.1); border:1px solid rgba(255,69,58,0.2); color:var(--red); font-size:15px; font-weight:600; padding:14px; border-radius:14px; cursor:pointer; font-family:inherit; margin-top:8px; }
+
+  /* AUTH SCREEN */
+  .auth-screen { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100%; padding:40px 24px; }
+  .auth-logo { width:80px; height:80px; border-radius:24px; object-fit:cover; box-shadow:0 0 30px var(--cyan-glow); margin-bottom:16px; }
+  .auth-title { font-size:28px; font-weight:700; letter-spacing:-0.6px; margin-bottom:6px; background:linear-gradient(135deg,#fff,var(--cyan)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  .auth-sub { font-size:14px; color:var(--text-2); margin-bottom:40px; text-align:center; }
+  .auth-form { width:100%; max-width:360px; }
+  .auth-tabs { display:flex; background:var(--surface); border-radius:12px; padding:4px; margin-bottom:20px; }
+  .auth-tab { flex:1; padding:9px; text-align:center; font-size:14px; font-weight:600; border-radius:9px; cursor:pointer; color:var(--text-3); transition:all 0.2s; }
+  .auth-tab.active { background:var(--surface-3); color:var(--text); }
+  .form-group { margin-bottom:14px; }
+  .form-label { font-size:12px; font-weight:600; color:var(--text-2); margin-bottom:6px; display:block; text-transform:uppercase; letter-spacing:0.5px; }
+  .form-input { width:100%; background:var(--surface); border:1px solid var(--border-2); border-radius:12px; padding:12px 14px; color:var(--text); font-size:15px; font-family:inherit; outline:none; transition:border-color 0.2s; }
+  .form-input:focus { border-color:var(--cyan); }
+  .submit-btn { width:100%; background:var(--cyan); color:#000; font-size:16px; font-weight:700; padding:14px; border-radius:14px; border:none; cursor:pointer; font-family:inherit; margin-top:4px; }
+  .submit-btn:active { opacity:0.85; }
+  .divider { display:flex; align-items:center; gap:12px; margin:16px 0; }
+  .divider-line { flex:1; height:1px; background:var(--border-2); }
+  .divider-text { font-size:12px; color:var(--text-3); font-weight:500; }
+  .google-btn { width:100%; background:var(--surface); border:1px solid var(--border-2); color:var(--text); font-size:15px; font-weight:600; padding:13px; border-radius:14px; cursor:pointer; font-family:inherit; display:flex; align-items:center; justify-content:center; gap:10px; }
+  .google-btn:active { background:var(--surface-2); }
+  .auth-error { background:rgba(255,69,58,0.1); border:1px solid rgba(255,69,58,0.2); color:var(--red); font-size:13px; padding:10px 14px; border-radius:10px; margin-bottom:12px; display:none; }
+  .auth-error.show { display:block; }
 
   /* MODAL */
-  .modal-overlay {
-    display: none; position: fixed; inset: 0; z-index: 300;
-    background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-    align-items: flex-end;
-  }
-  .modal-overlay.show { display: flex; }
-  .modal-sheet {
-    background: var(--bg-2); border-radius: 24px 24px 0 0; width: 100%;
-    padding: 20px 20px calc(20px + var(--safe-bottom));
-    border-top: 1px solid var(--border); max-height: 90vh; overflow-y: auto;
-    animation: slideUp 0.3s ease;
-  }
-  .modal-handle { width: 36px; height: 4px; border-radius: 2px; background: var(--text-3); margin: 0 auto 20px; }
-  .modal-title { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; margin-bottom: 16px; }
-  .form-group { margin-bottom: 14px; }
-  .form-label { font-size: 12px; font-weight: 600; color: var(--text-2); margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: 0.5px; }
-  .form-input {
-    width: 100%; background: var(--surface); border: 1px solid var(--border-2);
-    border-radius: 12px; padding: 12px 14px; color: var(--text); font-size: 15px;
-    font-family: inherit; outline: none; transition: border-color 0.2s;
-  }
-  .form-input:focus { border-color: var(--cyan); }
-  .form-select { width: 100%; background: var(--surface); border: 1px solid var(--border-2); border-radius: 12px; padding: 12px 14px; color: var(--text); font-size: 15px; font-family: inherit; outline: none; appearance: none; }
-  .submit-btn {
-    width: 100%; background: var(--cyan); color: #000; font-size: 16px; font-weight: 700;
-    padding: 14px; border-radius: 14px; border: none; cursor: pointer; font-family: inherit; margin-top: 8px;
-  }
-  .submit-btn:active { opacity: 0.85; }
+  .modal-overlay { display:none; position:fixed; inset:0; z-index:300; background:rgba(0,0,0,0.7); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); align-items:flex-end; }
+  .modal-overlay.show { display:flex; }
+  .modal-sheet { background:var(--bg-2); border-radius:24px 24px 0 0; width:100%; padding:20px 20px calc(20px + var(--safe-bottom)); border-top:1px solid var(--border); max-height:90vh; overflow-y:auto; animation:slideUp 0.3s ease; }
+  @keyframes slideUp { from { transform:translateY(20px); opacity:0; } to { transform:translateY(0); opacity:1; } }
+  .modal-handle { width:36px; height:4px; border-radius:2px; background:var(--text-3); margin:0 auto 20px; }
+  .modal-title { font-size:18px; font-weight:700; margin-bottom:16px; }
+  .form-select { width:100%; background:var(--surface); border:1px solid var(--border-2); border-radius:12px; padding:12px 14px; color:var(--text); font-size:15px; font-family:inherit; outline:none; appearance:none; }
 
-  /* LOADING / ERROR */
-  .loading-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; gap: 16px; }
-  .spinner { width: 32px; height: 32px; border: 2px solid var(--border); border-top-color: var(--cyan); border-radius: 50%; animation: spin 0.8s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .loading-text { font-size: 14px; color: var(--text-2); }
-  .error-wrap { display: flex; flex-direction: column; align-items: center; padding: 60px 20px; gap: 12px; text-align: center; }
-  .error-icon { font-size: 40px; }
-  .error-title { font-size: 16px; font-weight: 600; }
-  .error-desc { font-size: 13px; color: var(--text-2); line-height: 1.5; }
-  .retry-btn { margin-top: 8px; background: var(--cyan-dim); border: 1px solid rgba(0,212,255,0.3); color: var(--cyan); font-size: 14px; font-weight: 600; padding: 10px 24px; border-radius: 12px; cursor: pointer; font-family: inherit; }
+  /* COMPARE */
+  .compare-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px; }
+  .phone-slot { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:16px; min-height:160px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; cursor:pointer; transition:background 0.2s; }
+  .phone-slot.filled { justify-content:flex-start; align-items:flex-start; cursor:default; }
+  .phone-slot:active { background:var(--surface-2); }
+  .slot-plus { width:40px; height:40px; border-radius:50%; border:2px dashed var(--text-3); display:flex; align-items:center; justify-content:center; }
+  .slot-plus svg { width:20px; height:20px; stroke:var(--text-3); fill:none; stroke-width:2; }
+  .slot-label { font-size:12px; color:var(--text-3); }
+  .phone-brand { font-size:10px; color:var(--cyan); font-weight:600; text-transform:uppercase; letter-spacing:0.5px; }
+  .phone-name { font-size:13px; font-weight:600; line-height:1.3; margin-top:2px; }
+  .phone-price { font-size:14px; font-weight:700; color:var(--cyan); margin-top:4px; }
+  .clear-slot { font-size:10px; color:var(--text-3); margin-top:4px; padding:2px 6px; background:var(--surface-3); border-radius:6px; border:none; cursor:pointer; font-family:inherit; }
+  .compare-table { background:var(--surface); border-radius:16px; border:1px solid var(--border-2); overflow:hidden; margin-bottom:20px; }
+  .compare-row { display:grid; grid-template-columns:1fr 1fr 1fr; border-bottom:1px solid var(--border-2); }
+  .compare-row:last-child { border-bottom:none; }
+  .compare-cell { padding:12px; font-size:12px; }
+  .compare-cell.label { color:var(--text-2); font-weight:500; background:rgba(0,212,255,0.03); }
+  .compare-cell.val { font-weight:500; }
+  .phone-search-list { display:flex; flex-direction:column; gap:8px; max-height:300px; overflow-y:auto; }
+  .phone-item { display:flex; align-items:center; justify-content:space-between; padding:12px; background:var(--surface); border-radius:12px; border:1px solid var(--border-2); cursor:pointer; }
+  .phone-item:active { background:var(--surface-2); }
+  .phone-item-name { font-size:14px; font-weight:600; }
+  .phone-item-spec { font-size:11px; color:var(--text-2); margin-top:2px; }
+  .phone-item-price { font-size:13px; font-weight:700; color:var(--cyan); }
+  .add-badge { background:var(--cyan-dim); color:var(--cyan); font-size:11px; font-weight:600; padding:4px 10px; border-radius:8px; border:1px solid rgba(0,212,255,0.2); }
 
-  /* COMING SOON */
-  .coming-soon { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 24px; gap: 16px; text-align: center; }
-  .cs-icon { width: 64px; height: 64px; background: var(--cyan-dim); border: 1px solid rgba(0,212,255,0.2); border-radius: 20px; display: flex; align-items: center; justify-content: center; }
-  .cs-icon svg { width: 30px; height: 30px; stroke: var(--cyan); fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
-  .cs-title { font-size: 20px; font-weight: 700; letter-spacing: -0.4px; }
-  .cs-desc { font-size: 14px; color: var(--text-2); line-height: 1.6; max-width: 280px; }
-  .cs-badge { background: var(--cyan-dim); border: 1px solid rgba(0,212,255,0.25); color: var(--cyan); font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; padding: 6px 14px; border-radius: 20px; }
-
-  .glow-line { height: 1px; background: linear-gradient(90deg, transparent, var(--cyan), transparent); margin: 20px 0; opacity: 0.3; }
-  .no-results { text-align: center; padding: 40px 20px; color: var(--text-2); font-size: 14px; }
+  /* MISC */
+  .glow-line { height:1px; background:linear-gradient(90deg,transparent,var(--cyan),transparent); margin:20px 0; opacity:0.3; }
+  .loading-wrap { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:60px 20px; gap:16px; }
+  .spinner { width:32px; height:32px; border:2px solid var(--border); border-top-color:var(--cyan); border-radius:50%; animation:spin 0.8s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .loading-text { font-size:14px; color:var(--text-2); }
+  .error-wrap { display:flex; flex-direction:column; align-items:center; padding:60px 20px; gap:12px; text-align:center; }
+  .retry-btn { background:var(--cyan-dim); border:1px solid rgba(0,212,255,0.3); color:var(--cyan); font-size:14px; font-weight:600; padding:10px 24px; border-radius:12px; cursor:pointer; font-family:inherit; }
+  .no-results { text-align:center; padding:40px 20px; color:var(--text-2); font-size:14px; }
+  .coming-soon { display:flex; flex-direction:column; align-items:center; padding:60px 24px; gap:16px; text-align:center; }
+  .cs-icon { width:64px; height:64px; background:var(--cyan-dim); border:1px solid rgba(0,212,255,0.2); border-radius:20px; display:flex; align-items:center; justify-content:center; }
+  .cs-icon svg { width:30px; height:30px; stroke:var(--cyan); fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
+  .cs-title { font-size:20px; font-weight:700; }
+  .cs-desc { font-size:14px; color:var(--text-2); line-height:1.6; max-width:280px; }
+  .empty-state { text-align:center; padding:60px 24px; }
+  .empty-icon { font-size:48px; margin-bottom:16px; }
+  .empty-title { font-size:18px; font-weight:600; margin-bottom:8px; }
+  .empty-desc { font-size:14px; color:var(--text-2); line-height:1.5; }
 </style>
 </head>
 <body>
@@ -369,28 +249,17 @@
         <span class="logo-text">Teknohane</span>
       </div>
       <div class="header-actions">
-        <div class="header-btn" id="install-header-btn" style="display:none" onclick="triggerInstall()">
-          <svg viewBox="0 0 24 24"><path d="M12 2v13M7 11l5 5 5-5"/><path d="M3 19h18"/></svg>
+        <div class="header-btn" onclick="openLink('https://youtube.com/@teknohaane')">
+          <svg viewBox="0 0 24 24"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z" stroke="var(--text-2)"/><polygon fill="white" stroke="none" points="9.75,15.02 15.5,12 9.75,8.98 9.75,15.02"/></svg>
         </div>
-        <div class="header-btn" onclick="window.open('https://youtube.com/@teknohaane','_blank')">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/>
-            <polygon fill="white" stroke="none" points="9.75,15.02 15.5,12 9.75,8.98 9.75,15.02"/>
-          </svg>
+        <div class="header-btn avatar-btn" id="profile-btn" onclick="switchTab(document.querySelector('[data-screen=profile]'))" style="display:none">
+          <img id="header-avatar" src="" alt="">
+        </div>
+        <div class="header-btn" id="login-btn" onclick="switchTab(document.querySelector('[data-screen=profile]'))">
+          <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         </div>
       </div>
     </div>
-  </div>
-
-  <!-- PWA INSTALL BANNER -->
-  <div id="install-banner">
-    <div class="install-close" onclick="dismissInstall()">×</div>
-    <img class="install-icon" src="icons/icon-192.png" alt="">
-    <div class="install-text">
-      <div class="install-title">Teknohane'yi Yükle</div>
-      <div class="install-desc">Ana ekrana ekle, uygulama gibi kullan</div>
-    </div>
-    <button class="install-btn" onclick="triggerInstall()">Yükle</button>
   </div>
 
   <!-- SCREENS -->
@@ -426,14 +295,14 @@
       <div class="screen-content">
         <div class="section-head"><span class="section-title">Topluluk</span></div>
         <div class="wa-grid">
-          <div class="wa-card" onclick="openLink('https://chat.whatsapp.com/Ev6qkOSW0FjDRuEiQ80l61')" style="grid-column: span 2">
+          <div class="wa-card" onclick="openLink('https://chat.whatsapp.com/Ev6qkOSW0FjDRuEiQ80l61')" style="grid-column:span 2">
             <div style="display:flex;align-items:center;gap:12px">
               <div class="wa-card-icon" style="background:rgba(37,211,102,0.12);width:48px;height:48px;min-width:48px">
                 <svg viewBox="0 0 24 24" fill="#25D366" width="26" height="26"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.998 2C6.477 2 2 6.477 2 12c0 1.989.574 3.842 1.565 5.408L2 22l4.757-1.535A9.958 9.958 0 0 0 11.998 22c5.523 0 10-4.477 10-10S17.521 2 11.998 2z"/></svg>
               </div>
               <div>
-                <div class="wa-card-name" style="font-size:15px">Teknohane WhatsApp Kanalı</div>
-                <div class="wa-card-desc" style="margin-top:4px">Sohbet, Satış ve Fotoğraf gruplarına buradan katıl</div>
+                <div style="font-size:15px;font-weight:600;color:var(--text)">Teknohane WhatsApp Kanalı</div>
+                <div style="font-size:11px;color:var(--text-2);margin-top:4px">Sohbet, Satış ve Fotoğraf gruplarına buradan katıl</div>
               </div>
             </div>
           </div>
@@ -444,26 +313,22 @@
                 <rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.5" fill="#DD2A7B" stroke="none"/>
               </svg>
             </div>
-            <div class="wa-card-name">Instagram</div>
-            <div class="wa-card-desc">Sayfamızı takip et</div>
+            <div style="font-size:13px;font-weight:600">Instagram</div>
+            <div style="font-size:11px;color:var(--text-2)">Sayfamızı takip et</div>
           </div>
           <div class="wa-card" onclick="openLink('https://youtube.com/@teknohaane')">
             <div class="wa-card-icon" style="background:rgba(255,0,0,0.1)">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path stroke="#FF3B30" d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/>
-                <polygon fill="#FF3B30" stroke="none" points="9.75,15.02 15.5,12 9.75,8.98 9.75,15.02"/>
-              </svg>
+              <svg viewBox="0 0 24 24" fill="none"><path stroke="#FF3B30" stroke-width="1.8" d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon fill="#FF3B30" stroke="none" points="9.75,15.02 15.5,12 9.75,8.98 9.75,15.02"/></svg>
             </div>
-            <div class="wa-card-name">YouTube</div>
-            <div class="wa-card-desc">Kanalımıza abone ol</div>
+            <div style="font-size:13px;font-weight:600">YouTube</div>
+            <div style="font-size:11px;color:var(--text-2)">Kanalımıza abone ol</div>
           </div>
         </div>
         <div class="glow-line"></div>
         <div class="coming-soon" style="padding:40px 24px">
           <div class="cs-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
           <div class="cs-title">Topluluk Forumu</div>
-          <div class="cs-desc">Soru sor, deneyimlerini paylaş — topluluk özelliği geliştiriliyor.</div>
-          <div class="cs-badge">Yakında</div>
+          <div class="cs-desc">Soru sor, deneyimlerini paylaş — yakında geliyor.</div>
         </div>
       </div>
     </div>
@@ -473,7 +338,7 @@
       <div class="screen-content">
         <div class="market-header">
           <span class="section-title">İkinci El</span>
-          <button class="new-listing-btn" onclick="openNewListing()">
+          <button class="new-listing-btn" onclick="handleNewListing()">
             <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             İlan Ver
           </button>
@@ -482,7 +347,21 @@
           <svg class="search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input class="search-input" type="text" placeholder="İlan ara…" oninput="filterListings(this.value)">
         </div>
-        <div class="listing-grid" id="listing-grid"></div>
+        <div id="market-tabs" style="display:flex;gap:8px;margin-bottom:16px">
+          <button class="auth-tab active" onclick="setMarketTab('all',this)" style="flex:none;padding:8px 16px;border-radius:10px;background:var(--cyan-dim);border:1px solid rgba(0,212,255,0.2);color:var(--cyan);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Tümü</button>
+          <button class="auth-tab" onclick="setMarketTab('favorites',this)" style="flex:none;padding:8px 16px;border-radius:10px;background:var(--surface);border:1px solid var(--border-2);color:var(--text-2);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">❤️ Favoriler</button>
+          <button class="auth-tab" onclick="setMarketTab('mine',this)" style="flex:none;padding:8px 16px;border-radius:10px;background:var(--surface);border:1px solid var(--border-2);color:var(--text-2);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">İlanlarım</button>
+        </div>
+        <div class="listing-grid" id="listing-grid">
+          <div class="loading-wrap"><div class="spinner"></div><div class="loading-text">İlanlar yükleniyor…</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROFİL / GİRİŞ -->
+    <div class="screen" id="screen-profile">
+      <div class="screen-content" id="profile-content">
+        <div class="loading-wrap"><div class="spinner"></div></div>
       </div>
     </div>
 
@@ -492,9 +371,7 @@
   <div id="tabs">
     <div class="tab-bar">
       <div class="tab active" data-screen="home" onclick="switchTab(this)">
-        <div class="tab-icon">
-          <svg viewBox="0 0 24 24"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon fill="currentColor" stroke="none" points="9.75,15.02 15.5,12 9.75,8.98 9.75,15.02"/></svg>
-        </div>
+        <div class="tab-icon"><svg viewBox="0 0 24 24"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon fill="currentColor" stroke="none" points="9.75,15.02 15.5,12 9.75,8.98 9.75,15.02"/></svg></div>
         <span class="tab-label">İçerik</span>
       </div>
       <div class="tab" data-screen="compare" onclick="switchTab(this)">
@@ -508,6 +385,10 @@
       <div class="tab" data-screen="market" onclick="switchTab(this)">
         <div class="tab-icon"><svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div>
         <span class="tab-label">Pazar</span>
+      </div>
+      <div class="tab" data-screen="profile" onclick="switchTab(this)">
+        <div class="tab-icon"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+        <span class="tab-label">Profil</span>
       </div>
     </div>
   </div>
@@ -532,147 +413,334 @@
   <div class="modal-sheet" onclick="event.stopPropagation()">
     <div class="modal-handle"></div>
     <div class="modal-title">İlan Ver</div>
-    <div class="form-group">
-      <label class="form-label">Telefon Modeli</label>
-      <input class="form-input" type="text" placeholder="Örn: Samsung Galaxy S24" id="listing-model">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Fiyat (₺)</label>
-      <input class="form-input" type="number" placeholder="25000" id="listing-price">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Durum</label>
-      <select class="form-select" id="listing-condition">
-        <option value="Sıfır">Sıfır</option>
-        <option value="Az Kullanılmış">Az Kullanılmış</option>
-        <option value="İkinci El">İkinci El</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Konum</label>
-      <input class="form-input" type="text" placeholder="Şehir / İlçe" id="listing-location">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Açıklama</label>
-      <input class="form-input" type="text" placeholder="Kısa açıklama…" id="listing-desc">
-    </div>
-    <div class="form-group">
-      <label class="form-label">WhatsApp Numaranız</label>
-      <input class="form-input" type="tel" placeholder="5XXXXXXXXX" id="listing-phone">
-    </div>
+    <div class="form-group"><label class="form-label">Telefon Modeli</label><input class="form-input" type="text" placeholder="Örn: Samsung Galaxy S24" id="listing-model"></div>
+    <div class="form-group"><label class="form-label">Fiyat (₺)</label><input class="form-input" type="number" placeholder="25000" id="listing-price"></div>
+    <div class="form-group"><label class="form-label">Durum</label><select class="form-select" id="listing-condition"><option>Sıfır</option><option>Az Kullanılmış</option><option>İkinci El</option></select></div>
+    <div class="form-group"><label class="form-label">Konum</label><input class="form-input" type="text" placeholder="Şehir / İlçe" id="listing-location"></div>
+    <div class="form-group"><label class="form-label">Açıklama</label><input class="form-input" type="text" placeholder="Kısa açıklama…" id="listing-desc"></div>
+    <div class="form-group"><label class="form-label">WhatsApp Numaranız</label><input class="form-input" type="tel" placeholder="5XXXXXXXXX" id="listing-phone"></div>
     <button class="submit-btn" onclick="submitListing()">İlanı Yayınla</button>
   </div>
 </div>
 
-<script>
-// ── CONFIG ──
+<!-- FIREBASE -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc, updateDoc, setDoc, getDoc, query, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyADpIRNLQEIer_gplTgwKi_EKkfcyrYoqY",
+  authDomain: "maasgunu-bd353.firebaseapp.com",
+  projectId: "maasgunu-bd353",
+  storageBucket: "maasgunu-bd353.firebasestorage.app",
+  messagingSenderId: "485904329467",
+  appId: "1:485904329467:web:579d932ae8f25958901e5e",
+  measurementId: "G-GQT1Q7FGDM"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const googleProvider = new GoogleAuthProvider();
+
+let currentUser = null;
+let userFavorites = new Set();
+let allListings = [];
+let marketTab = 'all';
+
+// ── AUTH STATE ──
+onAuthStateChanged(auth, async user => {
+  currentUser = user;
+  if (user) {
+    document.getElementById('profile-btn').style.display = 'flex';
+    document.getElementById('login-btn').style.display = 'none';
+    const img = document.getElementById('header-avatar');
+    if (user.photoURL) img.src = user.photoURL;
+    else img.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName||user.email)}&background=0D1526&color=00D4FF&size=64`;
+    await loadUserData();
+  } else {
+    document.getElementById('profile-btn').style.display = 'none';
+    document.getElementById('login-btn').style.display = 'flex';
+    userFavorites = new Set();
+  }
+  renderProfile();
+  loadListings();
+});
+
+// ── LOAD USER DATA ──
+async function loadUserData() {
+  if (!currentUser) return;
+  try {
+    const ref = doc(db, 'teknohane_users', currentUser.uid);
+    const snap = await getDoc(ref);
+    if (snap.exists()) {
+      userFavorites = new Set(snap.data().favorites || []);
+    } else {
+      await setDoc(ref, { favorites: [], createdAt: serverTimestamp() });
+    }
+  } catch(e) { console.error(e); }
+}
+
+// ── LISTINGS ──
+async function loadListings() {
+  const grid = document.getElementById('listing-grid');
+  try {
+    const q = query(collection(db, 'teknohane_listings'), orderBy('createdAt', 'desc'));
+    const snap = await getDocs(q);
+    allListings = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderListings();
+  } catch(e) {
+    grid.innerHTML = '<div class="error-wrap"><div style="font-size:36px">📡</div><div class="no-results">İlanlar yüklenemedi</div></div>';
+  }
+}
+
+function renderListings() {
+  const grid = document.getElementById('listing-grid');
+  const search = document.querySelector('#screen-market .search-input')?.value?.toLowerCase() || '';
+  let items = allListings;
+  if (search) items = items.filter(l => l.model?.toLowerCase().includes(search));
+  if (marketTab === 'favorites') items = items.filter(l => userFavorites.has(l.id));
+  if (marketTab === 'mine') items = currentUser ? items.filter(l => l.uid === currentUser.uid) : [];
+
+  if (!items.length) {
+    grid.innerHTML = `<div class="empty-state"><div class="empty-icon">${marketTab==='favorites'?'❤️':marketTab==='mine'?'📋':'📭'}</div><div class="empty-title">${marketTab==='favorites'?'Favori yok':marketTab==='mine'?'İlan yok':'Henüz ilan yok'}</div><div class="empty-desc">${marketTab==='favorites'?'İlanları favorilere ekle':'İlk ilanı sen ver!'}</div></div>`;
+    return;
+  }
+  grid.innerHTML = items.map(l => {
+    const isMine = currentUser && l.uid === currentUser.uid;
+    const isFav = userFavorites.has(l.id);
+    return `<div class="listing-card">
+      <div class="listing-title">${l.model||''}</div>
+      <div class="listing-row">
+        <div class="listing-price">₺${parseInt(l.price||0).toLocaleString('tr-TR')}</div>
+        <div class="listing-condition ${l.condition==='Sıfır'?'cond-new':'cond-used'}">${l.condition||''}</div>
+      </div>
+      ${l.desc?`<div style="font-size:12px;color:var(--text-2);margin-top:6px">${l.desc}</div>`:''}
+      <div class="listing-footer">
+        <div class="listing-loc">📍 ${l.location||'Belirtilmedi'}</div>
+        <div class="listing-actions">
+          <div class="fav-btn ${isFav?'active':''}" onclick="toggleFav('${l.id}',this)">
+            <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          </div>
+          ${l.phone?`<div class="wa-contact-btn" onclick="openLink('https://wa.me/90${l.phone}')">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.998 2C6.477 2 2 6.477 2 12c0 1.989.574 3.842 1.565 5.408L2 22l4.757-1.535A9.958 9.958 0 0 0 11.998 22c5.523 0 10-4.477 10-10S17.521 2 11.998 2z"/></svg>
+            İletişim
+          </div>`:''}
+          ${isMine?`<button class="delete-btn" onclick="deleteListing('${l.id}')">Sil</button>`:''}
+        </div>
+      </div>
+      ${l.ownerName?`<div class="listing-owner"><div style="width:20px;height:20px;border-radius:50%;background:var(--cyan-dim);display:flex;align-items:center;justify-content:center;font-size:10px">${(l.ownerName||'?')[0]}</div><span class="owner-name">${l.ownerName}</span>${isMine?'<span class="my-listing-badge">Benim ilanım</span>':''}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+window.filterListings = (q) => renderListings();
+window.setMarketTab = (tab, el) => {
+  marketTab = tab;
+  document.querySelectorAll('#market-tabs button').forEach(b => {
+    b.style.background = 'var(--surface)'; b.style.color = 'var(--text-2)'; b.style.borderColor = 'var(--border-2)';
+  });
+  el.style.background = 'var(--cyan-dim)'; el.style.color = 'var(--cyan)'; el.style.borderColor = 'rgba(0,212,255,0.2)';
+  renderListings();
+};
+
+window.toggleFav = async (id, btn) => {
+  if (!currentUser) { switchTab(document.querySelector('[data-screen=profile]')); return; }
+  if (userFavorites.has(id)) { userFavorites.delete(id); btn.classList.remove('active'); }
+  else { userFavorites.add(id); btn.classList.add('active'); }
+  try {
+    await setDoc(doc(db, 'teknohane_users', currentUser.uid), { favorites: [...userFavorites] }, { merge: true });
+  } catch(e) { console.error(e); }
+};
+
+window.deleteListing = async (id) => {
+  if (!confirm('İlanı silmek istediğinize emin misiniz?')) return;
+  try {
+    await deleteDoc(doc(db, 'teknohane_listings', id));
+    allListings = allListings.filter(l => l.id !== id);
+    renderListings();
+  } catch(e) { alert('Silinemedi'); }
+};
+
+window.handleNewListing = () => {
+  if (!currentUser) { switchTab(document.querySelector('[data-screen=profile]')); return; }
+  document.getElementById('new-listing-modal').classList.add('show');
+};
+
+window.submitListing = async () => {
+  if (!currentUser) return;
+  const model = document.getElementById('listing-model').value.trim();
+  const price = document.getElementById('listing-price').value.trim();
+  if (!model || !price) { alert('Model ve fiyat zorunlu!'); return; }
+  try {
+    const ref = await addDoc(collection(db, 'teknohane_listings'), {
+      model, price, condition: document.getElementById('listing-condition').value,
+      location: document.getElementById('listing-location').value.trim(),
+      desc: document.getElementById('listing-desc').value.trim(),
+      phone: document.getElementById('listing-phone').value.trim(),
+      uid: currentUser.uid, ownerName: currentUser.displayName || currentUser.email?.split('@')[0] || 'Anonim',
+      createdAt: serverTimestamp()
+    });
+    closeModal('new-listing-modal');
+    ['listing-model','listing-price','listing-location','listing-desc','listing-phone'].forEach(id => document.getElementById(id).value = '');
+    await loadListings();
+  } catch(e) { alert('İlan yayınlanamadı: ' + e.message); }
+};
+
+// ── PROFILE ──
+window.renderProfile = () => {
+  const container = document.getElementById('profile-content');
+  if (currentUser) {
+    const myListings = allListings.filter(l => l.uid === currentUser.uid);
+    const avatar = currentUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.displayName||currentUser.email)}&background=0D1526&color=00D4FF&size=128`;
+    container.innerHTML = `
+      <div class="profile-hero">
+        <img class="profile-avatar" src="${avatar}" alt="">
+        <div class="profile-name">${currentUser.displayName || 'Kullanıcı'}</div>
+        <div class="profile-email">${currentUser.email}</div>
+        <div class="profile-stats">
+          <div class="stat-box"><div class="stat-num">${myListings.length}</div><div class="stat-label">İlanım</div></div>
+          <div class="stat-box"><div class="stat-num">${userFavorites.size}</div><div class="stat-label">Favori</div></div>
+          <div class="stat-box"><div class="stat-num">${allListings.length}</div><div class="stat-label">Toplam İlan</div></div>
+        </div>
+      </div>
+      <div class="profile-menu">
+        <div class="menu-item" onclick="switchTab(document.querySelector('[data-screen=market]'));setMarketTab('mine',document.querySelectorAll('#market-tabs button')[2])">
+          <div class="menu-item-left">
+            <div class="menu-icon" style="background:var(--cyan-dim)"><svg viewBox="0 0 24 24" stroke="var(--cyan)"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div>
+            <span class="menu-label">İlanlarım</span>
+          </div>
+          <span class="menu-arrow">›</span>
+        </div>
+        <div class="menu-item" onclick="switchTab(document.querySelector('[data-screen=market]'));setMarketTab('favorites',document.querySelectorAll('#market-tabs button')[1])">
+          <div class="menu-item-left">
+            <div class="menu-icon" style="background:rgba(255,69,58,0.1)"><svg viewBox="0 0 24 24" stroke="#FF453A"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
+            <span class="menu-label">Favorilerim</span>
+          </div>
+          <span class="menu-arrow">›</span>
+        </div>
+      </div>
+      <button class="signout-btn" onclick="doSignOut()">Çıkış Yap</button>
+    `;
+  } else {
+    container.innerHTML = `
+      <div class="auth-screen">
+        <img class="auth-logo" src="teknohane.png" alt="Teknohane">
+        <div class="auth-title">Teknohane</div>
+        <div class="auth-sub">İlan vermek, favorilere eklemek ve daha fazlası için giriş yap</div>
+        <div class="auth-form">
+          <div class="auth-tabs">
+            <div class="auth-tab active" onclick="setAuthTab('login',this)">Giriş Yap</div>
+            <div class="auth-tab" onclick="setAuthTab('register',this)">Kayıt Ol</div>
+          </div>
+          <div class="auth-error" id="auth-error"></div>
+          <div class="form-group"><label class="form-label">E-posta</label><input class="form-input" type="email" id="auth-email" placeholder="ornek@mail.com"></div>
+          <div class="form-group"><label class="form-label">Şifre</label><input class="form-input" type="password" id="auth-password" placeholder="••••••••"></div>
+          <div class="form-group" id="name-group" style="display:none"><label class="form-label">Ad Soyad</label><input class="form-input" type="text" id="auth-name" placeholder="Adınız Soyadınız"></div>
+          <button class="submit-btn" id="auth-submit" onclick="doEmailAuth()">Giriş Yap</button>
+          <div class="divider"><div class="divider-line"></div><div class="divider-text">veya</div><div class="divider-line"></div></div>
+          <button class="google-btn" onclick="doGoogleAuth()">
+            <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+            Google ile Giriş Yap
+          </button>
+        </div>
+      </div>
+    `;
+  }
+};
+
+window.setAuthTab = (tab, el) => {
+  document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  const isLogin = tab === 'login';
+  document.getElementById('name-group').style.display = isLogin ? 'none' : 'block';
+  document.getElementById('auth-submit').textContent = isLogin ? 'Giriş Yap' : 'Kayıt Ol';
+  document.getElementById('auth-submit').onclick = isLogin ? doEmailAuth : doRegister;
+};
+
+window.doEmailAuth = async () => {
+  const email = document.getElementById('auth-email')?.value;
+  const pass = document.getElementById('auth-password')?.value;
+  const errEl = document.getElementById('auth-error');
+  if (!email || !pass) return;
+  try {
+    await signInWithEmailAndPassword(auth, email, pass);
+  } catch(e) {
+    errEl.textContent = e.code === 'auth/invalid-credential' ? 'E-posta veya şifre hatalı' : e.message;
+    errEl.classList.add('show');
+  }
+};
+
+window.doRegister = async () => {
+  const email = document.getElementById('auth-email')?.value;
+  const pass = document.getElementById('auth-password')?.value;
+  const name = document.getElementById('auth-name')?.value;
+  const errEl = document.getElementById('auth-error');
+  if (!email || !pass || !name) { errEl.textContent = 'Tüm alanları doldurun'; errEl.classList.add('show'); return; }
+  try {
+    const cred = await createUserWithEmailAndPassword(auth, email, pass);
+    await updateProfile(cred.user, { displayName: name });
+  } catch(e) {
+    errEl.textContent = e.code === 'auth/email-already-in-use' ? 'Bu e-posta zaten kayıtlı' : e.message;
+    errEl.classList.add('show');
+  }
+};
+
+window.doGoogleAuth = async () => {
+  try { await signInWithPopup(auth, googleProvider); }
+  catch(e) { console.error(e); }
+};
+
+window.doSignOut = async () => {
+  await signOut(auth);
+};
+
+// ── YOUTUBE ──
 const YT_API_KEY = 'AIzaSyAKNSFQQ0FDdLiCkZl16FDSjdqPvCua_Gg';
 const YT_HANDLE = '@teknohaane';
 let CHANNEL_ID = null, videosCache = null, channelCache = null;
 
-// ── PWA INSTALL ──
-let deferredPrompt = null;
-window.addEventListener('beforeinstallprompt', e => {
-  e.preventDefault();
-  deferredPrompt = e;
-  if (!localStorage.getItem('installDismissed')) {
-    setTimeout(() => { document.getElementById('install-banner').classList.add('show'); }, 2000);
-  }
-  document.getElementById('install-header-btn').style.display = 'flex';
-});
-function triggerInstall() {
-  if (!deferredPrompt) return;
-  deferredPrompt.prompt();
-  deferredPrompt.userChoice.then(r => {
-    deferredPrompt = null;
-    document.getElementById('install-banner').classList.remove('show');
-    document.getElementById('install-header-btn').style.display = 'none';
-  });
-}
-function dismissInstall() {
-  document.getElementById('install-banner').classList.remove('show');
-  localStorage.setItem('installDismissed', '1');
-}
+function formatViews(n) { n=parseInt(n)||0; if(n>=1000000) return (n/1000000).toFixed(1).replace('.0','')+'M'; if(n>=1000) return (n/1000).toFixed(0)+'B'; return n.toString(); }
+function formatDate(iso) { const d=Math.floor((Date.now()-new Date(iso))/1000); if(d<3600) return Math.floor(d/60)+' dk önce'; if(d<86400) return Math.floor(d/3600)+' saat önce'; if(d<2592000) return Math.floor(d/86400)+' gün önce'; if(d<31536000) return Math.floor(d/2592000)+' ay önce'; return Math.floor(d/31536000)+' yıl önce'; }
+function formatDuration(iso) { if(!iso) return ''; const m=iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/); if(!m) return ''; const h=parseInt(m[1]||0),min=parseInt(m[2]||0),s=parseInt(m[3]||0); return h>0?h+':'+String(min).padStart(2,'0')+':'+String(s).padStart(2,'0'):min+':'+String(s).padStart(2,'0'); }
+function formatSubs(n) { n=parseInt(n)||0; if(n>=1000000) return (n/1000000).toFixed(1)+'M'; if(n>=1000) return (n/1000).toFixed(1)+'B'; return n.toString(); }
 
-// ── TAB SWITCH ──
-function switchTab(el) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('screen-' + el.dataset.screen).classList.add('active');
-}
-
-// ── FORMAT ──
-function formatViews(n) {
-  n = parseInt(n) || 0;
-  if (n >= 1000000) return (n/1000000).toFixed(1).replace('.0','') + 'M';
-  if (n >= 1000) return (n/1000).toFixed(0) + 'B';
-  return n.toString();
-}
-function formatDate(iso) {
-  const diff = Math.floor((Date.now() - new Date(iso)) / 1000);
-  if (diff < 3600) return Math.floor(diff/60) + ' dk önce';
-  if (diff < 86400) return Math.floor(diff/3600) + ' saat önce';
-  if (diff < 2592000) return Math.floor(diff/86400) + ' gün önce';
-  if (diff < 31536000) return Math.floor(diff/2592000) + ' ay önce';
-  return Math.floor(diff/31536000) + ' yıl önce';
-}
-function formatDuration(iso) {
-  if (!iso) return '';
-  const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-  if (!m) return '';
-  const h = parseInt(m[1]||0), min = parseInt(m[2]||0), s = parseInt(m[3]||0);
-  if (h > 0) return h + ':' + String(min).padStart(2,'0') + ':' + String(s).padStart(2,'0');
-  return min + ':' + String(s).padStart(2,'0');
-}
-function formatSubs(n) {
-  n = parseInt(n) || 0;
-  if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
-  if (n >= 1000) return (n/1000).toFixed(1) + 'B';
-  return n.toString();
-}
-
-// ── YOUTUBE ──
 async function getChannelId() {
-  if (CHANNEL_ID) return CHANNEL_ID;
-  const res = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=id,snippet,statistics&forHandle=${YT_HANDLE}&key=${YT_API_KEY}`);
-  const data = await res.json();
-  if (data.items?.length > 0) { channelCache = data.items[0]; CHANNEL_ID = data.items[0].id; return CHANNEL_ID; }
+  if(CHANNEL_ID) return CHANNEL_ID;
+  const res=await fetch(`https://www.googleapis.com/youtube/v3/channels?part=id,snippet,statistics&forHandle=${YT_HANDLE}&key=${YT_API_KEY}`);
+  const data=await res.json();
+  if(data.items?.length>0){channelCache=data.items[0];CHANNEL_ID=data.items[0].id;return CHANNEL_ID;}
   throw new Error('Kanal bulunamadı');
 }
 async function getVideos() {
-  if (videosCache) return videosCache;
-  const cid = await getChannelId();
-  const playlistId = 'UU' + cid.slice(2);
-  const res = await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${playlistId}&maxResults=15&key=${YT_API_KEY}`);
-  const data = await res.json();
-  if (!data.items) throw new Error('Video listesi alınamadı');
-  const ids = data.items.map(i => i.snippet.resourceId.videoId).join(',');
-  const detRes = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=contentDetails,statistics&id=${ids}&key=${YT_API_KEY}`);
-  const detData = await detRes.json();
-  const detMap = {};
-  (detData.items||[]).forEach(v => { detMap[v.id] = v; });
-  videosCache = data.items.map(item => {
-    const vid = item.snippet.resourceId.videoId;
-    const det = detMap[vid] || {};
-    return { id: vid, title: item.snippet.title, thumbnail: item.snippet.thumbnails?.high?.url || '', publishedAt: item.snippet.publishedAt, duration: formatDuration(det.contentDetails?.duration), views: det.statistics?.viewCount || '0', url: `https://www.youtube.com/watch?v=${vid}` };
-  });
+  if(videosCache) return videosCache;
+  const cid=await getChannelId();
+  const res=await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=UU${cid.slice(2)}&maxResults=15&key=${YT_API_KEY}`);
+  const data=await res.json();
+  if(!data.items) throw new Error('Video listesi alınamadı');
+  const ids=data.items.map(i=>i.snippet.resourceId.videoId).join(',');
+  const det=await fetch(`https://www.googleapis.com/youtube/v3/videos?part=contentDetails,statistics&id=${ids}&key=${YT_API_KEY}`);
+  const detData=await det.json();
+  const detMap={};
+  (detData.items||[]).forEach(v=>{detMap[v.id]=v;});
+  videosCache=data.items.map(item=>{const vid=item.snippet.resourceId.videoId;const d=detMap[vid]||{};return{id:vid,title:item.snippet.title,thumbnail:item.snippet.thumbnails?.high?.url||'',publishedAt:item.snippet.publishedAt,duration:formatDuration(d.contentDetails?.duration),views:d.statistics?.viewCount||'0',url:`https://www.youtube.com/watch?v=${vid}`};});
   return videosCache;
 }
 
-let allVideos = [];
+let allVideos=[];
 async function renderHome() {
-  const container = document.getElementById('home-content');
+  const container=document.getElementById('home-content');
   try {
-    const [videos] = await Promise.all([getVideos(), getChannelId()]);
-    allVideos = videos;
-    const ch = channelCache, stats = ch?.statistics || {}, snippet = ch?.snippet || {};
-    const featured = videos[0], rest = videos.slice(1);
-    container.innerHTML = `
+    const[videos]=await Promise.all([getVideos(),getChannelId()]);
+    allVideos=videos;
+    const ch=channelCache,stats=ch?.statistics||{},snippet=ch?.snippet||{};
+    const featured=videos[0],rest=videos.slice(1);
+    container.innerHTML=`
       <div class="channel-hero">
         <div class="channel-top">
-          <img class="channel-avatar" src="${snippet.thumbnails?.high?.url || snippet.thumbnails?.default?.url || ''}" alt="Teknohane" onerror="this.src='teknohane.png'">
-          <div><div class="channel-name">${snippet.title || 'Teknohane'}</div><div class="channel-handle">${YT_HANDLE}</div></div>
+          <img class="channel-avatar" src="${snippet.thumbnails?.high?.url||snippet.thumbnails?.default?.url||''}" alt="Teknohane" onerror="this.src='teknohane.png'">
+          <div><div class="channel-name">${snippet.title||'Teknohane'}</div><div class="channel-handle">${YT_HANDLE}</div></div>
         </div>
         <div class="channel-stats">
           <div class="stat-box"><div class="stat-num">${formatSubs(stats.subscriberCount)}</div><div class="stat-label">Abone</div></div>
@@ -680,222 +748,61 @@ async function renderHome() {
           <div class="stat-box"><div class="stat-num">${parseInt(stats.videoCount||0)}</div><div class="stat-label">Video</div></div>
         </div>
       </div>
-      <div class="section-head"><span class="section-title">Son Video</span><a class="section-link" href="https://youtube.com/${YT_HANDLE}" target="_blank">Tümü →</a></div>
-      <div class="featured-card" onclick="window.open('${featured.url}','_blank')">
-        <div class="featured-thumb">
-          <img src="${featured.thumbnail}" alt="${featured.title}" loading="lazy">
-          <div class="play-btn"><div class="play-circle"><svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg></div></div>
-          ${featured.duration ? `<div class="duration-badge">${featured.duration}</div>` : ''}
-        </div>
-        <div class="featured-info">
-          <div class="featured-badge">Son Yüklenen</div>
-          <div class="featured-title">${featured.title}</div>
-          <div class="featured-meta">
-            <div class="meta-pill"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>${formatViews(featured.views)} izlenme</div>
-            <div class="meta-pill"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${formatDate(featured.publishedAt)}</div>
-          </div>
-        </div>
+      <div class="section-head"><span class="section-title">Son Video</span><a class="section-link" onclick="openLink('https://youtube.com/${YT_HANDLE}')">Tümü →</a></div>
+      <div class="featured-card" onclick="openLink('${featured.url}')">
+        <div class="featured-thumb"><img src="${featured.thumbnail}" alt="${featured.title}" loading="lazy"><div class="play-btn"><div class="play-circle"><svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg></div></div>${featured.duration?`<div class="duration-badge">${featured.duration}</div>`:''}</div>
+        <div class="featured-info"><div class="featured-badge">Son Yüklenen</div><div class="featured-title">${featured.title}</div><div class="featured-meta"><div class="meta-pill"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>${formatViews(featured.views)} izlenme</div><div class="meta-pill"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${formatDate(featured.publishedAt)}</div></div></div>
       </div>
       <div class="glow-line"></div>
-      <div class="section-head">
-        <span class="section-title">Diğer Videolar</span>
-      </div>
-      <div class="search-wrap">
-        <svg class="search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input class="search-input" type="text" placeholder="Video ara…" oninput="filterVideos(this.value)">
-      </div>
-      <div class="video-list" id="video-list">${renderVideoList(rest)}</div>
-    `;
-  } catch(err) {
-    container.innerHTML = `<div class="error-wrap"><div class="error-icon">📡</div><div class="error-title">Bağlantı Hatası</div><div class="error-desc">Videolar yüklenirken bir sorun oluştu.</div><button class="retry-btn" onclick="retryHome()">Tekrar Dene</button></div>`;
+      <div class="section-head"><span class="section-title">Diğer Videolar</span></div>
+      <div class="search-wrap"><svg class="search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input class="search-input" type="text" placeholder="Video ara…" oninput="filterVideos(this.value)"></div>
+      <div class="video-list" id="video-list">${renderVideoList(rest)}</div>`;
+  } catch(e) {
+    container.innerHTML=`<div class="error-wrap"><div style="font-size:36px">📡</div><div style="font-size:16px;font-weight:600">Bağlantı Hatası</div><div style="font-size:13px;color:var(--text-2)">Videolar yüklenemedi</div><button class="retry-btn" onclick="retryHome()">Tekrar Dene</button></div>`;
   }
 }
 function renderVideoList(videos) {
-  if (!videos.length) return '<div class="no-results">Video bulunamadı</div>';
-  return videos.map(v => `
-    <div class="video-card" onclick="window.open('${v.url}','_blank')">
-      <div class="video-thumb"><img src="${v.thumbnail}" alt="${v.title}" loading="lazy">${v.duration ? `<div class="video-dur">${v.duration}</div>` : ''}</div>
-      <div class="video-info">
-        <div class="video-title">${v.title}</div>
-        <div class="video-meta"><span>${formatViews(v.views)} izlenme</span><span>${formatDate(v.publishedAt)}</span></div>
-      </div>
-    </div>`).join('');
+  if(!videos.length) return '<div class="no-results">Video bulunamadı</div>';
+  return videos.map(v=>`<div class="video-card" onclick="openLink('${v.url}')"><div class="video-thumb"><img src="${v.thumbnail}" alt="${v.title}" loading="lazy">${v.duration?`<div class="video-dur">${v.duration}</div>`:''}</div><div class="video-info"><div class="video-title">${v.title}</div><div class="video-meta"><span>${formatViews(v.views)} izlenme</span><span>${formatDate(v.publishedAt)}</span></div></div></div>`).join('');
 }
-function filterVideos(q) {
-  const list = document.getElementById('video-list');
-  if (!list) return;
-  const filtered = allVideos.slice(1).filter(v => v.title.toLowerCase().includes(q.toLowerCase()));
-  list.innerHTML = renderVideoList(filtered);
-}
-function retryHome() {
-  videosCache = null; channelCache = null; CHANNEL_ID = null;
-  document.getElementById('home-content').innerHTML = '<div class="loading-wrap"><div class="spinner"></div><div class="loading-text">Yeniden yükleniyor…</div></div>';
-  renderHome();
-}
+window.filterVideos=(q)=>{const l=document.getElementById('video-list');if(l)l.innerHTML=renderVideoList(allVideos.slice(1).filter(v=>v.title.toLowerCase().includes(q.toLowerCase())));};
+window.retryHome=()=>{videosCache=null;channelCache=null;CHANNEL_ID=null;document.getElementById('home-content').innerHTML='<div class="loading-wrap"><div class="spinner"></div><div class="loading-text">Yeniden yükleniyor…</div></div>';renderHome();};
 
 // ── COMPARE ──
-const PHONES = [
-  { brand:'Apple', name:'iPhone 16 Pro', price:'₺89.999', ram:'8GB', storage:'128GB', chip:'A18 Pro', camera:'48MP + 48MP + 12MP', battery:'3274mAh', screen:'6.3" OLED 120Hz', weight:'199g' },
-  { brand:'Apple', name:'iPhone 16', price:'₺59.999', ram:'8GB', storage:'128GB', chip:'A18', camera:'48MP + 12MP', battery:'3561mAh', screen:'6.1" OLED 60Hz', weight:'170g' },
-  { brand:'Apple', name:'iPhone 15 Pro', price:'₺64.999', ram:'8GB', storage:'128GB', chip:'A17 Pro', camera:'48MP + 12MP + 12MP', battery:'3274mAh', screen:'6.1" OLED 120Hz', weight:'187g' },
-  { brand:'Samsung', name:'Galaxy S25 Ultra', price:'₺109.999', ram:'12GB', storage:'256GB', chip:'Snapdragon 8 Elite', camera:'200MP + 50MP + 10MP + 10MP', battery:'5000mAh', screen:'6.9" AMOLED 120Hz', weight:'218g' },
-  { brand:'Samsung', name:'Galaxy S25+', price:'₺74.999', ram:'12GB', storage:'256GB', chip:'Snapdragon 8 Elite', camera:'50MP + 12MP + 10MP', battery:'4900mAh', screen:'6.7" AMOLED 120Hz', weight:'190g' },
-  { brand:'Samsung', name:'Galaxy S25', price:'₺54.999', ram:'12GB', storage:'128GB', chip:'Snapdragon 8 Elite', camera:'50MP + 12MP + 10MP', battery:'4000mAh', screen:'6.2" AMOLED 120Hz', weight:'162g' },
-  { brand:'Samsung', name:'Galaxy A55', price:'₺24.999', ram:'8GB', storage:'128GB', chip:'Exynos 1480', camera:'50MP + 12MP + 5MP', battery:'5000mAh', screen:'6.6" AMOLED 120Hz', weight:'213g' },
-  { brand:'Xiaomi', name:'14 Ultra', price:'₺69.999', ram:'16GB', storage:'512GB', chip:'Snapdragon 8 Gen 3', camera:'50MP + 50MP + 50MP + 50MP', battery:'5300mAh', screen:'6.73" AMOLED 120Hz', weight:'229g' },
-  { brand:'Xiaomi', name:'Redmi Note 13 Pro', price:'₺18.999', ram:'8GB', storage:'256GB', chip:'Snapdragon 7s Gen 2', camera:'200MP + 8MP + 2MP', battery:'5100mAh', screen:'6.67" AMOLED 120Hz', weight:'187g' },
-  { brand:'OnePlus', name:'12', price:'₺44.999', ram:'12GB', storage:'256GB', chip:'Snapdragon 8 Gen 3', camera:'50MP + 48MP + 64MP', battery:'5400mAh', screen:'6.82" AMOLED 120Hz', weight:'220g' },
-  { brand:'Google', name:'Pixel 9 Pro', price:'₺79.999', ram:'16GB', storage:'128GB', chip:'Tensor G4', camera:'50MP + 48MP + 48MP', battery:'4700mAh', screen:'6.3" OLED 120Hz', weight:'199g' },
-  { brand:'Google', name:'Pixel 9', price:'₺49.999', ram:'12GB', storage:'128GB', chip:'Tensor G4', camera:'50MP + 48MP', battery:'4700mAh', screen:'6.3" OLED 120Hz', weight:'198g' },
+const PHONES=[
+  {brand:'Apple',name:'iPhone 16 Pro',price:'₺89.999',ram:'8GB',storage:'128GB',chip:'A18 Pro',camera:'48MP+48MP+12MP',battery:'3274mAh',screen:'6.3" 120Hz'},
+  {brand:'Apple',name:'iPhone 16',price:'₺59.999',ram:'8GB',storage:'128GB',chip:'A18',camera:'48MP+12MP',battery:'3561mAh',screen:'6.1" 60Hz'},
+  {brand:'Apple',name:'iPhone 15 Pro',price:'₺64.999',ram:'8GB',storage:'128GB',chip:'A17 Pro',camera:'48MP+12MP+12MP',battery:'3274mAh',screen:'6.1" 120Hz'},
+  {brand:'Samsung',name:'Galaxy S25 Ultra',price:'₺109.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite',camera:'200MP+50MP+10MP',battery:'5000mAh',screen:'6.9" 120Hz'},
+  {brand:'Samsung',name:'Galaxy S25+',price:'₺74.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite',camera:'50MP+12MP+10MP',battery:'4900mAh',screen:'6.7" 120Hz'},
+  {brand:'Samsung',name:'Galaxy S25',price:'₺54.999',ram:'12GB',storage:'128GB',chip:'SD 8 Elite',camera:'50MP+12MP+10MP',battery:'4000mAh',screen:'6.2" 120Hz'},
+  {brand:'Samsung',name:'Galaxy A55',price:'₺24.999',ram:'8GB',storage:'128GB',chip:'Exynos 1480',camera:'50MP+12MP+5MP',battery:'5000mAh',screen:'6.6" 120Hz'},
+  {brand:'Xiaomi',name:'14 Ultra',price:'₺69.999',ram:'16GB',storage:'512GB',chip:'SD 8 Gen 3',camera:'50MP×4',battery:'5300mAh',screen:'6.73" 120Hz'},
+  {brand:'Xiaomi',name:'Redmi Note 13 Pro',price:'₺18.999',ram:'8GB',storage:'256GB',chip:'SD 7s Gen 2',camera:'200MP+8MP',battery:'5100mAh',screen:'6.67" 120Hz'},
+  {brand:'OnePlus',name:'12',price:'₺44.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 3',camera:'50MP+48MP+64MP',battery:'5400mAh',screen:'6.82" 120Hz'},
+  {brand:'Google',name:'Pixel 9 Pro',price:'₺79.999',ram:'16GB',storage:'128GB',chip:'Tensor G4',camera:'50MP+48MP+48MP',battery:'4700mAh',screen:'6.3" 120Hz'},
+  {brand:'Google',name:'Pixel 9',price:'₺49.999',ram:'12GB',storage:'128GB',chip:'Tensor G4',camera:'50MP+48MP',battery:'4700mAh',screen:'6.3" 120Hz'},
 ];
-let selectedSlot = null, phoneA = null, phoneB = null;
-let filteredPhones = [...PHONES];
+let selectedSlot=null,phoneA=null,phoneB=null,filteredPhones=[...PHONES];
+window.openPhonePicker=(slot)=>{selectedSlot=slot;document.getElementById('phone-search-input').value='';filteredPhones=[...PHONES];renderPhoneList();document.getElementById('phone-picker-modal').classList.add('show');};
+window.filterPhones=(q)=>{filteredPhones=PHONES.filter(p=>(p.brand+' '+p.name).toLowerCase().includes(q.toLowerCase()));renderPhoneList();};
+function renderPhoneList(){const l=document.getElementById('phone-search-list');if(!filteredPhones.length){l.innerHTML='<div class="no-results">Bulunamadı</div>';return;}l.innerHTML=filteredPhones.map((p)=>`<div class="phone-item" onclick="selectPhone(${PHONES.indexOf(p)})"><div><div class="phone-item-name">${p.brand} ${p.name}</div><div class="phone-item-spec">${p.chip} · ${p.ram}</div></div><div style="display:flex;align-items:center;gap:8px"><div class="phone-item-price">${p.price}</div><div class="add-badge">Ekle</div></div></div>`).join('');}
+window.selectPhone=(idx)=>{const p=PHONES[idx];if(selectedSlot==='a')phoneA=p;else phoneB=p;closeModal('phone-picker-modal');renderSlots();if(phoneA&&phoneB)renderCompareTable();else document.getElementById('compare-result').innerHTML='';};
+function renderSlots(){['a','b'].forEach(s=>{const p=s==='a'?phoneA:phoneB;const slot=document.getElementById('slot-'+s);if(p){slot.className='phone-slot filled';slot.onclick=null;slot.innerHTML=`<div class="phone-brand">${p.brand}</div><div class="phone-name">${p.name}</div><div class="phone-price">${p.price}</div><button class="clear-slot" onclick="clearSlot('${s}')">Kaldır</button>`;}else{slot.className='phone-slot';slot.onclick=()=>openPhonePicker(s);slot.innerHTML=`<div class="slot-plus"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div><div class="slot-label">Telefon ekle</div>`;}});}
+window.clearSlot=(s)=>{if(s==='a')phoneA=null;else phoneB=null;renderSlots();document.getElementById('compare-result').innerHTML='';};
+function renderCompareTable(){const a=phoneA,b=phoneB;const rows=[{l:'Fiyat',va:a.price,vb:b.price},{l:'İşlemci',va:a.chip,vb:b.chip},{l:'RAM',va:a.ram,vb:b.ram},{l:'Depolama',va:a.storage,vb:b.storage},{l:'Kamera',va:a.camera,vb:b.camera},{l:'Batarya',va:a.battery,vb:b.battery},{l:'Ekran',va:a.screen,vb:b.screen}];document.getElementById('compare-result').innerHTML=`<div class="compare-table"><div class="compare-row" style="background:rgba(0,212,255,0.05)"><div class="compare-cell label"></div><div class="compare-cell" style="font-weight:700;font-size:12px;color:var(--cyan)">${a.brand}<br>${a.name}</div><div class="compare-cell" style="font-weight:700;font-size:12px;color:var(--cyan)">${b.brand}<br>${b.name}</div></div>${rows.map(r=>`<div class="compare-row"><div class="compare-cell label">${r.l}</div><div class="compare-cell val">${r.va}</div><div class="compare-cell val">${r.vb}</div></div>`).join('')}</div>`;}
 
-function openPhonePicker(slot) {
-  selectedSlot = slot;
-  document.getElementById('phone-search-input').value = '';
-  filteredPhones = [...PHONES];
-  renderPhoneList();
-  document.getElementById('phone-picker-modal').classList.add('show');
-}
-function filterPhones(q) {
-  filteredPhones = PHONES.filter(p => (p.brand + ' ' + p.name).toLowerCase().includes(q.toLowerCase()));
-  renderPhoneList();
-}
-function renderPhoneList() {
-  const list = document.getElementById('phone-search-list');
-  if (!filteredPhones.length) { list.innerHTML = '<div class="no-results">Model bulunamadı</div>'; return; }
-  list.innerHTML = filteredPhones.map((p,i) => `
-    <div class="phone-item" onclick="selectPhone(${PHONES.indexOf(p)})">
-      <div class="phone-item-info">
-        <div class="phone-item-name">${p.brand} ${p.name}</div>
-        <div class="phone-item-spec">${p.chip} · ${p.ram} RAM</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:10px">
-        <div class="phone-item-price">${p.price}</div>
-        <div class="add-badge">Ekle</div>
-      </div>
-    </div>`).join('');
-}
-function selectPhone(idx) {
-  const phone = PHONES[idx];
-  if (selectedSlot === 'a') phoneA = phone; else phoneB = phone;
-  closeModal('phone-picker-modal');
-  renderSlots();
-  if (phoneA && phoneB) renderCompareTable();
-  else document.getElementById('compare-result').innerHTML = '';
-}
-function renderSlots() {
-  ['a','b'].forEach(s => {
-    const phone = s === 'a' ? phoneA : phoneB;
-    const slot = document.getElementById('slot-' + s);
-    if (phone) {
-      slot.className = 'phone-slot filled';
-      slot.onclick = null;
-      slot.innerHTML = `<div class="phone-brand">${phone.brand}</div><div class="phone-name">${phone.name}</div><div class="phone-price">${phone.price}</div><button class="clear-slot" onclick="clearSlot('${s}')">Kaldır</button>`;
-    } else {
-      slot.className = 'phone-slot';
-      slot.onclick = () => openPhonePicker(s);
-      slot.innerHTML = `<div class="slot-plus"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div><div class="slot-label">Telefon ekle</div>`;
-    }
-  });
-}
-function clearSlot(s) {
-  if (s === 'a') phoneA = null; else phoneB = null;
-  renderSlots();
-  document.getElementById('compare-result').innerHTML = '';
-}
-function renderCompareTable() {
-  const a = phoneA, b = phoneB;
-  const rows = [
-    { label: 'Fiyat', va: a.price, vb: b.price },
-    { label: 'İşlemci', va: a.chip, vb: b.chip },
-    { label: 'RAM', va: a.ram, vb: b.ram },
-    { label: 'Depolama', va: a.storage, vb: b.storage },
-    { label: 'Kamera', va: a.camera, vb: b.camera },
-    { label: 'Batarya', va: a.battery, vb: b.battery },
-    { label: 'Ekran', va: a.screen, vb: b.screen },
-    { label: 'Ağırlık', va: a.weight, vb: b.weight },
-  ];
-  document.getElementById('compare-result').innerHTML = `
-    <div class="compare-table">
-      <div class="compare-row" style="background:rgba(0,212,255,0.05)">
-        <div class="compare-cell label"></div>
-        <div class="compare-cell" style="font-weight:700;font-size:12px;color:var(--cyan)">${a.brand}<br>${a.name}</div>
-        <div class="compare-cell" style="font-weight:700;font-size:12px;color:var(--cyan)">${b.brand}<br>${b.name}</div>
-      </div>
-      ${rows.map(r => `<div class="compare-row"><div class="compare-cell label">${r.label}</div><div class="compare-cell val">${r.va}</div><div class="compare-cell val">${r.vb}</div></div>`).join('')}
-    </div>`;
-}
-
-// ── MARKET ──
-let listings = JSON.parse(localStorage.getItem('teknohane-listings') || '[]');
-let filteredListings = [...listings];
-
-function renderListings() {
-  const grid = document.getElementById('listing-grid');
-  if (!grid) return;
-  if (!filteredListings.length) {
-    grid.innerHTML = '<div class="no-results" style="padding:60px 20px">Henüz ilan yok.<br>İlk ilanı sen ver! 🚀</div>';
-    return;
-  }
-  grid.innerHTML = filteredListings.map((l,i) => `
-    <div class="listing-card">
-      <div class="listing-info">
-        <div class="listing-title">${l.model}</div>
-        <div class="listing-meta">
-          <div class="listing-price">₺${parseInt(l.price).toLocaleString('tr-TR')}</div>
-          <div class="listing-condition ${l.condition === 'Sıfır' ? 'cond-new' : 'cond-used'}">${l.condition}</div>
-        </div>
-        ${l.desc ? `<div style="font-size:12px;color:var(--text-2);margin-top:6px">${l.desc}</div>` : ''}
-        <div class="listing-footer">
-          <div class="listing-location"><svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${l.location || 'Belirtilmedi'}</div>
-          ${l.phone ? `<a class="wa-contact-btn" href="https://wa.me/90${l.phone}" target="_blank"><svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.998 2C6.477 2 2 6.477 2 12c0 1.989.574 3.842 1.565 5.408L2 22l4.757-1.535A9.958 9.958 0 0 0 11.998 22c5.523 0 10-4.477 10-10S17.521 2 11.998 2z"/></svg>İletişim</a>` : ''}
-        </div>
-      </div>
-    </div>`).join('');
-}
-function filterListings(q) {
-  filteredListings = listings.filter(l => l.model.toLowerCase().includes(q.toLowerCase()));
-  renderListings();
-}
-function openNewListing() { document.getElementById('new-listing-modal').classList.add('show'); }
-function submitListing() {
-  const model = document.getElementById('listing-model').value.trim();
-  const price = document.getElementById('listing-price').value.trim();
-  if (!model || !price) { alert('Model ve fiyat zorunlu!'); return; }
-  const listing = { model, price, condition: document.getElementById('listing-condition').value, location: document.getElementById('listing-location').value.trim(), desc: document.getElementById('listing-desc').value.trim(), phone: document.getElementById('listing-phone').value.trim(), date: new Date().toISOString() };
-  listings.unshift(listing);
-  filteredListings = [...listings];
-  localStorage.setItem('teknohane-listings', JSON.stringify(listings));
-  closeModal('new-listing-modal');
-  renderListings();
-  ['listing-model','listing-price','listing-location','listing-desc','listing-phone'].forEach(id => document.getElementById(id).value = '');
-}
-
-// ── OPEN LINK ──
-function openLink(url) {
-  location.href = '/teknohane/go.html?url=' + encodeURIComponent(url);
-}
-
-// ── MODAL ──
-function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+// ── HELPERS ──
+window.switchTab=(el)=>{document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));el.classList.add('active');document.getElementById('screen-'+el.dataset.screen).classList.add('active');};
+window.openLink=(url)=>{location.href='/teknohane/go.html?url='+encodeURIComponent(url);};
+window.closeModal=(id)=>document.getElementById(id).classList.remove('show');
 
 // ── INIT ──
 renderHome();
-renderListings();
 
-// ── SERVICE WORKER ──
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/teknohane/sw.js', { scope: '/teknohane/' })
-      .then(r => console.log('SW kayıtlı:', r.scope)).catch(e => console.log('SW hatası:', e));
-  });
-}
-
-// ── URL ROUTING ──
-const tabParam = new URLSearchParams(window.location.search).get('tab');
-if (tabParam) { const t = document.querySelector(`.tab[data-screen="${tabParam}"]`); if (t) switchTab(t); }
+if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('/teknohane/sw.js',{scope:'/teknohane/'}).catch(e=>console.log(e));});}
+const tabParam=new URLSearchParams(location.search).get('tab');
+if(tabParam){const t=document.querySelector(`.tab[data-screen="${tabParam}"]`);if(t)switchTab(t);}
 </script>
 </body>
 </html>
