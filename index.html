@@ -26,7 +26,8 @@
     --safe-top: env(safe-area-inset-top,0px); --safe-bottom: env(safe-area-inset-bottom,0px);
     --tab-height: 83px;
   }
-  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none; }
+  input, textarea, .form-input, .search-input { user-select:text !important; -webkit-user-select:text !important; }
   html,body { height:100%; background:var(--bg); color:var(--text); font-family:'DM Sans',-apple-system,sans-serif; overflow:hidden; overscroll-behavior:none; }
   #app { display:flex; flex-direction:column; height:100%; height:100dvh; }
 
@@ -358,6 +359,76 @@
       </div>
     </div>
 
+    <!-- DESTEK -->
+    <div class="screen" id="screen-support">
+      <div class="screen-content">
+        <div class="section-head"><span class="section-title">Destek</span></div>
+
+        <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px">
+          <div class="menu-item" onclick="openLink('https://wa.me/905519589317')">
+            <div class="menu-item-left">
+              <div class="menu-icon" style="background:rgba(37,211,102,0.12)">
+                <svg viewBox="0 0 24 24" fill="#25D366" width="18" height="18"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.998 2C6.477 2 2 6.477 2 12c0 1.989.574 3.842 1.565 5.408L2 22l4.757-1.535A9.958 9.958 0 0 0 11.998 22c5.523 0 10-4.477 10-10S17.521 2 11.998 2z"/></svg>
+              </div>
+              <div>
+                <div class="menu-label">WhatsApp Destek</div>
+                <div style="font-size:11px;color:var(--text-2);margin-top:2px">+90 551 958 93 17</div>
+              </div>
+            </div>
+            <span class="menu-arrow">›</span>
+          </div>
+
+          <div class="menu-item" onclick="openLink('mailto:teknohaane@hotmail.com')">
+            <div class="menu-item-left">
+              <div class="menu-icon" style="background:rgba(0,212,255,0.1)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              </div>
+              <div>
+                <div class="menu-label">E-posta Destek</div>
+                <div style="font-size:11px;color:var(--text-2);margin-top:2px">teknohaane@hotmail.com</div>
+              </div>
+            </div>
+            <span class="menu-arrow">›</span>
+          </div>
+
+          <div class="menu-item" onclick="openLink('https://youtube.com/@teknohaane')">
+            <div class="menu-item-left">
+              <div class="menu-icon" style="background:rgba(255,0,0,0.1)">
+                <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path stroke="#FF3B30" stroke-width="1.8" d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon fill="#FF3B30" stroke="none" points="9.75,15.02 15.5,12 9.75,8.98 9.75,15.02"/></svg>
+              </div>
+              <div>
+                <div class="menu-label">YouTube Kanalı</div>
+                <div style="font-size:11px;color:var(--text-2);margin-top:2px">@teknohaane</div>
+              </div>
+            </div>
+            <span class="menu-arrow">›</span>
+          </div>
+
+          <div class="menu-item" onclick="openLink('https://www.instagram.com/teknohaane/')">
+            <div class="menu-item-left">
+              <div class="menu-icon" style="background:rgba(193,53,132,0.1)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="url(#ig-grad2)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+                  <defs><linearGradient id="ig-grad2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#F58529"/><stop offset="50%" stop-color="#DD2A7B"/><stop offset="100%" stop-color="#8134AF"/></linearGradient></defs>
+                  <rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.5" fill="#DD2A7B" stroke="none"/>
+                </svg>
+              </div>
+              <div>
+                <div class="menu-label">Instagram</div>
+                <div style="font-size:11px;color:var(--text-2);margin-top:2px">@teknohaane</div>
+              </div>
+            </div>
+            <span class="menu-arrow">›</span>
+          </div>
+        </div>
+
+        <div class="glow-line"></div>
+        <div style="text-align:center;padding:20px 0">
+          <div style="font-size:13px;color:var(--text-3)">Teknohane v1.0</div>
+          <div style="font-size:11px;color:var(--text-3);margin-top:4px">Telefon meraklıları topluluğu</div>
+        </div>
+      </div>
+    </div>
+
     <!-- PROFİL / GİRİŞ -->
     <div class="screen" id="screen-profile">
       <div class="screen-content" id="profile-content">
@@ -385,6 +456,10 @@
       <div class="tab" data-screen="market" onclick="switchTab(this)">
         <div class="tab-icon"><svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div>
         <span class="tab-label">Pazar</span>
+      </div>
+      <div class="tab" data-screen="support" onclick="switchTab(this)">
+        <div class="tab-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+        <span class="tab-label">Destek</span>
       </div>
       <div class="tab" data-screen="profile" onclick="switchTab(this)">
         <div class="tab-icon"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
@@ -588,16 +663,64 @@ window.submitListing = async () => {
   } catch(e) { alert('İlan yayınlanamadı: ' + e.message); }
 };
 
-// ── PROFILE ──
-window.renderProfile = () => {
+// ── ADMIN ──
+const ADMIN_EMAILS = ['yusuf.aykac@gmail.com', 'memetklc5933@gmail.com'];
+let isAdmin = false;
+
+async function checkAdmin() {
+  if (!currentUser) { isAdmin = false; return; }
+  isAdmin = ADMIN_EMAILS.includes(currentUser.email);
+}
+
+window.renderAdminPanel = async () => {
+  const totalUsers = allListings.map(l => l.uid).filter((v,i,a) => a.indexOf(v)===i).length;
+  return `
+    <div class="admin-panel">
+      <div class="admin-title">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Yönetici Paneli
+      </div>
+      <div class="admin-stat-grid">
+        <div class="stat-box"><div class="stat-num">${allListings.length}</div><div class="stat-label">İlan</div></div>
+        <div class="stat-box"><div class="stat-num">${totalUsers}</div><div class="stat-label">Satıcı</div></div>
+        <div class="stat-box"><div class="stat-num">${allListings.filter(l=>l.condition==='Sıfır').length}</div><div class="stat-label">Sıfır</div></div>
+      </div>
+      <button class="admin-action-btn" onclick="adminLoadAllListings()">📋 Tüm İlanları Gör</button>
+      <button class="admin-action-btn danger" onclick="adminDeleteListing()">🗑️ İlan Sil (ID ile)</button>
+    </div>`;
+};
+
+window.adminLoadAllListings = () => {
+  setMarketTab('all', document.querySelectorAll('#market-tabs button')[0]);
+  switchTab(document.querySelector('[data-screen=market]'));
+};
+
+window.adminDeleteListing = async () => {
+  const id = prompt('Silinecek ilan ID:');
+  if (!id) return;
+  try {
+    await deleteDoc(doc(db, 'teknohane_listings', id));
+    allListings = allListings.filter(l => l.id !== id);
+    renderListings();
+    alert('İlan silindi');
+  } catch(e) { alert('Hata: ' + e.message); }
+};
+
+// ── PROFILE (Admin dahil) ──
+window.renderProfile = async () => {
   const container = document.getElementById('profile-content');
   if (currentUser) {
+    await checkAdmin();
     const myListings = allListings.filter(l => l.uid === currentUser.uid);
     const avatar = currentUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.displayName||currentUser.email)}&background=0D1526&color=00D4FF&size=128`;
+    const adminHTML = isAdmin ? await renderAdminPanel() : '';
     container.innerHTML = `
       <div class="profile-hero">
         <img class="profile-avatar" src="${avatar}" alt="">
-        <div class="profile-name">${currentUser.displayName || 'Kullanıcı'}</div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:8px">
+          <div class="profile-name">${currentUser.displayName || 'Kullanıcı'}</div>
+          ${isAdmin ? '<span class="admin-badge">ADMIN</span>' : ''}
+        </div>
         <div class="profile-email">${currentUser.email}</div>
         <div class="profile-stats">
           <div class="stat-box"><div class="stat-num">${myListings.length}</div><div class="stat-label">İlanım</div></div>
@@ -605,17 +728,18 @@ window.renderProfile = () => {
           <div class="stat-box"><div class="stat-num">${allListings.length}</div><div class="stat-label">Toplam İlan</div></div>
         </div>
       </div>
+      ${adminHTML}
       <div class="profile-menu">
         <div class="menu-item" onclick="switchTab(document.querySelector('[data-screen=market]'));setMarketTab('mine',document.querySelectorAll('#market-tabs button')[2])">
           <div class="menu-item-left">
-            <div class="menu-icon" style="background:var(--cyan-dim)"><svg viewBox="0 0 24 24" stroke="var(--cyan)"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div>
+            <div class="menu-icon" style="background:var(--cyan-dim)"><svg viewBox="0 0 24 24" stroke="var(--cyan)" fill="none" stroke-width="1.8" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div>
             <span class="menu-label">İlanlarım</span>
           </div>
           <span class="menu-arrow">›</span>
         </div>
         <div class="menu-item" onclick="switchTab(document.querySelector('[data-screen=market]'));setMarketTab('favorites',document.querySelectorAll('#market-tabs button')[1])">
           <div class="menu-item-left">
-            <div class="menu-icon" style="background:rgba(255,69,58,0.1)"><svg viewBox="0 0 24 24" stroke="#FF453A"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
+            <div class="menu-icon" style="background:rgba(255,69,58,0.1)"><svg viewBox="0 0 24 24" stroke="#FF453A" fill="none" stroke-width="1.8" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
             <span class="menu-label">Favorilerim</span>
           </div>
           <span class="menu-arrow">›</span>
@@ -792,13 +916,61 @@ function renderSlots(){['a','b'].forEach(s=>{const p=s==='a'?phoneA:phoneB;const
 window.clearSlot=(s)=>{if(s==='a')phoneA=null;else phoneB=null;renderSlots();document.getElementById('compare-result').innerHTML='';};
 function renderCompareTable(){const a=phoneA,b=phoneB;const rows=[{l:'Fiyat',va:a.price,vb:b.price},{l:'İşlemci',va:a.chip,vb:b.chip},{l:'RAM',va:a.ram,vb:b.ram},{l:'Depolama',va:a.storage,vb:b.storage},{l:'Kamera',va:a.camera,vb:b.camera},{l:'Batarya',va:a.battery,vb:b.battery},{l:'Ekran',va:a.screen,vb:b.screen}];document.getElementById('compare-result').innerHTML=`<div class="compare-table"><div class="compare-row" style="background:rgba(0,212,255,0.05)"><div class="compare-cell label"></div><div class="compare-cell" style="font-weight:700;font-size:12px;color:var(--cyan)">${a.brand}<br>${a.name}</div><div class="compare-cell" style="font-weight:700;font-size:12px;color:var(--cyan)">${b.brand}<br>${b.name}</div></div>${rows.map(r=>`<div class="compare-row"><div class="compare-cell label">${r.l}</div><div class="compare-cell val">${r.va}</div><div class="compare-cell val">${r.vb}</div></div>`).join('')}</div>`;}
 
+// ── PULL TO REFRESH ──
+function setupPullToRefresh(screenId, refreshFn) {
+  const screen = document.getElementById(screenId);
+  if (!screen) return;
+  let startY = 0, pulling = false;
+  const ind = document.createElement('div');
+  ind.className = 'ptr-indicator';
+  ind.innerHTML = '<div class="ptr-spinner"></div>';
+  screen.style.position = 'relative';
+  screen.prepend(ind);
+
+  screen.addEventListener('touchstart', e => {
+    if (screen.scrollTop === 0) { startY = e.touches[0].clientY; pulling = true; }
+  }, { passive: true });
+
+  screen.addEventListener('touchmove', e => {
+    if (!pulling) return;
+    const diff = e.touches[0].clientY - startY;
+    if (diff > 60) ind.classList.add('show');
+  }, { passive: true });
+
+  screen.addEventListener('touchend', async () => {
+    if (!pulling) return;
+    pulling = false;
+    if (ind.classList.contains('show')) {
+      await refreshFn();
+      ind.classList.remove('show');
+    }
+  });
+}
+
 // ── HELPERS ──
-window.switchTab=(el)=>{document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));el.classList.add('active');document.getElementById('screen-'+el.dataset.screen).classList.add('active');};
-window.openLink=(url)=>{location.href='/teknohane/go.html?url='+encodeURIComponent(url);};
-window.closeModal=(id)=>document.getElementById(id).classList.remove('show');
+window.switchTab = (el) => {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('screen-' + el.dataset.screen).classList.add('active');
+};
+window.openLink = (url) => { location.href = '/teknohane/go.html?url=' + encodeURIComponent(url); };
+window.closeModal = (id) => document.getElementById(id).classList.remove('show');
 
 // ── INIT ──
 renderHome();
+
+// Pull-to-refresh kur
+setTimeout(() => {
+  setupPullToRefresh('screen-home', async () => {
+    videosCache = null; channelCache = null; CHANNEL_ID = null;
+    document.getElementById('home-content').innerHTML = '<div class="loading-wrap"><div class="spinner"></div><div class="loading-text">Yenileniyor…</div></div>';
+    await renderHome();
+  });
+  setupPullToRefresh('screen-market', async () => {
+    await loadListings();
+  });
+}, 500);
 
 if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('/teknohane/sw.js',{scope:'/teknohane/'}).catch(e=>console.log(e));});}
 const tabParam=new URLSearchParams(location.search).get('tab');
