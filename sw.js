@@ -1,4 +1,84 @@
-const CACHE_NAME = 'teknohane-v1';
+const CACHE_NAME = 'teknohane-v3';
+const STATIC_ASSETS = [
+  '/teknohane/',
+  '/teknohane/index.html',
+  '/teknohane/manifest.json',
+  '/teknohane/teknohane.png',
+  '/teknohane/icons/icon-192.png',
+  '/teknohane/icons/icon-512.png'
+];
+
+// ── INSTALL ──
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(cache => cache.addAll(STATIC_ASSETS))
+  );
+  self.skipWaiting();
+});
+
+// ── ACTIVATE: Eski cache'leri temizle ──
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+    )
+  );
+  self.clients.claim();
+});
+
+// ── FETCH: Network first, cache fallback ──
+self.addEventListener('fetch', event => {
+  const url = new URL(event.request.url);
+
+  // YouTube API — her zaman network
+  if (url.hostname === 'www.googleapis.com' || url.hostname === 'i.ytimg.com') {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // Google Fonts — cache first
+  if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {
+    event.respondWith(
+      caches.match(event.request).then(cached => {
+        if (cached) return cached;
+        return fetch(event.request).then(res => {
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+          return res;
+        });
+      })
+    );
+    return;
+  }
+
+  // index.html — her zaman network first (güncel kalsın)
+  if (url.pathname.endsWith('/teknohane/') || url.pathname.endsWith('index.html')) {
+    event.respondWith(
+      fetch(event.request).then(res => {
+        const clone = res.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+        return res;
+      }).catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // Diğer statik dosyalar — cache first, network fallback
+  event.respondWith(
+    caches.match(event.request).then(cached => {
+      if (cached) return cached;
+      return fetch(event.request).then(res => {
+        if (res.ok) {
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+        }
+        return res;
+      });
+    })
+  );
+});
 const STATIC_ASSETS = [
   '/teknohane/',
   '/teknohane/index.html',
