@@ -336,7 +336,7 @@
 
     <!-- PAZAR -->
     <div class="screen" id="screen-market">
-      <div class="screen-content">
+      <div class="screen-content" style="min-height:100%">
         <div class="market-header">
           <span class="section-title">İkinci El</span>
           <button class="new-listing-btn" onclick="handleNewListing()">
@@ -348,10 +348,10 @@
           <svg class="search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input class="search-input" type="text" placeholder="İlan ara…" oninput="filterListings(this.value)">
         </div>
-        <div id="market-tabs" style="display:flex;gap:8px;margin-bottom:16px">
-          <button class="auth-tab active" onclick="setMarketTab('all',this)" style="flex:none;padding:8px 16px;border-radius:10px;background:var(--cyan-dim);border:1px solid rgba(0,212,255,0.2);color:var(--cyan);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Tümü</button>
-          <button class="auth-tab" onclick="setMarketTab('favorites',this)" style="flex:none;padding:8px 16px;border-radius:10px;background:var(--surface);border:1px solid var(--border-2);color:var(--text-2);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">❤️ Favoriler</button>
-          <button class="auth-tab" onclick="setMarketTab('mine',this)" style="flex:none;padding:8px 16px;border-radius:10px;background:var(--surface);border:1px solid var(--border-2);color:var(--text-2);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">İlanlarım</button>
+        <div id="market-tabs" style="display:flex;gap:8px;margin-bottom:16px;overflow-x:auto">
+          <button onclick="setMarketTab('all',this)" style="flex:none;padding:8px 16px;border-radius:10px;background:var(--cyan-dim);border:1px solid rgba(0,212,255,0.2);color:var(--cyan);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">Tümü</button>
+          <button onclick="setMarketTab('favorites',this)" style="flex:none;padding:8px 16px;border-radius:10px;background:var(--surface);border:1px solid var(--border-2);color:var(--text-2);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">❤️ Favoriler</button>
+          <button onclick="setMarketTab('mine',this)" style="flex:none;padding:8px 16px;border-radius:10px;background:var(--surface);border:1px solid var(--border-2);color:var(--text-2);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">İlanlarım</button>
         </div>
         <div class="listing-grid" id="listing-grid">
           <div class="loading-wrap"><div class="spinner"></div><div class="loading-text">İlanlar yükleniyor…</div></div>
@@ -560,10 +560,11 @@ async function loadUserData() {
 // ── LISTINGS ──
 async function loadListings() {
   const grid = document.getElementById('listing-grid');
+  if (!grid) return;
+  grid.innerHTML = '<div class="loading-wrap"><div class="spinner"></div><div class="loading-text">İlanlar yükleniyor…</div></div>';
   try {
     const snap = await getDocs(collection(db, 'teknohane_listings'));
     allListings = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    // Client-side sırala — en yeni önce
     allListings.sort((a, b) => {
       const ta = a.createdAt?.seconds || 0;
       const tb = b.createdAt?.seconds || 0;
@@ -571,9 +572,11 @@ async function loadListings() {
     });
     renderListings();
   } catch(e) {
-    grid.innerHTML = '<div class="error-wrap"><div style="font-size:36px">📡</div><div class="no-results">İlanlar yüklenemedi</div></div>';
+    console.error('loadListings hatası:', e);
+    if (grid) grid.innerHTML = `<div class="error-wrap"><div style="font-size:36px">📡</div><div style="font-size:14px;font-weight:600;margin-top:8px">Yüklenemedi</div><div style="font-size:12px;color:var(--text-2);margin-top:4px">${e.message}</div><button class="retry-btn" style="margin-top:12px" onclick="window._loadListings()">Tekrar Dene</button></div>`;
   }
 }
+window._loadListings = loadListings;
 
 function renderListings() {
   const grid = document.getElementById('listing-grid');
