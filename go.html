@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<title>Yönlendiriliyor…</title>
+<script>
+  const url = new URLSearchParams(location.search).get('url');
+  if (url) location.replace(decodeURIComponent(url));
+</script>
+</head>
+<body></body>
+</html>

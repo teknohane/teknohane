@@ -875,14 +875,7 @@ function submitListing() {
 
 // ── OPEN LINK ──
 function openLink(url) {
-  // Tarayıcıda aç — PWA'dan dış linklere en güvenilir yol
-  const a = document.createElement('a');
-  a.href = url;
-  a.rel = 'noopener';
-  a.target = '_blank';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+  location.href = '/teknohane/go.html?url=' + encodeURIComponent(url);
 }
 
 // ── MODAL ──
