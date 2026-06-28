@@ -875,7 +875,17 @@ function submitListing() {
 
 // ── OPEN LINK ──
 function openLink(url) {
-  window.location.href = url;
+  if (url.includes('chat.whatsapp.com')) {
+    const code = url.split('chat.whatsapp.com/')[1];
+    // Önce WhatsApp uygulamasını dene
+    const app = document.createElement('a');
+    app.href = 'whatsapp://invite?code=' + code;
+    app.click();
+    // 1.5 sn sonra açılmadıysa tarayıcıya yönlendir
+    setTimeout(() => { window.open(url, '_blank'); }, 1500);
+  } else {
+    window.open(url, '_blank');
+  }
 }
 
 // ── MODAL ──
