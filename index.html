@@ -132,37 +132,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .wcard:active{background:var(--surf2);}
 .wico{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;}
 
-/* MARKET */
-.mhdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
-.new-btn{display:flex;align-items:center;gap:6px;background:var(--cyan);color:#000;font-size:13px;font-weight:700;padding:9px 14px;border-radius:12px;border:none;cursor:pointer;font-family:inherit;}
-.new-btn svg{width:16px;height:16px;stroke:#000;fill:none;stroke-width:2.5;stroke-linecap:round;}
-.mtabs{display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;}
-.mtabs::-webkit-scrollbar{display:none;}
-.mtab{flex:none;padding:8px 16px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;border:none;white-space:nowrap;}
-.mtab.on{background:var(--cyan-dim);border:1px solid rgba(0,212,255,.2);color:var(--cyan);}
-.mtab.off{background:var(--surf);border:1px solid var(--border2);color:var(--text2);}
-.lgrid{display:flex;flex-direction:column;gap:12px;}
-.lcard{background:var(--surf);border:1px solid var(--border2);border-radius:16px;padding:14px;cursor:pointer;}
-.lcard:active{background:var(--surf2);}
-.ltitle{font-size:15px;font-weight:600;margin-bottom:6px;}
-.lrow{display:flex;align-items:center;justify-content:space-between;margin-top:8px;}
-.lprice{font-size:18px;font-weight:700;color:var(--cyan);}
-.lcond{font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;}
-.cn{background:rgba(48,209,88,.12);color:var(--green);border:1px solid rgba(48,209,88,.2);}
-.cu{background:var(--cyan-dim);color:var(--cyan);border:1px solid rgba(0,212,255,.2);}
-.lfooter{display:flex;align-items:center;justify-content:space-between;margin-top:10px;}
-.lloc{font-size:11px;color:var(--text2);}
-.lacts{display:flex;gap:8px;align-items:center;}
-.fbtn{width:32px;height:32px;border-radius:50%;background:var(--surf2);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;}
-.fbtn svg{width:16px;height:16px;stroke:var(--text3);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
-.fbtn.on svg{stroke:var(--red);fill:var(--red);}
-.wabtn{display:flex;align-items:center;gap:5px;background:rgba(37,211,102,.12);border:1px solid rgba(37,211,102,.2);color:#25D366;font-size:12px;font-weight:600;padding:6px 12px;border-radius:10px;cursor:pointer;}
-.delbtn{background:rgba(255,69,58,.12);border:1px solid rgba(255,69,58,.2);color:var(--red);font-size:12px;font-weight:600;padding:6px 12px;border-radius:10px;cursor:pointer;font-family:inherit;}
-.owner{display:flex;align-items:center;gap:6px;margin-top:8px;}
-.ow-av{width:20px;height:20px;border-radius:50%;background:var(--cyan-dim);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:var(--cyan);}
-.ow-n{font-size:11px;color:var(--text2);}
-.mybadge{font-size:10px;color:var(--cyan);font-weight:600;background:var(--cyan-dim);padding:2px 7px;border-radius:6px;border:1px solid rgba(0,212,255,.2);}
-
 /* SUPPORT */
 .mitem{display:flex;align-items:center;justify-content:space-between;background:var(--surf);border:1px solid var(--border2);border-radius:14px;padding:14px 16px;cursor:pointer;margin-bottom:10px;}
 .mitem:active{background:var(--surf2);}
@@ -379,17 +348,16 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
     </div>
   </div>
 
-  <!-- MARKET -->
+  <!-- SUPPORT -->
   <div class="screen" id="screen-market">
-    <div class="sc" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100%">
+    <div class="sc" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;text-align:center">
       <div style="font-size:56px;margin-bottom:16px">🛒</div>
-      <div style="font-size:22px;font-weight:700;letter-spacing:-.4px;margin-bottom:8px">İkinci El Pazar</div>
-      <div style="font-size:14px;color:var(--text2);text-align:center;line-height:1.6">Yakında burada olacak.<br>Telefon alım-satım pazarı geliyor.</div>
-      <div style="margin-top:20px;background:var(--cyan-dim);border:1px solid rgba(0,212,255,.25);color:var(--cyan);font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;padding:8px 16px;border-radius:20px">Yakında</div>
+      <div style="font-size:22px;font-weight:700;margin-bottom:8px">İkinci El Pazar</div>
+      <div style="font-size:14px;color:var(--text2);line-height:1.6">Telefon alım-satım pazarı<br>yakında burada olacak.</div>
+      <div style="margin-top:20px;background:var(--cyan-dim);border:1px solid rgba(0,212,255,.25);color:var(--cyan);font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;padding:8px 18px;border-radius:20px">Yakında</div>
     </div>
   </div>
 
-  <!-- SUPPORT -->
   <div class="screen" id="screen-support">
     <div class="sc">
       <div class="sh"><span class="st">Destek</span></div>
@@ -439,6 +407,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
       <div class="tico"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
       <span>Topluluk</span>
     </div>
+    <span>Pazar</span>
+    </div>
     <div class="tab" data-s="market" onclick="goTab('market')">
       <div class="tico"><svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div>
       <span>Pazar</span>
@@ -456,17 +426,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 
 </div>
 
-<!-- İLAN DETAY MODAL -->
-<div class="detail-mo" id="detail-mo" onclick="closeDetail()">
-  <div class="detail-sheet" onclick="event.stopPropagation()">
-    <div class="detail-sticky">
-      <div class="detail-handle"></div>
-      <div class="detail-close" onclick="closeDetail()">×</div>
-    </div>
-    <div class="detail-body" id="detail-body"></div>
-  </div>
-</div>
-
 <!-- PHONE PICKER MODAL -->
 <div class="mo" id="picker-mo" onclick="closeMo('picker-mo')">
   <div class="ms" onclick="event.stopPropagation()">
@@ -478,21 +437,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
     </div>
     <div id="brand-filters" style="display:flex;gap:6px;overflow-x:auto;margin-bottom:12px;padding-bottom:4px"></div>
     <div class="plist" id="plist"></div>
-  </div>
-</div>
-
-<!-- NEW LISTING MODAL -->
-<div class="mo" id="listing-mo" onclick="closeMo('listing-mo')">
-  <div class="ms" onclick="event.stopPropagation()">
-    <div class="mh"></div>
-    <div class="mtitle">İlan Ver</div>
-    <div class="fg"><label class="fl">Telefon Modeli</label><input class="fi" type="text" id="l-model" placeholder="Örn: Samsung Galaxy S24"></div>
-    <div class="fg"><label class="fl">Fiyat (₺)</label><input class="fi" type="number" id="l-price" placeholder="25000"></div>
-    <div class="fg"><label class="fl">Durum</label><select class="fsel" id="l-cond"><option>Sıfır</option><option>Az Kullanılmış</option><option>İkinci El</option></select></div>
-    <div class="fg"><label class="fl">Konum</label><input class="fi" type="text" id="l-loc" placeholder="Şehir / İlçe"></div>
-    <div class="fg"><label class="fl">Açıklama</label><input class="fi" type="text" id="l-desc" placeholder="Kısa açıklama…"></div>
-    <div class="fg"><label class="fl">WhatsApp Numaranız</label><input class="fi" type="tel" id="l-phone" placeholder="5XXXXXXXXX"></div>
-    <button class="sbtn" onclick="submitListing()">İlanı Yayınla</button>
   </div>
 </div>
 
@@ -514,10 +458,10 @@ const db = firebase.firestore();
 const ADMINS = ['yusuf.aykac@gmail.com','memetklc5933@gmail.com'];
 
 let user = null;
-let favs = new Set();
-let listings = [];
-let mTab = 'all';
-let listingsLoaded = false;
+
+
+
+
 
 // ── AUTH ──
 auth.onAuthStateChanged(async u => {
@@ -528,8 +472,6 @@ auth.onAuthStateChanged(async u => {
     document.getElementById('hav-img').src = u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.displayName||u.email)}&background=0D1526&color=00D4FF&size=64`;
     try {
       const snap = await db.collection('teknohane_users').doc(u.uid).get();
-      if (snap.exists) favs = new Set(snap.data().favorites || []);
-      else await db.collection('teknohane_users').doc(u.uid).set({favorites:[],createdAt:firebase.firestore.FieldValue.serverTimestamp()});
     } catch(e) {}
   } else {
     document.getElementById('hav').style.display = 'none';
@@ -537,113 +479,7 @@ auth.onAuthStateChanged(async u => {
     favs = new Set();
   }
   renderProfile();
-  renderListings(); // Favori durumunu güncelle
 });
-
-// ── LISTINGS ──
-async function loadListings() {
-  listingsLoaded = false;
-  const grid = document.getElementById('lgrid');
-  if (grid) grid.innerHTML = '<div class="load"><div class="spin"></div><span>İlanlar yükleniyor…</span></div>';
-  try {
-    const snap = await db.collection('teknohane_listings').get();
-    listings = snap.docs.map(d => ({id:d.id,...d.data()}));
-    listings.sort((a,b) => (b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
-    listingsLoaded = true;
-    renderListings();
-    try { renderProfile(); } catch(e) {}
-  } catch(e) {
-    listingsLoaded = true;
-    const g = document.getElementById('lgrid');
-    if (g) g.innerHTML = `<div class="empty"><div class="empty-ico">📡</div><div class="empty-t">Bağlantı hatası</div><div class="empty-d">${e.message}</div><button class="sbtn" style="margin-top:16px;width:auto;padding:0 20px;height:44px;border-radius:12px" onclick="loadListings()">Tekrar Dene</button></div>`;
-  }
-}
-
-function renderListings() {
-  const grid = document.getElementById('lgrid');
-  if (!grid) return;
-  const q = (document.getElementById('market-search')?.value||'').toLowerCase();
-  let items = listings.filter(l => !q || l.model?.toLowerCase().includes(q));
-  if (mTab === 'fav') items = items.filter(l => favs.has(l.id));
-  if (mTab === 'mine') items = user ? items.filter(l => l.uid === user.uid) : [];
-  if (!items.length) {
-    grid.innerHTML = `<div class="empty"><div class="empty-ico">${mTab==='fav'?'❤️':mTab==='mine'?'📋':'📭'}</div><div class="empty-t">${mTab==='fav'?'Favori yok':mTab==='mine'?'İlan yok':'Henüz ilan yok'}</div><div class="empty-d">${mTab==='fav'?'İlan favorile':'İlk ilanı sen ver!'}</div></div>`;
-    return;
-  }
-  grid.innerHTML = items.map(l => {
-    const mine = user && l.uid === user.uid;
-    const fav = favs.has(l.id);
-    return `<div class="lcard" onclick="openDetail('${l.id}')">
-      <div class="ltitle">${l.model||''}</div>
-      <div class="lrow">
-        <div class="lprice">₺${parseInt(l.price||0).toLocaleString('tr-TR')}</div>
-        <div class="lcond ${l.condition==='Sıfır'?'cn':'cu'}">${l.condition||''}</div>
-      </div>
-      ${l.desc?`<div style="font-size:12px;color:var(--text2);margin-top:6px">${l.desc}</div>`:''}
-      <div class="lfooter" onclick="event.stopPropagation()">
-        <div class="lloc">📍 ${l.location||'Belirtilmedi'}</div>
-        <div class="lacts">
-          <div class="fbtn ${fav?'on':''}" onclick="toggleFav('${l.id}',this)">
-            <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-          </div>
-          ${l.phone?`<div class="wabtn" onclick="openLink('https://wa.me/90${l.phone}')"><svg viewBox="0 0 24 24" width="14" height="14" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.998 2C6.477 2 2 6.477 2 12c0 1.989.574 3.842 1.565 5.408L2 22l4.757-1.535A9.958 9.958 0 0 0 11.998 22c5.523 0 10-4.477 10-10S17.521 2 11.998 2z"/></svg>İletişim</div>`:''}
-          ${mine?`<button class="delbtn" onclick="delListing('${l.id}')">Sil</button>`:''}
-        </div>
-      </div>
-      ${l.ownerName?`<div class="owner" onclick="event.stopPropagation()"><div class="ow-av">${(l.ownerName||'?')[0].toUpperCase()}</div><span class="ow-n">${l.ownerName}</span>${mine?'<span class="mybadge">Benim</span>':''}</div>`:''}
-    </div>`;
-  }).join('');
-}
-
-function setMTab(t, el) {
-  mTab = t;
-  document.querySelectorAll('.mtab').forEach(b => { b.className = 'mtab off'; });
-  el.className = 'mtab on';
-  renderListings();
-}
-
-function newListing() {
-  if (!user) { goTab('profile'); return; }
-  document.getElementById('listing-mo').classList.add('on');
-}
-
-async function submitListing() {
-  if (!user) return;
-  const model = document.getElementById('l-model').value.trim();
-  const price = document.getElementById('l-price').value.trim();
-  if (!model || !price) { alert('Model ve fiyat zorunlu!'); return; }
-  try {
-    await db.collection('teknohane_listings').add({
-      model, price,
-      condition: document.getElementById('l-cond').value,
-      location: document.getElementById('l-loc').value.trim(),
-      desc: document.getElementById('l-desc').value.trim(),
-      phone: document.getElementById('l-phone').value.trim(),
-      uid: user.uid,
-      ownerName: user.displayName || user.email?.split('@')[0] || 'Anonim',
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    closeMo('listing-mo');
-    ['l-model','l-price','l-loc','l-desc','l-phone'].forEach(id => document.getElementById(id).value = '');
-    await loadListings();
-  } catch(e) { alert('Hata: ' + e.message); }
-}
-
-async function toggleFav(id, btn) {
-  if (!user) { goTab('profile'); return; }
-  if (favs.has(id)) { favs.delete(id); btn.classList.remove('on'); }
-  else { favs.add(id); btn.classList.add('on'); }
-  try { await db.collection('teknohane_users').doc(user.uid).set({favorites:[...favs]},{merge:true}); } catch(e) {}
-}
-
-async function delListing(id) {
-  if (!confirm('İlan silinsin mi?')) return;
-  try {
-    await db.collection('teknohane_listings').doc(id).delete();
-    listings = listings.filter(l => l.id !== id);
-    renderListings();
-  } catch(e) { alert('Silinemedi'); }
-}
 
 // ── PROFILE ──
 async function renderProfile() {
@@ -661,7 +497,6 @@ async function renderProfile() {
           <div class="stat"><div class="stat-n">${[...new Set(listings.map(l=>l.uid))].length}</div><div class="stat-l">Satıcı</div></div>
           <div class="stat"><div class="stat-n">${listings.filter(l=>l.condition==='Sıfır').length}</div><div class="stat-l">Sıfır</div></div>
         </div>
-        <button class="apbtn" onclick="goTab('market')">📋 Tüm İlanları Gör</button>
         <button class="apbtn red" onclick="adminDel()">🗑️ İlan Sil (ID ile)</button>
       </div>` : '';
     c.innerHTML = `
@@ -680,13 +515,6 @@ async function renderProfile() {
       </div>
       ${adminHtml}
       <div class="pmenu">
-        <div class="mitem" onclick="goTab('market');setMTab('mine',document.querySelectorAll('.mtab')[2])">
-          <div class="mitem-l"><div class="mico" style="background:var(--cyan-dim)"><svg viewBox="0 0 24 24" stroke="var(--cyan)"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div><span class="mlabel">İlanlarım</span></div><span class="marr">›</span>
-        </div>
-        <div class="mitem" onclick="goTab('market');setMTab('fav',document.querySelectorAll('.mtab')[1])">
-          <div class="mitem-l"><div class="mico" style="background:rgba(255,69,58,.1)"><svg viewBox="0 0 24 24" stroke="#FF453A"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div><span class="mlabel">Favorilerim</span></div><span class="marr">›</span>
-        </div>
-      </div>
       <button class="signout" onclick="auth.signOut()">Çıkış Yap</button>`;
   } else {
     c.innerHTML = `
@@ -747,13 +575,13 @@ async function doGoogle() {
 async function adminDel() {
   const id = prompt('Silinecek ilan ID:');
   if (!id) return;
-  try { await db.collection('teknohane_listings').doc(id).delete(); listings=listings.filter(l=>l.id!==id); renderListings(); alert('Silindi'); }
+  try { await db.collection('teknohane_listings').doc(id).delete(); listings=listings.filter(l=>l.id!==id); alert('Silindi'); }
   catch(e) { alert('Hata: '+e.message); }
 }
 
 // ── İLAN DETAY ──
-let currentListing = null;
-let offerOpen = false;
+
+
 
 async function openDetail(id) {
   currentListing = listings.find(l => l.id === id);
@@ -864,7 +692,6 @@ async function toggleDetailFav() {
     if (btn) btn.querySelector('.abtn-lbl').textContent = 'Favoride';
   }
   try { await db.collection('teknohane_users').doc(user.uid).set({favorites:[...favs]},{merge:true}); } catch(e) {}
-  renderListings();
 }
 
 // ── YORUMLAR ──
@@ -1164,7 +991,6 @@ function goTab(name, pushState = true) {
   if (tabEl) tabEl.classList.add('active');
   const screenEl = document.getElementById('screen-'+name);
   if (screenEl) screenEl.classList.add('active');
-  if (name === 'market') renderListings();
   if (pushState) history.pushState({tab: name}, '', '');
 }
 
@@ -1246,7 +1072,6 @@ function setupPTR(screenId, refreshFn) {
 
 // ── INIT ──
 renderHome();
-loadListings(); // Direkt yükle, auth bekleme
 
 // Pull-to-refresh kur
 setTimeout(() => {
@@ -1254,9 +1079,6 @@ setTimeout(() => {
     vCache = null; chCache = null; chanId = null;
     document.getElementById('home-content').innerHTML = '<div class="load"><div class="spin"></div><span>Yenileniyor…</span></div>';
     await renderHome();
-  });
-  setupPTR('screen-market', async () => {
-    await loadListings();
   });
 }, 500);
 
