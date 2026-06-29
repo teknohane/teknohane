@@ -577,7 +577,6 @@ async function loadListings() {
 function renderListings() {
   const grid = document.getElementById('lgrid');
   if (!grid) return;
-  if (!listingsLoaded) { grid.innerHTML = '<div class="load"><div class="spin"></div><span>İlanlar yükleniyor…</span></div>'; return; }
   const q = (document.getElementById('market-search')?.value||'').toLowerCase();
   let items = listings.filter(l => !q || l.model?.toLowerCase().includes(q));
   if (mTab === 'fav') items = items.filter(l => favs.has(l.id));
@@ -1180,13 +1179,7 @@ function goTab(name, pushState = true) {
   if (tabEl) tabEl.classList.add('active');
   const screenEl = document.getElementById('screen-'+name);
   if (screenEl) screenEl.classList.add('active');
-  if (name === 'market') {
-    if (listingsLoaded) {
-      renderListings();
-    } else {
-      loadListings();
-    }
-  }
+  if (name === 'market') renderListings();
   if (pushState) history.pushState({tab: name}, '', '');
 }
 
@@ -1268,7 +1261,7 @@ function setupPTR(screenId, refreshFn) {
 
 // ── INIT ──
 renderHome();
-loadListings(); // Auth bekleme, direkt yükle
+loadListings(); // Direkt yükle, auth bekleme
 
 // Pull-to-refresh kur
 setTimeout(() => {
