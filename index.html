@@ -491,6 +491,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
       <svg class="sico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input class="si" type="text" id="psearch" placeholder="Marka veya model ara…" oninput="filterPhones(this.value)">
     </div>
+    <div id="brand-filters" style="display:flex;gap:6px;overflow-x:auto;margin-bottom:12px;padding-bottom:4px"></div>
     <div class="plist" id="plist"></div>
   </div>
 </div>
@@ -1011,23 +1012,135 @@ function retryHome() { vCache=null; chCache=null; chanId=null; document.getEleme
 
 // ── COMPARE ──
 const PHONES=[
-  {brand:'Apple',name:'iPhone 16 Pro',price:'₺89.999',ram:'8GB',storage:'128GB',chip:'A18 Pro',camera:'48+48+12MP',battery:'3274mAh',screen:'6.3" 120Hz'},
-  {brand:'Apple',name:'iPhone 16',price:'₺59.999',ram:'8GB',storage:'128GB',chip:'A18',camera:'48+12MP',battery:'3561mAh',screen:'6.1" 60Hz'},
-  {brand:'Apple',name:'iPhone 15 Pro',price:'₺64.999',ram:'8GB',storage:'128GB',chip:'A17 Pro',camera:'48+12+12MP',battery:'3274mAh',screen:'6.1" 120Hz'},
-  {brand:'Samsung',name:'Galaxy S25 Ultra',price:'₺109.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite',camera:'200+50+10MP',battery:'5000mAh',screen:'6.9" 120Hz'},
-  {brand:'Samsung',name:'Galaxy S25+',price:'₺74.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite',camera:'50+12+10MP',battery:'4900mAh',screen:'6.7" 120Hz'},
-  {brand:'Samsung',name:'Galaxy S25',price:'₺54.999',ram:'12GB',storage:'128GB',chip:'SD 8 Elite',camera:'50+12+10MP',battery:'4000mAh',screen:'6.2" 120Hz'},
-  {brand:'Samsung',name:'Galaxy A55',price:'₺24.999',ram:'8GB',storage:'128GB',chip:'Exynos 1480',camera:'50+12+5MP',battery:'5000mAh',screen:'6.6" 120Hz'},
-  {brand:'Xiaomi',name:'14 Ultra',price:'₺69.999',ram:'16GB',storage:'512GB',chip:'SD 8 Gen 3',camera:'50+50+50+50MP',battery:'5300mAh',screen:'6.73" 120Hz'},
-  {brand:'Xiaomi',name:'Redmi Note 13 Pro',price:'₺18.999',ram:'8GB',storage:'256GB',chip:'SD 7s Gen 2',camera:'200+8MP',battery:'5100mAh',screen:'6.67" 120Hz'},
-  {brand:'OnePlus',name:'12',price:'₺44.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 3',camera:'50+48+64MP',battery:'5400mAh',screen:'6.82" 120Hz'},
-  {brand:'Google',name:'Pixel 9 Pro',price:'₺79.999',ram:'16GB',storage:'128GB',chip:'Tensor G4',camera:'50+48+48MP',battery:'4700mAh',screen:'6.3" 120Hz'},
-  {brand:'Google',name:'Pixel 9',price:'₺49.999',ram:'12GB',storage:'128GB',chip:'Tensor G4',camera:'50+48MP',battery:'4700mAh',screen:'6.3" 120Hz'},
+  // APPLE
+  {brand:'Apple',name:'iPhone 16 Pro Max',price:'₺109.999',ram:'8GB',storage:'256GB',chip:'A18 Pro',camera:'48+48+12MP',battery:'4685mAh',screen:'6.9" 120Hz',weight:'227g',os:'iOS 18'},
+  {brand:'Apple',name:'iPhone 16 Pro',price:'₺89.999',ram:'8GB',storage:'128GB',chip:'A18 Pro',camera:'48+48+12MP',battery:'3582mAh',screen:'6.3" 120Hz',weight:'199g',os:'iOS 18'},
+  {brand:'Apple',name:'iPhone 16 Plus',price:'₺74.999',ram:'8GB',storage:'128GB',chip:'A18',camera:'48+12MP',battery:'4674mAh',screen:'6.7" 60Hz',weight:'203g',os:'iOS 18'},
+  {brand:'Apple',name:'iPhone 16',price:'₺59.999',ram:'8GB',storage:'128GB',chip:'A18',camera:'48+12MP',battery:'3561mAh',screen:'6.1" 60Hz',weight:'170g',os:'iOS 18'},
+  {brand:'Apple',name:'iPhone 15 Pro Max',price:'₺84.999',ram:'8GB',storage:'256GB',chip:'A17 Pro',camera:'48+12+12MP',battery:'4422mAh',screen:'6.7" 120Hz',weight:'221g',os:'iOS 18'},
+  {brand:'Apple',name:'iPhone 15 Pro',price:'₺69.999',ram:'8GB',storage:'128GB',chip:'A17 Pro',camera:'48+12+12MP',battery:'3274mAh',screen:'6.1" 120Hz',weight:'187g',os:'iOS 18'},
+  {brand:'Apple',name:'iPhone 15',price:'₺44.999',ram:'6GB',storage:'128GB',chip:'A16',camera:'48+12MP',battery:'3349mAh',screen:'6.1" 60Hz',weight:'171g',os:'iOS 18'},
+  {brand:'Apple',name:'iPhone 14',price:'₺34.999',ram:'6GB',storage:'128GB',chip:'A15',camera:'12+12MP',battery:'3279mAh',screen:'6.1" 60Hz',weight:'172g',os:'iOS 18'},
+  {brand:'Apple',name:'iPhone SE (3. nesil)',price:'₺24.999',ram:'4GB',storage:'64GB',chip:'A15',camera:'12MP',battery:'2018mAh',screen:'4.7" 60Hz',weight:'144g',os:'iOS 17'},
+  // SAMSUNG
+  {brand:'Samsung',name:'Galaxy S25 Ultra',price:'₺109.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite',camera:'200+50+10+10MP',battery:'5000mAh',screen:'6.9" 120Hz',weight:'218g',os:'Android 15'},
+  {brand:'Samsung',name:'Galaxy S25+',price:'₺74.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite',camera:'50+12+10MP',battery:'4900mAh',screen:'6.7" 120Hz',weight:'190g',os:'Android 15'},
+  {brand:'Samsung',name:'Galaxy S25',price:'₺54.999',ram:'12GB',storage:'128GB',chip:'SD 8 Elite',camera:'50+12+10MP',battery:'4000mAh',screen:'6.2" 120Hz',weight:'162g',os:'Android 15'},
+  {brand:'Samsung',name:'Galaxy S24 Ultra',price:'₺84.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 3',camera:'200+50+10+12MP',battery:'5000mAh',screen:'6.8" 120Hz',weight:'232g',os:'Android 15'},
+  {brand:'Samsung',name:'Galaxy S24+',price:'₺59.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 3',camera:'50+12+10MP',battery:'4900mAh',screen:'6.7" 120Hz',weight:'196g',os:'Android 15'},
+  {brand:'Samsung',name:'Galaxy S24',price:'₺44.999',ram:'8GB',storage:'128GB',chip:'Exynos 2400',camera:'50+12+10MP',battery:'4000mAh',screen:'6.2" 120Hz',weight:'167g',os:'Android 15'},
+  {brand:'Samsung',name:'Galaxy Z Fold 6',price:'₺129.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 3',camera:'50+12+10MP',battery:'4400mAh',screen:'7.6" 120Hz',weight:'239g',os:'Android 14'},
+  {brand:'Samsung',name:'Galaxy Z Flip 6',price:'₺64.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 3',camera:'50+12MP',battery:'4000mAh',screen:'6.7" 120Hz',weight:'187g',os:'Android 14'},
+  {brand:'Samsung',name:'Galaxy A55 5G',price:'₺24.999',ram:'8GB',storage:'128GB',chip:'Exynos 1480',camera:'50+12+5MP',battery:'5000mAh',screen:'6.6" 120Hz',weight:'213g',os:'Android 14'},
+  {brand:'Samsung',name:'Galaxy A35 5G',price:'₺18.999',ram:'6GB',storage:'128GB',chip:'Exynos 1380',camera:'50+8+5MP',battery:'5000mAh',screen:'6.6" 120Hz',weight:'210g',os:'Android 14'},
+  {brand:'Samsung',name:'Galaxy A25 5G',price:'₺13.999',ram:'6GB',storage:'128GB',chip:'Exynos 1280',camera:'50+8+2MP',battery:'5000mAh',screen:'6.5" 120Hz',weight:'197g',os:'Android 14'},
+  {brand:'Samsung',name:'Galaxy A16 5G',price:'₺9.999',ram:'4GB',storage:'128GB',chip:'Dimensity 6300',camera:'50+5+2MP',battery:'5000mAh',screen:'6.7" 90Hz',weight:'200g',os:'Android 14'},
+  {brand:'Samsung',name:'Galaxy M55 5G',price:'₺16.999',ram:'8GB',storage:'128GB',chip:'SD 7 Gen 1',camera:'50+8+2MP',battery:'5000mAh',screen:'6.7" 120Hz',weight:'183g',os:'Android 14'},
+  // XIAOMI
+  {brand:'Xiaomi',name:'15 Ultra',price:'₺84.999',ram:'16GB',storage:'512GB',chip:'SD 8 Elite',camera:'50+50+50+200MP',battery:'6000mAh',screen:'6.73" 120Hz',weight:'229g',os:'Android 15'},
+  {brand:'Xiaomi',name:'15 Pro',price:'₺64.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite',camera:'50+50+50MP',battery:'6100mAh',screen:'6.73" 120Hz',weight:'215g',os:'Android 15'},
+  {brand:'Xiaomi',name:'15',price:'₺49.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite',camera:'50+50+50MP',battery:'5400mAh',screen:'6.36" 120Hz',weight:'189g',os:'Android 15'},
+  {brand:'Xiaomi',name:'14 Ultra',price:'₺69.999',ram:'16GB',storage:'512GB',chip:'SD 8 Gen 3',camera:'50+50+50+50MP',battery:'5300mAh',screen:'6.73" 120Hz',weight:'229g',os:'Android 14'},
+  {brand:'Xiaomi',name:'14T Pro',price:'₺44.999',ram:'12GB',storage:'256GB',chip:'Dimensity 9300+',camera:'50+50+50MP',battery:'5000mAh',screen:'6.67" 144Hz',weight:'209g',os:'Android 14'},
+  {brand:'Xiaomi',name:'14T',price:'₺32.999',ram:'12GB',storage:'256GB',chip:'Dimensity 8300-Ultra',camera:'50+50+12MP',battery:'5000mAh',screen:'6.67" 144Hz',weight:'193g',os:'Android 14'},
+  {brand:'Xiaomi',name:'Redmi Note 14 Pro+',price:'₺22.999',ram:'12GB',storage:'256GB',chip:'SD 7s Gen 3',camera:'200+8+2MP',battery:'6200mAh',screen:'6.67" 120Hz',weight:'204g',os:'Android 14'},
+  {brand:'Xiaomi',name:'Redmi Note 14 Pro',price:'₺17.999',ram:'8GB',storage:'256GB',chip:'Dimensity 7300-Ultra',camera:'200+8+2MP',battery:'5500mAh',screen:'6.67" 120Hz',weight:'190g',os:'Android 14'},
+  {brand:'Xiaomi',name:'Redmi Note 13 Pro+',price:'₺19.999',ram:'12GB',storage:'256GB',chip:'Dimensity 7200-Ultra',camera:'200+8+2MP',battery:'4600mAh',screen:'6.67" 120Hz',weight:'204g',os:'Android 13'},
+  {brand:'Xiaomi',name:'Redmi 14C',price:'₺7.999',ram:'4GB',storage:'128GB',chip:'Helio G85',camera:'50+0.08MP',battery:'5160mAh',screen:'6.88" 90Hz',weight:'211g',os:'Android 14'},
+  {brand:'Xiaomi',name:'POCO F6 Pro',price:'₺29.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 2',camera:'50+8+2MP',battery:'5000mAh',screen:'6.67" 144Hz',weight:'209g',os:'Android 14'},
+  {brand:'Xiaomi',name:'POCO X6 Pro',price:'₺19.999',ram:'12GB',storage:'256GB',chip:'Dimensity 8300-Ultra',camera:'64+8+2MP',battery:'5000mAh',screen:'6.67" 144Hz',weight:'186g',os:'Android 14'},
+  // GOOGLE
+  {brand:'Google',name:'Pixel 9 Pro XL',price:'₺99.999',ram:'16GB',storage:'128GB',chip:'Tensor G4',camera:'50+48+48MP',battery:'5060mAh',screen:'6.8" 120Hz',weight:'221g',os:'Android 15'},
+  {brand:'Google',name:'Pixel 9 Pro',price:'₺79.999',ram:'16GB',storage:'128GB',chip:'Tensor G4',camera:'50+48+48MP',battery:'4700mAh',screen:'6.3" 120Hz',weight:'199g',os:'Android 15'},
+  {brand:'Google',name:'Pixel 9 Pro Fold',price:'₺139.999',ram:'16GB',storage:'256GB',chip:'Tensor G4',camera:'48+10.5+10.8MP',battery:'4650mAh',screen:'8" 120Hz',weight:'257g',os:'Android 15'},
+  {brand:'Google',name:'Pixel 9',price:'₺49.999',ram:'12GB',storage:'128GB',chip:'Tensor G4',camera:'50+48MP',battery:'4700mAh',screen:'6.3" 120Hz',weight:'198g',os:'Android 15'},
+  {brand:'Google',name:'Pixel 8a',price:'₺34.999',ram:'8GB',storage:'128GB',chip:'Tensor G3',camera:'64+13MP',battery:'4492mAh',screen:'6.1" 120Hz',weight:'188g',os:'Android 15'},
+  // ONEPLUS
+  {brand:'OnePlus',name:'13',price:'₺54.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite',camera:'50+50+50MP',battery:'6000mAh',screen:'6.82" 120Hz',weight:'210g',os:'Android 15'},
+  {brand:'OnePlus',name:'12R',price:'₺34.999',ram:'8GB',storage:'128GB',chip:'SD 8 Gen 1',camera:'50+8+2MP',battery:'5500mAh',screen:'6.78" 120Hz',weight:'207g',os:'Android 14'},
+  {brand:'OnePlus',name:'12',price:'₺44.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 3',camera:'50+48+64MP',battery:'5400mAh',screen:'6.82" 120Hz',weight:'220g',os:'Android 15'},
+  {brand:'OnePlus',name:'Nord 4',price:'₺19.999',ram:'8GB',storage:'256GB',chip:'SD 7+ Gen 3',camera:'50+8MP',battery:'5500mAh',screen:'6.74" 120Hz',weight:'187g',os:'Android 14'},
+  {brand:'OnePlus',name:'Nord CE 4',price:'₺14.999',ram:'8GB',storage:'128GB',chip:'SD 7 Gen 3',camera:'50+2MP',battery:'5500mAh',screen:'6.67" 120Hz',weight:'177g',os:'Android 14'},
+  // OPPO
+  {brand:'OPPO',name:'Find X8 Pro',price:'₺64.999',ram:'12GB',storage:'256GB',chip:'Dimensity 9400',camera:'50+50+50+50MP',battery:'5910mAh',screen:'6.78" 120Hz',weight:'215g',os:'Android 15'},
+  {brand:'OPPO',name:'Find X8',price:'₺49.999',ram:'12GB',storage:'256GB',chip:'Dimensity 9400',camera:'50+50+50MP',battery:'5630mAh',screen:'6.59" 120Hz',weight:'193g',os:'Android 15'},
+  {brand:'OPPO',name:'Reno 13 Pro',price:'₺24.999',ram:'12GB',storage:'256GB',chip:'Dimensity 8350',camera:'50+50+8MP',battery:'5600mAh',screen:'6.83" 120Hz',weight:'193g',os:'Android 15'},
+  {brand:'OPPO',name:'A3 Pro',price:'₺11.999',ram:'8GB',storage:'256GB',chip:'Dimensity 6300',camera:'50+2MP',battery:'5100mAh',screen:'6.67" 120Hz',weight:'186g',os:'Android 14'},
+  // VIVO
+  {brand:'vivo',name:'X200 Pro',price:'₺64.999',ram:'16GB',storage:'512GB',chip:'SD 8 Elite',camera:'50+200+50MP',battery:'6000mAh',screen:'6.78" 120Hz',weight:'229g',os:'Android 15'},
+  {brand:'vivo',name:'X200',price:'₺44.999',ram:'12GB',storage:'256GB',chip:'Dimensity 9400',camera:'50+50+50MP',battery:'5800mAh',screen:'6.67" 120Hz',weight:'194g',os:'Android 15'},
+  {brand:'vivo',name:'V40 Pro',price:'₺24.999',ram:'12GB',storage:'256GB',chip:'SD 7 Gen 3',camera:'50+50+8MP',battery:'5500mAh',screen:'6.78" 120Hz',weight:'190g',os:'Android 14'},
+  {brand:'vivo',name:'Y300 Pro',price:'₺14.999',ram:'8GB',storage:'256GB',chip:'SD 4 Gen 2',camera:'50+2MP',battery:'6500mAh',screen:'6.67" 120Hz',weight:'185g',os:'Android 14'},
+  // NOTHING
+  {brand:'Nothing',name:'Phone (3a) Pro',price:'₺24.999',ram:'12GB',storage:'256GB',chip:'SD 7s Gen 3',camera:'50+50+50MP',battery:'5000mAh',screen:'6.77" 120Hz',weight:'201g',os:'Android 15'},
+  {brand:'Nothing',name:'Phone (3a)',price:'₺19.999',ram:'8GB',storage:'128GB',chip:'SD 7s Gen 3',camera:'50+50+8MP',battery:'5000mAh',screen:'6.77" 120Hz',weight:'201g',os:'Android 15'},
+  {brand:'Nothing',name:'Phone (2a)',price:'₺14.999',ram:'8GB',storage:'128GB',chip:'Dimensity 7200 Pro',camera:'50+50MP',battery:'5000mAh',screen:'6.7" 120Hz',weight:'190g',os:'Android 14'},
+  // SONY
+  {brand:'Sony',name:'Xperia 1 VI',price:'₺74.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 3',camera:'52+12+12MP',battery:'5000mAh',screen:'6.5" 120Hz',weight:'192g',os:'Android 14'},
+  {brand:'Sony',name:'Xperia 5 VI',price:'₺54.999',ram:'8GB',storage:'128GB',chip:'SD 8 Gen 3',camera:'48+12MP',battery:'5000mAh',screen:'6.1" 120Hz',weight:'182g',os:'Android 14'},
+  {brand:'Sony',name:'Xperia 10 VI',price:'₺24.999',ram:'6GB',storage:'128GB',chip:'SD 6 Gen 1',camera:'48+8MP',battery:'5000mAh',screen:'6.1" 60Hz',weight:'164g',os:'Android 14'},
+  // MOTOROLA
+  {brand:'Motorola',name:'Edge 50 Ultra',price:'₺34.999',ram:'12GB',storage:'512GB',chip:'SD 8s Gen 3',camera:'50+50+64MP',battery:'4500mAh',screen:'6.7" 144Hz',weight:'171g',os:'Android 14'},
+  {brand:'Motorola',name:'Edge 50 Pro',price:'₺24.999',ram:'12GB',storage:'256GB',chip:'SD 7 Gen 3',camera:'50+13+10MP',battery:'4500mAh',screen:'6.7" 144Hz',weight:'186g',os:'Android 14'},
+  {brand:'Motorola',name:'Moto G85',price:'₺11.999',ram:'8GB',storage:'256GB',chip:'SD 6s Gen 3',camera:'50+8MP',battery:'5000mAh',screen:'6.67" 120Hz',weight:'171g',os:'Android 14'},
+  // REALME
+  {brand:'realme',name:'GT 7 Pro',price:'₺39.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite',camera:'50+50+8MP',battery:'6500mAh',screen:'6.78" 120Hz',weight:'223g',os:'Android 15'},
+  {brand:'realme',name:'GT 6',price:'₺24.999',ram:'12GB',storage:'256GB',chip:'SD 8s Gen 3',camera:'50+8+2MP',battery:'5500mAh',screen:'6.78" 144Hz',weight:'202g',os:'Android 14'},
+  {brand:'realme',name:'12 Pro+',price:'₺17.999',ram:'12GB',storage:'256GB',chip:'SD 7s Gen 2',camera:'50+64+8MP',battery:'5000mAh',screen:'6.7" 120Hz',weight:'185g',os:'Android 14'},
+  {brand:'realme',name:'C75',price:'₺7.999',ram:'8GB',storage:'256GB',chip:'Helio G92 Max',camera:'50+2MP',battery:'6000mAh',screen:'6.72" 90Hz',weight:'207g',os:'Android 14'},
+  // ASUS
+  {brand:'ASUS',name:'ROG Phone 9 Pro',price:'₺89.999',ram:'24GB',storage:'1TB',chip:'SD 8 Elite',camera:'50+13+32MP',battery:'5800mAh',screen:'6.78" 165Hz',weight:'246g',os:'Android 15'},
+  {brand:'ASUS',name:'ROG Phone 9',price:'₺64.999',ram:'16GB',storage:'512GB',chip:'SD 8 Elite',camera:'50+13+32MP',battery:'5800mAh',screen:'6.78" 165Hz',weight:'227g',os:'Android 15'},
+  {brand:'ASUS',name:'Zenfone 11 Ultra',price:'₺44.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 3',camera:'50+13+32MP',battery:'5500mAh',screen:'6.78" 144Hz',weight:'224g',os:'Android 14'},
+  // HUAWEI
+  {brand:'Huawei',name:'Pura 70 Ultra',price:'₺74.999',ram:'16GB',storage:'1TB',chip:'Kirin 9010',camera:'50+40+12MP',battery:'5000mAh',screen:'6.8" 120Hz',weight:'226g',os:'HarmonyOS 4'},
+  {brand:'Huawei',name:'Nova 13 Pro',price:'₺24.999',ram:'12GB',storage:'256GB',chip:'Kirin 8000',camera:'50+8+2MP',battery:'4600mAh',screen:'6.76" 120Hz',weight:'198g',os:'HarmonyOS 4'},
+  // HONOR
+  {brand:'Honor',name:'Magic 7 Pro',price:'₺54.999',ram:'12GB',storage:'512GB',chip:'SD 8 Elite',camera:'50+200+40MP',battery:'5270mAh',screen:'6.8" 120Hz',weight:'225g',os:'Android 15'},
+  {brand:'Honor',name:'200 Pro',price:'₺29.999',ram:'12GB',storage:'256GB',chip:'SD 8s Gen 3',camera:'50+50+12MP',battery:'5200mAh',screen:'6.78" 120Hz',weight:'199g',os:'Android 14'},
+  {brand:'Honor',name:'X9c',price:'₺12.999',ram:'8GB',storage:'256GB',chip:'SD 6 Gen 1',camera:'108+5+2MP',battery:'6600mAh',screen:'6.78" 90Hz',weight:'213g',os:'Android 14'},
 ];
+
 let pickSlot=null, phoneA=null, phoneB=null, filtP=[...PHONES];
 
-function openPicker(s) { pickSlot=s; document.getElementById('psearch').value=''; filtP=[...PHONES]; renderPList(); document.getElementById('picker-mo').classList.add('on'); }
-function filterPhones(q) { filtP=PHONES.filter(p=>(p.brand+' '+p.name).toLowerCase().includes(q.toLowerCase())); renderPList(); }
+let activeBrand = 'Tümü';
+function openPicker(s) {
+  pickSlot=s;
+  document.getElementById('psearch').value='';
+  activeBrand = 'Tümü';
+  filtP=[...PHONES];
+  renderBrandFilters();
+  renderPList();
+  document.getElementById('picker-mo').classList.add('on');
+}
+
+function renderBrandFilters() {
+  const brands = ['Tümü', ...new Set(PHONES.map(p=>p.brand))];
+  const el = document.getElementById('brand-filters');
+  if (!el) return;
+  el.innerHTML = brands.map(b => `
+    <button onclick="setBrand('${b}')" style="flex:none;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;
+      background:${b===activeBrand?'var(--cyan-dim)':'var(--surf)'};
+      border:1px solid ${b===activeBrand?'rgba(0,212,255,.3)':'var(--border2)'};
+      color:${b===activeBrand?'var(--cyan)':'var(--text2)'}">
+      ${b}
+    </button>`).join('');
+}
+
+function setBrand(b) {
+  activeBrand = b;
+  document.getElementById('psearch').value = '';
+  filtP = b === 'Tümü' ? [...PHONES] : PHONES.filter(p=>p.brand===b);
+  renderBrandFilters();
+  renderPList();
+}
+
+function filterPhones(q) {
+  activeBrand = 'Tümü';
+  filtP=PHONES.filter(p=>(p.brand+' '+p.name).toLowerCase().includes(q.toLowerCase()));
+  renderBrandFilters();
+  renderPList();
+}
 function renderPList() {
   const l=document.getElementById('plist');
   if (!filtP.length) { l.innerHTML='<div class="no-res">Bulunamadı</div>'; return; }
@@ -1052,7 +1165,7 @@ function renderSlots() {
 function clearSlot(s){if(s==='a')phoneA=null;else phoneB=null;renderSlots();document.getElementById('cmp-result').innerHTML='';}
 function renderCmpTable(){
   const a=phoneA,b=phoneB;
-  const rows=[{l:'Fiyat',a:a.price,b:b.price},{l:'İşlemci',a:a.chip,b:b.chip},{l:'RAM',a:a.ram,b:b.ram},{l:'Depolama',a:a.storage,b:b.storage},{l:'Kamera',a:a.camera,b:b.camera},{l:'Batarya',a:a.battery,b:b.battery},{l:'Ekran',a:a.screen,b:b.screen}];
+  const rows=[{l:'Fiyat',a:a.price,b:b.price},{l:'İşlemci',a:a.chip,b:b.chip},{l:'RAM',a:a.ram,b:b.ram},{l:'Depolama',a:a.storage,b:b.storage},{l:'Kamera',a:a.camera,b:b.camera},{l:'Batarya',a:a.battery,b:b.battery},{l:'Ekran',a:a.screen,b:b.screen},{l:'Ağırlık',a:a.weight||'-',b:b.weight||'-'},{l:'İşletim Sistemi',a:a.os||'-',b:b.os||'-'}];
   document.getElementById('cmp-result').innerHTML=`<div class="ctable"><div class="crow" style="background:rgba(0,212,255,.05)"><div class="ccell lbl"></div><div class="ccell" style="font-weight:700;font-size:12px;color:var(--cyan)">${a.brand}<br>${a.name}</div><div class="ccell" style="font-weight:700;font-size:12px;color:var(--cyan)">${b.brand}<br>${b.name}</div></div>${rows.map(r=>`<div class="crow"><div class="ccell lbl">${r.l}</div><div class="ccell val">${r.a}</div><div class="ccell val">${r.b}</div></div>`).join('')}</div>`;
 }
 
