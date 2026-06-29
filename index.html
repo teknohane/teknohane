@@ -1275,8 +1275,12 @@ setTimeout(() => {
   });
 }, 500);
 
+// Service Worker - cache temizle
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('/teknohane/sw.js',{scope:'/teknohane/'}).catch(()=>{}));
+  navigator.serviceWorker.getRegistrations().then(regs => {
+    regs.forEach(r => r.unregister());
+  });
+  caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
 }
 </script>
 </body>
