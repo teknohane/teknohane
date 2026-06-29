@@ -558,16 +558,19 @@ auth.onAuthStateChanged(async u => {
 // ── LISTINGS ──
 async function loadListings() {
   listingsLoaded = false;
+  const grid = document.getElementById('lgrid');
+  if (grid) grid.innerHTML = '<div class="load"><div class="spin"></div><span>İlanlar yükleniyor…</span></div>';
   try {
     const snap = await db.collection('teknohane_listings').get();
     listings = snap.docs.map(d => ({id:d.id,...d.data()}));
     listings.sort((a,b) => (b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
     listingsLoaded = true;
     renderListings();
-    renderProfile(); // İlan sayılarını güncelle
+    try { renderProfile(); } catch(e) {}
   } catch(e) {
     listingsLoaded = true;
-    document.getElementById('lgrid').innerHTML = `<div class="empty"><div class="empty-ico">📡</div><div class="empty-t">Bağlantı hatası</div><div class="empty-d">${e.message}</div></div>`;
+    const g = document.getElementById('lgrid');
+    if (g) g.innerHTML = `<div class="empty"><div class="empty-ico">📡</div><div class="empty-t">Bağlantı hatası</div><div class="empty-d">${e.message}</div><button class="sbtn" style="margin-top:16px;width:auto;padding:0 20px;height:44px;border-radius:12px" onclick="loadListings()">Tekrar Dene</button></div>`;
   }
 }
 
@@ -1177,7 +1180,13 @@ function goTab(name, pushState = true) {
   if (tabEl) tabEl.classList.add('active');
   const screenEl = document.getElementById('screen-'+name);
   if (screenEl) screenEl.classList.add('active');
-  if (name === 'market') renderListings();
+  if (name === 'market') {
+    if (listingsLoaded) {
+      renderListings();
+    } else {
+      loadListings();
+    }
+  }
   if (pushState) history.pushState({tab: name}, '', '');
 }
 
