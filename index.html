@@ -424,7 +424,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 
   <!-- PROFILE -->
   <div class="screen" id="screen-profile">
-    <div class="sc" id="profile-content">
+    <div class="sc" id="profile-content" style="min-height:100%">
       <div class="load"><div class="spin"></div></div>
     </div>
   </div>
@@ -653,38 +653,22 @@ async function renderProfile() {
   if (!c) return;
   const isAdmin = user && ADMINS.includes(user.email);
   if (user) {
-    const myCount = listings.filter(l => l.uid === user.uid).length;
     const av = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName||user.email)}&background=0D1526&color=00D4FF&size=128`;
     const adminHtml = isAdmin ? `
       <div class="apanel">
         <div class="aptitle"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Yönetici Paneli</div>
-        <div class="apstats">
-          <div class="stat"><div class="stat-n">${listings.length}</div><div class="stat-l">İlan</div></div>
-          <div class="stat"><div class="stat-n">${[...new Set(listings.map(l=>l.uid))].length}</div><div class="stat-l">Satıcı</div></div>
-          <div class="stat"><div class="stat-n">${listings.filter(l=>l.condition==='Sıfır').length}</div><div class="stat-l">Sıfır</div></div>
-        </div>
-        <button class="apbtn" onclick="goTab('market')">📋 Tüm İlanları Gör</button>
         <button class="apbtn red" onclick="adminDel()">🗑️ İlan Sil (ID ile)</button>
       </div>` : '';
     c.innerHTML = `
       <div class="phero">
-        <img class="pav" src="${av}" alt="">
-        <div style="display:flex;align-items:center;justify-content:center;gap:8px">
+        <img class="pav" src="${av}" alt="" onerror="this.src='https://ui-avatars.com/api/?name=U&background=0D1526&color=00D4FF&size=128'">
+        <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px">
           <div class="pname">${user.displayName||'Kullanıcı'}</div>
           ${isAdmin?'<span class="admin-badge">ADMIN</span>':''}
         </div>
         <div class="pemail">${user.email}</div>
-        <div class="stats" style="margin-top:16px">
-          <div class="stat"><div class="stat-n">${myCount}</div><div class="stat-l">İlanım</div></div>
-          <div class="stat"><div class="stat-n">${favs.size}</div><div class="stat-l">Favori</div></div>
-          <div class="stat"><div class="stat-n">${listings.length}</div><div class="stat-l">Toplam İlan</div></div>
-        </div>
       </div>
       ${adminHtml}
-      <div class="pmenu"><span class="mlabel">İlanlarım</span></div><span class="marr">›</span>
-        </div><span class="mlabel">Favorilerim</span></div><span class="marr">›</span>
-        </div>
-      </div>
       <button class="signout" onclick="auth.signOut()">Çıkış Yap</button>`;
   } else {
     c.innerHTML = `
