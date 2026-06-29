@@ -381,26 +381,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 
   <!-- MARKET -->
   <div class="screen" id="screen-market">
-    <div class="sc">
-      <div class="mhdr">
-        <span class="st">İkinci El</span>
-        <button class="new-btn" onclick="newListing()">
-          <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          İlan Ver
-        </button>
-      </div>
-      <div class="sw">
-        <svg class="sico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input class="si" type="text" placeholder="İlan ara…" id="market-search" oninput="renderListings()">
-      </div>
-      <div class="mtabs">
-        <button class="mtab on" onclick="setMTab('all',this)">Tümü</button>
-        <button class="mtab off" onclick="setMTab('fav',this)">❤️ Favoriler</button>
-        <button class="mtab off" onclick="setMTab('mine',this)">İlanlarım</button>
-      </div>
-      <div id="lgrid" class="lgrid">
-        <div class="load"><div class="spin"></div><span>İlanlar yükleniyor…</span></div>
-      </div>
+    <div class="sc" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100%">
+      <div style="font-size:56px;margin-bottom:16px">🛒</div>
+      <div style="font-size:22px;font-weight:700;letter-spacing:-.4px;margin-bottom:8px">İkinci El Pazar</div>
+      <div style="font-size:14px;color:var(--text2);text-align:center;line-height:1.6">Yakında burada olacak.<br>Telefon alım-satım pazarı geliyor.</div>
+      <div style="margin-top:20px;background:var(--cyan-dim);border:1px solid rgba(0,212,255,.25);color:var(--cyan);font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;padding:8px 16px;border-radius:20px">Yakında</div>
     </div>
   </div>
 
@@ -1172,7 +1157,6 @@ function renderCmpTable(){
 }
 
 // ── HELPERS ──
-// ── HELPERS ──
 function goTab(name, pushState = true) {
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
@@ -1181,37 +1165,43 @@ function goTab(name, pushState = true) {
   const screenEl = document.getElementById('screen-'+name);
   if (screenEl) screenEl.classList.add('active');
   if (name === 'market') renderListings();
+  if (pushState) history.pushState({tab: name}, '', '');
 }
 
 function openLink(url) { location.href='/teknohane/go.html?url='+encodeURIComponent(url); }
 function closeMo(id) { document.getElementById(id).classList.remove('on'); }
 
 // ── GERİ BUTONU ──
-// ── GERİ BUTONU ──
-let isNavigating = false;
 window.addEventListener('popstate', e => {
-  if (isNavigating) return;
   // Modal açıksa kapat
   if (document.getElementById('detail-mo')?.classList.contains('on')) {
     closeDetail();
+    history.pushState({}, '', '');
     return;
   }
   if (document.getElementById('listing-mo')?.classList.contains('on')) {
     closeMo('listing-mo');
+    history.pushState({}, '', '');
     return;
   }
   if (document.getElementById('picker-mo')?.classList.contains('on')) {
     closeMo('picker-mo');
+    history.pushState({}, '', '');
     return;
   }
   // Ana sayfada değilse ana sayfaya dön
   const active = document.querySelector('.tab.active')?.dataset?.s;
   if (active && active !== 'home') {
     goTab('home', false);
+    history.pushState({tab: 'home'}, '', '');
     return;
   }
-  // Ana sayfadaysa Android geri tuşu normal davransın
+  // Ana sayfadaysa çık
+  // Android'de varsayılan davranış devreye girer
 });
+
+// İlk pushState
+history.pushState({tab: 'home'}, '', '');
 
 // ── PULL TO REFRESH ──
 function setupPTR(screenId, refreshFn) {
