@@ -10,18 +10,17 @@
 <title>Teknohane</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-152.png">
-<link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
   --bg:#00040F;--bg2:#070D1A;--surf:#0D1526;--surf2:#111D33;--surf3:#162240;
-  --cyan:#00D4FF;--cyan-dim:rgba(0,212,255,0.12);--cyan-glow:rgba(0,212,255,0.25);
+  --cyan:#00D4FF;--cdim:rgba(0,212,255,0.12);--cglow:rgba(0,212,255,0.25);
   --text:#FFF;--text2:#8E9BB5;--text3:#4A5568;
   --red:#FF453A;--green:#30D158;
   --border:rgba(0,212,255,0.1);--border2:rgba(255,255,255,0.06);
-  --safe-top:env(safe-area-inset-top,0px);--safe-bot:env(safe-area-inset-bottom,0px);
+  --st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px);
   --tab:83px;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;}
@@ -29,39 +28,34 @@ input,textarea{user-select:text;-webkit-user-select:text;}
 html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,sans-serif;overflow:hidden;}
 #app{display:flex;flex-direction:column;height:100dvh;}
 
-/* PULL TO REFRESH */
-.ptr{position:absolute;top:-50px;left:0;right:0;height:50px;display:flex;align-items:center;justify-content:center;transition:top .2s;}
-.ptr.show{top:0;}
-.ptr-spin{width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--cyan);border-radius:50%;animation:spin .8s linear infinite;}
-
 /* HEADER */
-#hdr{position:fixed;top:0;left:0;right:0;z-index:100;padding-top:var(--safe-top);background:rgba(0,4,15,.72);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-bottom:1px solid var(--border);}
-.hdr-in{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;}
+#hdr{position:fixed;top:0;left:0;right:0;z-index:100;padding-top:var(--st);background:rgba(0,4,15,.82);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-bottom:1px solid var(--border);}
+.hi{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;}
 .logo{display:flex;align-items:center;gap:10px;}
-.logo img{width:34px;height:34px;border-radius:10px;object-fit:cover;box-shadow:0 0 12px var(--cyan-glow);}
-.logo span{font-size:20px;font-weight:700;letter-spacing:-.5px;background:linear-gradient(135deg,#fff,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-.hdr-acts{display:flex;gap:8px;align-items:center;}
-.hbtn{width:36px;height:36px;border-radius:50%;background:var(--surf);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.logo img{width:34px;height:34px;border-radius:10px;object-fit:cover;box-shadow:0 0 12px var(--cglow);}
+.logo-t{font-size:20px;font-weight:700;letter-spacing:-.5px;background:linear-gradient(135deg,#fff,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.hacts{display:flex;gap:8px;}
+.hbtn{width:36px;height:36px;border-radius:50%;background:var(--surf);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;}
 .hbtn svg{width:18px;height:18px;stroke:var(--text2);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
 .hbtn img{width:36px;height:36px;border-radius:50%;object-fit:cover;}
 
 /* TABS */
-#tabs{position:fixed;bottom:0;left:0;right:0;z-index:100;background:rgba(0,4,15,.88);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid var(--border);padding-bottom:var(--safe-bot);height:var(--tab);display:flex;align-items:flex-start;padding-top:10px;}
+#tabs{position:fixed;bottom:0;left:0;right:0;z-index:100;background:rgba(0,4,15,.9);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid var(--border);padding-bottom:var(--sb);height:var(--tab);display:flex;align-items:flex-start;padding-top:10px;}
 .tbar{display:flex;width:100%;justify-content:space-around;}
 .tab{display:flex;flex-direction:column;align-items:center;gap:4px;padding:0 8px;cursor:pointer;min-width:52px;}
 .tab svg{width:22px;height:22px;stroke:var(--text3);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:stroke .2s;}
 .tab span{font-size:10px;font-weight:500;color:var(--text3);transition:color .2s;}
-.tab .tico{width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:8px;transition:background .2s;}
-.tab.active svg{stroke:var(--cyan);}
-.tab.active span{color:var(--cyan);}
-.tab.active .tico{background:var(--cyan-dim);}
+.tco{width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:8px;transition:background .2s;}
+.tab.on svg{stroke:var(--cyan);}
+.tab.on span{color:var(--cyan);}
+.tab.on .tco{background:var(--cdim);}
 
 /* SCREENS */
-#screens{flex:1;overflow:hidden;position:relative;margin-top:calc(var(--safe-top) + 58px);margin-bottom:var(--tab);}
+#screens{flex:1;overflow:hidden;position:relative;margin-top:calc(var(--st) + 58px);margin-bottom:var(--tab);}
 .screen{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;opacity:0;pointer-events:none;transition:opacity .2s;}
-.screen.active{opacity:1;pointer-events:all;}
+.screen.on{opacity:1;pointer-events:all;}
 .screen::-webkit-scrollbar{display:none;}
-.sc{padding:16px 16px 24px;}
+.sc{padding:16px 16px 32px;min-height:100%;}
 
 /* UTILS */
 .sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
@@ -71,53 +65,50 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .spin{width:28px;height:28px;border:2px solid var(--border);border-top-color:var(--cyan);border-radius:50%;animation:spin .8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
 .load{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;gap:14px;color:var(--text2);font-size:14px;}
-.empty{text-align:center;padding:60px 20px;}
-.empty-ico{font-size:48px;margin-bottom:12px;}
-.empty-t{font-size:16px;font-weight:600;margin-bottom:8px;}
-.empty-d{font-size:13px;color:var(--text2);}
-.no-res{text-align:center;padding:30px;color:var(--text2);font-size:14px;}
+.soon{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80%;text-align:center;padding:24px;}
+.sbtn2{width:100%;background:var(--cyan);color:#000;font-size:16px;font-weight:700;padding:14px;border-radius:14px;border:none;cursor:pointer;font-family:inherit;}
 
-/* CHANNEL */
+/* CHANNEL STATS */
 .ch-hero{background:linear-gradient(135deg,var(--surf),var(--surf2));border-radius:20px;border:1px solid var(--border);padding:20px;margin-bottom:20px;}
 .ch-top{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
-.ch-av{width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid var(--cyan);animation:pglow 3s ease-in-out infinite;}
-@keyframes pglow{0%,100%{box-shadow:0 0 8px var(--cyan-glow);}50%{box-shadow:0 0 20px var(--cyan-glow);}}
-.ch-name{font-size:18px;font-weight:700;}
-.ch-hand{font-size:13px;color:var(--text2);margin-top:2px;}
+.ch-av{width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid var(--cyan);animation:pg 3s ease-in-out infinite;}
+@keyframes pg{0%,100%{box-shadow:0 0 8px var(--cglow);}50%{box-shadow:0 0 20px var(--cglow);}}
+.ch-n{font-size:18px;font-weight:700;}
+.ch-h{font-size:13px;color:var(--text2);margin-top:2px;}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
 .stat{background:rgba(0,212,255,.05);border:1px solid var(--border);border-radius:12px;padding:10px;text-align:center;}
-.stat-n{font-size:18px;font-weight:700;color:var(--cyan);}
-.stat-l{font-size:10px;color:var(--text2);margin-top:2px;text-transform:uppercase;letter-spacing:.5px;}
+.sn{font-size:18px;font-weight:700;color:var(--cyan);}
+.sl2{font-size:10px;color:var(--text2);margin-top:2px;text-transform:uppercase;letter-spacing:.5px;}
 
-/* FEATURED */
+/* FEATURED VIDEO */
 .feat{border-radius:20px;overflow:hidden;background:var(--surf);border:1px solid var(--border);margin-bottom:24px;cursor:pointer;box-shadow:0 8px 32px rgba(0,212,255,.08);}
 .feat:active{transform:scale(.98);}
-.fthumb{position:relative;width:100%;aspect-ratio:16/9;background:var(--surf2);}
-.fthumb img{width:100%;height:100%;object-fit:cover;display:block;}
-.play-btn{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.3);}
-.play-c{width:56px;height:56px;border-radius:50%;background:rgba(0,212,255,.2);backdrop-filter:blur(8px);border:1px solid rgba(0,212,255,.5);display:flex;align-items:center;justify-content:center;}
-.play-c svg{width:22px;height:22px;fill:var(--cyan);margin-left:3px;}
+.fth{position:relative;width:100%;aspect-ratio:16/9;background:var(--surf2);}
+.fth img{width:100%;height:100%;object-fit:cover;display:block;}
+.pbtm{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.3);}
+.pc{width:56px;height:56px;border-radius:50%;background:rgba(0,212,255,.2);backdrop-filter:blur(8px);border:1px solid rgba(0,212,255,.5);display:flex;align-items:center;justify-content:center;}
+.pc svg{width:22px;height:22px;fill:var(--cyan);margin-left:3px;}
 .dur{position:absolute;bottom:10px;right:10px;background:rgba(0,0,0,.8);color:#fff;font-size:11px;font-weight:600;padding:3px 7px;border-radius:6px;}
-.finfo{padding:14px 16px 16px;}
-.fbadge{display:inline-flex;align-items:center;gap:5px;background:var(--cyan-dim);border:1px solid rgba(0,212,255,.2);color:var(--cyan);font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;padding:3px 8px;border-radius:6px;margin-bottom:8px;}
-.fbadge::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--cyan);}
-.ftitle{font-size:16px;font-weight:600;line-height:1.4;margin-bottom:10px;}
-.fmeta{display:flex;gap:12px;}
-.mpill{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2);}
-.mpill svg{width:13px;height:13px;stroke:var(--text3);fill:none;stroke-width:1.8;}
+.fi2{padding:14px 16px 16px;}
+.fbdg{display:inline-flex;align-items:center;gap:5px;background:var(--cdim);border:1px solid rgba(0,212,255,.2);color:var(--cyan);font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;padding:3px 8px;border-radius:6px;margin-bottom:8px;}
+.fbdg::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--cyan);}
+.ftit{font-size:16px;font-weight:600;line-height:1.4;margin-bottom:10px;}
+.fmet{display:flex;gap:12px;}
+.mp{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2);}
+.mp svg{width:13px;height:13px;stroke:var(--text3);fill:none;stroke-width:1.8;}
 
 /* VIDEO LIST */
 .vlist{display:flex;flex-direction:column;gap:12px;}
-.vcard{display:flex;gap:12px;background:var(--surf);border-radius:16px;overflow:hidden;border:1px solid var(--border2);cursor:pointer;}
-.vcard:active{background:var(--surf2);}
-.vthumb{position:relative;width:120px;min-width:120px;aspect-ratio:16/9;background:var(--surf2);}
-.vthumb img{width:100%;height:100%;object-fit:cover;display:block;}
-.vdur{position:absolute;bottom:5px;right:5px;background:rgba(0,0,0,.85);color:#fff;font-size:10px;font-weight:600;padding:2px 5px;border-radius:4px;}
-.vinfo{flex:1;padding:10px 12px 10px 0;display:flex;flex-direction:column;justify-content:center;gap:4px;}
-.vtitle{font-size:13px;font-weight:500;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-.vmeta{font-size:11px;color:var(--text2);display:flex;gap:6px;}
-.vmeta span::after{content:'·';margin-left:6px;color:var(--text3);}
-.vmeta span:last-child::after{content:'';}
+.vc{display:flex;gap:12px;background:var(--surf);border-radius:16px;overflow:hidden;border:1px solid var(--border2);cursor:pointer;}
+.vc:active{background:var(--surf2);}
+.vth{position:relative;width:120px;min-width:120px;aspect-ratio:16/9;background:var(--surf2);}
+.vth img{width:100%;height:100%;object-fit:cover;display:block;}
+.vd{position:absolute;bottom:5px;right:5px;background:rgba(0,0,0,.85);color:#fff;font-size:10px;font-weight:600;padding:2px 5px;border-radius:4px;}
+.vi{flex:1;padding:10px 12px 10px 0;display:flex;flex-direction:column;justify-content:center;gap:4px;}
+.vtit{font-size:13px;font-weight:500;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.vm{font-size:11px;color:var(--text2);display:flex;gap:6px;}
+.vm span::after{content:'·';margin-left:6px;color:var(--text3);}
+.vm span:last-child::after{content:'';}
 
 /* SEARCH */
 .sw{position:relative;margin-bottom:16px;}
@@ -127,72 +118,66 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .sico{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:18px;height:18px;stroke:var(--text3);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;pointer-events:none;}
 
 /* COMMUNITY */
-.wgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px;}
-.wcard{background:var(--surf);border:1px solid var(--border2);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:8px;cursor:pointer;}
-.wcard:active{background:var(--surf2);}
-.wico{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;}
+.wg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px;}
+.wc{background:var(--surf);border:1px solid var(--border2);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:8px;cursor:pointer;}
+.wc:active{background:var(--surf2);}
 
-/* MARKET */
-.mhdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
-.new-btn{display:flex;align-items:center;gap:6px;background:var(--cyan);color:#000;font-size:13px;font-weight:700;padding:9px 14px;border-radius:12px;border:none;cursor:pointer;font-family:inherit;}
-.new-btn svg{width:16px;height:16px;stroke:#000;fill:none;stroke-width:2.5;stroke-linecap:round;}
-.mtabs{display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;}
-.mtabs::-webkit-scrollbar{display:none;}
-.mtab{flex:none;padding:8px 16px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;border:none;white-space:nowrap;}
-.mtab.on{background:var(--cyan-dim);border:1px solid rgba(0,212,255,.2);color:var(--cyan);}
-.mtab.off{background:var(--surf);border:1px solid var(--border2);color:var(--text2);}
-.lgrid{display:flex;flex-direction:column;gap:12px;}
-.lcard{background:var(--surf);border:1px solid var(--border2);border-radius:16px;padding:14px;cursor:pointer;}
-.lcard:active{background:var(--surf2);}
-.ltitle{font-size:15px;font-weight:600;margin-bottom:6px;}
-.lrow{display:flex;align-items:center;justify-content:space-between;margin-top:8px;}
-.lprice{font-size:18px;font-weight:700;color:var(--cyan);}
-.lcond{font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;}
-.cn{background:rgba(48,209,88,.12);color:var(--green);border:1px solid rgba(48,209,88,.2);}
-.cu{background:var(--cyan-dim);color:var(--cyan);border:1px solid rgba(0,212,255,.2);}
-.lfooter{display:flex;align-items:center;justify-content:space-between;margin-top:10px;}
-.lloc{font-size:11px;color:var(--text2);}
-.lacts{display:flex;gap:8px;align-items:center;}
-.fbtn{width:32px;height:32px;border-radius:50%;background:var(--surf2);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;}
-.fbtn svg{width:16px;height:16px;stroke:var(--text3);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
-.fbtn.on svg{stroke:var(--red);fill:var(--red);}
-.wabtn{display:flex;align-items:center;gap:5px;background:rgba(37,211,102,.12);border:1px solid rgba(37,211,102,.2);color:#25D366;font-size:12px;font-weight:600;padding:6px 12px;border-radius:10px;cursor:pointer;}
-.delbtn{background:rgba(255,69,58,.12);border:1px solid rgba(255,69,58,.2);color:var(--red);font-size:12px;font-weight:600;padding:6px 12px;border-radius:10px;cursor:pointer;font-family:inherit;}
-.owner{display:flex;align-items:center;gap:6px;margin-top:8px;}
-.ow-av{width:20px;height:20px;border-radius:50%;background:var(--cyan-dim);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:var(--cyan);}
-.ow-n{font-size:11px;color:var(--text2);}
-.mybadge{font-size:10px;color:var(--cyan);font-weight:600;background:var(--cyan-dim);padding:2px 7px;border-radius:6px;border:1px solid rgba(0,212,255,.2);}
+/* COMPARE */
+.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
+.cslot{background:var(--surf);border:1px solid var(--border);border-radius:16px;padding:16px;min-height:140px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer;}
+.cslot.filled{align-items:flex-start;cursor:default;}
+.cplus{width:40px;height:40px;border-radius:50%;border:2px dashed var(--text3);display:flex;align-items:center;justify-content:center;}
+.cplus svg{width:20px;height:20px;stroke:var(--text3);fill:none;stroke-width:2;}
+.clbl{font-size:12px;color:var(--text3);}
+.pbr{font-size:10px;color:var(--cyan);font-weight:600;text-transform:uppercase;}
+.pnm{font-size:13px;font-weight:600;line-height:1.3;margin-top:2px;}
+.ppr{font-size:14px;font-weight:700;color:var(--cyan);margin-top:4px;}
+.clr{font-size:10px;color:var(--text3);margin-top:4px;padding:2px 6px;background:var(--surf3);border-radius:6px;border:none;cursor:pointer;font-family:inherit;}
+.ctbl{background:var(--surf);border-radius:16px;border:1px solid var(--border2);overflow:hidden;margin-bottom:20px;}
+.crow{display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--border2);}
+.crow:last-child{border-bottom:none;}
+.ccell{padding:11px;font-size:12px;}
+.ccell.lbl{color:var(--text2);font-weight:500;background:rgba(0,212,255,.03);}
+.ccell.val{font-weight:500;}
+.plist{display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto;}
+.pitem{display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--surf);border-radius:12px;border:1px solid var(--border2);cursor:pointer;}
+.pitem:active{background:var(--surf2);}
+.pn{font-size:14px;font-weight:600;}
+.ps{font-size:11px;color:var(--text2);margin-top:2px;}
+.pp{font-size:13px;font-weight:700;color:var(--cyan);}
+.abdg{background:var(--cdim);color:var(--cyan);font-size:11px;font-weight:600;padding:4px 10px;border-radius:8px;border:1px solid rgba(0,212,255,.2);}
+.bfilters{display:flex;gap:6px;overflow-x:auto;margin-bottom:12px;padding-bottom:2px;}
+.bfilters::-webkit-scrollbar{display:none;}
+.bf{flex:none;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;}
+.bf.on{background:var(--cdim);border:1px solid rgba(0,212,255,.3);color:var(--cyan);}
+.bf.off{background:var(--surf);border:1px solid var(--border2);color:var(--text2);}
 
 /* SUPPORT */
-.mitem{display:flex;align-items:center;justify-content:space-between;background:var(--surf);border:1px solid var(--border2);border-radius:14px;padding:14px 16px;cursor:pointer;margin-bottom:10px;}
-.mitem:active{background:var(--surf2);}
-.mitem-l{display:flex;align-items:center;gap:12px;}
+.mi{display:flex;align-items:center;justify-content:space-between;background:var(--surf);border:1px solid var(--border2);border-radius:14px;padding:14px 16px;cursor:pointer;margin-bottom:10px;}
+.mi:active{background:var(--surf2);}
+.mil{display:flex;align-items:center;gap:12px;}
 .mico{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;}
 .mico svg{width:18px;height:18px;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
-.mlabel{font-size:14px;font-weight:500;}
+.mlbl{font-size:14px;font-weight:500;}
 .msub{font-size:11px;color:var(--text2);margin-top:2px;}
 .marr{color:var(--text3);font-size:18px;}
 
-/* PROFILE / AUTH */
-.phero{background:linear-gradient(135deg,var(--surf),var(--surf2));border-radius:20px;border:1px solid var(--border);padding:24px;margin-bottom:20px;text-align:center;}
-.pav{width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid var(--cyan);box-shadow:0 0 20px var(--cyan-glow);margin:0 auto 12px;display:block;}
-.pname{font-size:20px;font-weight:700;}
-.pemail{font-size:13px;color:var(--text2);margin-top:4px;}
-.pmenu{display:flex;flex-direction:column;gap:8px;}
-.signout{width:100%;background:rgba(255,69,58,.1);border:1px solid rgba(255,69,58,.2);color:var(--red);font-size:15px;font-weight:600;padding:14px;border-radius:14px;cursor:pointer;font-family:inherit;margin-top:8px;}
-.admin-badge{background:linear-gradient(135deg,var(--cyan),#0080ff);color:#000;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;margin-left:8px;}
+/* PROFILE */
+.phero{background:linear-gradient(135deg,var(--surf),var(--surf2));border-radius:20px;border:1px solid var(--border);padding:28px 24px;margin-bottom:20px;text-align:center;}
+.pav{width:90px;height:90px;border-radius:50%;object-fit:cover;border:3px solid var(--cyan);box-shadow:0 0 20px var(--cglow);margin:0 auto 16px;display:block;}
+.pname{font-size:22px;font-weight:700;letter-spacing:-.4px;}
+.pemail{font-size:13px;color:var(--text2);margin-top:6px;}
+.admin-badge{background:linear-gradient(135deg,var(--cyan),#0080ff);color:#000;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;margin-left:8px;vertical-align:middle;}
 .apanel{background:rgba(0,212,255,.05);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:16px;}
-.aptitle{font-size:14px;font-weight:700;color:var(--cyan);margin-bottom:12px;display:flex;align-items:center;gap:6px;}
-.apstats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
-.apbtn{width:100%;background:var(--surf2);border:1px solid var(--border2);color:var(--text);font-size:13px;font-weight:600;padding:10px;border-radius:10px;cursor:pointer;font-family:inherit;margin-bottom:8px;}
-.apbtn.red{background:rgba(255,69,58,.1);border-color:rgba(255,69,58,.2);color:var(--red);}
+.aptit{font-size:14px;font-weight:700;color:var(--cyan);margin-bottom:6px;display:flex;align-items:center;gap:6px;}
+.signout{width:100%;background:rgba(255,69,58,.1);border:1px solid rgba(255,69,58,.2);color:var(--red);font-size:15px;font-weight:600;padding:14px;border-radius:14px;cursor:pointer;font-family:inherit;}
 
-/* AUTH FORM */
-.auth-wrap{display:flex;flex-direction:column;align-items:center;padding:40px 24px;}
-.auth-logo{width:80px;height:80px;border-radius:24px;object-fit:cover;box-shadow:0 0 30px var(--cyan-glow);margin-bottom:16px;}
-.auth-title{font-size:28px;font-weight:700;letter-spacing:-.6px;margin-bottom:6px;background:linear-gradient(135deg,#fff,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-.auth-sub{font-size:14px;color:var(--text2);margin-bottom:32px;text-align:center;}
-.auth-form{width:100%;}
+/* AUTH */
+.awrap{display:flex;flex-direction:column;align-items:center;padding:32px 0;}
+.alogo{width:80px;height:80px;border-radius:24px;object-fit:cover;box-shadow:0 0 30px var(--cglow);margin-bottom:16px;}
+.atit{font-size:26px;font-weight:700;letter-spacing:-.6px;margin-bottom:6px;background:linear-gradient(135deg,#fff,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.asub{font-size:14px;color:var(--text2);margin-bottom:28px;text-align:center;line-height:1.5;}
+.aform{width:100%;}
 .atabs{display:flex;background:var(--surf);border-radius:12px;padding:4px;margin-bottom:20px;}
 .atab{flex:1;padding:9px;text-align:center;font-size:14px;font-weight:600;border-radius:9px;cursor:pointer;color:var(--text3);}
 .atab.on{background:var(--surf3);color:var(--text);}
@@ -210,108 +195,32 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .aerr.on{display:block;}
 
 /* MODAL */
-.mo{display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);align-items:flex-end;}
+.mo{display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);align-items:flex-end;}
 .mo.on{display:flex;}
-.ms{background:var(--bg2);border-radius:24px 24px 0 0;width:100%;padding:20px 20px calc(20px + var(--safe-bot));border-top:1px solid var(--border);max-height:90vh;overflow-y:auto;animation:su .3s ease;}
+.ms{background:var(--bg2);border-radius:24px 24px 0 0;width:100%;padding:20px 20px calc(20px + var(--sb));border-top:1px solid var(--border);max-height:90vh;overflow-y:auto;animation:su .3s ease;}
 @keyframes su{from{transform:translateY(20px);opacity:0;}to{transform:translateY(0);opacity:1;}}
 .mh{width:36px;height:4px;border-radius:2px;background:var(--text3);margin:0 auto 20px;}
-.mtitle{font-size:18px;font-weight:700;margin-bottom:16px;}
-.fsel{width:100%;background:var(--surf);border:1px solid var(--border2);border-radius:12px;padding:12px 14px;color:var(--text);font-size:15px;font-family:inherit;outline:none;appearance:none;}
-
-/* İLAN DETAY */
-.detail-mo{display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);align-items:flex-end;}
-.detail-mo.on{display:flex;}
-.detail-sheet{background:var(--bg2);border-radius:24px 24px 0 0;width:100%;max-height:92vh;overflow-y:auto;border-top:1px solid var(--border);animation:su .3s ease;}
-.detail-sheet::-webkit-scrollbar{display:none;}
-.detail-sticky{position:sticky;top:0;background:rgba(7,13,26,.95);backdrop-filter:blur(12px);padding:12px 20px;border-bottom:1px solid var(--border2);z-index:10;display:flex;align-items:center;justify-content:space-between;}
-.detail-handle{width:36px;height:4px;border-radius:2px;background:var(--text3);}
-.detail-close{width:32px;height:32px;border-radius:50%;background:var(--surf2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px;color:var(--text2);line-height:1;}
-.detail-body{padding:20px 20px calc(20px + var(--safe-bot));}
-.detail-model{font-size:22px;font-weight:700;letter-spacing:-.4px;margin-bottom:4px;}
-.detail-price{font-size:28px;font-weight:700;color:var(--cyan);margin-bottom:8px;}
-.detail-cond{display:inline-block;font-size:12px;font-weight:600;padding:4px 10px;border-radius:8px;margin-bottom:16px;}
-.detail-info{background:var(--surf);border-radius:14px;padding:4px 14px;margin-bottom:16px;}
-.detail-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border2);font-size:14px;}
-.detail-row:last-child{border-bottom:none;}
-.detail-lbl{color:var(--text2);width:80px;flex-shrink:0;font-size:13px;}
-.detail-val{font-weight:500;}
-.detail-desc{font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:20px;padding:14px;background:var(--surf);border-radius:14px;}
-.action-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px;}
-.abtn{padding:14px 10px;border-radius:14px;border:none;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px;}
-.abtn svg{width:22px;height:22px;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
-.abtn-lbl{font-size:12px;font-weight:600;}
-.act-wa{background:rgba(37,211,102,.15);color:#25D366;border:1px solid rgba(37,211,102,.3);}
-.act-wa svg{stroke:#25D366;}
-.act-offer{background:var(--cyan-dim);color:var(--cyan);border:1px solid rgba(0,212,255,.3);}
-.act-offer svg{stroke:var(--cyan);}
-.act-ref{background:rgba(255,149,0,.12);color:#FF9500;border:1px solid rgba(255,149,0,.3);}
-.act-ref svg{stroke:#FF9500;}
-.act-fav{background:rgba(255,69,58,.12);color:var(--red);border:1px solid rgba(255,69,58,.3);}
-.act-fav svg{stroke:var(--red);}
-.act-fav.on svg{fill:var(--red);}
-.offer-box{background:var(--surf);border-radius:14px;padding:14px;margin-bottom:20px;display:none;}
-.offer-box.on{display:block;}
-.offer-box-t{font-size:14px;font-weight:600;margin-bottom:10px;}
-.offer-row{display:flex;gap:8px;}
-.sec-t{font-size:16px;font-weight:700;margin-bottom:12px;}
-.cmt-list{display:flex;flex-direction:column;gap:10px;margin-bottom:16px;}
-.cmt{background:var(--surf);border-radius:12px;padding:12px;}
-.cmt-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
-.cmt-author{font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;}
-.cmt-av{width:24px;height:24px;border-radius:50%;background:var(--cyan-dim);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--cyan);}
-.cmt-time{font-size:11px;color:var(--text3);}
-.cmt-text{font-size:13px;color:var(--text2);line-height:1.5;}
-.cmt-del{font-size:11px;color:var(--red);cursor:pointer;margin-top:6px;display:inline-block;}
-.cmt-input{display:flex;gap:8px;align-items:flex-end;}
-.cmt-ta{flex:1;background:var(--surf);border:1px solid var(--border2);border-radius:12px;padding:10px 14px;color:var(--text);font-size:14px;font-family:inherit;outline:none;resize:none;min-height:44px;max-height:100px;}
-.cmt-ta:focus{border-color:var(--cyan);}
-.cmt-send{width:44px;height:44px;border-radius:12px;background:var(--cyan);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.cmt-send svg{width:20px;height:20px;stroke:#000;fill:none;stroke-width:2.5;stroke-linecap:round;}
-.no-cmt{text-align:center;padding:24px;color:var(--text3);font-size:13px;}
-
-/* COMPARE */
-.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
-.cslot{background:var(--surf);border:1px solid var(--border);border-radius:16px;padding:16px;min-height:140px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer;}
-.cslot.filled{align-items:flex-start;cursor:default;}
-.cplus{width:40px;height:40px;border-radius:50%;border:2px dashed var(--text3);display:flex;align-items:center;justify-content:center;}
-.cplus svg{width:20px;height:20px;stroke:var(--text3);fill:none;stroke-width:2;}
-.clbl{font-size:12px;color:var(--text3);}
-.pbrand{font-size:10px;color:var(--cyan);font-weight:600;text-transform:uppercase;}
-.pname2{font-size:13px;font-weight:600;line-height:1.3;margin-top:2px;}
-.pprice{font-size:14px;font-weight:700;color:var(--cyan);margin-top:4px;}
-.clrbtn{font-size:10px;color:var(--text3);margin-top:4px;padding:2px 6px;background:var(--surf3);border-radius:6px;border:none;cursor:pointer;font-family:inherit;}
-.ctable{background:var(--surf);border-radius:16px;border:1px solid var(--border2);overflow:hidden;margin-bottom:20px;}
-.crow{display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--border2);}
-.crow:last-child{border-bottom:none;}
-.ccell{padding:11px;font-size:12px;}
-.ccell.lbl{color:var(--text2);font-weight:500;background:rgba(0,212,255,.03);}
-.ccell.val{font-weight:500;}
-.plist{display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto;}
-.pitem{display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--surf);border-radius:12px;border:1px solid var(--border2);cursor:pointer;}
-.pitem:active{background:var(--surf2);}
-.pname3{font-size:14px;font-weight:600;}
-.pspec{font-size:11px;color:var(--text2);margin-top:2px;}
-.pprice2{font-size:13px;font-weight:700;color:var(--cyan);}
-.addbdg{background:var(--cyan-dim);color:var(--cyan);font-size:11px;font-weight:600;padding:4px 10px;border-radius:8px;border:1px solid rgba(0,212,255,.2);}
+.mtit{font-size:18px;font-weight:700;margin-bottom:16px;}
+.no{text-align:center;padding:24px;color:var(--text3);font-size:13px;}
 </style>
 </head>
 <body>
 <div id="app">
 
 <div id="hdr">
-  <div class="hdr-in">
+  <div class="hi">
     <div class="logo">
       <img src="teknohane.png" alt="" onerror="this.style.display='none'">
-      <span>Teknohane</span>
+      <span class="logo-t">Teknohane</span>
     </div>
-    <div class="hdr-acts">
-      <div class="hbtn" onclick="openLink('https://youtube.com/@teknohaane')">
+    <div class="hacts">
+      <div class="hbtn" onclick="ol('https://youtube.com/@teknohaane')">
         <svg viewBox="0 0 24 24"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z" stroke="var(--text2)"/><polygon fill="white" stroke="none" points="9.75,15.02 15.5,12 9.75,8.98 9.75,15.02"/></svg>
       </div>
-      <div class="hbtn" id="hav" style="display:none;overflow:hidden" onclick="goTab('profile')">
+      <div class="hbtn" id="hav" style="display:none" onclick="gt('profile')">
         <img id="hav-img" src="" alt="">
       </div>
-      <div class="hbtn" id="hlogin" onclick="goTab('profile')">
+      <div class="hbtn" id="hlogin" onclick="gt('profile')">
         <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       </div>
     </div>
@@ -320,111 +229,99 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 
 <div id="screens">
 
-  <!-- HOME -->
-  <div class="screen active" id="screen-home">
-    <div class="sc" id="home-content">
-      <div class="load"><div class="spin"></div><span>Videolar yükleniyor…</span></div>
+  <div class="screen on" id="s-home">
+    <div class="sc" id="home-c">
+      <div class="load"><div class="spin"></div><span>Yükleniyor…</span></div>
     </div>
   </div>
 
-  <!-- COMPARE -->
-  <div class="screen" id="screen-compare">
+  <div class="screen" id="s-compare">
     <div class="sc">
       <div class="sh"><span class="st">Karşılaştır</span></div>
       <div class="cgrid">
-        <div class="cslot" id="slot-a" onclick="openPicker('a')">
+        <div class="cslot" id="slot-a" onclick="opick('a')">
           <div class="cplus"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
           <div class="clbl">Telefon ekle</div>
         </div>
-        <div class="cslot" id="slot-b" onclick="openPicker('b')">
+        <div class="cslot" id="slot-b" onclick="opick('b')">
           <div class="cplus"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
           <div class="clbl">Telefon ekle</div>
         </div>
       </div>
-      <div id="cmp-result"></div>
+      <div id="cmp-res"></div>
     </div>
   </div>
 
-  <!-- COMMUNITY -->
-  <div class="screen" id="screen-community">
+  <div class="screen" id="s-community">
     <div class="sc">
       <div class="sh"><span class="st">Topluluk</span></div>
-      <div class="wgrid">
-        <div class="wcard" onclick="openLink('https://chat.whatsapp.com/Ev6qkOSW0FjDRuEiQ80l61')" style="grid-column:span 2">
+      <div class="wg">
+        <div class="wc" onclick="ol('https://chat.whatsapp.com/Ev6qkOSW0FjDRuEiQ80l61')" style="grid-column:span 2">
           <div style="display:flex;align-items:center;gap:12px">
-            <div class="wico" style="background:rgba(37,211,102,.12);width:48px;height:48px;min-width:48px">
+            <div style="width:48px;height:48px;min-width:48px;border-radius:12px;background:rgba(37,211,102,.12);display:flex;align-items:center;justify-content:center;">
               <svg viewBox="0 0 24 24" fill="#25D366" width="26" height="26"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.998 2C6.477 2 2 6.477 2 12c0 1.989.574 3.842 1.565 5.408L2 22l4.757-1.535A9.958 9.958 0 0 0 11.998 22c5.523 0 10-4.477 10-10S17.521 2 11.998 2z"/></svg>
             </div>
             <div>
-              <div style="font-size:15px;font-weight:600">Teknohane WhatsApp Kanalı</div>
-              <div style="font-size:11px;color:var(--text2);margin-top:4px">Sohbet, Satış ve Fotoğraf gruplarına buradan katıl</div>
+              <div style="font-size:15px;font-weight:600">WhatsApp Kanalı</div>
+              <div style="font-size:11px;color:var(--text2);margin-top:4px">Sohbet, Satış ve Fotoğraf grupları</div>
             </div>
           </div>
         </div>
-        <div class="wcard" onclick="openLink('https://www.instagram.com/teknohaane/')">
-          <div class="wico" style="background:rgba(193,53,132,.1)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="url(#ig1)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><defs><linearGradient id="ig1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#F58529"/><stop offset="50%" stop-color="#DD2A7B"/><stop offset="100%" stop-color="#8134AF"/></linearGradient></defs><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.5" fill="#DD2A7B" stroke="none"/></svg>
+        <div class="wc" onclick="ol('https://www.instagram.com/teknohaane/')">
+          <div style="width:36px;height:36px;border-radius:10px;background:rgba(193,53,132,.1);display:flex;align-items:center;justify-content:center;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="url(#ig)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+              <defs><linearGradient id="ig" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#F58529"/><stop offset="50%" stop-color="#DD2A7B"/><stop offset="100%" stop-color="#8134AF"/></linearGradient></defs>
+              <rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.5" fill="#DD2A7B" stroke="none"/>
+            </svg>
           </div>
           <div style="font-size:13px;font-weight:600">Instagram</div>
-          <div style="font-size:11px;color:var(--text2)">Sayfamızı takip et</div>
+          <div style="font-size:11px;color:var(--text2)">@teknohaane</div>
         </div>
-        <div class="wcard" onclick="openLink('https://youtube.com/@teknohaane')">
-          <div class="wico" style="background:rgba(255,0,0,.1)">
-            <svg viewBox="0 0 24 24" fill="none"><path stroke="#FF3B30" stroke-width="1.8" d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon fill="#FF3B30" stroke="none" points="9.75,15.02 15.5,12 9.75,8.98 9.75,15.02"/></svg>
+        <div class="wc" onclick="ol('https://youtube.com/@teknohaane')">
+          <div style="width:36px;height:36px;border-radius:10px;background:rgba(255,0,0,.1);display:flex;align-items:center;justify-content:center;">
+            <svg viewBox="0 0 24 24" fill="none" width="20" height="20"><path stroke="#FF3B30" stroke-width="1.8" d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon fill="#FF3B30" stroke="none" points="9.75,15.02 15.5,12 9.75,8.98 9.75,15.02"/></svg>
           </div>
           <div style="font-size:13px;font-weight:600">YouTube</div>
-          <div style="font-size:11px;color:var(--text2)">Kanalımıza abone ol</div>
+          <div style="font-size:11px;color:var(--text2)">@teknohaane</div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- MARKET -->
-      <div class="sw">
-        <svg class="sico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input class="si" type="text" placeholder="İlan ara…" id="market-search" oninput="renderListings()">
-      </div>
-      <div class="mtabs">
-        <button class="mtab on" onclick="setMTab('all',this)">Tümü</button>
-        <button class="mtab off" onclick="setMTab('fav',this)">❤️ Favoriler</button>
-        <button class="mtab off" onclick="setMTab('mine',this)">İlanlarım</button>
-      </div>
-      <div id="lgrid" class="lgrid">
-        <div class="load"><div class="spin"></div><span>İlanlar yükleniyor…</span></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- SUPPORT -->
-  <div class="screen" id="screen-support">
+  <div class="screen" id="s-support">
     <div class="sc">
       <div class="sh"><span class="st">Destek</span></div>
-      <div class="mitem" onclick="openLink('https://wa.me/905519589317')">
-        <div class="mitem-l">
+      <div class="mi" onclick="ol('https://wa.me/905519589317')">
+        <div class="mil">
           <div class="mico" style="background:rgba(37,211,102,.12)"><svg viewBox="0 0 24 24" fill="#25D366" width="18" height="18"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.998 2C6.477 2 2 6.477 2 12c0 1.989.574 3.842 1.565 5.408L2 22l4.757-1.535A9.958 9.958 0 0 0 11.998 22c5.523 0 10-4.477 10-10S17.521 2 11.998 2z"/></svg></div>
-          <div><div class="mlabel">WhatsApp Destek</div><div class="msub">+90 551 958 93 17</div></div>
+          <div><div class="mlbl">WhatsApp Destek</div><div class="msub">+90 551 958 93 17</div></div>
         </div><span class="marr">›</span>
       </div>
-      <div class="mitem" onclick="openLink('mailto:teknohaane@hotmail.com')">
-        <div class="mitem-l">
+      <div class="mi" onclick="ol('mailto:teknohaane@hotmail.com')">
+        <div class="mil">
           <div class="mico" style="background:rgba(0,212,255,.1)"><svg viewBox="0 0 24 24" stroke="var(--cyan)" width="18" height="18"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
-          <div><div class="mlabel">E-posta</div><div class="msub">teknohaane@hotmail.com</div></div>
+          <div><div class="mlbl">E-posta</div><div class="msub">teknohaane@hotmail.com</div></div>
         </div><span class="marr">›</span>
       </div>
-      <div class="mitem" onclick="openLink('https://youtube.com/@teknohaane')">
-        <div class="mitem-l">
+      <div class="mi" onclick="ol('https://youtube.com/@teknohaane')">
+        <div class="mil">
           <div class="mico" style="background:rgba(255,0,0,.1)"><svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path stroke="#FF3B30" stroke-width="1.8" d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon fill="#FF3B30" stroke="none" points="9.75,15.02 15.5,12 9.75,8.98 9.75,15.02"/></svg></div>
-          <div><div class="mlabel">YouTube</div><div class="msub">@teknohaane</div></div>
+          <div><div class="mlbl">YouTube</div><div class="msub">@teknohaane</div></div>
+        </div><span class="marr">›</span>
+      </div>
+      <div class="mi" onclick="ol('https://www.instagram.com/teknohaane/')">
+        <div class="mil">
+          <div class="mico" style="background:rgba(193,53,132,.1)"><svg viewBox="0 0 24 24" fill="none" stroke="url(#ig2)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><defs><linearGradient id="ig2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#F58529"/><stop offset="50%" stop-color="#DD2A7B"/><stop offset="100%" stop-color="#8134AF"/></linearGradient></defs><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.5" fill="#DD2A7B" stroke="none"/></svg></div>
+          <div><div class="mlbl">Instagram</div><div class="msub">@teknohaane</div></div>
         </div><span class="marr">›</span>
       </div>
       <div class="glow"></div>
-      <div style="text-align:center;padding:16px 0"><div style="font-size:13px;color:var(--text3)">Teknohane v1.0</div></div>
+      <div style="text-align:center;padding:16px 0;color:var(--text3);font-size:13px">Teknohane v1.0</div>
     </div>
   </div>
 
-  <!-- PROFILE -->
-  <div class="screen" id="screen-profile">
-    <div class="sc" id="profile-content" style="min-height:100%;padding-top:24px">
+  <div class="screen" id="s-profile">
+    <div class="sc" id="profile-c" style="padding-top:24px;min-height:100%">
       <div class="load"><div class="spin"></div></div>
     </div>
   </div>
@@ -433,24 +330,24 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 
 <div id="tabs">
   <div class="tbar">
-    <div class="tab active" data-s="home" onclick="goTab('home')">
-      <div class="tico"><svg viewBox="0 0 24 24"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon fill="currentColor" stroke="none" points="9.75,15.02 15.5,12 9.75,8.98 9.75,15.02"/></svg></div>
+    <div class="tab on" data-s="home" onclick="gt('home')">
+      <div class="tco"><svg viewBox="0 0 24 24"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon fill="currentColor" stroke="none" points="9.75,15.02 15.5,12 9.75,8.98 9.75,15.02"/></svg></div>
       <span>İçerik</span>
     </div>
-    <div class="tab" data-s="compare" onclick="goTab('compare')">
-      <div class="tico"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="9" height="18" rx="2"/><rect x="13" y="3" width="9" height="18" rx="2"/></svg></div>
+    <div class="tab" data-s="compare" onclick="gt('compare')">
+      <div class="tco"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="9" height="18" rx="2"/><rect x="13" y="3" width="9" height="18" rx="2"/></svg></div>
       <span>Karşılaştır</span>
     </div>
-    <div class="tab" data-s="community" onclick="goTab('community')">
-      <div class="tico"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+    <div class="tab" data-s="community" onclick="gt('community')">
+      <div class="tco"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
       <span>Topluluk</span>
     </div>
-    <div class="tab" data-s="support" onclick="goTab('support')">
-      <div class="tico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+    <div class="tab" data-s="support" onclick="gt('support')">
+      <div class="tco"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
       <span>Destek</span>
     </div>
-    <div class="tab" data-s="profile" onclick="goTab('profile')">
-      <div class="tico"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+    <div class="tab" data-s="profile" onclick="gt('profile')">
+      <div class="tco"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
       <span>Profil</span>
     </div>
   </div>
@@ -458,50 +355,23 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 
 </div>
 
-<!-- İLAN DETAY MODAL -->
-<div class="detail-mo" id="detail-mo" onclick="closeDetail()">
-  <div class="detail-sheet" onclick="event.stopPropagation()">
-    <div class="detail-sticky">
-      <div class="detail-handle"></div>
-      <div class="detail-close" onclick="closeDetail()">×</div>
-    </div>
-    <div class="detail-body" id="detail-body"></div>
-  </div>
-</div>
-
-<!-- PHONE PICKER MODAL -->
-<div class="mo" id="picker-mo" onclick="closeMo('picker-mo')">
+<!-- PICKER MODAL -->
+<div class="mo" id="picker-mo" onclick="closemo('picker-mo')">
   <div class="ms" onclick="event.stopPropagation()">
     <div class="mh"></div>
-    <div class="mtitle">Telefon Seç</div>
-    <div class="sw" style="margin-bottom:12px">
+    <div class="mtit">Telefon Seç</div>
+    <div class="sw" style="margin-bottom:8px">
       <svg class="sico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input class="si" type="text" id="psearch" placeholder="Marka veya model ara…" oninput="filterPhones(this.value)">
+      <input class="si" type="text" id="psrch" placeholder="Marka veya model…" oninput="fphn(this.value)">
     </div>
-    <div id="brand-filters" style="display:flex;gap:6px;overflow-x:auto;margin-bottom:12px;padding-bottom:4px"></div>
+    <div class="bfilters" id="bfilters"></div>
     <div class="plist" id="plist"></div>
-  </div>
-</div>
-
-<!-- NEW LISTING MODAL -->
-<div class="mo" id="listing-mo" onclick="closeMo('listing-mo')">
-  <div class="ms" onclick="event.stopPropagation()">
-    <div class="mh"></div>
-    <div class="mtitle">İlan Ver</div>
-    <div class="fg"><label class="fl">Telefon Modeli</label><input class="fi" type="text" id="l-model" placeholder="Örn: Samsung Galaxy S24"></div>
-    <div class="fg"><label class="fl">Fiyat (₺)</label><input class="fi" type="number" id="l-price" placeholder="25000"></div>
-    <div class="fg"><label class="fl">Durum</label><select class="fsel" id="l-cond"><option>Sıfır</option><option>Az Kullanılmış</option><option>İkinci El</option></select></div>
-    <div class="fg"><label class="fl">Konum</label><input class="fi" type="text" id="l-loc" placeholder="Şehir / İlçe"></div>
-    <div class="fg"><label class="fl">Açıklama</label><input class="fi" type="text" id="l-desc" placeholder="Kısa açıklama…"></div>
-    <div class="fg"><label class="fl">WhatsApp Numaranız</label><input class="fi" type="tel" id="l-phone" placeholder="5XXXXXXXXX"></div>
-    <button class="sbtn" onclick="submitListing()">İlanı Yayınla</button>
   </div>
 </div>
 
 <!-- FIREBASE -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script>
 firebase.initializeApp({
   apiKey:"AIzaSyADpIRNLQEIer_gplTgwKi_EKkfcyrYoqY",
@@ -512,179 +382,57 @@ firebase.initializeApp({
   appId:"1:485904329467:web:579d932ae8f25958901e5e"
 });
 const auth = firebase.auth();
-const db = firebase.firestore();
 const ADMINS = ['yusuf.aykac@gmail.com','memetklc5933@gmail.com'];
-
 let user = null;
-let favs = new Set();
-let listings = [];
-let mTab = 'all';
-let listingsLoaded = false;
 
-// ── AUTH ──
-auth.onAuthStateChanged(async u => {
+// AUTH
+auth.onAuthStateChanged(u => {
   user = u;
   if (u) {
     document.getElementById('hav').style.display = 'flex';
     document.getElementById('hlogin').style.display = 'none';
-    document.getElementById('hav-img').src = u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.displayName||u.email)}&background=0D1526&color=00D4FF&size=64`;
-    try {
-      const snap = await db.collection('teknohane_users').doc(u.uid).get();
-      if (snap.exists) favs = new Set(snap.data().favorites || []);
-      else await db.collection('teknohane_users').doc(u.uid).set({favorites:[],createdAt:firebase.firestore.FieldValue.serverTimestamp()});
-    } catch(e) {}
+    const img = document.getElementById('hav-img');
+    img.src = u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.displayName||u.email)}&background=0D1526&color=00D4FF&size=64`;
   } else {
     document.getElementById('hav').style.display = 'none';
     document.getElementById('hlogin').style.display = 'flex';
-    favs = new Set();
   }
-  renderProfile();
-  renderListings(); // Favori durumunu güncelle
+  rprof();
 });
 
-// ── LISTINGS ──
-async function loadListings() {
-  listingsLoaded = false;
-  const grid = document.getElementById('lgrid');
-  if (grid) grid.innerHTML = '<div class="load"><div class="spin"></div><span>İlanlar yükleniyor…</span></div>';
-  try {
-    const snap = await db.collection('teknohane_listings').get();
-    listings = snap.docs.map(d => ({id:d.id,...d.data()}));
-    listings.sort((a,b) => (b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
-    listingsLoaded = true;
-    renderListings();
-    try { renderProfile(); } catch(e) {}
-  } catch(e) {
-    listingsLoaded = true;
-    const g = document.getElementById('lgrid');
-    if (g) g.innerHTML = `<div class="empty"><div class="empty-ico">📡</div><div class="empty-t">Bağlantı hatası</div><div class="empty-d">${e.message}</div><button class="sbtn" style="margin-top:16px;width:auto;padding:0 20px;height:44px;border-radius:12px" onclick="loadListings()">Tekrar Dene</button></div>`;
-  }
-}
-
-function renderListings() {
-  const grid = document.getElementById('lgrid');
-  if (!grid) return;
-  const q = (document.getElementById('market-search')?.value||'').toLowerCase();
-  let items = listings.filter(l => !q || l.model?.toLowerCase().includes(q));
-  if (mTab === 'fav') items = items.filter(l => favs.has(l.id));
-  if (mTab === 'mine') items = user ? items.filter(l => l.uid === user.uid) : [];
-  if (!items.length) {
-    grid.innerHTML = `<div class="empty"><div class="empty-ico">${mTab==='fav'?'❤️':mTab==='mine'?'📋':'📭'}</div><div class="empty-t">${mTab==='fav'?'Favori yok':mTab==='mine'?'İlan yok':'Henüz ilan yok'}</div><div class="empty-d">${mTab==='fav'?'İlan favorile':'İlk ilanı sen ver!'}</div></div>`;
-    return;
-  }
-  grid.innerHTML = items.map(l => {
-    const mine = user && l.uid === user.uid;
-    const fav = favs.has(l.id);
-    return `<div class="lcard" onclick="openDetail('${l.id}')">
-      <div class="ltitle">${l.model||''}</div>
-      <div class="lrow">
-        <div class="lprice">₺${parseInt(l.price||0).toLocaleString('tr-TR')}</div>
-        <div class="lcond ${l.condition==='Sıfır'?'cn':'cu'}">${l.condition||''}</div>
-      </div>
-      ${l.desc?`<div style="font-size:12px;color:var(--text2);margin-top:6px">${l.desc}</div>`:''}
-      <div class="lfooter" onclick="event.stopPropagation()">
-        <div class="lloc">📍 ${l.location||'Belirtilmedi'}</div>
-        <div class="lacts">
-          <div class="fbtn ${fav?'on':''}" onclick="toggleFav('${l.id}',this)">
-            <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-          </div>
-          ${l.phone?`<div class="wabtn" onclick="openLink('https://wa.me/90${l.phone}')"><svg viewBox="0 0 24 24" width="14" height="14" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.998 2C6.477 2 2 6.477 2 12c0 1.989.574 3.842 1.565 5.408L2 22l4.757-1.535A9.958 9.958 0 0 0 11.998 22c5.523 0 10-4.477 10-10S17.521 2 11.998 2z"/></svg>İletişim</div>`:''}
-          ${mine?`<button class="delbtn" onclick="delListing('${l.id}')">Sil</button>`:''}
-        </div>
-      </div>
-      ${l.ownerName?`<div class="owner" onclick="event.stopPropagation()"><div class="ow-av">${(l.ownerName||'?')[0].toUpperCase()}</div><span class="ow-n">${l.ownerName}</span>${mine?'<span class="mybadge">Benim</span>':''}</div>`:''}
-    </div>`;
-  }).join('');
-}
-
-function setMTab(t, el) {
-  mTab = t;
-  document.querySelectorAll('.mtab').forEach(b => { b.className = 'mtab off'; });
-  el.className = 'mtab on';
-  renderListings();
-}
-
-function newListing() {
-  if (!user) { goTab('profile'); return; }
-  document.getElementById('listing-mo').classList.add('on');
-}
-
-async function submitListing() {
-  if (!user) return;
-  const model = document.getElementById('l-model').value.trim();
-  const price = document.getElementById('l-price').value.trim();
-  if (!model || !price) { alert('Model ve fiyat zorunlu!'); return; }
-  try {
-    await db.collection('teknohane_listings').add({
-      model, price,
-      condition: document.getElementById('l-cond').value,
-      location: document.getElementById('l-loc').value.trim(),
-      desc: document.getElementById('l-desc').value.trim(),
-      phone: document.getElementById('l-phone').value.trim(),
-      uid: user.uid,
-      ownerName: user.displayName || user.email?.split('@')[0] || 'Anonim',
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    closeMo('listing-mo');
-    ['l-model','l-price','l-loc','l-desc','l-phone'].forEach(id => document.getElementById(id).value = '');
-    await loadListings();
-  } catch(e) { alert('Hata: ' + e.message); }
-}
-
-async function toggleFav(id, btn) {
-  if (!user) { goTab('profile'); return; }
-  if (favs.has(id)) { favs.delete(id); btn.classList.remove('on'); }
-  else { favs.add(id); btn.classList.add('on'); }
-  try { await db.collection('teknohane_users').doc(user.uid).set({favorites:[...favs]},{merge:true}); } catch(e) {}
-}
-
-async function delListing(id) {
-  if (!confirm('İlan silinsin mi?')) return;
-  try {
-    await db.collection('teknohane_listings').doc(id).delete();
-    listings = listings.filter(l => l.id !== id);
-    renderListings();
-  } catch(e) { alert('Silinemedi'); }
-}
-
-// ── PROFILE ──
-async function renderProfile() {
-  const c = document.getElementById('profile-content');
+// PROFILE
+function rprof() {
+  const c = document.getElementById('profile-c');
   if (!c) return;
   const isAdmin = user && ADMINS.includes(user.email);
   if (user) {
-    const av = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName||user.email)}&background=0D1526&color=00D4FF&size=128`;
-    const adminHtml = isAdmin ? `
-      <div class="apanel">
-        <div class="aptitle"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Yönetici</div>
-        <div style="font-size:13px;color:var(--text2)">Teknohane yönetici hesabı</div>
-      </div>` : '';
+    const av = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName||user.email)}&background=0D1526&color=00D4FF&size=256`;
     c.innerHTML = `
       <div class="phero">
-        <img class="pav" src="${av}" alt="" onerror="this.src='https://ui-avatars.com/api/?name=U&background=0D1526&color=00D4FF&size=128'">
-        <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px">
-          <div class="pname">${user.displayName||'Kullanıcı'}</div>
+        <img class="pav" src="${av}" alt="">
+        <div style="display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap">
+          <span class="pname">${user.displayName||'Kullanıcı'}</span>
           ${isAdmin?'<span class="admin-badge">ADMIN</span>':''}
         </div>
         <div class="pemail">${user.email}</div>
       </div>
-      ${adminHtml}
+      ${isAdmin?`<div class="apanel"><div class="aptit"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Yönetici</div><div style="font-size:13px;color:var(--text2)">Teknohane yönetici hesabı</div></div>`:''}
       <button class="signout" onclick="auth.signOut()">Çıkış Yap</button>`;
   } else {
     c.innerHTML = `
-      <div class="auth-wrap">
-        <img class="auth-logo" src="teknohane.png" alt="">
-        <div class="auth-title">Teknohane</div>
-        <div class="auth-sub">Teknohane topluluğuna katılmak için giriş yap</div>
-        <div class="auth-form">
-          <div class="atabs"><div class="atab on" onclick="setATab('login',this)">Giriş Yap</div><div class="atab" onclick="setATab('register',this)">Kayıt Ol</div></div>
+      <div class="awrap">
+        <img class="alogo" src="teknohane.png" alt="">
+        <div class="atit">Teknohane</div>
+        <div class="asub">Topluluğa katılmak için<br>giriş yap</div>
+        <div class="aform">
+          <div class="atabs"><div class="atab on" onclick="satab('login',this)">Giriş Yap</div><div class="atab" onclick="satab('register',this)">Kayıt Ol</div></div>
           <div class="aerr" id="aerr"></div>
           <div class="fg"><label class="fl">E-posta</label><input class="fi" type="email" id="aemail" placeholder="ornek@mail.com"></div>
           <div class="fg"><label class="fl">Şifre</label><input class="fi" type="password" id="apass" placeholder="••••••••"></div>
           <div class="fg" id="aname-g" style="display:none"><label class="fl">Ad Soyad</label><input class="fi" type="text" id="aname" placeholder="Adınız"></div>
-          <button class="sbtn" id="asbtn" onclick="doLogin()">Giriş Yap</button>
+          <button class="sbtn" id="asbtn" onclick="dologin()">Giriş Yap</button>
           <div class="divider"><div class="dline"></div><div class="dtxt">veya</div><div class="dline"></div></div>
-          <button class="gbtn" onclick="doGoogle()">
+          <button class="gbtn" onclick="dogoogle()">
             <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
             Google ile Giriş Yap
           </button>
@@ -693,554 +441,286 @@ async function renderProfile() {
   }
 }
 
-function setATab(t, el) {
-  document.querySelectorAll('.atab').forEach(x => x.classList.remove('on'));
+function satab(t, el) {
+  document.querySelectorAll('.atab').forEach(x=>x.classList.remove('on'));
   el.classList.add('on');
-  const isLogin = t === 'login';
-  document.getElementById('aname-g').style.display = isLogin ? 'none' : 'block';
-  document.getElementById('asbtn').textContent = isLogin ? 'Giriş Yap' : 'Kayıt Ol';
-  document.getElementById('asbtn').onclick = isLogin ? doLogin : doRegister;
+  const isLogin = t==='login';
+  const ng = document.getElementById('aname-g');
+  const btn = document.getElementById('asbtn');
+  if (ng) ng.style.display = isLogin?'none':'block';
+  if (btn) { btn.textContent = isLogin?'Giriş Yap':'Kayıt Ol'; btn.onclick = isLogin?dologin:doregister; }
 }
 
-async function doLogin() {
-  const e = document.getElementById('aemail')?.value;
-  const p = document.getElementById('apass')?.value;
-  const err = document.getElementById('aerr');
+async function dologin() {
+  const e=document.getElementById('aemail')?.value;
+  const p=document.getElementById('apass')?.value;
+  const err=document.getElementById('aerr');
   if (!e||!p) return;
   try { await auth.signInWithEmailAndPassword(e,p); }
-  catch(ex) { err.textContent = ex.code==='auth/invalid-credential'?'E-posta veya şifre hatalı':ex.message; err.classList.add('on'); }
+  catch(ex) { if(err){err.textContent=ex.code==='auth/invalid-credential'?'E-posta veya şifre hatalı':ex.message;err.classList.add('on');} }
 }
 
-async function doRegister() {
-  const e = document.getElementById('aemail')?.value;
-  const p = document.getElementById('apass')?.value;
-  const n = document.getElementById('aname')?.value;
-  const err = document.getElementById('aerr');
-  if (!e||!p||!n) { err.textContent='Tüm alanları doldurun'; err.classList.add('on'); return; }
-  try { const c = await auth.createUserWithEmailAndPassword(e,p); await c.user.updateProfile({displayName:n}); }
-  catch(ex) { err.textContent = ex.code==='auth/email-already-in-use'?'Bu e-posta zaten kayıtlı':ex.message; err.classList.add('on'); }
+async function doregister() {
+  const e=document.getElementById('aemail')?.value;
+  const p=document.getElementById('apass')?.value;
+  const n=document.getElementById('aname')?.value;
+  const err=document.getElementById('aerr');
+  if (!e||!p||!n) { if(err){err.textContent='Tüm alanları doldurun';err.classList.add('on');} return; }
+  try { const c=await auth.createUserWithEmailAndPassword(e,p); await c.user.updateProfile({displayName:n}); }
+  catch(ex) { if(err){err.textContent=ex.code==='auth/email-already-in-use'?'Bu e-posta zaten kayıtlı':ex.message;err.classList.add('on');} }
 }
 
-async function doGoogle() {
+async function dogoogle() {
   try { await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
   catch(ex) { console.error(ex); }
 }
 
-async function adminDel() {
-  const id = prompt('Silinecek ilan ID:');
-  if (!id) return;
-  try { await db.collection('teknohane_listings').doc(id).delete(); listings=listings.filter(l=>l.id!==id); renderListings(); alert('Silindi'); }
-  catch(e) { alert('Hata: '+e.message); }
-}
+// YOUTUBE
+const YK='AIzaSyAKNSFQQ0FDdLiCkZl16FDSjdqPvCua_Gg';
+const YH='@teknohaane';
+let cid=null,vc=null,cc=null;
 
-// ── İLAN DETAY ──
-let currentListing = null;
-let offerOpen = false;
+const fv=n=>{n=parseInt(n)||0;if(n>=1e6)return(n/1e6).toFixed(1).replace('.0','')+'M';if(n>=1000)return(n/1000).toFixed(0)+'B';return''+n;};
+const fd=iso=>{const d=Math.floor((Date.now()-new Date(iso))/1000);if(d<3600)return Math.floor(d/60)+' dk önce';if(d<86400)return Math.floor(d/3600)+' saat önce';if(d<2592000)return Math.floor(d/86400)+' gün önce';if(d<31536000)return Math.floor(d/2592000)+' ay önce';return Math.floor(d/31536000)+' yıl önce';};
+const fdur=iso=>{if(!iso)return'';const m=iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);if(!m)return'';const h=parseInt(m[1]||0),mn=parseInt(m[2]||0),s=parseInt(m[3]||0);return h>0?h+':'+String(mn).padStart(2,'0')+':'+String(s).padStart(2,'0'):mn+':'+String(s).padStart(2,'0');};
+const fs=n=>{n=parseInt(n)||0;if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1000)return(n/1000).toFixed(1)+'B';return''+n;};
 
-async function openDetail(id) {
-  currentListing = listings.find(l => l.id === id);
-  if (!currentListing) return;
-  offerOpen = false;
-  const l = currentListing;
-  const mine = user && l.uid === user.uid;
-  const fav = favs.has(l.id);
-  const body = document.getElementById('detail-body');
-  body.innerHTML = `
-    <div class="detail-model">${l.model||''}</div>
-    <div class="detail-price">₺${parseInt(l.price||0).toLocaleString('tr-TR')}</div>
-    <div class="detail-cond ${l.condition==='Sıfır'?'cn':'cu'}">${l.condition||''}</div>
-    <div class="detail-info">
-      ${l.location?`<div class="detail-row"><span class="detail-lbl">Konum</span><span class="detail-val">📍 ${l.location}</span></div>`:''}
-      ${l.ownerName?`<div class="detail-row"><span class="detail-lbl">Satıcı</span><span class="detail-val">${l.ownerName}${mine?' (Ben)':''}</span></div>`:''}
-    </div>
-    ${l.desc?`<div class="detail-desc">${l.desc}</div>`:''}
-
-    <div class="action-grid">
-      ${l.phone?`<button class="abtn act-wa" onclick="openLink('https://wa.me/90${l.phone}')">
-        <svg viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.998 2C6.477 2 2 6.477 2 12c0 1.989.574 3.842 1.565 5.408L2 22l4.757-1.535A9.958 9.958 0 0 0 11.998 22c5.523 0 10-4.477 10-10S17.521 2 11.998 2z"/></svg>
-        <span class="abtn-lbl">İletişim</span>
-      </button>`:`<div></div>`}
-      <button class="abtn act-offer" onclick="toggleOffer()">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        <span class="abtn-lbl">Teklif Ver</span>
-      </button>
-      ${l.phone?`<button class="abtn act-ref" onclick="sendRef()">
-        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        <span class="abtn-lbl">Referans Ol</span>
-      </button>`:`<div></div>`}
-      <button class="abtn act-fav ${fav?'on':''}" id="detail-fav-btn" onclick="toggleDetailFav()">
-        <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-        <span class="abtn-lbl">${fav?'Favoride':'Favorile'}</span>
-      </button>
-    </div>
-
-    <div class="offer-box" id="offer-box">
-      <div class="offer-box-t">💰 Teklif Ver</div>
-      <div class="offer-row">
-        <input class="fi" type="number" id="offer-price" placeholder="Teklif tutarı (₺)" style="flex:1">
-        <button class="sbtn" style="width:auto;padding:0 16px;height:44px;border-radius:12px" onclick="sendOffer()">Gönder</button>
-      </div>
-    </div>
-
-    <div class="sec-t">💬 Yorumlar & Sorular</div>
-    <div class="cmt-list" id="cmt-list">
-      <div class="no-cmt">Yorumlar yükleniyor…</div>
-    </div>
-    ${user ? `
-    <div class="cmt-input">
-      <textarea class="cmt-ta" id="cmt-ta" placeholder="Soru sor veya yorum yap…" rows="2"></textarea>
-      <button class="cmt-send" onclick="sendComment()">
-        <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-      </button>
-    </div>` : `<div class="no-cmt">Yorum yapmak için <span style="color:var(--cyan);cursor:pointer" onclick="closeDetail();goTab('profile')">giriş yap</span></div>`}
-  `;
-  document.getElementById('detail-mo').classList.add('on');
-  loadComments(id);
-}
-
-function closeDetail() {
-  document.getElementById('detail-mo').classList.remove('on');
-  currentListing = null;
-}
-
-function toggleOffer() {
-  offerOpen = !offerOpen;
-  const box = document.getElementById('offer-box');
-  if (box) box.classList.toggle('on', offerOpen);
-}
-
-function sendOffer() {
-  if (!currentListing) return;
-  const price = document.getElementById('offer-price')?.value;
-  if (!price) { alert('Teklif tutarı gir'); return; }
-  const msg = `Merhaba! "${currentListing.model}" ilanınız için ₺${parseInt(price).toLocaleString('tr-TR')} teklif veriyorum.`;
-  if (currentListing.phone) {
-    openLink(`https://wa.me/90${currentListing.phone}?text=${encodeURIComponent(msg)}`);
-  } else {
-    alert('Satıcının WhatsApp numarası yok');
-  }
-}
-
-function sendRef() {
-  if (!currentListing) return;
-  const refName = user ? (user.displayName || user.email?.split('@')[0]) : 'Bir kullanıcı';
-  const msg = `Merhaba! "${currentListing.model}" ilanınızı ${refName} aracılığıyla gördüm ve ilgileniyorum. İletişime geçebilir miyiz?`;
-  if (currentListing.phone) {
-    openLink(`https://wa.me/90${currentListing.phone}?text=${encodeURIComponent(msg)}`);
-  } else {
-    alert('Satıcının WhatsApp numarası yok');
-  }
-}
-
-async function toggleDetailFav() {
-  if (!user || !currentListing) { goTab('profile'); return; }
-  const id = currentListing.id;
-  const btn = document.getElementById('detail-fav-btn');
-  if (favs.has(id)) {
-    favs.delete(id);
-    btn?.classList.remove('on');
-    if (btn) btn.querySelector('.abtn-lbl').textContent = 'Favorile';
-  } else {
-    favs.add(id);
-    btn?.classList.add('on');
-    if (btn) btn.querySelector('.abtn-lbl').textContent = 'Favoride';
-  }
-  try { await db.collection('teknohane_users').doc(user.uid).set({favorites:[...favs]},{merge:true}); } catch(e) {}
-  renderListings();
-}
-
-// ── YORUMLAR ──
-async function loadComments(listingId) {
-  const list = document.getElementById('cmt-list');
-  if (!list) return;
-  try {
-    const snap = await db.collection('teknohane_comments')
-      .where('listingId', '==', listingId)
-      .get();
-    const cmts = snap.docs.map(d => ({id:d.id,...d.data()}));
-    cmts.sort((a,b) => (a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
-    if (!cmts.length) { list.innerHTML = '<div class="no-cmt">Henüz yorum yok. İlk soruyu sen sor!</div>'; return; }
-    const isAdmin = user && ADMINS.includes(user.email);
-    list.innerHTML = cmts.map(c => `
-      <div class="cmt" id="cmt-${c.id}">
-        <div class="cmt-top">
-          <div class="cmt-author">
-            <div class="cmt-av">${(c.authorName||'?')[0].toUpperCase()}</div>
-            ${c.authorName||'Kullanıcı'}
-          </div>
-          <div class="cmt-time">${c.createdAt ? fd(c.createdAt.toDate?.()?.toISOString() || new Date().toISOString()) : ''}</div>
-        </div>
-        <div class="cmt-text">${c.text}</div>
-        ${(user && (c.uid === user.uid || isAdmin)) ? `<span class="cmt-del" onclick="delComment('${c.id}')">Sil</span>` : ''}
-      </div>`).join('');
-  } catch(e) {
-    list.innerHTML = '<div class="no-cmt">Yorumlar yüklenemedi</div>';
-  }
-}
-
-async function sendComment() {
-  if (!user || !currentListing) return;
-  const ta = document.getElementById('cmt-ta');
-  const text = ta?.value?.trim();
-  if (!text) return;
-  try {
-    await db.collection('teknohane_comments').add({
-      listingId: currentListing.id,
-      text,
-      uid: user.uid,
-      authorName: user.displayName || user.email?.split('@')[0] || 'Anonim',
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    if (ta) ta.value = '';
-    await loadComments(currentListing.id);
-  } catch(e) { alert('Yorum gönderilemedi: ' + e.message); }
-}
-
-async function delComment(commentId) {
-  if (!confirm('Yorum silinsin mi?')) return;
-  try {
-    await db.collection('teknohane_comments').doc(commentId).delete();
-    document.getElementById('cmt-' + commentId)?.remove();
-  } catch(e) { alert('Silinemedi'); }
-}
-const YT_KEY = 'AIzaSyAKNSFQQ0FDdLiCkZl16FDSjdqPvCua_Gg';
-const YT_HANDLE = '@teknohaane';
-let chanId = null, vCache = null, chCache = null;
-
-const fv = n => { n=parseInt(n)||0; if(n>=1e6) return (n/1e6).toFixed(1).replace('.0','')+'M'; if(n>=1000) return (n/1000).toFixed(0)+'B'; return ''+n; };
-const fd = iso => { const d=Math.floor((Date.now()-new Date(iso))/1000); if(d<3600) return Math.floor(d/60)+' dk önce'; if(d<86400) return Math.floor(d/3600)+' saat önce'; if(d<2592000) return Math.floor(d/86400)+' gün önce'; if(d<31536000) return Math.floor(d/2592000)+' ay önce'; return Math.floor(d/31536000)+' yıl önce'; };
-const fdur = iso => { if(!iso) return ''; const m=iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/); if(!m) return ''; const h=parseInt(m[1]||0),mn=parseInt(m[2]||0),s=parseInt(m[3]||0); return h>0?h+':'+String(mn).padStart(2,'0')+':'+String(s).padStart(2,'0'):mn+':'+String(s).padStart(2,'0'); };
-const fsubs = n => { n=parseInt(n)||0; if(n>=1e6) return (n/1e6).toFixed(1)+'M'; if(n>=1000) return (n/1000).toFixed(1)+'B'; return ''+n; };
-
-async function loadChannel() {
-  if (chanId) return chanId;
-  const r = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=id,snippet,statistics&forHandle=${YT_HANDLE}&key=${YT_KEY}`);
-  const d = await r.json();
-  if (d.items?.length) { chCache=d.items[0]; chanId=d.items[0].id; return chanId; }
+async function lchan() {
+  if(cid)return cid;
+  const r=await fetch(`https://www.googleapis.com/youtube/v3/channels?part=id,snippet,statistics&forHandle=${YH}&key=${YK}`);
+  const d=await r.json();
+  if(d.items?.length){cc=d.items[0];cid=d.items[0].id;return cid;}
   throw new Error('Kanal bulunamadı');
 }
 
-async function loadVideos() {
-  if (vCache) return vCache;
-  const cid = await loadChannel();
-  const r = await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=UU${cid.slice(2)}&maxResults=15&key=${YT_KEY}`);
-  const d = await r.json();
-  if (!d.items) throw new Error('Videolar alınamadı');
-  const ids = d.items.map(i=>i.snippet.resourceId.videoId).join(',');
-  const r2 = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=contentDetails,statistics&id=${ids}&key=${YT_KEY}`);
-  const d2 = await r2.json();
-  const dm = {}; (d2.items||[]).forEach(v=>dm[v.id]=v);
-  vCache = d.items.map(item => {
-    const vid=item.snippet.resourceId.videoId; const dt=dm[vid]||{};
-    return {id:vid,title:item.snippet.title,thumb:item.snippet.thumbnails?.high?.url||'',published:item.snippet.publishedAt,dur:fdur(dt.contentDetails?.duration),views:dt.statistics?.viewCount||'0',url:`https://www.youtube.com/watch?v=${vid}`};
-  });
-  return vCache;
+async function lvids() {
+  if(vc)return vc;
+  const id=await lchan();
+  const r=await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=UU${id.slice(2)}&maxResults=15&key=${YK}`);
+  const d=await r.json();
+  if(!d.items)throw new Error('Videolar alınamadı');
+  const ids=d.items.map(i=>i.snippet.resourceId.videoId).join(',');
+  const r2=await fetch(`https://www.googleapis.com/youtube/v3/videos?part=contentDetails,statistics&id=${ids}&key=${YK}`);
+  const d2=await r2.json();
+  const dm={};(d2.items||[]).forEach(v=>dm[v.id]=v);
+  vc=d.items.map(item=>{const vid=item.snippet.resourceId.videoId;const dt=dm[vid]||{};return{id:vid,title:item.snippet.title,thumb:item.snippet.thumbnails?.high?.url||'',pub:item.snippet.publishedAt,dur:fdur(dt.contentDetails?.duration),views:dt.statistics?.viewCount||'0',url:`https://www.youtube.com/watch?v=${vid}`};});
+  return vc;
 }
 
-let allVids = [];
-async function renderHome() {
-  const c = document.getElementById('home-content');
+let allv=[];
+async function rhome() {
+  const c=document.getElementById('home-c');
   try {
-    const [vids] = await Promise.all([loadVideos(),loadChannel()]);
-    allVids = vids;
-    const ch=chCache, st=ch?.statistics||{}, sn=ch?.snippet||{};
-    const f=vids[0], rest=vids.slice(1);
-    c.innerHTML = `
+    const[vids]=await Promise.all([lvids(),lchan()]);
+    allv=vids;
+    const ch=cc,st=ch?.statistics||{},sn=ch?.snippet||{};
+    const f=vids[0],rest=vids.slice(1);
+    c.innerHTML=`
       <div class="ch-hero">
         <div class="ch-top">
-          <img class="ch-av" src="${sn.thumbnails?.high?.url||sn.thumbnails?.default?.url||''}" alt="" onerror="this.src='teknohane.png'">
-          <div><div class="ch-name">${sn.title||'Teknohane'}</div><div class="ch-hand">${YT_HANDLE}</div></div>
+          <img class="ch-av" src="${sn.thumbnails?.high?.url||''}" alt="" onerror="this.src='teknohane.png'">
+          <div><div class="ch-n">${sn.title||'Teknohane'}</div><div class="ch-h">${YH}</div></div>
         </div>
         <div class="stats">
-          <div class="stat"><div class="stat-n">${fsubs(st.subscriberCount)}</div><div class="stat-l">Abone</div></div>
-          <div class="stat"><div class="stat-n">${fv(st.viewCount)}</div><div class="stat-l">İzlenme</div></div>
-          <div class="stat"><div class="stat-n">${parseInt(st.videoCount||0)}</div><div class="stat-l">Video</div></div>
+          <div class="stat"><div class="sn">${fs(st.subscriberCount)}</div><div class="sl2">Abone</div></div>
+          <div class="stat"><div class="sn">${fv(st.viewCount)}</div><div class="sl2">İzlenme</div></div>
+          <div class="stat"><div class="sn">${parseInt(st.videoCount||0)}</div><div class="sl2">Video</div></div>
         </div>
       </div>
-      <div class="sh"><span class="st">Son Video</span><span class="sl" onclick="openLink('https://youtube.com/${YT_HANDLE}')">Tümü →</span></div>
-      <div class="feat" onclick="openLink('${f.url}')">
-        <div class="fthumb"><img src="${f.thumb}" alt="${f.title}" loading="lazy"><div class="play-btn"><div class="play-c"><svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg></div></div>${f.dur?`<div class="dur">${f.dur}</div>`:''}</div>
-        <div class="finfo"><div class="fbadge">Son Yüklenen</div><div class="ftitle">${f.title}</div><div class="fmeta"><div class="mpill"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>${fv(f.views)} izlenme</div><div class="mpill"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${fd(f.published)}</div></div></div>
+      <div class="sh"><span class="st">Son Video</span><span class="sl" onclick="ol('https://youtube.com/${YH}')">Tümü →</span></div>
+      <div class="feat" onclick="ol('${f.url}')">
+        <div class="fth"><img src="${f.thumb}" alt="${f.title}" loading="lazy"><div class="pbtm"><div class="pc"><svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg></div></div>${f.dur?`<div class="dur">${f.dur}</div>`:''}</div>
+        <div class="fi2"><div class="fbdg">Son Yüklenen</div><div class="ftit">${f.title}</div><div class="fmet"><div class="mp"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>${fv(f.views)} izlenme</div><div class="mp"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${fd(f.pub)}</div></div></div>
       </div>
       <div class="glow"></div>
       <div class="sh"><span class="st">Diğer Videolar</span></div>
-      <div class="sw"><svg class="sico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input class="si" type="text" placeholder="Video ara…" oninput="filterVids(this.value)"></div>
-      <div class="vlist" id="vlist">${renderVList(rest)}</div>`;
+      <div class="sw"><svg class="sico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input class="si" type="text" placeholder="Video ara…" oninput="fvid(this.value)"></div>
+      <div class="vlist" id="vlist">${rvlist(rest)}</div>`;
   } catch(e) {
-    c.innerHTML = `<div class="empty"><div class="empty-ico">📡</div><div class="empty-t">Bağlantı hatası</div><div class="empty-d">${e.message}</div><button class="sbtn" style="margin-top:16px" onclick="retryHome()">Tekrar Dene</button></div>`;
+    c.innerHTML=`<div class="load"><div style="font-size:36px">📡</div><div>${e.message}</div><button class="sbtn2" style="margin-top:16px;max-width:200px" onclick="retry()">Tekrar Dene</button></div>`;
   }
 }
 
-function renderVList(vids) {
-  if (!vids.length) return '<div class="no-res">Video bulunamadı</div>';
-  return vids.map(v=>`<div class="vcard" onclick="openLink('${v.url}')"><div class="vthumb"><img src="${v.thumb}" alt="${v.title}" loading="lazy">${v.dur?`<div class="vdur">${v.dur}</div>`:''}</div><div class="vinfo"><div class="vtitle">${v.title}</div><div class="vmeta"><span>${fv(v.views)} izlenme</span><span>${fd(v.published)}</span></div></div></div>`).join('');
+function rvlist(vids) {
+  if(!vids.length)return'<div class="no">Video bulunamadı</div>';
+  return vids.map(v=>`<div class="vc" onclick="ol('${v.url}')"><div class="vth"><img src="${v.thumb}" alt="" loading="lazy">${v.dur?`<div class="vd">${v.dur}</div>`:''}</div><div class="vi"><div class="vtit">${v.title}</div><div class="vm"><span>${fv(v.views)} izlenme</span><span>${fd(v.pub)}</span></div></div></div>`).join('');
 }
 
-function filterVids(q) { const l=document.getElementById('vlist'); if(l) l.innerHTML=renderVList(allVids.slice(1).filter(v=>v.title.toLowerCase().includes(q.toLowerCase()))); }
-function retryHome() { vCache=null; chCache=null; chanId=null; document.getElementById('home-content').innerHTML='<div class="load"><div class="spin"></div><span>Yenileniyor…</span></div>'; renderHome(); }
+function fvid(q) { const l=document.getElementById('vlist'); if(l)l.innerHTML=rvlist(allv.slice(1).filter(v=>v.title.toLowerCase().includes(q.toLowerCase()))); }
+function retry() { vc=null;cc=null;cid=null;document.getElementById('home-c').innerHTML='<div class="load"><div class="spin"></div><span>Yenileniyor…</span></div>';rhome(); }
 
-// ── COMPARE ──
+// COMPARE
 const PHONES=[
-  // APPLE
-  {brand:'Apple',name:'iPhone 16 Pro Max',price:'₺109.999',ram:'8GB',storage:'256GB',chip:'A18 Pro',camera:'48+48+12MP',battery:'4685mAh',screen:'6.9" 120Hz',weight:'227g',os:'iOS 18'},
-  {brand:'Apple',name:'iPhone 16 Pro',price:'₺89.999',ram:'8GB',storage:'128GB',chip:'A18 Pro',camera:'48+48+12MP',battery:'3582mAh',screen:'6.3" 120Hz',weight:'199g',os:'iOS 18'},
-  {brand:'Apple',name:'iPhone 16 Plus',price:'₺74.999',ram:'8GB',storage:'128GB',chip:'A18',camera:'48+12MP',battery:'4674mAh',screen:'6.7" 60Hz',weight:'203g',os:'iOS 18'},
-  {brand:'Apple',name:'iPhone 16',price:'₺59.999',ram:'8GB',storage:'128GB',chip:'A18',camera:'48+12MP',battery:'3561mAh',screen:'6.1" 60Hz',weight:'170g',os:'iOS 18'},
-  {brand:'Apple',name:'iPhone 15 Pro Max',price:'₺84.999',ram:'8GB',storage:'256GB',chip:'A17 Pro',camera:'48+12+12MP',battery:'4422mAh',screen:'6.7" 120Hz',weight:'221g',os:'iOS 18'},
-  {brand:'Apple',name:'iPhone 15 Pro',price:'₺69.999',ram:'8GB',storage:'128GB',chip:'A17 Pro',camera:'48+12+12MP',battery:'3274mAh',screen:'6.1" 120Hz',weight:'187g',os:'iOS 18'},
-  {brand:'Apple',name:'iPhone 15',price:'₺44.999',ram:'6GB',storage:'128GB',chip:'A16',camera:'48+12MP',battery:'3349mAh',screen:'6.1" 60Hz',weight:'171g',os:'iOS 18'},
-  {brand:'Apple',name:'iPhone 14',price:'₺34.999',ram:'6GB',storage:'128GB',chip:'A15',camera:'12+12MP',battery:'3279mAh',screen:'6.1" 60Hz',weight:'172g',os:'iOS 18'},
-  {brand:'Apple',name:'iPhone SE (3. nesil)',price:'₺24.999',ram:'4GB',storage:'64GB',chip:'A15',camera:'12MP',battery:'2018mAh',screen:'4.7" 60Hz',weight:'144g',os:'iOS 17'},
-  // SAMSUNG
-  {brand:'Samsung',name:'Galaxy S25 Ultra',price:'₺109.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite',camera:'200+50+10+10MP',battery:'5000mAh',screen:'6.9" 120Hz',weight:'218g',os:'Android 15'},
-  {brand:'Samsung',name:'Galaxy S25+',price:'₺74.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite',camera:'50+12+10MP',battery:'4900mAh',screen:'6.7" 120Hz',weight:'190g',os:'Android 15'},
-  {brand:'Samsung',name:'Galaxy S25',price:'₺54.999',ram:'12GB',storage:'128GB',chip:'SD 8 Elite',camera:'50+12+10MP',battery:'4000mAh',screen:'6.2" 120Hz',weight:'162g',os:'Android 15'},
-  {brand:'Samsung',name:'Galaxy S24 Ultra',price:'₺84.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 3',camera:'200+50+10+12MP',battery:'5000mAh',screen:'6.8" 120Hz',weight:'232g',os:'Android 15'},
-  {brand:'Samsung',name:'Galaxy S24+',price:'₺59.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 3',camera:'50+12+10MP',battery:'4900mAh',screen:'6.7" 120Hz',weight:'196g',os:'Android 15'},
-  {brand:'Samsung',name:'Galaxy S24',price:'₺44.999',ram:'8GB',storage:'128GB',chip:'Exynos 2400',camera:'50+12+10MP',battery:'4000mAh',screen:'6.2" 120Hz',weight:'167g',os:'Android 15'},
-  {brand:'Samsung',name:'Galaxy Z Fold 6',price:'₺129.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 3',camera:'50+12+10MP',battery:'4400mAh',screen:'7.6" 120Hz',weight:'239g',os:'Android 14'},
-  {brand:'Samsung',name:'Galaxy Z Flip 6',price:'₺64.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 3',camera:'50+12MP',battery:'4000mAh',screen:'6.7" 120Hz',weight:'187g',os:'Android 14'},
-  {brand:'Samsung',name:'Galaxy A55 5G',price:'₺24.999',ram:'8GB',storage:'128GB',chip:'Exynos 1480',camera:'50+12+5MP',battery:'5000mAh',screen:'6.6" 120Hz',weight:'213g',os:'Android 14'},
-  {brand:'Samsung',name:'Galaxy A35 5G',price:'₺18.999',ram:'6GB',storage:'128GB',chip:'Exynos 1380',camera:'50+8+5MP',battery:'5000mAh',screen:'6.6" 120Hz',weight:'210g',os:'Android 14'},
-  {brand:'Samsung',name:'Galaxy A25 5G',price:'₺13.999',ram:'6GB',storage:'128GB',chip:'Exynos 1280',camera:'50+8+2MP',battery:'5000mAh',screen:'6.5" 120Hz',weight:'197g',os:'Android 14'},
-  {brand:'Samsung',name:'Galaxy A16 5G',price:'₺9.999',ram:'4GB',storage:'128GB',chip:'Dimensity 6300',camera:'50+5+2MP',battery:'5000mAh',screen:'6.7" 90Hz',weight:'200g',os:'Android 14'},
-  {brand:'Samsung',name:'Galaxy M55 5G',price:'₺16.999',ram:'8GB',storage:'128GB',chip:'SD 7 Gen 1',camera:'50+8+2MP',battery:'5000mAh',screen:'6.7" 120Hz',weight:'183g',os:'Android 14'},
-  // XIAOMI
-  {brand:'Xiaomi',name:'15 Ultra',price:'₺84.999',ram:'16GB',storage:'512GB',chip:'SD 8 Elite',camera:'50+50+50+200MP',battery:'6000mAh',screen:'6.73" 120Hz',weight:'229g',os:'Android 15'},
-  {brand:'Xiaomi',name:'15 Pro',price:'₺64.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite',camera:'50+50+50MP',battery:'6100mAh',screen:'6.73" 120Hz',weight:'215g',os:'Android 15'},
-  {brand:'Xiaomi',name:'15',price:'₺49.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite',camera:'50+50+50MP',battery:'5400mAh',screen:'6.36" 120Hz',weight:'189g',os:'Android 15'},
-  {brand:'Xiaomi',name:'14 Ultra',price:'₺69.999',ram:'16GB',storage:'512GB',chip:'SD 8 Gen 3',camera:'50+50+50+50MP',battery:'5300mAh',screen:'6.73" 120Hz',weight:'229g',os:'Android 14'},
-  {brand:'Xiaomi',name:'14T Pro',price:'₺44.999',ram:'12GB',storage:'256GB',chip:'Dimensity 9300+',camera:'50+50+50MP',battery:'5000mAh',screen:'6.67" 144Hz',weight:'209g',os:'Android 14'},
-  {brand:'Xiaomi',name:'14T',price:'₺32.999',ram:'12GB',storage:'256GB',chip:'Dimensity 8300-Ultra',camera:'50+50+12MP',battery:'5000mAh',screen:'6.67" 144Hz',weight:'193g',os:'Android 14'},
-  {brand:'Xiaomi',name:'Redmi Note 14 Pro+',price:'₺22.999',ram:'12GB',storage:'256GB',chip:'SD 7s Gen 3',camera:'200+8+2MP',battery:'6200mAh',screen:'6.67" 120Hz',weight:'204g',os:'Android 14'},
-  {brand:'Xiaomi',name:'Redmi Note 14 Pro',price:'₺17.999',ram:'8GB',storage:'256GB',chip:'Dimensity 7300-Ultra',camera:'200+8+2MP',battery:'5500mAh',screen:'6.67" 120Hz',weight:'190g',os:'Android 14'},
-  {brand:'Xiaomi',name:'Redmi Note 13 Pro+',price:'₺19.999',ram:'12GB',storage:'256GB',chip:'Dimensity 7200-Ultra',camera:'200+8+2MP',battery:'4600mAh',screen:'6.67" 120Hz',weight:'204g',os:'Android 13'},
-  {brand:'Xiaomi',name:'Redmi 14C',price:'₺7.999',ram:'4GB',storage:'128GB',chip:'Helio G85',camera:'50+0.08MP',battery:'5160mAh',screen:'6.88" 90Hz',weight:'211g',os:'Android 14'},
-  {brand:'Xiaomi',name:'POCO F6 Pro',price:'₺29.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 2',camera:'50+8+2MP',battery:'5000mAh',screen:'6.67" 144Hz',weight:'209g',os:'Android 14'},
-  {brand:'Xiaomi',name:'POCO X6 Pro',price:'₺19.999',ram:'12GB',storage:'256GB',chip:'Dimensity 8300-Ultra',camera:'64+8+2MP',battery:'5000mAh',screen:'6.67" 144Hz',weight:'186g',os:'Android 14'},
-  // GOOGLE
-  {brand:'Google',name:'Pixel 9 Pro XL',price:'₺99.999',ram:'16GB',storage:'128GB',chip:'Tensor G4',camera:'50+48+48MP',battery:'5060mAh',screen:'6.8" 120Hz',weight:'221g',os:'Android 15'},
-  {brand:'Google',name:'Pixel 9 Pro',price:'₺79.999',ram:'16GB',storage:'128GB',chip:'Tensor G4',camera:'50+48+48MP',battery:'4700mAh',screen:'6.3" 120Hz',weight:'199g',os:'Android 15'},
-  {brand:'Google',name:'Pixel 9 Pro Fold',price:'₺139.999',ram:'16GB',storage:'256GB',chip:'Tensor G4',camera:'48+10.5+10.8MP',battery:'4650mAh',screen:'8" 120Hz',weight:'257g',os:'Android 15'},
-  {brand:'Google',name:'Pixel 9',price:'₺49.999',ram:'12GB',storage:'128GB',chip:'Tensor G4',camera:'50+48MP',battery:'4700mAh',screen:'6.3" 120Hz',weight:'198g',os:'Android 15'},
-  {brand:'Google',name:'Pixel 8a',price:'₺34.999',ram:'8GB',storage:'128GB',chip:'Tensor G3',camera:'64+13MP',battery:'4492mAh',screen:'6.1" 120Hz',weight:'188g',os:'Android 15'},
-  // ONEPLUS
-  {brand:'OnePlus',name:'13',price:'₺54.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite',camera:'50+50+50MP',battery:'6000mAh',screen:'6.82" 120Hz',weight:'210g',os:'Android 15'},
-  {brand:'OnePlus',name:'12R',price:'₺34.999',ram:'8GB',storage:'128GB',chip:'SD 8 Gen 1',camera:'50+8+2MP',battery:'5500mAh',screen:'6.78" 120Hz',weight:'207g',os:'Android 14'},
-  {brand:'OnePlus',name:'12',price:'₺44.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 3',camera:'50+48+64MP',battery:'5400mAh',screen:'6.82" 120Hz',weight:'220g',os:'Android 15'},
-  {brand:'OnePlus',name:'Nord 4',price:'₺19.999',ram:'8GB',storage:'256GB',chip:'SD 7+ Gen 3',camera:'50+8MP',battery:'5500mAh',screen:'6.74" 120Hz',weight:'187g',os:'Android 14'},
-  {brand:'OnePlus',name:'Nord CE 4',price:'₺14.999',ram:'8GB',storage:'128GB',chip:'SD 7 Gen 3',camera:'50+2MP',battery:'5500mAh',screen:'6.67" 120Hz',weight:'177g',os:'Android 14'},
-  // OPPO
-  {brand:'OPPO',name:'Find X8 Pro',price:'₺64.999',ram:'12GB',storage:'256GB',chip:'Dimensity 9400',camera:'50+50+50+50MP',battery:'5910mAh',screen:'6.78" 120Hz',weight:'215g',os:'Android 15'},
-  {brand:'OPPO',name:'Find X8',price:'₺49.999',ram:'12GB',storage:'256GB',chip:'Dimensity 9400',camera:'50+50+50MP',battery:'5630mAh',screen:'6.59" 120Hz',weight:'193g',os:'Android 15'},
-  {brand:'OPPO',name:'Reno 13 Pro',price:'₺24.999',ram:'12GB',storage:'256GB',chip:'Dimensity 8350',camera:'50+50+8MP',battery:'5600mAh',screen:'6.83" 120Hz',weight:'193g',os:'Android 15'},
-  {brand:'OPPO',name:'A3 Pro',price:'₺11.999',ram:'8GB',storage:'256GB',chip:'Dimensity 6300',camera:'50+2MP',battery:'5100mAh',screen:'6.67" 120Hz',weight:'186g',os:'Android 14'},
-  // VIVO
-  {brand:'vivo',name:'X200 Pro',price:'₺64.999',ram:'16GB',storage:'512GB',chip:'SD 8 Elite',camera:'50+200+50MP',battery:'6000mAh',screen:'6.78" 120Hz',weight:'229g',os:'Android 15'},
-  {brand:'vivo',name:'X200',price:'₺44.999',ram:'12GB',storage:'256GB',chip:'Dimensity 9400',camera:'50+50+50MP',battery:'5800mAh',screen:'6.67" 120Hz',weight:'194g',os:'Android 15'},
-  {brand:'vivo',name:'V40 Pro',price:'₺24.999',ram:'12GB',storage:'256GB',chip:'SD 7 Gen 3',camera:'50+50+8MP',battery:'5500mAh',screen:'6.78" 120Hz',weight:'190g',os:'Android 14'},
-  {brand:'vivo',name:'Y300 Pro',price:'₺14.999',ram:'8GB',storage:'256GB',chip:'SD 4 Gen 2',camera:'50+2MP',battery:'6500mAh',screen:'6.67" 120Hz',weight:'185g',os:'Android 14'},
-  // NOTHING
-  {brand:'Nothing',name:'Phone (3a) Pro',price:'₺24.999',ram:'12GB',storage:'256GB',chip:'SD 7s Gen 3',camera:'50+50+50MP',battery:'5000mAh',screen:'6.77" 120Hz',weight:'201g',os:'Android 15'},
-  {brand:'Nothing',name:'Phone (3a)',price:'₺19.999',ram:'8GB',storage:'128GB',chip:'SD 7s Gen 3',camera:'50+50+8MP',battery:'5000mAh',screen:'6.77" 120Hz',weight:'201g',os:'Android 15'},
-  {brand:'Nothing',name:'Phone (2a)',price:'₺14.999',ram:'8GB',storage:'128GB',chip:'Dimensity 7200 Pro',camera:'50+50MP',battery:'5000mAh',screen:'6.7" 120Hz',weight:'190g',os:'Android 14'},
-  // SONY
-  {brand:'Sony',name:'Xperia 1 VI',price:'₺74.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 3',camera:'52+12+12MP',battery:'5000mAh',screen:'6.5" 120Hz',weight:'192g',os:'Android 14'},
-  {brand:'Sony',name:'Xperia 5 VI',price:'₺54.999',ram:'8GB',storage:'128GB',chip:'SD 8 Gen 3',camera:'48+12MP',battery:'5000mAh',screen:'6.1" 120Hz',weight:'182g',os:'Android 14'},
-  {brand:'Sony',name:'Xperia 10 VI',price:'₺24.999',ram:'6GB',storage:'128GB',chip:'SD 6 Gen 1',camera:'48+8MP',battery:'5000mAh',screen:'6.1" 60Hz',weight:'164g',os:'Android 14'},
-  // MOTOROLA
-  {brand:'Motorola',name:'Edge 50 Ultra',price:'₺34.999',ram:'12GB',storage:'512GB',chip:'SD 8s Gen 3',camera:'50+50+64MP',battery:'4500mAh',screen:'6.7" 144Hz',weight:'171g',os:'Android 14'},
-  {brand:'Motorola',name:'Edge 50 Pro',price:'₺24.999',ram:'12GB',storage:'256GB',chip:'SD 7 Gen 3',camera:'50+13+10MP',battery:'4500mAh',screen:'6.7" 144Hz',weight:'186g',os:'Android 14'},
-  {brand:'Motorola',name:'Moto G85',price:'₺11.999',ram:'8GB',storage:'256GB',chip:'SD 6s Gen 3',camera:'50+8MP',battery:'5000mAh',screen:'6.67" 120Hz',weight:'171g',os:'Android 14'},
-  // REALME
-  {brand:'realme',name:'GT 7 Pro',price:'₺39.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite',camera:'50+50+8MP',battery:'6500mAh',screen:'6.78" 120Hz',weight:'223g',os:'Android 15'},
-  {brand:'realme',name:'GT 6',price:'₺24.999',ram:'12GB',storage:'256GB',chip:'SD 8s Gen 3',camera:'50+8+2MP',battery:'5500mAh',screen:'6.78" 144Hz',weight:'202g',os:'Android 14'},
-  {brand:'realme',name:'12 Pro+',price:'₺17.999',ram:'12GB',storage:'256GB',chip:'SD 7s Gen 2',camera:'50+64+8MP',battery:'5000mAh',screen:'6.7" 120Hz',weight:'185g',os:'Android 14'},
-  {brand:'realme',name:'C75',price:'₺7.999',ram:'8GB',storage:'256GB',chip:'Helio G92 Max',camera:'50+2MP',battery:'6000mAh',screen:'6.72" 90Hz',weight:'207g',os:'Android 14'},
-  // ASUS
-  {brand:'ASUS',name:'ROG Phone 9 Pro',price:'₺89.999',ram:'24GB',storage:'1TB',chip:'SD 8 Elite',camera:'50+13+32MP',battery:'5800mAh',screen:'6.78" 165Hz',weight:'246g',os:'Android 15'},
-  {brand:'ASUS',name:'ROG Phone 9',price:'₺64.999',ram:'16GB',storage:'512GB',chip:'SD 8 Elite',camera:'50+13+32MP',battery:'5800mAh',screen:'6.78" 165Hz',weight:'227g',os:'Android 15'},
-  {brand:'ASUS',name:'Zenfone 11 Ultra',price:'₺44.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 3',camera:'50+13+32MP',battery:'5500mAh',screen:'6.78" 144Hz',weight:'224g',os:'Android 14'},
-  // HUAWEI
-  {brand:'Huawei',name:'Pura 70 Ultra',price:'₺74.999',ram:'16GB',storage:'1TB',chip:'Kirin 9010',camera:'50+40+12MP',battery:'5000mAh',screen:'6.8" 120Hz',weight:'226g',os:'HarmonyOS 4'},
-  {brand:'Huawei',name:'Nova 13 Pro',price:'₺24.999',ram:'12GB',storage:'256GB',chip:'Kirin 8000',camera:'50+8+2MP',battery:'4600mAh',screen:'6.76" 120Hz',weight:'198g',os:'HarmonyOS 4'},
-  // HONOR
-  {brand:'Honor',name:'Magic 7 Pro',price:'₺54.999',ram:'12GB',storage:'512GB',chip:'SD 8 Elite',camera:'50+200+40MP',battery:'5270mAh',screen:'6.8" 120Hz',weight:'225g',os:'Android 15'},
-  {brand:'Honor',name:'200 Pro',price:'₺29.999',ram:'12GB',storage:'256GB',chip:'SD 8s Gen 3',camera:'50+50+12MP',battery:'5200mAh',screen:'6.78" 120Hz',weight:'199g',os:'Android 14'},
-  {brand:'Honor',name:'X9c',price:'₺12.999',ram:'8GB',storage:'256GB',chip:'SD 6 Gen 1',camera:'108+5+2MP',battery:'6600mAh',screen:'6.78" 90Hz',weight:'213g',os:'Android 14'},
+  {brand:'Apple',name:'iPhone 16 Pro Max',price:'₺109.999',ram:'8GB',storage:'256GB',chip:'A18 Pro',cam:'48+48+12MP',bat:'4685mAh',scr:'6.9" 120Hz',wt:'227g',os:'iOS 18'},
+  {brand:'Apple',name:'iPhone 16 Pro',price:'₺89.999',ram:'8GB',storage:'128GB',chip:'A18 Pro',cam:'48+48+12MP',bat:'3582mAh',scr:'6.3" 120Hz',wt:'199g',os:'iOS 18'},
+  {brand:'Apple',name:'iPhone 16 Plus',price:'₺74.999',ram:'8GB',storage:'128GB',chip:'A18',cam:'48+12MP',bat:'4674mAh',scr:'6.7" 60Hz',wt:'203g',os:'iOS 18'},
+  {brand:'Apple',name:'iPhone 16',price:'₺59.999',ram:'8GB',storage:'128GB',chip:'A18',cam:'48+12MP',bat:'3561mAh',scr:'6.1" 60Hz',wt:'170g',os:'iOS 18'},
+  {brand:'Apple',name:'iPhone 15 Pro Max',price:'₺84.999',ram:'8GB',storage:'256GB',chip:'A17 Pro',cam:'48+12+12MP',bat:'4422mAh',scr:'6.7" 120Hz',wt:'221g',os:'iOS 18'},
+  {brand:'Apple',name:'iPhone 15 Pro',price:'₺69.999',ram:'8GB',storage:'128GB',chip:'A17 Pro',cam:'48+12+12MP',bat:'3274mAh',scr:'6.1" 120Hz',wt:'187g',os:'iOS 18'},
+  {brand:'Apple',name:'iPhone 15',price:'₺44.999',ram:'6GB',storage:'128GB',chip:'A16',cam:'48+12MP',bat:'3349mAh',scr:'6.1" 60Hz',wt:'171g',os:'iOS 18'},
+  {brand:'Apple',name:'iPhone 14',price:'₺34.999',ram:'6GB',storage:'128GB',chip:'A15',cam:'12+12MP',bat:'3279mAh',scr:'6.1" 60Hz',wt:'172g',os:'iOS 17'},
+  {brand:'Apple',name:'iPhone SE 3',price:'₺24.999',ram:'4GB',storage:'64GB',chip:'A15',cam:'12MP',bat:'2018mAh',scr:'4.7" 60Hz',wt:'144g',os:'iOS 17'},
+  {brand:'Samsung',name:'Galaxy S25 Ultra',price:'₺109.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite',cam:'200+50+10+10MP',bat:'5000mAh',scr:'6.9" 120Hz',wt:'218g',os:'Android 15'},
+  {brand:'Samsung',name:'Galaxy S25+',price:'₺74.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite',cam:'50+12+10MP',bat:'4900mAh',scr:'6.7" 120Hz',wt:'190g',os:'Android 15'},
+  {brand:'Samsung',name:'Galaxy S25',price:'₺54.999',ram:'12GB',storage:'128GB',chip:'SD 8 Elite',cam:'50+12+10MP',bat:'4000mAh',scr:'6.2" 120Hz',wt:'162g',os:'Android 15'},
+  {brand:'Samsung',name:'Galaxy S24 Ultra',price:'₺84.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 3',cam:'200+50+10+12MP',bat:'5000mAh',scr:'6.8" 120Hz',wt:'232g',os:'Android 15'},
+  {brand:'Samsung',name:'Galaxy S24+',price:'₺59.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 3',cam:'50+12+10MP',bat:'4900mAh',scr:'6.7" 120Hz',wt:'196g',os:'Android 15'},
+  {brand:'Samsung',name:'Galaxy S24',price:'₺44.999',ram:'8GB',storage:'128GB',chip:'Exynos 2400',cam:'50+12+10MP',bat:'4000mAh',scr:'6.2" 120Hz',wt:'167g',os:'Android 15'},
+  {brand:'Samsung',name:'Galaxy Z Fold 6',price:'₺129.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 3',cam:'50+12+10MP',bat:'4400mAh',scr:'7.6" 120Hz',wt:'239g',os:'Android 14'},
+  {brand:'Samsung',name:'Galaxy Z Flip 6',price:'₺64.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 3',cam:'50+12MP',bat:'4000mAh',scr:'6.7" 120Hz',wt:'187g',os:'Android 14'},
+  {brand:'Samsung',name:'Galaxy A55',price:'₺24.999',ram:'8GB',storage:'128GB',chip:'Exynos 1480',cam:'50+12+5MP',bat:'5000mAh',scr:'6.6" 120Hz',wt:'213g',os:'Android 14'},
+  {brand:'Samsung',name:'Galaxy A35',price:'₺18.999',ram:'6GB',storage:'128GB',chip:'Exynos 1380',cam:'50+8+5MP',bat:'5000mAh',scr:'6.6" 120Hz',wt:'210g',os:'Android 14'},
+  {brand:'Samsung',name:'Galaxy A16',price:'₺9.999',ram:'4GB',storage:'128GB',chip:'Dimensity 6300',cam:'50+5+2MP',bat:'5000mAh',scr:'6.7" 90Hz',wt:'200g',os:'Android 14'},
+  {brand:'Xiaomi',name:'15 Ultra',price:'₺84.999',ram:'16GB',storage:'512GB',chip:'SD 8 Elite',cam:'50+50+50+200MP',bat:'6000mAh',scr:'6.73" 120Hz',wt:'229g',os:'Android 15'},
+  {brand:'Xiaomi',name:'15 Pro',price:'₺64.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite',cam:'50+50+50MP',bat:'6100mAh',scr:'6.73" 120Hz',wt:'215g',os:'Android 15'},
+  {brand:'Xiaomi',name:'15',price:'₺49.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite',cam:'50+50+50MP',bat:'5400mAh',scr:'6.36" 120Hz',wt:'189g',os:'Android 15'},
+  {brand:'Xiaomi',name:'14 Ultra',price:'₺69.999',ram:'16GB',storage:'512GB',chip:'SD 8 Gen 3',cam:'50×4',bat:'5300mAh',scr:'6.73" 120Hz',wt:'229g',os:'Android 14'},
+  {brand:'Xiaomi',name:'14T Pro',price:'₺44.999',ram:'12GB',storage:'256GB',chip:'Dimensity 9300+',cam:'50+50+50MP',bat:'5000mAh',scr:'6.67" 144Hz',wt:'209g',os:'Android 14'},
+  {brand:'Xiaomi',name:'14T',price:'₺32.999',ram:'12GB',storage:'256GB',chip:'Dimensity 8300-Ultra',cam:'50+50+12MP',bat:'5000mAh',scr:'6.67" 144Hz',wt:'193g',os:'Android 14'},
+  {brand:'Xiaomi',name:'Redmi Note 14 Pro+',price:'₺22.999',ram:'12GB',storage:'256GB',chip:'SD 7s Gen 3',cam:'200+8+2MP',bat:'6200mAh',scr:'6.67" 120Hz',wt:'204g',os:'Android 14'},
+  {brand:'Xiaomi',name:'Redmi Note 14 Pro',price:'₺17.999',ram:'8GB',storage:'256GB',chip:'Dimensity 7300-Ultra',cam:'200+8+2MP',bat:'5500mAh',scr:'6.67" 120Hz',wt:'190g',os:'Android 14'},
+  {brand:'Xiaomi',name:'POCO F6 Pro',price:'₺29.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 2',cam:'50+8+2MP',bat:'5000mAh',scr:'6.67" 144Hz',wt:'209g',os:'Android 14'},
+  {brand:'Xiaomi',name:'POCO X6 Pro',price:'₺19.999',ram:'12GB',storage:'256GB',chip:'Dimensity 8300-Ultra',cam:'64+8+2MP',bat:'5000mAh',scr:'6.67" 144Hz',wt:'186g',os:'Android 14'},
+  {brand:'Google',name:'Pixel 9 Pro XL',price:'₺99.999',ram:'16GB',storage:'128GB',chip:'Tensor G4',cam:'50+48+48MP',bat:'5060mAh',scr:'6.8" 120Hz',wt:'221g',os:'Android 15'},
+  {brand:'Google',name:'Pixel 9 Pro',price:'₺79.999',ram:'16GB',storage:'128GB',chip:'Tensor G4',cam:'50+48+48MP',bat:'4700mAh',scr:'6.3" 120Hz',wt:'199g',os:'Android 15'},
+  {brand:'Google',name:'Pixel 9',price:'₺49.999',ram:'12GB',storage:'128GB',chip:'Tensor G4',cam:'50+48MP',bat:'4700mAh',scr:'6.3" 120Hz',wt:'198g',os:'Android 15'},
+  {brand:'Google',name:'Pixel 8a',price:'₺34.999',ram:'8GB',storage:'128GB',chip:'Tensor G3',cam:'64+13MP',bat:'4492mAh',scr:'6.1" 120Hz',wt:'188g',os:'Android 15'},
+  {brand:'OnePlus',name:'13',price:'₺54.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite',cam:'50+50+50MP',bat:'6000mAh',scr:'6.82" 120Hz',wt:'210g',os:'Android 15'},
+  {brand:'OnePlus',name:'12',price:'₺44.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 3',cam:'50+48+64MP',bat:'5400mAh',scr:'6.82" 120Hz',wt:'220g',os:'Android 15'},
+  {brand:'OnePlus',name:'Nord 4',price:'₺19.999',ram:'8GB',storage:'256GB',chip:'SD 7+ Gen 3',cam:'50+8MP',bat:'5500mAh',scr:'6.74" 120Hz',wt:'187g',os:'Android 14'},
+  {brand:'Nothing',name:'Phone (3a) Pro',price:'₺24.999',ram:'12GB',storage:'256GB',chip:'SD 7s Gen 3',cam:'50+50+50MP',bat:'5000mAh',scr:'6.77" 120Hz',wt:'201g',os:'Android 15'},
+  {brand:'Nothing',name:'Phone (3a)',price:'₺19.999',ram:'8GB',storage:'128GB',chip:'SD 7s Gen 3',cam:'50+50+8MP',bat:'5000mAh',scr:'6.77" 120Hz',wt:'201g',os:'Android 15'},
+  {brand:'Nothing',name:'Phone (2a)',price:'₺14.999',ram:'8GB',storage:'128GB',chip:'Dimensity 7200 Pro',cam:'50+50MP',bat:'5000mAh',scr:'6.7" 120Hz',wt:'190g',os:'Android 14'},
+  {brand:'Sony',name:'Xperia 1 VI',price:'₺74.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 3',cam:'52+12+12MP',bat:'5000mAh',scr:'6.5" 120Hz',wt:'192g',os:'Android 14'},
+  {brand:'Sony',name:'Xperia 5 VI',price:'₺54.999',ram:'8GB',storage:'128GB',chip:'SD 8 Gen 3',cam:'48+12MP',bat:'5000mAh',scr:'6.1" 120Hz',wt:'182g',os:'Android 14'},
+  {brand:'Motorola',name:'Edge 50 Ultra',price:'₺34.999',ram:'12GB',storage:'512GB',chip:'SD 8s Gen 3',cam:'50+50+64MP',bat:'4500mAh',scr:'6.7" 144Hz',wt:'171g',os:'Android 14'},
+  {brand:'Motorola',name:'Edge 50 Pro',price:'₺24.999',ram:'12GB',storage:'256GB',chip:'SD 7 Gen 3',cam:'50+13+10MP',bat:'4500mAh',scr:'6.7" 144Hz',wt:'186g',os:'Android 14'},
+  {brand:'realme',name:'GT 7 Pro',price:'₺39.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite',cam:'50+50+8MP',bat:'6500mAh',scr:'6.78" 120Hz',wt:'223g',os:'Android 15'},
+  {brand:'ASUS',name:'ROG Phone 9 Pro',price:'₺89.999',ram:'24GB',storage:'1TB',chip:'SD 8 Elite',cam:'50+13+32MP',bat:'5800mAh',scr:'6.78" 165Hz',wt:'246g',os:'Android 15'},
+  {brand:'ASUS',name:'Zenfone 11 Ultra',price:'₺44.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 3',cam:'50+13+32MP',bat:'5500mAh',scr:'6.78" 144Hz',wt:'224g',os:'Android 14'},
+  {brand:'Honor',name:'Magic 7 Pro',price:'₺54.999',ram:'12GB',storage:'512GB',chip:'SD 8 Elite',cam:'50+200+40MP',bat:'5270mAh',scr:'6.8" 120Hz',wt:'225g',os:'Android 15'},
+  {brand:'vivo',name:'X200 Pro',price:'₺64.999',ram:'16GB',storage:'512GB',chip:'SD 8 Elite',cam:'50+200+50MP',bat:'6000mAh',scr:'6.78" 120Hz',wt:'229g',os:'Android 15'},
 ];
 
-let pickSlot=null, phoneA=null, phoneB=null, filtP=[...PHONES];
+let pslot=null,pA=null,pB=null,fp=[...PHONES],abrand='Tümü';
 
-let activeBrand = 'Tümü';
-function openPicker(s) {
-  pickSlot=s;
-  document.getElementById('psearch').value='';
-  activeBrand = 'Tümü';
-  filtP=[...PHONES];
-  renderBrandFilters();
-  renderPList();
+function opick(s) {
+  pslot=s;
+  document.getElementById('psrch').value='';
+  abrand='Tümü'; fp=[...PHONES];
+  rbf(); rplist();
   document.getElementById('picker-mo').classList.add('on');
 }
 
-function renderBrandFilters() {
-  const brands = ['Tümü', ...new Set(PHONES.map(p=>p.brand))];
-  const el = document.getElementById('brand-filters');
-  if (!el) return;
-  el.innerHTML = brands.map(b => `
-    <button onclick="setBrand('${b}')" style="flex:none;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;
-      background:${b===activeBrand?'var(--cyan-dim)':'var(--surf)'};
-      border:1px solid ${b===activeBrand?'rgba(0,212,255,.3)':'var(--border2)'};
-      color:${b===activeBrand?'var(--cyan)':'var(--text2)'}">
-      ${b}
-    </button>`).join('');
+function rbf() {
+  const brands=['Tümü',...new Set(PHONES.map(p=>p.brand))];
+  const el=document.getElementById('bfilters');
+  if(!el)return;
+  el.innerHTML=brands.map(b=>`<button class="bf ${b===abrand?'on':'off'}" onclick="sbrand('${b}')">${b}</button>`).join('');
 }
 
-function setBrand(b) {
-  activeBrand = b;
-  document.getElementById('psearch').value = '';
-  filtP = b === 'Tümü' ? [...PHONES] : PHONES.filter(p=>p.brand===b);
-  renderBrandFilters();
-  renderPList();
+function sbrand(b) {
+  abrand=b; document.getElementById('psrch').value='';
+  fp=b==='Tümü'?[...PHONES]:PHONES.filter(p=>p.brand===b);
+  rbf(); rplist();
 }
 
-function filterPhones(q) {
-  activeBrand = 'Tümü';
-  filtP=PHONES.filter(p=>(p.brand+' '+p.name).toLowerCase().includes(q.toLowerCase()));
-  renderBrandFilters();
-  renderPList();
+function fphn(q) {
+  abrand='Tümü';
+  fp=PHONES.filter(p=>(p.brand+' '+p.name).toLowerCase().includes(q.toLowerCase()));
+  rbf(); rplist();
 }
-function renderPList() {
+
+function rplist() {
   const l=document.getElementById('plist');
-  if (!filtP.length) { l.innerHTML='<div class="no-res">Bulunamadı</div>'; return; }
-  l.innerHTML=filtP.map((p,i)=>`<div class="pitem" onclick="pickPhone(${PHONES.indexOf(p)})"><div><div class="pname3">${p.brand} ${p.name}</div><div class="pspec">${p.chip} · ${p.ram}</div></div><div style="display:flex;align-items:center;gap:8px"><div class="pprice2">${p.price}</div><div class="addbdg">Ekle</div></div></div>`).join('');
+  if(!fp.length){l.innerHTML='<div class="no">Bulunamadı</div>';return;}
+  l.innerHTML=fp.map(p=>`<div class="pitem" onclick="ppick(${PHONES.indexOf(p)})"><div><div class="pn">${p.brand} ${p.name}</div><div class="ps">${p.chip} · ${p.ram}</div></div><div style="display:flex;align-items:center;gap:8px"><div class="pp">${p.price}</div><div class="abdg">Ekle</div></div></div>`).join('');
 }
-function pickPhone(i) {
+
+function ppick(i) {
   const p=PHONES[i];
-  if(pickSlot==='a') phoneA=p; else phoneB=p;
-  closeMo('picker-mo');
-  renderSlots();
-  if(phoneA&&phoneB) renderCmpTable();
-  else document.getElementById('cmp-result').innerHTML='';
+  if(pslot==='a')pA=p;else pB=p;
+  closemo('picker-mo');
+  rslots();
+  if(pA&&pB)rcmptbl();else document.getElementById('cmp-res').innerHTML='';
 }
-function renderSlots() {
+
+function rslots() {
   ['a','b'].forEach(s=>{
-    const p=s==='a'?phoneA:phoneB;
+    const p=s==='a'?pA:pB;
     const el=document.getElementById('slot-'+s);
-    if(p){el.className='cslot filled';el.onclick=null;el.innerHTML=`<div class="pbrand">${p.brand}</div><div class="pname2">${p.name}</div><div class="pprice">${p.price}</div><button class="clrbtn" onclick="clearSlot('${s}')">Kaldır</button>`;}
-    else{el.className='cslot';el.onclick=()=>openPicker(s);el.innerHTML=`<div class="cplus"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div><div class="clbl">Telefon ekle</div>`;}
+    if(p){el.className='cslot filled';el.onclick=null;el.innerHTML=`<div class="pbr">${p.brand}</div><div class="pnm">${p.name}</div><div class="ppr">${p.price}</div><button class="clr" onclick="cslot('${s}')">Kaldır</button>`;}
+    else{el.className='cslot';el.onclick=()=>opick(s);el.innerHTML=`<div class="cplus"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div><div class="clbl">Telefon ekle</div>`;}
   });
 }
-function clearSlot(s){if(s==='a')phoneA=null;else phoneB=null;renderSlots();document.getElementById('cmp-result').innerHTML='';}
-function renderCmpTable(){
-  const a=phoneA,b=phoneB;
-  const rows=[{l:'Fiyat',a:a.price,b:b.price},{l:'İşlemci',a:a.chip,b:b.chip},{l:'RAM',a:a.ram,b:b.ram},{l:'Depolama',a:a.storage,b:b.storage},{l:'Kamera',a:a.camera,b:b.camera},{l:'Batarya',a:a.battery,b:b.battery},{l:'Ekran',a:a.screen,b:b.screen},{l:'Ağırlık',a:a.weight||'-',b:b.weight||'-'},{l:'İşletim Sistemi',a:a.os||'-',b:b.os||'-'}];
-  document.getElementById('cmp-result').innerHTML=`<div class="ctable"><div class="crow" style="background:rgba(0,212,255,.05)"><div class="ccell lbl"></div><div class="ccell" style="font-weight:700;font-size:12px;color:var(--cyan)">${a.brand}<br>${a.name}</div><div class="ccell" style="font-weight:700;font-size:12px;color:var(--cyan)">${b.brand}<br>${b.name}</div></div>${rows.map(r=>`<div class="crow"><div class="ccell lbl">${r.l}</div><div class="ccell val">${r.a}</div><div class="ccell val">${r.b}</div></div>`).join('')}</div>`;
+
+function cslot(s){if(s==='a')pA=null;else pB=null;rslots();document.getElementById('cmp-res').innerHTML='';}
+
+function rcmptbl() {
+  const a=pA,b=pB;
+  const rows=[
+    {l:'Fiyat',a:a.price,b:b.price},
+    {l:'İşlemci',a:a.chip,b:b.chip},
+    {l:'RAM',a:a.ram,b:b.ram},
+    {l:'Depolama',a:a.storage,b:b.storage},
+    {l:'Kamera',a:a.cam,b:b.cam},
+    {l:'Batarya',a:a.bat,b:b.bat},
+    {l:'Ekran',a:a.scr,b:b.scr},
+    {l:'Ağırlık',a:a.wt,b:b.wt},
+    {l:'İşletim Sistemi',a:a.os,b:b.os},
+  ];
+  document.getElementById('cmp-res').innerHTML=`
+    <div class="ctbl">
+      <div class="crow" style="background:rgba(0,212,255,.05)">
+        <div class="ccell lbl"></div>
+        <div class="ccell" style="font-weight:700;font-size:12px;color:var(--cyan)">${a.brand}<br>${a.name}</div>
+        <div class="ccell" style="font-weight:700;font-size:12px;color:var(--cyan)">${b.brand}<br>${b.name}</div>
+      </div>
+      ${rows.map(r=>`<div class="crow"><div class="ccell lbl">${r.l}</div><div class="ccell val">${r.a}</div><div class="ccell val">${r.b}</div></div>`).join('')}
+    </div>`;
 }
 
-// ── HELPERS ──
-function goTab(name, pushState = true) {
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  const tabEl = document.querySelector(`.tab[data-s="${name}"]`);
-  if (tabEl) tabEl.classList.add('active');
-  const screenEl = document.getElementById('screen-'+name);
-  if (screenEl) screenEl.classList.add('active');
-  if (name === 'market') renderListings();
-  if (pushState) history.pushState({tab: name}, '', '');
-}
-
-function openLink(url) { location.href='/teknohane/go.html?url='+encodeURIComponent(url); }
-function closeMo(id) { document.getElementById(id).classList.remove('on'); }
-
-// ── GERİ BUTONU ──
-window.addEventListener('popstate', e => {
-  // Modal açıksa kapat
-  if (document.getElementById('detail-mo')?.classList.contains('on')) {
-    closeDetail();
-    history.pushState({}, '', '');
-    return;
-  }
-  if (document.getElementById('listing-mo')?.classList.contains('on')) {
-    closeMo('listing-mo');
-    history.pushState({}, '', '');
-    return;
-  }
-  if (document.getElementById('picker-mo')?.classList.contains('on')) {
-    closeMo('picker-mo');
-    history.pushState({}, '', '');
-    return;
-  }
-  // Ana sayfada değilse ana sayfaya dön
-  const active = document.querySelector('.tab.active')?.dataset?.s;
-  if (active && active !== 'home') {
-    goTab('home', false);
-    history.pushState({tab: 'home'}, '', '');
-    return;
-  }
-  // Ana sayfadaysa çık
-  // Android'de varsayılan davranış devreye girer
-});
-
-// İlk pushState
-history.pushState({tab: 'home'}, '', '');
-
-// ── PULL TO REFRESH ──
-function setupPTR(screenId, refreshFn) {
-  const el = document.getElementById(screenId);
-  if (!el) return;
-
-  // PTR indikatörü ekle
-  const ptr = document.createElement('div');
-  ptr.className = 'ptr';
-  ptr.innerHTML = '<div class="ptr-spin"></div>';
-  el.style.position = 'relative';
+// PULL TO REFRESH
+function setupPTR(screenId, fn) {
+  const el=document.getElementById(screenId);
+  if(!el)return;
+  const ptr=document.createElement('div');
+  ptr.style.cssText='position:absolute;top:-50px;left:0;right:0;height:50px;display:flex;align-items:center;justify-content:center;transition:top .2s;';
+  ptr.innerHTML='<div class="spin"></div>';
+  el.style.position='relative';
   el.prepend(ptr);
-
-  let startY = 0, pulling = false, triggered = false;
-
-  el.addEventListener('touchstart', e => {
-    if (el.scrollTop === 0) {
-      startY = e.touches[0].clientY;
-      pulling = true;
-      triggered = false;
-    }
-  }, {passive: true});
-
-  el.addEventListener('touchmove', e => {
-    if (!pulling) return;
-    const diff = e.touches[0].clientY - startY;
-    if (diff > 70 && !triggered) {
-      triggered = true;
-      ptr.classList.add('show');
-    }
-  }, {passive: true});
-
-  el.addEventListener('touchend', async () => {
-    if (!pulling) return;
-    pulling = false;
-    if (triggered) {
-      await refreshFn();
-      ptr.classList.remove('show');
-    }
-  });
+  let sy=0,pull=false,done=false;
+  el.addEventListener('touchstart',e=>{if(el.scrollTop===0){sy=e.touches[0].clientY;pull=true;done=false;}},{passive:true});
+  el.addEventListener('touchmove',e=>{if(!pull)return;if(e.touches[0].clientY-sy>70&&!done){done=true;ptr.style.top='0';}},{passive:true});
+  el.addEventListener('touchend',async()=>{if(!pull)return;pull=false;if(done){await fn();ptr.style.top='-50px';}});
 }
 
-// ── INIT ──
-renderHome();
-loadListings(); // Direkt yükle, auth bekleme
+// NAVIGATION
+function gt(name) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
+  const tab=document.querySelector(`.tab[data-s="${name}"]`);
+  if(tab)tab.classList.add('on');
+  const scr=document.getElementById('s-'+name);
+  if(scr)scr.classList.add('on');
+}
 
-// Pull-to-refresh kur
-setTimeout(() => {
-  setupPTR('screen-home', async () => {
-    vCache = null; chCache = null; chanId = null;
-    document.getElementById('home-content').innerHTML = '<div class="load"><div class="spin"></div><span>Yenileniyor…</span></div>';
-    await renderHome();
+function ol(url) { location.href='/teknohane/go.html?url='+encodeURIComponent(url); }
+function closemo(id) { document.getElementById(id)?.classList.remove('on'); }
+
+// INIT
+rhome();
+setTimeout(()=>{
+  setupPTR('s-home',async()=>{
+    vc=null;cc=null;cid=null;
+    document.getElementById('home-c').innerHTML='<div class="load"><div class="spin"></div><span>Yenileniyor…</span></div>';
+    await rhome();
   });
-}, 500);
+},500);
 
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('/teknohane/sw.js',{scope:'/teknohane/'}).catch(()=>{}));
+if('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(r=>r.forEach(x=>x.unregister()));
+  caches.keys().then(k=>k.forEach(x=>caches.delete(x)));
 }
 </script>
 </body>
