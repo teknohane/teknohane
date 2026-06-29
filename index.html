@@ -552,7 +552,7 @@ auth.onAuthStateChanged(async u => {
     favs = new Set();
   }
   renderProfile();
-  loadListings();
+  renderListings(); // Favori durumunu güncelle
 });
 
 // ── LISTINGS ──
@@ -1268,6 +1268,7 @@ function setupPTR(screenId, refreshFn) {
 
 // ── INIT ──
 renderHome();
+loadListings(); // Auth bekleme, direkt yükle
 
 // Pull-to-refresh kur
 setTimeout(() => {
