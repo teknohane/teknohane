@@ -153,40 +153,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .bf.off{background:var(--surf);border:1px solid var(--border2);color:var(--text2);}
 
 /* PAZAR */
-/* Detay Modal */
-.det-sheet{background:var(--bg2);border-radius:24px 24px 0 0;width:100%;max-height:92vh;overflow-y:auto;border-top:1px solid var(--border);animation:su .3s ease;}
-.det-sheet::-webkit-scrollbar{display:none;}
-.det-sticky{position:sticky;top:0;background:rgba(7,13,26,.95);backdrop-filter:blur(12px);padding:12px 20px;border-bottom:1px solid var(--border2);z-index:10;display:flex;align-items:center;justify-content:space-between;}
-.det-close{width:32px;height:32px;border-radius:50%;background:var(--surf2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px;color:var(--text2);line-height:1;}
-.det-body{padding:20px 20px calc(24px + var(--sb));}
-.det-model{font-size:22px;font-weight:700;letter-spacing:-.4px;margin-bottom:4px;}
-.det-price{font-size:30px;font-weight:700;color:var(--cyan);margin-bottom:8px;}
-.det-photos{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;}
-.det-photo{width:100%;aspect-ratio:4/3;border-radius:12px;object-fit:cover;background:var(--surf2);cursor:pointer;}
-.det-info{background:var(--surf);border-radius:14px;padding:4px 14px;margin-bottom:16px;}
-.det-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border2);font-size:14px;}
-.det-row:last-child{border-bottom:none;}
-.det-lbl{color:var(--text2);width:80px;flex-shrink:0;font-size:13px;}
-.det-val{font-weight:500;}
-.det-desc{font-size:14px;color:var(--text2);line-height:1.6;padding:14px;background:var(--surf);border-radius:14px;margin-bottom:16px;}
-.act-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
-.abtn{padding:14px 10px;border-radius:14px;border:none;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px;}
-.abtn svg{width:22px;height:22px;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
-.abtn-lbl{font-size:12px;font-weight:600;}
-.act-wa{background:rgba(37,211,102,.15);color:#25D366;border:1px solid rgba(37,211,102,.3);}
-.act-wa svg{stroke:#25D366;}
-.act-ref{background:rgba(255,149,0,.12);color:#FF9500;border:1px solid rgba(255,149,0,.3);}
-.act-ref svg{stroke:#FF9500;}
-.act-fav{background:rgba(255,69,58,.12);color:var(--red);border:1px solid rgba(255,69,58,.3);}
-.act-fav svg{stroke:var(--red);}
-.act-fav.on svg{fill:var(--red);}
-/* Fotoğraf yükleme */
-.photo-upload-area{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px;}
-.photo-slot{aspect-ratio:4/3;border-radius:12px;border:2px dashed var(--border2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;overflow:hidden;position:relative;}
-.photo-slot img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;}
-.photo-slot svg{width:24px;height:24px;stroke:var(--text3);fill:none;stroke-width:1.8;}
-.photo-slot span{font-size:11px;color:var(--text3);}
-.photo-remove{position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;cursor:pointer;z-index:1;}
 .mhdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
 .new-btn{display:flex;align-items:center;gap:6px;background:var(--cyan);color:#000;font-size:13px;font-weight:700;padding:9px 14px;border-radius:12px;border:none;cursor:pointer;font-family:inherit;}
 .new-btn svg{width:16px;height:16px;stroke:#000;fill:none;stroke-width:2.5;stroke-linecap:round;}
@@ -455,36 +421,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 
 </div>
 
-<!-- İLAN DETAY MODAL -->
-<div class="mo" id="detail-mo" onclick="closemo('detail-mo')">
-  <div class="det-sheet" onclick="event.stopPropagation()">
-    <div class="det-sticky">
-      <div style="width:36px;height:4px;border-radius:2px;background:var(--text3);"></div>
-      <div class="det-close" onclick="closemo('detail-mo')">×</div>
-    </div>
-    <div class="det-body" id="det-body"></div>
-  </div>
-</div>
-
 <!-- İLAN VER MODAL -->
 <div class="mo" id="listing-mo" onclick="closemo('listing-mo')">
   <div class="ms" onclick="event.stopPropagation()">
     <div class="mh"></div>
     <div class="mtit">İlan Ver</div>
-    <div class="fg"><label class="fl">Fotoğraflar (max 2)</label>
-      <div class="photo-upload-area">
-        <div class="photo-slot" id="pslot-0" onclick="document.getElementById('pfile-0').click()">
-          <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-          <span>Fotoğraf ekle</span>
-          <input type="file" id="pfile-0" accept="image/*" style="display:none" onchange="handlePhoto(0,this)">
-        </div>
-        <div class="photo-slot" id="pslot-1" onclick="document.getElementById('pfile-1').click()">
-          <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-          <span>Fotoğraf ekle</span>
-          <input type="file" id="pfile-1" accept="image/*" style="display:none" onchange="handlePhoto(1,this)">
-        </div>
-      </div>
-    </div>
     <div class="fg"><label class="fl">Telefon Modeli</label><input class="fi" type="text" id="l-model" placeholder="Örn: Samsung Galaxy S24"></div>
     <div class="fg"><label class="fl">Fiyat (₺)</label><input class="fi" type="number" id="l-price" placeholder="25000"></div>
     <div class="fg"><label class="fl">Durum</label><select class="fsel" id="l-cond"><option>Sıfır</option><option>Az Kullanılmış</option><option>İkinci El</option></select></div>
@@ -629,98 +570,7 @@ async function dogoogle() {
 }
 
 // PAZAR
-let currentListing = null;
-let photoData = [null, null];
-
-// Fotoğraf işleme
-function handlePhoto(idx, input) {
-  const file = input.files[0];
-  if (!file) return;
-  if (file.size > 1.5 * 1024 * 1024) { alert('Fotoğraf max 1.5MB olmalı'); return; }
-  const reader = new FileReader();
-  reader.onload = e => {
-    photoData[idx] = e.target.result;
-    const slot = document.getElementById('pslot-' + idx);
-    slot.innerHTML = `
-      <img src="${e.target.result}" alt="">
-      <div class="photo-remove" onclick="removePhoto(${idx});event.stopPropagation()">×</div>
-      <input type="file" id="pfile-${idx}" accept="image/*" style="display:none" onchange="handlePhoto(${idx},this)">`;
-  };
-  reader.readAsDataURL(file);
-}
-
-function removePhoto(idx) {
-  photoData[idx] = null;
-  const slot = document.getElementById('pslot-' + idx);
-  slot.innerHTML = `
-    <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-    <span>Fotoğraf ekle</span>
-    <input type="file" id="pfile-${idx}" accept="image/*" style="display:none" onchange="handlePhoto(${idx},this)">`;
-}
-
-// İlan detayı
-function openDetail(id) {
-  currentListing = listings.find(l => l.id === id);
-  if (!currentListing) return;
-  const l = currentListing;
-  const mine = user && l.uid === user.uid;
-  const fav = favs.has(l.id);
-  const body = document.getElementById('det-body');
-  const photos = [l.photo1, l.photo2].filter(Boolean);
-  body.innerHTML = `
-    ${photos.length ? `<div class="det-photos">${photos.map(p=>`<img class="det-photo" src="${p}" alt="">`).join('')}</div>` : ''}
-    <div class="det-model">${l.model||''}</div>
-    <div class="det-price">₺${parseInt(l.price||0).toLocaleString('tr-TR')}</div>
-    <div style="margin-bottom:12px"><span class="lcnd ${l.condition==='Sıfır'?'cn':'cu'}">${l.condition||''}</span></div>
-    <div class="det-info">
-      ${l.location?`<div class="det-row"><span class="det-lbl">Konum</span><span class="det-val">📍 ${l.location}</span></div>`:''}
-      ${l.ownerName?`<div class="det-row"><span class="det-lbl">Satıcı</span><span class="det-val">${l.ownerName}${mine?' (Ben)':''}</span></div>`:''}
-    </div>
-    ${l.desc?`<div class="det-desc">${l.desc}</div>`:''}
-    <div class="act-grid">
-      ${l.phone?`
-        <button class="abtn act-wa" onclick="ol('https://wa.me/90${l.phone}')">
-          <svg viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.998 2C6.477 2 2 6.477 2 12c0 1.989.574 3.842 1.565 5.408L2 22l4.757-1.535A9.958 9.958 0 0 0 11.998 22c5.523 0 10-4.477 10-10S17.521 2 11.998 2z"/></svg>
-          <span class="abtn-lbl">İletişim</span>
-        </button>` : '<div></div>'}
-      ${l.phone?`
-        <button class="abtn act-ref" onclick="sendRef()">
-          <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          <span class="abtn-lbl">Referans Ol</span>
-        </button>` : '<div></div>'}
-      <button class="abtn act-fav ${fav?'on':''}" id="det-fav-btn" onclick="toggleDetFav()">
-        <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-        <span class="abtn-lbl">${fav?'Favoride':'Favorile'}</span>
-      </button>
-      ${mine?`<button class="abtn" style="background:rgba(255,69,58,.12);color:var(--red);border:1px solid rgba(255,69,58,.3)" onclick="delListing('${l.id}');closemo('detail-mo')">
-        <svg viewBox="0 0 24 24" stroke="var(--red)"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-        <span class="abtn-lbl">Sil</span>
-      </button>`:'<div></div>'}
-    </div>`;
-  document.getElementById('detail-mo').classList.add('on');
-}
-
-function sendRef() {
-  if (!currentListing) return;
-  const refName = user ? (user.displayName || user.email?.split('@')[0]) : 'Bir kullanıcı';
-  const msg = `Merhaba! "${currentListing.model}" ilanınızı ${refName} aracılığıyla gördüm ve ilgileniyorum.`;
-  if (currentListing.phone) ol(`https://wa.me/90${currentListing.phone}?text=${encodeURIComponent(msg)}`);
-}
-
-async function toggleDetFav() {
-  if (!user || !currentListing) { gt('profile'); return; }
-  const id = currentListing.id;
-  const btn = document.getElementById('det-fav-btn');
-  if (favs.has(id)) {
-    favs.delete(id); btn?.classList.remove('on');
-    if (btn) btn.querySelector('.abtn-lbl').textContent = 'Favorile';
-  } else {
-    favs.add(id); btn?.classList.add('on');
-    if (btn) btn.querySelector('.abtn-lbl').textContent = 'Favoride';
-  }
-  try { await db.collection('teknohane_users').doc(user.uid).set({favorites:[...favs]},{merge:true}); } catch(e) {}
-  rlistings();
-}
+async function loadListings() {
   listingsReady = false;
   try {
     const snap = await db.collection('teknohane_listings').get();
@@ -750,14 +600,14 @@ function rlistings() {
   grid.innerHTML = items.map(l => {
     const mine = user && l.uid === user.uid;
     const fav = favs.has(l.id);
-    return `<div class="lcard" onclick="openDetail('${l.id}')">
+    return `<div class="lcard">
       <div class="ltit">${l.model||''}</div>
       <div class="lrow">
         <div class="lprc">₺${parseInt(l.price||0).toLocaleString('tr-TR')}</div>
         <div class="lcnd ${l.condition==='Sıfır'?'cn':'cu'}">${l.condition||''}</div>
       </div>
       ${l.desc?`<div style="font-size:12px;color:var(--text2);margin-top:6px">${l.desc}</div>`:''}
-      <div class="lft" onclick="event.stopPropagation()">
+      <div class="lft">
         <div class="lloc">📍 ${l.location||'Belirtilmedi'}</div>
         <div class="lacts">
           <div class="fbtn ${fav?'on':''}" onclick="toggleFav('${l.id}',this)">
@@ -790,7 +640,7 @@ async function submitListing() {
   const price = document.getElementById('l-price').value.trim();
   if (!model || !price) { alert('Model ve fiyat zorunlu!'); return; }
   try {
-    const data = {
+    await db.collection('teknohane_listings').add({
       model, price,
       condition: document.getElementById('l-cond').value,
       location: document.getElementById('l-loc').value.trim(),
@@ -799,14 +649,9 @@ async function submitListing() {
       uid: user.uid,
       ownerName: user.displayName || user.email?.split('@')[0] || 'Anonim',
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    };
-    if (photoData[0]) data.photo1 = photoData[0];
-    if (photoData[1]) data.photo2 = photoData[1];
-    await db.collection('teknohane_listings').add(data);
+    });
     closemo('listing-mo');
-    photoData = [null, null];
     ['l-model','l-price','l-loc','l-desc','l-phone'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
-    [0,1].forEach(i => removePhoto(i));
     await loadListings();
   } catch(e) { alert('Hata: ' + e.message); }
 }
