@@ -52,10 +52,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 
 /* SCREENS */
 #screens{flex:1;overflow:hidden;position:relative;margin-top:calc(var(--st) + 58px);margin-bottom:var(--tab);}
-.screen{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;opacity:0;pointer-events:none;transition:opacity .2s;}
+.screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;opacity:0;pointer-events:none;transition:opacity .2s;}
 .screen.on{opacity:1;pointer-events:all;}
 .screen::-webkit-scrollbar{display:none;}
-.sc{padding:16px 16px 32px;min-height:100%;}
+.sc{padding:16px 16px 32px;}
 
 /* UTILS */
 .sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
@@ -685,14 +685,13 @@ function setupPTR(screenId, fn) {
   const el=document.getElementById(screenId);
   if(!el)return;
   const ptr=document.createElement('div');
-  ptr.style.cssText='position:absolute;top:-50px;left:0;right:0;height:50px;display:flex;align-items:center;justify-content:center;transition:top .2s;';
+  ptr.style.cssText='display:flex;align-items:center;justify-content:center;height:0;overflow:hidden;transition:height .2s;';
   ptr.innerHTML='<div class="spin"></div>';
-  el.style.position='relative';
   el.prepend(ptr);
   let sy=0,pull=false,done=false;
   el.addEventListener('touchstart',e=>{if(el.scrollTop===0){sy=e.touches[0].clientY;pull=true;done=false;}},{passive:true});
-  el.addEventListener('touchmove',e=>{if(!pull)return;if(e.touches[0].clientY-sy>70&&!done){done=true;ptr.style.top='0';}},{passive:true});
-  el.addEventListener('touchend',async()=>{if(!pull)return;pull=false;if(done){await fn();ptr.style.top='-50px';}});
+  el.addEventListener('touchmove',e=>{if(!pull)return;if(e.touches[0].clientY-sy>70&&!done){done=true;ptr.style.height='50px';}},{passive:true});
+  el.addEventListener('touchend',async()=>{if(!pull)return;pull=false;if(done){await fn();ptr.style.height='0';}});
 }
 
 // NAVIGATION
