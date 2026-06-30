@@ -189,6 +189,20 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .pslot span{font-size:11px;color:var(--text3);}
 .pslot-x{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;cursor:pointer;z-index:2;}
 
+/* TOAST BİLDİRİM */
+#toast-wrap{position:fixed;top:calc(var(--st) + 64px);left:16px;right:16px;z-index:500;display:flex;flex-direction:column;gap:8px;pointer-events:none;}
+.toast{background:rgba(13,21,38,.96);backdrop-filter:blur(16px);border:1px solid var(--border);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,.4);pointer-events:all;cursor:pointer;animation:tin .3s ease;}
+.toast.out{animation:tout .25s ease forwards;}
+@keyframes tin{from{transform:translateY(-12px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+@keyframes tout{to{transform:translateY(-12px);opacity:0;}}
+.toast-ic{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;}
+.toast-txt{flex:1;min-width:0;}
+.toast-t{font-size:13px;font-weight:700;}
+.toast-d{font-size:12px;color:var(--text2);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+/* Bildirim çanı + nokta */
+.bell-dot{position:absolute;top:7px;right:7px;width:8px;height:8px;border-radius:50%;background:var(--red);border:1.5px solid var(--bg);display:none;}
+.bell-dot.on{display:block;}
+
 /* PAZAR */
 .mhdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
 .new-btn{display:flex;align-items:center;gap:6px;background:var(--cyan);color:#000;font-size:13px;font-weight:700;padding:9px 14px;border-radius:12px;border:none;cursor:pointer;font-family:inherit;}
@@ -295,6 +309,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 </head>
 <body>
 <div id="app">
+<div id="toast-wrap"></div>
 
 <div id="hdr">
   <div class="hi">
@@ -462,7 +477,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
       <span>Topluluk</span>
     </div>
     <div class="tab" data-s="market" onclick="gt('market')">
-      <div class="tco"><svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div>
+      <div class="tco" style="position:relative"><svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><div class="bell-dot" id="market-dot"></div></div>
       <span>Pazar</span>
     </div>
     <div class="tab" data-s="support" onclick="gt('support')">
@@ -592,6 +607,7 @@ auth.onAuthStateChanged(async u => {
   }
   rprof();
   if (listingsReady) rlistings();
+  watchMyListingsForRefs();
 });
 
 // PROFILE
@@ -696,6 +712,77 @@ async function loadListings() {
     const g = document.getElementById('lgrid');
     if (g) g.innerHTML = `<div class="load"><div style="font-size:32px">📡</div><div>${e.message}</div></div>`;
   }
+}
+
+// BİLDİRİMLER
+function showToast(icon, iconBg, title, desc, onClick) {
+  const wrap = document.getElementById('toast-wrap');
+  if (!wrap) return;
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.innerHTML = `<div class="toast-ic" style="background:${iconBg}">${icon}</div><div class="toast-txt"><div class="toast-t">${title}</div><div class="toast-d">${desc}</div></div>`;
+  if (onClick) t.onclick = () => { onClick(); dismissToast(t); };
+  else t.onclick = () => dismissToast(t);
+  wrap.appendChild(t);
+  setTimeout(() => dismissToast(t), 4500);
+  // En fazla 3 toast göster
+  while (wrap.children.length > 3) wrap.removeChild(wrap.firstChild);
+}
+function dismissToast(t) {
+  if (!t || !t.parentNode) return;
+  t.classList.add('out');
+  setTimeout(() => t.remove(), 250);
+}
+
+let notifInit = false;
+let unsubListings = null, unsubMyListings = null;
+
+function startNotifications() {
+  if (notifInit) return;
+  notifInit = true;
+
+  // Yeni ilan dinleyici - sadece eklenen yeni dokümanları yakala
+  let firstSnap = true;
+  unsubListings = db.collection('teknohane_listings')
+    .orderBy('createdAt', 'desc')
+    .limit(1)
+    .onSnapshot(snap => {
+      if (firstSnap) { firstSnap = false; return; }
+      snap.docChanges().forEach(change => {
+        if (change.type === 'added') {
+          const l = change.doc.data();
+          if (user && l.uid === user.uid) return; // kendi ilanı için bildirme
+          document.getElementById('market-dot')?.classList.add('on');
+          showToast('📱', 'var(--cdim)', 'Yeni İlan', `${l.model} - ₺${parseInt(l.price||0).toLocaleString('tr-TR')}`, () => {
+            gt('market');
+            document.getElementById('market-dot')?.classList.remove('on');
+          });
+        }
+      });
+    }, () => {});
+}
+
+function watchMyListingsForRefs() {
+  if (unsubMyListings) unsubMyListings();
+  if (!user) return;
+  let firstSnap = true;
+  const prevRefCounts = {};
+  unsubMyListings = db.collection('teknohane_listings')
+    .where('uid', '==', user.uid)
+    .onSnapshot(snap => {
+      snap.docChanges().forEach(change => {
+        const l = change.doc.data();
+        const count = (l.referrers || []).length;
+        const id = change.doc.id;
+        if (firstSnap) { prevRefCounts[id] = count; return; }
+        if (change.type === 'modified' && count > (prevRefCounts[id] || 0)) {
+          const newRef = l.referrers[l.referrers.length - 1];
+          showToast('🤝', 'rgba(255,149,0,.15)', 'Yeni Referans', `${newRef?.name||'Biri'} "${l.model}" ilanına referans oldu`, () => openDetail(id));
+        }
+        prevRefCounts[id] = count;
+      });
+      firstSnap = false;
+    }, () => {});
 }
 
 function rlistings() {
@@ -982,11 +1069,29 @@ async function lvids() {
 }
 
 let allv=[];
+let lastVideoId = null;
+
+function checkNewVideo() {
+  if (!lastVideoId) { lastVideoId = allv[0]?.id || null; return; }
+  vc = null; // cache temizle, yeniden çek
+  lvids().then(vids => {
+    if (vids[0] && vids[0].id !== lastVideoId) {
+      lastVideoId = vids[0].id;
+      allv = vids;
+      showToast('▶️', 'rgba(255,0,0,.12)', 'Yeni Video', vids[0].title, () => {
+        gt('home');
+        rhome();
+      });
+    }
+  }).catch(() => {});
+}
+
 async function rhome() {
   const c=document.getElementById('home-c');
   try {
     const[vids]=await Promise.all([lvids(),lchan()]);
     allv=vids;
+    if (!lastVideoId) lastVideoId = vids[0]?.id || null;
     const ch=cc,st=ch?.statistics||{},sn=ch?.snippet||{};
     const f=vids[0],rest=vids.slice(1);
     c.innerHTML=`
@@ -1176,7 +1281,10 @@ function gt(name) {
   if(tab)tab.classList.add('on');
   const scr=document.getElementById('s-'+name);
   if(scr)scr.classList.add('on');
-  if(name==='market') rlistings();
+  if(name==='market') {
+    rlistings();
+    document.getElementById('market-dot')?.classList.remove('on');
+  }
 }
 
 function ol(url) { location.href='/teknohane/go.html?url='+encodeURIComponent(url); }
@@ -1185,6 +1293,8 @@ function closemo(id) { document.getElementById(id)?.classList.remove('on'); }
 // INIT
 rhome();
 loadListings();
+setTimeout(() => startNotifications(), 2000); // İlk yükleme bitsin diye gecikme
+setInterval(() => checkNewVideo(), 3 * 60 * 1000); // Her 3 dakikada bir yeni video kontrolü
 setTimeout(()=>{
   setupPTR('s-home',async()=>{
     vc=null;cc=null;cid=null;
