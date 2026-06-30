@@ -328,6 +328,30 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .adm-model{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .adm-meta{font-size:11px;color:var(--text2);margin-top:2px;}
 .adm-del{width:32px;height:32px;border-radius:8px;background:rgba(255,69,58,.12);border:1px solid rgba(255,69,58,.25);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
+/* Kullanıcı listesi */
+.adm-user-row{display:flex;align-items:center;gap:12px;padding:12px;background:var(--surf);border-radius:12px;margin-bottom:8px;cursor:pointer;}
+.adm-user-row:active{background:var(--surf2);}
+.adm-user-av{width:42px;height:42px;border-radius:50%;object-fit:cover;background:var(--cdim);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:var(--cyan);flex-shrink:0;}
+.adm-user-info{flex:1;min-width:0;}
+.adm-user-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.adm-user-email{font-size:11px;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.adm-user-stats{display:flex;gap:10px;flex-shrink:0;}
+.adm-user-stat{text-align:center;}
+.adm-user-stat-n{font-size:14px;font-weight:700;color:var(--cyan);}
+.adm-user-stat-l{font-size:9px;color:var(--text3);text-transform:uppercase;}
+/* Kullanıcı detay paneli */
+.ud-hero{display:flex;align-items:center;gap:14px;margin-bottom:20px;}
+.ud-av{width:64px;height:64px;border-radius:50%;object-fit:cover;background:var(--cdim);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:var(--cyan);flex-shrink:0;}
+.ud-name{font-size:18px;font-weight:700;}
+.ud-email{font-size:12px;color:var(--text2);margin-top:2px;}
+.ud-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px;}
+.ud-section{margin-bottom:18px;}
+.ud-section-title{font-size:13px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px;}
+.ud-item{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surf);border-radius:10px;margin-bottom:6px;font-size:13px;cursor:pointer;}
+.ud-item:active{background:var(--surf2);}
+.ud-item-name{font-weight:500;}
+.ud-item-meta{font-size:11px;color:var(--text3);}
+.ud-empty{font-size:12px;color:var(--text3);padding:10px 0;}
 .adm-del svg{width:15px;height:15px;stroke:var(--red);}
 .aptit{font-size:14px;font-weight:700;color:var(--cyan);margin-bottom:6px;display:flex;align-items:center;gap:6px;}
 .signout{width:100%;background:rgba(255,69,58,.1);border:1px solid rgba(255,69,58,.2);color:var(--red);font-size:15px;font-weight:600;padding:14px;border-radius:14px;cursor:pointer;font-family:inherit;}
@@ -682,12 +706,35 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 <div class="mo" id="admin-mo" onclick="closemo('admin-mo')">
   <div class="ms" onclick="event.stopPropagation()" style="max-height:85vh">
     <div class="mh"></div>
-    <div class="mtit">Tüm İlanlar</div>
-    <div class="sw" style="margin-bottom:12px">
-      <svg class="sico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input class="si" type="text" id="adm-srch" placeholder="Model veya satıcı ara…" oninput="radmin()">
+    <div class="mtit" id="admin-modal-title">Yönetim</div>
+    <div class="mtabs" style="margin-bottom:14px">
+      <button class="mtab on" id="adm-tab-listings" onclick="switchAdminTab('listings')">İlanlar</button>
+      <button class="mtab off" id="adm-tab-users" onclick="switchAdminTab('users')">Kullanıcılar</button>
     </div>
-    <div id="adm-list"></div>
+
+    <div id="admin-listings-view">
+      <div class="sw" style="margin-bottom:12px">
+        <svg class="sico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="si" type="text" id="adm-srch" placeholder="Model veya satıcı ara…" oninput="radmin()">
+      </div>
+      <div id="adm-list"></div>
+    </div>
+
+    <div id="admin-users-view" style="display:none">
+      <div class="sw" style="margin-bottom:12px">
+        <svg class="sico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="si" type="text" id="adm-user-srch" placeholder="İsim veya e-posta ara…" oninput="rAdminUsers()">
+      </div>
+      <div id="adm-users-list"><div class="load"><div class="spin"></div><span>Kullanıcılar yükleniyor…</span></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- KULLANICI DETAY MODAL -->
+<div class="mo" id="user-detail-mo" onclick="closemo('user-detail-mo')">
+  <div class="ms" onclick="event.stopPropagation()" style="max-height:85vh">
+    <div class="mh"></div>
+    <div id="user-detail-body"></div>
   </div>
 </div>
 
@@ -882,16 +929,24 @@ function loadListings() {
       }
 
       // Sonraki değişikliklerde bildirim kontrolü
+      const isAdminUser = user && ADMINS.includes(user.email);
       snap.docChanges().forEach(change => {
         const l = { id: change.doc.id, ...change.doc.data() };
 
         if (change.type === 'added') {
-          if (user && l.uid === user.uid) return; // kendi ilanı
-          document.getElementById('market-dot')?.classList.add('on');
-          showToast('📱', 'var(--cdim)', 'Yeni İlan', `${l.model} - ₺${parseInt(l.price||0).toLocaleString('tr-TR')}`, () => {
-            gt('market');
-            document.getElementById('market-dot')?.classList.remove('on');
-          });
+          if (user && l.uid === user.uid) { prevRefCounts[l.id] = (l.referrers||[]).length; return; } // kendi ilanı
+          if (l.approved === false) {
+            // Onay bekleyen ilan — sadece adminlere bildirim
+            if (isAdminUser) {
+              showToast('⏳', 'rgba(255,149,0,.15)', 'Onay Bekleyen İlan', `${l.model} - ₺${parseInt(l.price||0).toLocaleString('tr-TR')}`, () => openDetail(l.id));
+            }
+          } else {
+            document.getElementById('market-dot')?.classList.add('on');
+            showToast('📱', 'var(--cdim)', 'Yeni İlan', `${l.model} - ₺${parseInt(l.price||0).toLocaleString('tr-TR')}`, () => {
+              gt('market');
+              document.getElementById('market-dot')?.classList.remove('on');
+            });
+          }
           prevRefCounts[l.id] = (l.referrers||[]).length;
         }
 
@@ -960,8 +1015,14 @@ function rlistings() {
   if (!listingsReady) return;
   const q = (document.getElementById('msrch')?.value||'').toLowerCase();
   let items = listings.filter(l => !q || l.model?.toLowerCase().includes(q));
+  // Onaylanmamış ilanlar: sadece "İlanlarım" sekmesinde sahibi görsün, diğer yerlerde gizli
+  // (approved alanı olmayan eski ilanlar onaylı sayılır - geriye dönük uyumluluk)
+  if (mktab === 'mine') {
+    items = user ? items.filter(l => l.uid === user.uid) : [];
+  } else {
+    items = items.filter(l => l.approved !== false);
+  }
   if (mktab === 'fav') items = items.filter(l => favs.has(l.id));
-  if (mktab === 'mine') items = user ? items.filter(l => l.uid === user.uid) : [];
   if (filterMin) items = items.filter(l => parseInt(l.price||0) >= parseInt(filterMin));
   if (filterMax) items = items.filter(l => parseInt(l.price||0) <= parseInt(filterMax));
   if (filterBrand !== 'Tümü') items = items.filter(l => (l.model||'').toLowerCase().includes(filterBrand.toLowerCase()));
@@ -974,8 +1035,10 @@ function rlistings() {
   grid.innerHTML = items.map(l => {
     const mine = user && l.uid === user.uid;
     const fav = favs.has(l.id);
+    const pending = l.approved === false;
     return `<div class="lcard ${l.sold?'sold':''}" onclick="openDetail('${l.id}')">
       ${l.sold?'<div class="sold-badge">SATILDI</div>':''}
+      ${pending && !l.sold?'<div class="sold-badge" style="background:rgba(255,149,0,.92)">İNCELENİYOR</div>':''}
       <div class="ltit">${l.model||''}</div>
       <div class="lrow">
         <div class="lprc">₺${parseInt(l.price||0).toLocaleString('tr-TR')}</div>
@@ -1031,6 +1094,7 @@ async function submitListing() {
       battery: document.getElementById('l-battery').value.trim(),
       box: document.getElementById('l-box').value.trim(),
       sold: false,
+      approved: false,
       uid: user.uid,
       ownerName: user.displayName || user.email?.split('@')[0] || 'Anonim',
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -1045,6 +1109,7 @@ async function submitListing() {
     document.getElementById('detail-fields').style.display = 'none';
     document.getElementById('dt-chevron')?.parentElement?.classList.remove('open');
     rmPhoto(0); rmPhoto(1);
+    showToast('⏳', 'rgba(255,149,0,.15)', 'İlanınız Gönderildi', 'İncelendikten sonra Pazar\'da yayınlanacaktır.');
     // onSnapshot otomatik güncelleyecek, ekstra okuma gerekmiyor
   } catch(e) { alert('Hata: ' + e.message); }
 }
@@ -1104,6 +1169,8 @@ function openDetail(id) {
   if (!currentListing) return;
   const l = currentListing;
   const mine = user && l.uid === user.uid;
+  const isAdmin = user && ADMINS.includes(user.email);
+  const pending = l.approved === false;
   const fav = favs.has(l.id);
   const ps = [l.photo1, l.photo2].filter(Boolean);
   const refs = l.referrers || [];
@@ -1120,6 +1187,8 @@ function openDetail(id) {
   document.getElementById('det-body').innerHTML = `
     ${ps.length ? `<div class="det-photos">${ps.map(p=>`<img class="det-photo" src="${p}">`).join('')}</div>` : ''}
     ${l.sold ? `<div style="background:rgba(255,69,58,.12);border:1px solid rgba(255,69,58,.3);color:var(--red);font-size:13px;font-weight:700;padding:8px 14px;border-radius:10px;margin-bottom:12px;text-align:center">✓ Bu ilan satıldı</div>` : ''}
+    ${pending && mine && !isAdmin ? `<div style="background:rgba(255,149,0,.12);border:1px solid rgba(255,149,0,.3);color:#FF9500;font-size:13px;font-weight:700;padding:8px 14px;border-radius:10px;margin-bottom:12px;text-align:center">⏳ İlanınız inceleniyor, onaylandığında Pazar'da görünecek</div>` : ''}
+    ${pending && isAdmin ? `<div style="background:rgba(255,149,0,.12);border:1px solid rgba(255,149,0,.3);color:#FF9500;font-size:13px;font-weight:700;padding:8px 14px;border-radius:10px;margin-bottom:12px;text-align:center">⏳ Onay bekliyor</div>` : ''}
     <div style="font-size:22px;font-weight:700;margin-bottom:4px">${l.model||''}</div>
     <div style="font-size:28px;font-weight:700;color:var(--cyan);margin-bottom:10px">₺${parseInt(l.price||0).toLocaleString('tr-TR')}</div>
     <div style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap">
@@ -1158,6 +1227,7 @@ function openDetail(id) {
         <span class="abtn-lbl">Sil</span>
       </button>`:'<div></div>'}
     </div>
+    ${pending && isAdmin ? `<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px" onclick="approveListing('${l.id}')">✓ İlanı Onayla ve Yayınla</button>`:''}
     ${mine?`<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px" onclick="toggleSold('${l.id}')">${l.sold?'↺ Satıldı İşaretini Kaldır':'✓ Satıldı Olarak İşaretle'}</button>`:''}`;
   document.getElementById('detail-mo').classList.add('on');
 }
@@ -1171,6 +1241,19 @@ async function toggleSold(id) {
     l.sold = newSold;
     openDetail(id);
     rlistings();
+  } catch(e) { alert('Hata: ' + e.message); }
+}
+
+async function approveListing(id) {
+  if (!user || !ADMINS.includes(user.email)) return;
+  try {
+    await db.collection('teknohane_listings').doc(id).update({ approved: true });
+    const l = listings.find(x => x.id === id);
+    if (l) l.approved = true;
+    closemo('detail-mo');
+    rlistings();
+    radmin();
+    showToast('✓', 'rgba(48,209,88,.15)', 'İlan Onaylandı', `${l?.model||'İlan'} artık Pazar'da görünüyor.`);
   } catch(e) { alert('Hata: ' + e.message); }
 }
 
@@ -1235,7 +1318,18 @@ function updateAdminStats() {
 function openAdmin() {
   document.getElementById('admin-mo').classList.add('on');
   document.getElementById('adm-srch').value = '';
+  switchAdminTab('listings');
   radmin();
+}
+
+function switchAdminTab(tab) {
+  const isListings = tab === 'listings';
+  document.getElementById('adm-tab-listings').className = isListings ? 'mtab on' : 'mtab off';
+  document.getElementById('adm-tab-users').className = isListings ? 'mtab off' : 'mtab on';
+  document.getElementById('admin-listings-view').style.display = isListings ? 'block' : 'none';
+  document.getElementById('admin-users-view').style.display = isListings ? 'none' : 'block';
+  document.getElementById('admin-modal-title').textContent = isListings ? 'Yönetim' : 'Yönetim';
+  if (!isListings) loadAdminUsers();
 }
 
 function radmin() {
@@ -1243,18 +1337,133 @@ function radmin() {
   if (!list) return;
   const q = (document.getElementById('adm-srch')?.value||'').toLowerCase();
   let items = listings.filter(l => !q || l.model?.toLowerCase().includes(q) || l.ownerName?.toLowerCase().includes(q));
+  // Onay bekleyenleri en üste al
+  items = [...items].sort((a,b) => {
+    const aPending = a.approved === false ? 0 : 1;
+    const bPending = b.approved === false ? 0 : 1;
+    return aPending - bPending;
+  });
   if (!items.length) { list.innerHTML = '<div class="no">İlan bulunamadı</div>'; return; }
-  list.innerHTML = items.map(l => `
-    <div class="adm-row">
+  list.innerHTML = items.map(l => {
+    const pending = l.approved === false;
+    return `
+    <div class="adm-row" style="${pending?'border:1px solid rgba(255,149,0,.35);background:rgba(255,149,0,.05)':''}" onclick="openDetail('${l.id}')">
       ${l.photo1 ? `<img src="${l.photo1}">` : `<div style="width:44px;height:44px;border-radius:8px;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">📱</div>`}
       <div class="adm-info">
-        <div class="adm-model">${l.model||'—'}</div>
+        <div class="adm-model">${l.model||'—'}${pending?' <span style="color:#FF9500;font-size:10px;font-weight:700">⏳ ONAY BEKLİYOR</span>':''}</div>
         <div class="adm-meta">₺${parseInt(l.price||0).toLocaleString('tr-TR')} · ${l.ownerName||'Anonim'}</div>
       </div>
-      <div class="adm-del" onclick="delListing('${l.id}')">
+      <div class="adm-del" onclick="event.stopPropagation();delListing('${l.id}')">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M9 6V4h6v2"/></svg>
       </div>
+    </div>`;
+  }).join('');
+}
+
+// KULLANICI YÖNETİMİ
+let adminUsersCache = null;
+
+async function loadAdminUsers() {
+  const list = document.getElementById('adm-users-list');
+  if (!list) return;
+  try {
+    const snap = await db.collection('teknohane_users').get();
+    adminUsersCache = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+    rAdminUsers();
+  } catch(e) {
+    list.innerHTML = `<div class="no">Kullanıcılar yüklenemedi</div>`;
+  }
+}
+
+function rAdminUsers() {
+  const list = document.getElementById('adm-users-list');
+  if (!list || !adminUsersCache) return;
+  const q = (document.getElementById('adm-user-srch')?.value||'').toLowerCase();
+
+  // Her kullanıcı için ilan sayısını listings'ten hesapla
+  const enriched = adminUsersCache.map(u => {
+    const userListings = listings.filter(l => l.uid === u.uid);
+    return {
+      ...u,
+      listingCount: userListings.length,
+      favCount: (u.favorites || []).length,
+      displayName: u.displayName || userListings[0]?.ownerName || 'Kullanıcı',
+      email: u.email || ''
+    };
+  });
+
+  let items = enriched.filter(u =>
+    !q || u.displayName.toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q)
+  );
+
+  if (!items.length) { list.innerHTML = '<div class="no">Kullanıcı bulunamadı</div>'; return; }
+
+  list.innerHTML = items.map(u => `
+    <div class="adm-user-row" onclick="openUserDetail('${u.uid}')">
+      <div class="adm-user-av">${(u.displayName||'?')[0].toUpperCase()}</div>
+      <div class="adm-user-info">
+        <div class="adm-user-name">${u.displayName}</div>
+        <div class="adm-user-email">${u.email}</div>
+      </div>
+      <div class="adm-user-stats">
+        <div class="adm-user-stat"><div class="adm-user-stat-n">${u.listingCount}</div><div class="adm-user-stat-l">İlan</div></div>
+        <div class="adm-user-stat"><div class="adm-user-stat-n">${u.favCount}</div><div class="adm-user-stat-l">Favori</div></div>
+      </div>
     </div>`).join('');
+}
+
+function openUserDetail(uid) {
+  const u = adminUsersCache?.find(x => x.uid === uid);
+  if (!u) return;
+  const userListings = listings.filter(l => l.uid === uid);
+  const favIds = u.favorites || [];
+  const favListings = listings.filter(l => favIds.includes(l.id));
+  const refListings = listings.filter(l => (l.referrers||[]).some(r => r.uid === uid));
+  const displayName = u.displayName || userListings[0]?.ownerName || 'Kullanıcı';
+  const isAdminU = ADMINS.includes(u.email);
+
+  document.getElementById('user-detail-body').innerHTML = `
+    <div class="ud-hero">
+      <div class="ud-av">${displayName[0].toUpperCase()}</div>
+      <div>
+        <div class="ud-name">${displayName}${isAdminU?' <span class="admin-badge">ADMIN</span>':''}</div>
+        <div class="ud-email">${u.email||'—'}</div>
+      </div>
+    </div>
+    <div class="ud-stats">
+      <div class="apstat"><div class="apstat-n">${userListings.length}</div><div class="apstat-l">İlan</div></div>
+      <div class="apstat"><div class="apstat-n">${favListings.length}</div><div class="apstat-l">Favori</div></div>
+      <div class="apstat"><div class="apstat-n">${refListings.length}</div><div class="apstat-l">Referans</div></div>
+    </div>
+
+    <div class="ud-section">
+      <div class="ud-section-title">Verdiği İlanlar</div>
+      ${userListings.length ? userListings.map(l => `
+        <div class="ud-item" onclick="closemo('user-detail-mo');openDetail('${l.id}')">
+          <span class="ud-item-name">${l.model}${l.approved===false?' ⏳':''}${l.sold?' ✓':''}</span>
+          <span class="ud-item-meta">₺${parseInt(l.price||0).toLocaleString('tr-TR')}</span>
+        </div>`).join('') : '<div class="ud-empty">Henüz ilan vermemiş</div>'}
+    </div>
+
+    <div class="ud-section">
+      <div class="ud-section-title">Favorilediği İlanlar</div>
+      ${favListings.length ? favListings.map(l => `
+        <div class="ud-item" onclick="closemo('user-detail-mo');openDetail('${l.id}')">
+          <span class="ud-item-name">${l.model}</span>
+          <span class="ud-item-meta">₺${parseInt(l.price||0).toLocaleString('tr-TR')}</span>
+        </div>`).join('') : '<div class="ud-empty">Favori ilanı yok</div>'}
+    </div>
+
+    <div class="ud-section">
+      <div class="ud-section-title">Referans Olduğu İlanlar</div>
+      ${refListings.length ? refListings.map(l => `
+        <div class="ud-item" onclick="closemo('user-detail-mo');openDetail('${l.id}')">
+          <span class="ud-item-name">${l.model}</span>
+          <span class="ud-item-meta">${l.ownerName||'—'}</span>
+        </div>`).join('') : '<div class="ud-empty">Referans olduğu ilan yok</div>'}
+    </div>`;
+
+  document.getElementById('user-detail-mo').classList.add('on');
 }
 
 // YOUTUBE
