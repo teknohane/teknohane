@@ -785,7 +785,15 @@ auth.onAuthStateChanged(async u => {
     try {
       const snap = await db.collection('teknohane_users').doc(u.uid).get();
       if (snap.exists) favs = new Set(snap.data().favorites || []);
-      else await db.collection('teknohane_users').doc(u.uid).set({favorites:[], createdAt: firebase.firestore.FieldValue.serverTimestamp()});
+      // Her girişte isim/email güncellensin (favori listesi merge ile korunur)
+      await db.collection('teknohane_users').doc(u.uid).set({
+        favorites: snap.exists ? (snap.data().favorites || []) : [],
+        displayName: u.displayName || u.email?.split('@')[0] || 'Kullanıcı',
+        email: u.email || '',
+        photoURL: u.photoURL || '',
+        createdAt: snap.exists ? (snap.data().createdAt || firebase.firestore.FieldValue.serverTimestamp()) : firebase.firestore.FieldValue.serverTimestamp(),
+        lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
     } catch(e) {}
   } else {
     document.getElementById('hav').style.display = 'none';
@@ -1383,11 +1391,20 @@ function rAdminUsers() {
   // Her kullanıcı için ilan sayısını listings'ten hesapla
   const enriched = adminUsersCache.map(u => {
     const userListings = listings.filter(l => l.uid === u.uid);
+    // İsim için fallback zinciri: kendi displayName → verdiği ilan → referans olduğu ilandaki kayıtlı isim
+    let fallbackName = u.displayName;
+    if (!fallbackName && userListings[0]) fallbackName = userListings[0].ownerName;
+    if (!fallbackName) {
+      for (const l of listings) {
+        const ref = (l.referrers||[]).find(r => r.uid === u.uid);
+        if (ref?.name) { fallbackName = ref.name; break; }
+      }
+    }
     return {
       ...u,
       listingCount: userListings.length,
       favCount: (u.favorites || []).length,
-      displayName: u.displayName || userListings[0]?.ownerName || 'Kullanıcı',
+      displayName: fallbackName || 'İsimsiz Kullanıcı',
       email: u.email || ''
     };
   });
@@ -1419,7 +1436,14 @@ function openUserDetail(uid) {
   const favIds = u.favorites || [];
   const favListings = listings.filter(l => favIds.includes(l.id));
   const refListings = listings.filter(l => (l.referrers||[]).some(r => r.uid === uid));
-  const displayName = u.displayName || userListings[0]?.ownerName || 'Kullanıcı';
+  let displayName = u.displayName || userListings[0]?.ownerName;
+  if (!displayName) {
+    for (const l of listings) {
+      const ref = (l.referrers||[]).find(r => r.uid === uid);
+      if (ref?.name) { displayName = ref.name; break; }
+    }
+  }
+  displayName = displayName || 'İsimsiz Kullanıcı';
   const isAdminU = ADMINS.includes(u.email);
 
   document.getElementById('user-detail-body').innerHTML = `
