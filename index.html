@@ -193,6 +193,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .pslot-x{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;cursor:pointer;z-index:2;}
 
 /* TOAST BİLDİRİM */
+#offline-bar{display:none;position:fixed;top:var(--st);left:0;right:0;z-index:550;background:rgba(255,149,0,.95);backdrop-filter:blur(8px);color:#000;font-size:12px;font-weight:700;text-align:center;padding:7px;letter-spacing:.2px;}
+#offline-bar.on{display:block;}
+
 #toast-wrap{position:fixed;top:calc(var(--st) + 64px);left:16px;right:16px;z-index:500;display:flex;flex-direction:column;gap:8px;pointer-events:none;}
 .toast{background:rgba(13,21,38,.96);backdrop-filter:blur(16px);border:1px solid var(--border);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,.4);pointer-events:all;cursor:pointer;animation:tin .3s ease;}
 .toast.out{animation:tout .25s ease forwards;}
@@ -363,6 +366,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 </head>
 <body>
 <div id="app">
+<div id="offline-bar">📡 İnternet bağlantısı yok — bazı içerikler güncellenemiyor</div>
 <div id="toast-wrap"></div>
 
 <!-- KARŞILAMA EKRANI -->
@@ -1778,10 +1782,20 @@ function checkOnboarding() {
 function ol(url) { location.href='/teknohane/go.html?url='+encodeURIComponent(url); }
 function closemo(id) { document.getElementById(id)?.classList.remove('on'); }
 
+// ONLINE/OFFLINE DURUMU
+function updateOnlineStatus() {
+  const bar = document.getElementById('offline-bar');
+  if (!bar) return;
+  bar.classList.toggle('on', !navigator.onLine);
+}
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+
 // INIT
 rhome();
 loadListings();
 checkOnboarding();
+updateOnlineStatus();
 setTimeout(() => startNotifications(), 2000); // İlk yükleme bitsin diye gecikme
 setInterval(() => checkNewVideo(), 3 * 60 * 1000); // Her 3 dakikada bir yeni video kontrolü
 setTimeout(()=>{
@@ -1793,8 +1807,10 @@ setTimeout(()=>{
 },500);
 
 if('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(r=>r.forEach(x=>x.unregister()));
-  caches.keys().then(k=>k.forEach(x=>caches.delete(x)));
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/teknohane/sw.js', { scope: '/teknohane/' })
+      .catch(() => {});
+  });
 }
 </script>
 </body>
