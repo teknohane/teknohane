@@ -775,17 +775,44 @@ let mktab = 'all';
 let listingsReady = false;
 
 // AUTH
-auth.onAuthStateChanged(async u => {
+auth.onAuthStateChanged(u => {
   user = u;
   if (u) {
     document.getElementById('hav').style.display = 'flex';
     document.getElementById('hlogin').style.display = 'none';
     const img = document.getElementById('hav-img');
     img.src = u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.displayName||u.email)}&background=0D1526&color=00D4FF&size=64`;
-    try {
-      const snap = await db.collection('teknohane_users').doc(u.uid).get();
-      if (snap.exists) favs = new Set(snap.data().favorites || []);
-      // Her girişte isim/email güncellensin (favori listesi merge ile korunur)
+
+    // UI'ı hemen güncelle, Firestore işlemlerini bekleme
+    rprof();
+    if (listingsReady) rlistings();
+
+    // Favori/profil verisini arka planda çek ve senkronize et — UI'ı bloklamaz
+    syncUserProfile(u);
+  } else {
+    document.getElementById('hav').style.display = 'none';
+    document.getElementById('hlogin').style.display = 'flex';
+    favs = new Set();
+    rprof();
+    if (listingsReady) rlistings();
+  }
+});
+
+let lastProfileSync = 0;
+async function syncUserProfile(u) {
+  try {
+    const snap = await db.collection('teknohane_users').doc(u.uid).get();
+    if (snap.exists) {
+      favs = new Set(snap.data().favorites || []);
+      rlistings(); // favoriler geldi, listeyi güncelle (kalp ikonları doğru görünsün)
+      if (document.getElementById('s-profile')?.classList.contains('on')) rprof();
+    }
+
+    // Profil bilgisini (isim/email) günde en fazla 1 kez güncelle, her açılışta değil
+    const now = Date.now();
+    const lastSync = parseInt(localStorage.getItem('tk_last_profile_sync') || '0');
+    const needsUpdate = !snap.exists || !snap.data().email || (now - lastSync > 24*60*60*1000);
+    if (needsUpdate) {
       await db.collection('teknohane_users').doc(u.uid).set({
         favorites: snap.exists ? (snap.data().favorites || []) : [],
         displayName: u.displayName || u.email?.split('@')[0] || 'Kullanıcı',
@@ -794,15 +821,10 @@ auth.onAuthStateChanged(async u => {
         createdAt: snap.exists ? (snap.data().createdAt || firebase.firestore.FieldValue.serverTimestamp()) : firebase.firestore.FieldValue.serverTimestamp(),
         lastSeen: firebase.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
-    } catch(e) {}
-  } else {
-    document.getElementById('hav').style.display = 'none';
-    document.getElementById('hlogin').style.display = 'flex';
-    favs = new Set();
-  }
-  rprof();
-  if (listingsReady) rlistings();
-});
+      localStorage.setItem('tk_last_profile_sync', String(now));
+    }
+  } catch(e) { /* sessizce geç, offline olabilir */ }
+}
 
 // PROFILE
 function rprof() {
