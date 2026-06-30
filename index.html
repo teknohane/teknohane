@@ -747,7 +747,6 @@ auth.onAuthStateChanged(async u => {
   }
   rprof();
   if (listingsReady) rlistings();
-  watchMyListingsForRefs();
 });
 
 // PROFILE
@@ -838,23 +837,10 @@ async function dogoogle() {
 }
 
 // PAZAR
-async function loadListings() {
-  listingsReady = false;
-  try {
-    const snap = await db.collection('teknohane_listings').get();
-    listings = snap.docs.map(d => ({id:d.id,...d.data()}));
-    listings.sort((a,b) => (b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
-    listingsReady = true;
-    rlistings();
-    if (user && ADMINS.includes(user.email)) updateAdminStats();
-  } catch(e) {
-    listingsReady = true;
-    const g = document.getElementById('lgrid');
-    if (g) g.innerHTML = `<div class="load"><div style="font-size:32px">📡</div><div>${e.message}</div></div>`;
-  }
-}
+// PAZAR — TEK DİNLEYİCİ İLE OPTİMİZE EDİLMİŞ
+// Tüm ilan verisi, yeni ilan bildirimi ve referans bildirimi
+// AYNI onSnapshot'tan besleniyor — gereksiz tekrar okuma yok.
 
-// BİLDİRİMLER
 function showToast(icon, iconBg, title, desc, onClick) {
   const wrap = document.getElementById('toast-wrap');
   if (!wrap) return;
@@ -865,7 +851,6 @@ function showToast(icon, iconBg, title, desc, onClick) {
   else t.onclick = () => dismissToast(t);
   wrap.appendChild(t);
   setTimeout(() => dismissToast(t), 4500);
-  // En fazla 3 toast göster
   while (wrap.children.length > 3) wrap.removeChild(wrap.firstChild);
 }
 function dismissToast(t) {
@@ -874,55 +859,57 @@ function dismissToast(t) {
   setTimeout(() => t.remove(), 250);
 }
 
-let notifInit = false;
-let unsubListings = null, unsubMyListings = null;
+let unsubListings = null;
+let prevRefCounts = {};
+let listingsFirstLoad = true;
 
-function startNotifications() {
-  if (notifInit) return;
-  notifInit = true;
-
-  // Yeni ilan dinleyici - sadece eklenen yeni dokümanları yakala
-  let firstSnap = true;
+function loadListings() {
+  if (unsubListings) return; // zaten dinleniyor, tekrar kurma
+  listingsReady = false;
   unsubListings = db.collection('teknohane_listings')
     .orderBy('createdAt', 'desc')
-    .limit(1)
     .onSnapshot(snap => {
-      if (firstSnap) { firstSnap = false; return; }
+      listings = snap.docs.map(d => ({id:d.id,...d.data()}));
+      listingsReady = true;
+      rlistings();
+      if (user && ADMINS.includes(user.email)) updateAdminStats();
+
+      // İlk yüklemede bildirim tetikleme, sadece referans sayaçlarını başlat
+      if (listingsFirstLoad) {
+        listings.forEach(l => { prevRefCounts[l.id] = (l.referrers||[]).length; });
+        listingsFirstLoad = false;
+        return;
+      }
+
+      // Sonraki değişikliklerde bildirim kontrolü
       snap.docChanges().forEach(change => {
+        const l = { id: change.doc.id, ...change.doc.data() };
+
         if (change.type === 'added') {
-          const l = change.doc.data();
-          if (user && l.uid === user.uid) return; // kendi ilanı için bildirme
+          if (user && l.uid === user.uid) return; // kendi ilanı
           document.getElementById('market-dot')?.classList.add('on');
           showToast('📱', 'var(--cdim)', 'Yeni İlan', `${l.model} - ₺${parseInt(l.price||0).toLocaleString('tr-TR')}`, () => {
             gt('market');
             document.getElementById('market-dot')?.classList.remove('on');
           });
+          prevRefCounts[l.id] = (l.referrers||[]).length;
         }
-      });
-    }, () => {});
-}
 
-function watchMyListingsForRefs() {
-  if (unsubMyListings) unsubMyListings();
-  if (!user) return;
-  let firstSnap = true;
-  const prevRefCounts = {};
-  unsubMyListings = db.collection('teknohane_listings')
-    .where('uid', '==', user.uid)
-    .onSnapshot(snap => {
-      snap.docChanges().forEach(change => {
-        const l = change.doc.data();
-        const count = (l.referrers || []).length;
-        const id = change.doc.id;
-        if (firstSnap) { prevRefCounts[id] = count; return; }
-        if (change.type === 'modified' && count > (prevRefCounts[id] || 0)) {
-          const newRef = l.referrers[l.referrers.length - 1];
-          showToast('🤝', 'rgba(255,149,0,.15)', 'Yeni Referans', `${newRef?.name||'Biri'} "${l.model}" ilanına referans oldu`, () => openDetail(id));
+        if (change.type === 'modified') {
+          const newCount = (l.referrers||[]).length;
+          const oldCount = prevRefCounts[l.id] || 0;
+          if (user && l.uid === user.uid && newCount > oldCount) {
+            const newRef = l.referrers[l.referrers.length - 1];
+            showToast('🤝', 'rgba(255,149,0,.15)', 'Yeni Referans', `${newRef?.name||'Biri'} "${l.model}" ilanına referans oldu`, () => openDetail(l.id));
+          }
+          prevRefCounts[l.id] = newCount;
         }
-        prevRefCounts[id] = count;
       });
-      firstSnap = false;
-    }, () => {});
+    }, () => {
+      listingsReady = true;
+      const g = document.getElementById('lgrid');
+      if (g) g.innerHTML = `<div class="load"><div style="font-size:32px">📡</div><div>Bağlantı hatası</div></div>`;
+    });
 }
 
 let filterMin = '', filterMax = '', filterBrand = 'Tümü';
@@ -1058,7 +1045,7 @@ async function submitListing() {
     document.getElementById('detail-fields').style.display = 'none';
     document.getElementById('dt-chevron')?.parentElement?.classList.remove('open');
     rmPhoto(0); rmPhoto(1);
-    await loadListings();
+    // onSnapshot otomatik güncelleyecek, ekstra okuma gerekmiyor
   } catch(e) { alert('Hata: ' + e.message); }
 }
 
@@ -1796,7 +1783,6 @@ rhome();
 loadListings();
 checkOnboarding();
 updateOnlineStatus();
-setTimeout(() => startNotifications(), 2000); // İlk yükleme bitsin diye gecikme
 setInterval(() => checkNewVideo(), 3 * 60 * 1000); // Her 3 dakikada bir yeni video kontrolü
 setTimeout(()=>{
   setupPTR('s-home',async()=>{
