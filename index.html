@@ -203,6 +203,32 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .bell-dot{position:absolute;top:7px;right:7px;width:8px;height:8px;border-radius:50%;background:var(--red);border:1.5px solid var(--bg);display:none;}
 .bell-dot.on{display:block;}
 
+/* ONBOARDING - KARŞILAMA */
+#welcome-mo{display:none;position:fixed;inset:0;z-index:1000;background:var(--bg);flex-direction:column;}
+#welcome-mo.on{display:flex;}
+.wel-content{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;text-align:center;}
+.wel-logo{width:88px;height:88px;border-radius:26px;object-fit:cover;box-shadow:0 0 40px var(--cglow);margin-bottom:20px;animation:welpulse 2.5s ease-in-out infinite;}
+@keyframes welpulse{0%,100%{box-shadow:0 0 30px var(--cglow);}50%{box-shadow:0 0 50px var(--cglow);}}
+.wel-title{font-size:28px;font-weight:700;letter-spacing:-.6px;margin-bottom:10px;background:linear-gradient(135deg,#fff,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.wel-sub{font-size:15px;color:var(--text2);line-height:1.6;max-width:300px;margin-bottom:32px;}
+.wel-features{display:flex;flex-direction:column;gap:14px;width:100%;max-width:320px;margin-bottom:8px;}
+.wel-feat{display:flex;align-items:center;gap:14px;text-align:left;background:var(--surf);border:1px solid var(--border2);border-radius:14px;padding:14px;}
+.wel-feat-ic{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.wel-feat-t{font-size:13px;font-weight:600;}
+.wel-feat-d{font-size:11px;color:var(--text2);margin-top:2px;}
+.wel-foot{padding:20px 24px calc(20px + var(--sb));}
+.wel-btn{width:100%;background:var(--cyan);color:#000;font-size:16px;font-weight:700;padding:16px;border-radius:16px;border:none;cursor:pointer;font-family:inherit;}
+
+/* TUTORIAL TOOLTIP */
+#tip-bubble{display:none;position:fixed;left:16px;right:16px;z-index:600;background:linear-gradient(135deg,var(--surf3),var(--surf2));border:1px solid rgba(0,212,255,.3);border-radius:16px;padding:14px 16px;box-shadow:0 8px 28px rgba(0,0,0,.5);animation:tipin .3s ease;}
+#tip-bubble.on{display:flex;}
+@keyframes tipin{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.tip-arrow{position:absolute;width:14px;height:14px;background:var(--surf3);border-left:1px solid rgba(0,212,255,.3);border-top:1px solid rgba(0,212,255,.3);transform:rotate(225deg);bottom:-8px;left:50%;margin-left:-7px;}
+.tip-ic{font-size:20px;margin-right:10px;flex-shrink:0;}
+.tip-txt{flex:1;font-size:13px;color:var(--text);line-height:1.5;}
+.tip-txt b{color:var(--cyan);}
+.tip-x{font-size:18px;color:var(--text3);cursor:pointer;padding:2px 0 2px 10px;flex-shrink:0;}
+
 /* PAZAR */
 .mhdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
 .new-btn{display:flex;align-items:center;gap:6px;background:var(--cyan);color:#000;font-size:13px;font-weight:700;padding:9px 14px;border-radius:12px;border:none;cursor:pointer;font-family:inherit;}
@@ -310,6 +336,40 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 <body>
 <div id="app">
 <div id="toast-wrap"></div>
+
+<!-- KARŞILAMA EKRANI -->
+<div id="welcome-mo">
+  <div class="wel-content">
+    <img class="wel-logo" src="teknohane.png" alt="">
+    <div class="wel-title">Teknohane'ye<br>Hoş Geldin!</div>
+    <div class="wel-sub">Telefon meraklıları topluluğu — içerik, karşılaştırma ve ikinci el pazarı tek yerde.</div>
+    <div class="wel-features">
+      <div class="wel-feat">
+        <div class="wel-feat-ic" style="background:rgba(255,0,0,.1)">▶️</div>
+        <div><div class="wel-feat-t">Güncel İçerikler</div><div class="wel-feat-d">YouTube videolarımızı kaçırma</div></div>
+      </div>
+      <div class="wel-feat">
+        <div class="wel-feat-ic" style="background:var(--cdim)">⚖️</div>
+        <div><div class="wel-feat-t">Telefon Karşılaştır</div><div class="wel-feat-d">50+ model arasından seç</div></div>
+      </div>
+      <div class="wel-feat">
+        <div class="wel-feat-ic" style="background:rgba(255,149,0,.1)">🛒</div>
+        <div><div class="wel-feat-t">İkinci El Pazar</div><div class="wel-feat-d">Güvenle al, sat</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="wel-foot">
+    <button class="wel-btn" onclick="closeWelcome()">Hadi Başlayalım</button>
+  </div>
+</div>
+
+<!-- TUTORIAL TOOLTIP -->
+<div id="tip-bubble">
+  <div class="tip-arrow"></div>
+  <div class="tip-ic" id="tip-ic">💡</div>
+  <div class="tip-txt" id="tip-txt"></div>
+  <div class="tip-x" onclick="dismissTip()">×</div>
+</div>
 
 <div id="hdr">
   <div class="hi">
@@ -447,6 +507,12 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
         <div class="mil">
           <div class="mico" style="background:rgba(0,212,255,.1)"><svg viewBox="0 0 24 24" stroke="var(--cyan)" width="18" height="18"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
           <div><div class="mlbl">Kullanım Şartları</div><div class="msub">Gizlilik politikası & yasal bilgiler</div></div>
+        </div><span class="marr">›</span>
+      </div>
+      <div class="mi" onclick="resetOnboarding()">
+        <div class="mil">
+          <div class="mico" style="background:rgba(48,209,88,.1)"><svg viewBox="0 0 24 24" stroke="var(--green)" width="18" height="18"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></div>
+          <div><div class="mlbl">Tanıtımı Tekrar Gör</div><div class="msub">Uygulamayı baştan keşfet</div></div>
         </div><span class="marr">›</span>
       </div>
       <div class="glow"></div>
@@ -1285,6 +1351,70 @@ function gt(name) {
     rlistings();
     document.getElementById('market-dot')?.classList.remove('on');
   }
+  showTabTip(name);
+}
+
+// ONBOARDING
+const TIPS = {
+  home: { ic:'▶️', txt:'Burada <b>Teknohane</b> kanalının son videolarını görebilirsin. Aşağı çekerek yenileyebilirsin.' },
+  compare: { ic:'⚖️', txt:'İki telefon seç, <b>50+ model</b> arasından detaylı karşılaştırma yap.' },
+  community: { ic:'👥', txt:'WhatsApp kanalımıza, Instagram ve YouTube hesabımıza buradan ulaşabilirsin.' },
+  market: { ic:'🛒', txt:'<b>İlan Ver</b> butonuyla telefonunu satabilir, beğendiğin ilanlara dokunarak detayını görebilirsin.' },
+  support: { ic:'💬', txt:'Soruların mı var? Buradan bize WhatsApp veya e-posta ile ulaşabilirsin.' },
+  profile: { ic:'👤', txt:'Giriş yaparak ilan verebilir, favorilerini buradan yönetebilirsin.' },
+};
+
+function getSeenTips() {
+  try { return JSON.parse(localStorage.getItem('tk_seen_tips') || '{}'); } catch(e) { return {}; }
+}
+function markTipSeen(name) {
+  const seen = getSeenTips();
+  seen[name] = true;
+  try { localStorage.setItem('tk_seen_tips', JSON.stringify(seen)); } catch(e) {}
+}
+
+let tipTimer = null;
+function showTabTip(name) {
+  const tip = TIPS[name];
+  if (!tip) return;
+  const seen = getSeenTips();
+  if (seen[name]) return;
+  clearTimeout(tipTimer);
+  const bubble = document.getElementById('tip-bubble');
+  document.getElementById('tip-ic').textContent = tip.ic;
+  document.getElementById('tip-txt').innerHTML = tip.txt;
+  bubble.style.bottom = `calc(var(--tab) + ${getComputedStyle(document.documentElement).getPropertyValue('--sb') || '0px'} + 12px)`;
+  bubble.classList.add('on');
+  markTipSeen(name);
+  tipTimer = setTimeout(() => dismissTip(), 5000);
+}
+function dismissTip() {
+  document.getElementById('tip-bubble')?.classList.remove('on');
+  clearTimeout(tipTimer);
+}
+
+function closeWelcome() {
+  document.getElementById('welcome-mo').classList.remove('on');
+  try { localStorage.setItem('tk_welcomed', '1'); } catch(e) {}
+  setTimeout(() => showTabTip('home'), 400);
+}
+
+function resetOnboarding() {
+  try {
+    localStorage.removeItem('tk_welcomed');
+    localStorage.removeItem('tk_seen_tips');
+  } catch(e) {}
+  document.getElementById('welcome-mo').classList.add('on');
+}
+
+function checkOnboarding() {
+  let welcomed = false;
+  try { welcomed = !!localStorage.getItem('tk_welcomed'); } catch(e) {}
+  if (!welcomed) {
+    document.getElementById('welcome-mo').classList.add('on');
+  } else {
+    showTabTip('home');
+  }
 }
 
 function ol(url) { location.href='/teknohane/go.html?url='+encodeURIComponent(url); }
@@ -1293,6 +1423,7 @@ function closemo(id) { document.getElementById(id)?.classList.remove('on'); }
 // INIT
 rhome();
 loadListings();
+checkOnboarding();
 setTimeout(() => startNotifications(), 2000); // İlk yükleme bitsin diye gecikme
 setInterval(() => checkNewVideo(), 3 * 60 * 1000); // Her 3 dakikada bir yeni video kontrolü
 setTimeout(()=>{
