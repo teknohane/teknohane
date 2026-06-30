@@ -331,11 +331,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .mh{width:36px;height:4px;border-radius:2px;background:var(--text3);margin:0 auto 20px;}
 .mtit{font-size:18px;font-weight:700;margin-bottom:16px;}
 .no{text-align:center;padding:24px;color:var(--text3);font-size:13px;}
-.ai-search-box{text-align:center;padding:20px;}
-.ai-search-btn{background:linear-gradient(135deg,var(--cyan),#0080ff);color:#000;font-size:14px;font-weight:700;padding:12px 20px;border-radius:14px;border:none;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:8px;}
-.ai-search-btn svg{width:16px;height:16px;}
-.ai-loading{display:flex;flex-direction:column;align-items:center;gap:10px;padding:24px;color:var(--text2);font-size:13px;}
-.ai-badge{display:inline-flex;align-items:center;gap:4px;background:linear-gradient(135deg,rgba(0,212,255,.15),rgba(0,128,255,.15));border:1px solid rgba(0,212,255,.3);color:var(--cyan);font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px;letter-spacing:.3px;text-transform:uppercase;}
 </style>
 </head>
 <body>
@@ -1250,6 +1245,73 @@ const PHONES=[
   {brand:'ASUS',name:'Zenfone 11 Ultra',price:'₺44.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 3',cam:'50+13+32MP',bat:'5500mAh',scr:'6.78" 144Hz',wt:'224g',os:'Android 14'},
   {brand:'Honor',name:'Magic 7 Pro',price:'₺54.999',ram:'12GB',storage:'512GB',chip:'SD 8 Elite',cam:'50+200+40MP',bat:'5270mAh',scr:'6.8" 120Hz',wt:'225g',os:'Android 15'},
   {brand:'vivo',name:'X200 Pro',price:'₺64.999',ram:'16GB',storage:'512GB',chip:'SD 8 Elite',cam:'50+200+50MP',bat:'6000mAh',scr:'6.78" 120Hz',wt:'229g',os:'Android 15'},
+  // VİVO devam
+  {brand:'vivo',name:'X300 Pro',price:'₺69.999',ram:'16GB',storage:'512GB',chip:'Dimensity 9500',cam:'50+200+50MP',bat:'6510mAh',scr:'6.78" 120Hz',wt:'226g',os:'Android 16'},
+  {brand:'vivo',name:'X300',price:'₺52.999',ram:'12GB',storage:'256GB',chip:'Dimensity 9500',cam:'50+50+50MP',bat:'6040mAh',scr:'6.31" 120Hz',wt:'186g',os:'Android 16'},
+  {brand:'vivo',name:'X200 Pro mini',price:'₺54.999',ram:'12GB',storage:'256GB',chip:'Dimensity 9400',cam:'50+200+50MP',bat:'5700mAh',scr:'6.31" 120Hz',wt:'205g',os:'Android 15'},
+  {brand:'vivo',name:'X100 Pro',price:'₺49.999',ram:'12GB',storage:'256GB',chip:'Dimensity 9300',cam:'50+50+50MP',bat:'5400mAh',scr:'6.78" 120Hz',wt:'221g',os:'Android 14'},
+  {brand:'vivo',name:'V40 Pro',price:'₺24.999',ram:'12GB',storage:'256GB',chip:'SD 7 Gen 3',cam:'50+50+8MP',bat:'5500mAh',scr:'6.78" 120Hz',wt:'190g',os:'Android 14'},
+  {brand:'vivo',name:'V30',price:'₺19.999',ram:'8GB',storage:'256GB',chip:'SD 7 Gen 3',cam:'50+50MP',bat:'5000mAh',scr:'6.78" 120Hz',wt:'186g',os:'Android 14'},
+  {brand:'vivo',name:'Y300 Pro',price:'₺14.999',ram:'8GB',storage:'256GB',chip:'SD 4 Gen 2',cam:'50+2MP',bat:'6500mAh',scr:'6.67" 120Hz',wt:'185g',os:'Android 14'},
+  {brand:'vivo',name:'Y200',price:'₺9.999',ram:'8GB',storage:'128GB',chip:'SD 4 Gen 2',cam:'50MP',bat:'5500mAh',scr:'6.67" 120Hz',wt:'186g',os:'Android 14'},
+  // APPLE - eksik modeller
+  {brand:'Apple',name:'iPhone 17 Pro Max',price:'₺119.999',ram:'12GB',storage:'256GB',chip:'A19 Pro',cam:'48+48+12MP',bat:'4900mAh',scr:'6.9" 120Hz',wt:'230g',os:'iOS 19'},
+  {brand:'Apple',name:'iPhone 17 Pro',price:'₺99.999',ram:'12GB',storage:'256GB',chip:'A19 Pro',cam:'48+48+12MP',bat:'3700mAh',scr:'6.3" 120Hz',wt:'201g',os:'iOS 19'},
+  {brand:'Apple',name:'iPhone 17',price:'₺64.999',ram:'8GB',storage:'256GB',chip:'A19',cam:'48+12MP',bat:'3700mAh',scr:'6.3" 120Hz',wt:'177g',os:'iOS 19'},
+  {brand:'Apple',name:'iPhone Air',price:'₺79.999',ram:'8GB',storage:'256GB',chip:'A19 Pro',cam:'48MP',bat:'3149mAh',scr:'6.5" 120Hz',wt:'145g',os:'iOS 19'},
+  {brand:'Apple',name:'iPhone 14 Plus',price:'₺39.999',ram:'6GB',storage:'128GB',chip:'A15',cam:'12+12MP',bat:'4325mAh',scr:'6.7" 60Hz',wt:'203g',os:'iOS 18'},
+  {brand:'Apple',name:'iPhone 13',price:'₺29.999',ram:'4GB',storage:'128GB',chip:'A15',cam:'12+12MP',bat:'3240mAh',scr:'6.1" 60Hz',wt:'174g',os:'iOS 17'},
+  // SAMSUNG - eksik modeller
+  {brand:'Samsung',name:'Galaxy S26 Ultra',price:'₺119.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite Gen 2',cam:'200+50+50+50MP',bat:'5500mAh',scr:'6.9" 120Hz',wt:'215g',os:'Android 16'},
+  {brand:'Samsung',name:'Galaxy S26',price:'₺59.999',ram:'12GB',storage:'256GB',chip:'Exynos 2600',cam:'50+12+10MP',bat:'4300mAh',scr:'6.3" 120Hz',wt:'165g',os:'Android 16'},
+  {brand:'Samsung',name:'Galaxy Z Fold 7',price:'₺139.999',ram:'16GB',storage:'256GB',chip:'SD 8 Elite',cam:'200+12+10MP',bat:'4400mAh',scr:'8" 120Hz',wt:'215g',os:'Android 15'},
+  {brand:'Samsung',name:'Galaxy Z Flip 7',price:'₺69.999',ram:'12GB',storage:'256GB',chip:'Exynos 2500',cam:'50+12MP',bat:'4300mAh',scr:'6.9" 120Hz',wt:'188g',os:'Android 15'},
+  {brand:'Samsung',name:'Galaxy A56',price:'₺28.999',ram:'8GB',storage:'256GB',chip:'Exynos 1580',cam:'50+12+5MP',bat:'5000mAh',scr:'6.7" 120Hz',wt:'198g',os:'Android 15'},
+  {brand:'Samsung',name:'Galaxy A36',price:'₺21.999',ram:'8GB',storage:'128GB',chip:'SD 6 Gen 3',cam:'50+8+5MP',bat:'5000mAh',scr:'6.7" 120Hz',wt:'195g',os:'Android 15'},
+  {brand:'Samsung',name:'Galaxy A26',price:'₺16.999',ram:'8GB',storage:'128GB',chip:'Exynos 1380',cam:'50+8+2MP',bat:'5000mAh',scr:'6.7" 90Hz',wt:'200g',os:'Android 15'},
+  {brand:'Samsung',name:'Galaxy A06',price:'₺7.999',ram:'4GB',storage:'64GB',chip:'Helio G85',cam:'50+2MP',bat:'5000mAh',scr:'6.7" 90Hz',wt:'192g',os:'Android 14'},
+  {brand:'Samsung',name:'Galaxy M35',price:'₺17.999',ram:'8GB',storage:'128GB',chip:'Exynos 1380',cam:'50+8+2MP',bat:'6000mAh',scr:'6.6" 120Hz',wt:'222g',os:'Android 14'},
+  // XIAOMI - eksik modeller
+  {brand:'Xiaomi',name:'16 Pro',price:'₺59.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite Gen 2',cam:'50+50+50MP',bat:'6100mAh',scr:'6.3" 120Hz',wt:'190g',os:'Android 16'},
+  {brand:'Xiaomi',name:'15T Pro',price:'₺44.999',ram:'12GB',storage:'256GB',chip:'Dimensity 9400+',cam:'50+50+50MP',bat:'5500mAh',scr:'6.83" 144Hz',wt:'200g',os:'Android 15'},
+  {brand:'Xiaomi',name:'Redmi Note 15 Pro+',price:'₺24.999',ram:'12GB',storage:'256GB',chip:'Dimensity 8400-Ultra',cam:'200+8+2MP',bat:'6500mAh',scr:'6.83" 120Hz',wt:'209g',os:'Android 15'},
+  {brand:'Xiaomi',name:'Redmi 15C',price:'₺8.999',ram:'4GB',storage:'128GB',chip:'Helio G92-Ultra',cam:'50MP',bat:'6000mAh',scr:'6.9" 120Hz',wt:'212g',os:'Android 15'},
+  {brand:'Xiaomi',name:'POCO F7',price:'₺27.999',ram:'12GB',storage:'256GB',chip:'SD 8s Gen 3',cam:'50+8MP',bat:'6500mAh',scr:'6.83" 120Hz',wt:'196g',os:'Android 15'},
+  {brand:'Xiaomi',name:'POCO X7 Pro',price:'₺18.999',ram:'12GB',storage:'256GB',chip:'Dimensity 8400-Ultra',cam:'50+8MP',bat:'6000mAh',scr:'6.67" 120Hz',wt:'196g',os:'Android 15'},
+  // GOOGLE - eksik modeller
+  {brand:'Google',name:'Pixel 10 Pro XL',price:'₺109.999',ram:'16GB',storage:'256GB',chip:'Tensor G5',cam:'50+48+48MP',bat:'5200mAh',scr:'6.8" 120Hz',wt:'220g',os:'Android 16'},
+  {brand:'Google',name:'Pixel 10 Pro',price:'₺84.999',ram:'16GB',storage:'128GB',chip:'Tensor G5',cam:'50+48+48MP',bat:'4870mAh',scr:'6.3" 120Hz',wt:'203g',os:'Android 16'},
+  {brand:'Google',name:'Pixel 10',price:'₺54.999',ram:'12GB',storage:'128GB',chip:'Tensor G5',cam:'48+13MP',bat:'4970mAh',scr:'6.3" 120Hz',wt:'204g',os:'Android 16'},
+  {brand:'Google',name:'Pixel 9a',price:'₺29.999',ram:'8GB',storage:'128GB',chip:'Tensor G4',cam:'48+13MP',bat:'5100mAh',scr:'6.3" 60Hz',wt:'186g',os:'Android 15'},
+  // ONEPLUS - eksik modeller
+  {brand:'OnePlus',name:'15',price:'₺59.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite Gen 2',cam:'50+50+50MP',bat:'7300mAh',scr:'6.78" 165Hz',wt:'214g',os:'Android 16'},
+  {brand:'OnePlus',name:'13R',price:'₺34.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 3',cam:'50+8MP',bat:'6000mAh',scr:'6.78" 120Hz',wt:'206g',os:'Android 15'},
+  {brand:'OnePlus',name:'13T',price:'₺37.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite',cam:'50+50MP',bat:'6260mAh',scr:'6.32" 120Hz',wt:'192g',os:'Android 15'},
+  {brand:'OnePlus',name:'Nord 5',price:'₺22.999',ram:'8GB',storage:'256GB',chip:'SD 8s Gen 3',cam:'50+8MP',bat:'5800mAh',scr:'6.83" 144Hz',wt:'185g',os:'Android 15'},
+  // OPPO - eksik modeller
+  {brand:'OPPO',name:'Find X9 Pro',price:'₺69.999',ram:'16GB',storage:'512GB',chip:'Dimensity 9500',cam:'50+50+200MP',bat:'7500mAh',scr:'6.78" 120Hz',wt:'220g',os:'Android 16'},
+  {brand:'OPPO',name:'Find X9',price:'₺54.999',ram:'12GB',storage:'256GB',chip:'Dimensity 9500',cam:'50+50+50MP',bat:'7025mAh',scr:'6.59" 120Hz',wt:'200g',os:'Android 16'},
+  {brand:'OPPO',name:'Reno 14 Pro',price:'₺27.999',ram:'12GB',storage:'256GB',chip:'Dimensity 8450',cam:'50+50+8MP',bat:'6200mAh',scr:'6.83" 120Hz',wt:'196g',os:'Android 15'},
+  {brand:'OPPO',name:'A5 Pro',price:'₺12.999',ram:'8GB',storage:'256GB',chip:'Dimensity 7300',cam:'50+2MP',bat:'6000mAh',scr:'6.67" 120Hz',wt:'195g',os:'Android 15'},
+  // NOTHING - eksik
+  {brand:'Nothing',name:'Phone (3)',price:'₺37.999',ram:'12GB',storage:'256GB',chip:'SD 8s Gen 4',cam:'50+50+50MP',bat:'5150mAh',scr:'6.67" 120Hz',wt:'218g',os:'Android 15'},
+  // HONOR - eksik
+  {brand:'Honor',name:'Magic 8 Pro',price:'₺59.999',ram:'16GB',storage:'512GB',chip:'SD 8 Elite Gen 2',cam:'50+200+50MP',bat:'7200mAh',scr:'6.83" 120Hz',wt:'226g',os:'Android 16'},
+  {brand:'Honor',name:'400 Pro',price:'₺32.999',ram:'12GB',storage:'256GB',chip:'SD 8s Gen 3',cam:'200+50+12MP',bat:'5300mAh',scr:'6.78" 120Hz',wt:'190g',os:'Android 15'},
+  // realme - eksik
+  {brand:'realme',name:'GT 8 Pro',price:'₺44.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite Gen 2',cam:'50+50+200MP',bat:'7000mAh',scr:'6.79" 144Hz',wt:'212g',os:'Android 16'},
+  {brand:'realme',name:'14 Pro+',price:'₺19.999',ram:'12GB',storage:'256GB',chip:'SD 6 Gen 4',cam:'50+8MP',bat:'6000mAh',scr:'6.83" 120Hz',wt:'196g',os:'Android 15'},
+  // HUAWEI - eksik
+  {brand:'Huawei',name:'Mate 70 Pro',price:'₺79.999',ram:'16GB',storage:'512GB',chip:'Kirin 9020',cam:'50+40+12MP',bat:'5500mAh',scr:'6.71" 120Hz',wt:'213g',os:'HarmonyOS 5'},
+  {brand:'Huawei',name:'Pura 80 Ultra',price:'₺94.999',ram:'16GB',storage:'512GB',chip:'Kirin 9020',cam:'50+50+12MP',bat:'5170mAh',scr:'6.8" 120Hz',wt:'226g',os:'HarmonyOS 5'},
+  // SONY - eksik
+  {brand:'Sony',name:'Xperia 1 VII',price:'₺79.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite',cam:'48+12+12MP',bat:'5000mAh',scr:'6.5" 120Hz',wt:'190g',os:'Android 15'},
+  // MOTOROLA - eksik
+  {brand:'Motorola',name:'Edge 60 Pro',price:'₺27.999',ram:'12GB',storage:'256GB',chip:'Dimensity 7400',cam:'50+10+13MP',bat:'6000mAh',scr:'6.7" 120Hz',wt:'175g',os:'Android 15'},
+  {brand:'Motorola',name:'Razr 60 Ultra',price:'₺64.999',ram:'16GB',storage:'512GB',chip:'SD 8 Elite',cam:'50+50MP',bat:'4700mAh',scr:'7" 165Hz',wt:'199g',os:'Android 15'},
+  {brand:'Motorola',name:'Moto G96',price:'₺13.999',ram:'8GB',storage:'256GB',chip:'SD 6s Gen 3',cam:'50+8MP',bat:'6000mAh',scr:'6.67" 120Hz',wt:'178g',os:'Android 15'},
+  // ASUS - eksik
+  {brand:'ASUS',name:'ROG Phone 10',price:'₺99.999',ram:'24GB',storage:'1TB',chip:'SD 8 Elite Gen 2',cam:'50+50+32MP',bat:'6000mAh',scr:'6.78" 185Hz',wt:'225g',os:'Android 16'},
 ];
 
 let pslot=null,pA=null,pB=null,fp=[...PHONES],abrand='Tümü';
@@ -1275,83 +1337,16 @@ function sbrand(b) {
   rbf(); rplist();
 }
 
-let lastSearchQ = '';
 function fphn(q) {
   abrand='Tümü';
-  lastSearchQ = q.trim();
   fp=PHONES.filter(p=>(p.brand+' '+p.name).toLowerCase().includes(q.toLowerCase()));
   rbf(); rplist();
 }
 
 function rplist() {
   const l=document.getElementById('plist');
-  if(!fp.length){
-    if (lastSearchQ.length >= 3) {
-      l.innerHTML = `<div class="ai-search-box">
-        <div style="font-size:13px;color:var(--text2);margin-bottom:12px">"${lastSearchQ}" listede yok</div>
-        <button class="ai-search-btn" onclick="aiSearchPhone()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-          AI ile Ara
-        </button>
-      </div>`;
-    } else {
-      l.innerHTML='<div class="no">Bulunamadı</div>';
-    }
-    return;
-  }
-  l.innerHTML=fp.map(p=>`<div class="pitem" onclick="ppick(${PHONES.indexOf(p)})"><div><div class="pn">${p.brand} ${p.name}${p.aiSourced?' <span class=\"ai-badge\">AI</span>':''}</div><div class="ps">${p.chip} · ${p.ram}</div></div><div style="display:flex;align-items:center;gap:8px"><div class="pp">${p.price}</div><div class="abdg">Ekle</div></div></div>`).join('');
-}
-
-const AI_WORKER_URL = 'https://dry-poetry-ac48.yusuf-aykac.workers.dev/ai';
-const phoneCache = {}; // session cache - aynı aramayı tekrar AI'a sormasın
-
-async function aiSearchPhone() {
-  const q = lastSearchQ;
-  if (!q) return;
-  const cacheKey = q.toLowerCase();
-  if (phoneCache[cacheKey]) {
-    addAiPhoneToList(phoneCache[cacheKey]);
-    return;
-  }
-  const l = document.getElementById('plist');
-  l.innerHTML = `<div class="ai-loading"><div class="spin"></div><span>"${q}" için yapay zeka aranıyor…</span></div>`;
-
-  const prompt = `Telefon modeli: "${q}". Bu tam olarak hangi telefon modeli, en güncel/bilinen halini bul. Sadece JSON döndür, başka hiçbir şey yazma, markdown code fence kullanma:
-{"brand":"Marka adı","name":"Model adı (marka hariç)","price":"₺XX.XXX (Türkiye güncel piyasa fiyatı tahmini)","ram":"XGB","storage":"XGB","chip":"İşlemci adı","cam":"Kamera MP bilgisi","bat":"XXXXmAh","scr":"X.X\\" XXHz","wt":"XXXg","os":"İşletim sistemi ve versiyon"}
-Eğer bu gerçek/bilinen bir telefon modeli değilse veya emin değilsen: {"error":"bulunamadi"}`;
-
-  try {
-    const res = await fetch(AI_WORKER_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: [{ role: 'user', content: prompt }] })
-    });
-    if (!res.ok) throw new Error('Sunucu hatası');
-    const data = await res.json();
-    let text = (data.content?.[0]?.text || data.reply || data.text || data.message || '').trim();
-    text = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
-    const parsed = JSON.parse(text);
-    if (parsed.error || !parsed.brand || !parsed.name) {
-      l.innerHTML = `<div class="no">"${q}" için bir sonuç bulunamadı.<br>Markayı da yazarak tekrar dene.</div>`;
-      return;
-    }
-    parsed.aiSourced = true;
-    phoneCache[cacheKey] = parsed;
-    addAiPhoneToList(parsed);
-  } catch(e) {
-    l.innerHTML = `<div class="no">Bağlantı hatası, tekrar dene.</div>`;
-  }
-}
-
-function addAiPhoneToList(phoneData) {
-  // Aynı telefon zaten PHONES'da var mı kontrol et
-  let idx = PHONES.findIndex(p => p.brand === phoneData.brand && p.name === phoneData.name);
-  if (idx === -1) {
-    PHONES.push(phoneData);
-    idx = PHONES.length - 1;
-  }
-  fp = [PHONES[idx]];
-  rplist();
+  if(!fp.length){l.innerHTML='<div class="no">Bulunamadı</div>';return;}
+  l.innerHTML=fp.map(p=>`<div class="pitem" onclick="ppick(${PHONES.indexOf(p)})"><div><div class="pn">${p.brand} ${p.name}</div><div class="ps">${p.chip} · ${p.ram}</div></div><div style="display:flex;align-items:center;gap:8px"><div class="pp">${p.price}</div><div class="abdg">Ekle</div></div></div>`).join('');
 }
 
 function ppick(i) {
