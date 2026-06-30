@@ -175,6 +175,14 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .act-fav2{background:rgba(255,69,58,.12);color:var(--red);border:1px solid rgba(255,69,58,.3);}
 .act-fav2 svg{stroke:var(--red);}
 .act-fav2.on svg{fill:var(--red);}
+.ref-box{background:var(--surf);border-radius:14px;padding:14px;margin-bottom:16px;}
+.ref-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.ref-count{font-size:13px;font-weight:700;color:#FF9500;display:flex;align-items:center;gap:6px;}
+.ref-count svg{width:15px;height:15px;stroke:#FF9500;fill:none;stroke-width:2;}
+.ref-list{display:flex;flex-direction:column;gap:6px;}
+.ref-item{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);}
+.ref-av{width:22px;height:22px;border-radius:50%;background:rgba(255,149,0,.15);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#FF9500;flex-shrink:0;}
+.ref-empty{font-size:13px;color:var(--text3);text-align:center;padding:8px 0;}
 .pslot{aspect-ratio:4/3;border-radius:12px;border:2px dashed var(--border2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;overflow:hidden;position:relative;background:var(--surf);}
 .pslot img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;}
 .pslot svg{width:24px;height:24px;stroke:var(--text3);fill:none;stroke-width:1.8;}
@@ -817,6 +825,8 @@ function openDetail(id) {
   const mine = user && l.uid === user.uid;
   const fav = favs.has(l.id);
   const ps = [l.photo1, l.photo2].filter(Boolean);
+  const refs = l.referrers || [];
+  const alreadyRef = user && refs.some(r => r.uid === user.uid);
   document.getElementById('det-body').innerHTML = `
     ${ps.length ? `<div class="det-photos">${ps.map(p=>`<img class="det-photo" src="${p}">`).join('')}</div>` : ''}
     <div style="font-size:22px;font-weight:700;margin-bottom:4px">${l.model||''}</div>
@@ -827,15 +837,23 @@ function openDetail(id) {
       ${l.ownerName?`<div class="det-row"><span class="det-lbl">Satıcı</span><span>${l.ownerName}${mine?' (Ben)':''}</span></div>`:''}
     </div>
     ${l.desc?`<div style="font-size:14px;color:var(--text2);line-height:1.6;padding:14px;background:var(--surf);border-radius:14px;margin-bottom:16px">${l.desc}</div>`:''}
+    <div class="ref-box">
+      <div class="ref-head">
+        <span class="ref-count"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>${refs.length} kişi referans oldu</span>
+      </div>
+      <div class="ref-list" id="ref-list">
+        ${refs.length ? refs.map(r=>`<div class="ref-item"><div class="ref-av">${(r.name||'?')[0].toUpperCase()}</div>${r.name}</div>`).join('') : '<div class="ref-empty">Henüz referans olan yok</div>'}
+      </div>
+    </div>
     <div class="act-grid">
       ${l.phone?`<button class="abtn act-wa" onclick="ol('https://wa.me/90${l.phone}')">
         <svg viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.998 2C6.477 2 2 6.477 2 12c0 1.989.574 3.842 1.565 5.408L2 22l4.757-1.535A9.958 9.958 0 0 0 11.998 22c5.523 0 10-4.477 10-10S17.521 2 11.998 2z"/></svg>
         <span class="abtn-lbl">İletişim</span>
       </button>`:'<div></div>'}
-      ${l.phone?`<button class="abtn act-ref" onclick="sendRef()">
+      <button class="abtn act-ref" id="dref-btn" onclick="becomeRef()" ${(!user||mine||alreadyRef)?'style="opacity:.5;pointer-events:none"':''}>
         <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        <span class="abtn-lbl">Referans Ol</span>
-      </button>`:'<div></div>'}
+        <span class="abtn-lbl">${alreadyRef?'Referans Oldun':mine?'Kendi İlanın':'Referans Ol'}</span>
+      </button>
       <button class="abtn act-fav2 ${fav?'on':''}" id="dfav" onclick="detFav()">
         <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
         <span class="abtn-lbl">${fav?'Favoride':'Favorile'}</span>
@@ -848,11 +866,23 @@ function openDetail(id) {
   document.getElementById('detail-mo').classList.add('on');
 }
 
-function sendRef() {
-  if (!currentListing?.phone) return;
-  const name = user ? (user.displayName || user.email?.split('@')[0]) : 'Bir kullanıcı';
-  const msg = `Merhaba! "${currentListing.model}" ilanınızı ${name} aracılığıyla gördüm, ilgileniyorum.`;
-  ol(`https://wa.me/90${currentListing.phone}?text=${encodeURIComponent(msg)}`);
+async function becomeRef() {
+  if (!user || !currentListing) { gt('profile'); return; }
+  const l = currentListing;
+  if (user.uid === l.uid) return;
+  const refs = l.referrers || [];
+  if (refs.some(r => r.uid === user.uid)) return;
+  const name = user.displayName || user.email?.split('@')[0] || 'Anonim';
+  const newRef = { uid: user.uid, name };
+  try {
+    await db.collection('teknohane_listings').doc(l.id).update({
+      referrers: firebase.firestore.FieldValue.arrayUnion(newRef)
+    });
+    l.referrers = [...refs, newRef];
+    const idx = listings.findIndex(x => x.id === l.id);
+    if (idx > -1) listings[idx] = l;
+    openDetail(l.id);
+  } catch(e) { alert('Hata: ' + e.message); }
 }
 
 async function detFav() {
