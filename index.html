@@ -331,6 +331,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .mh{width:36px;height:4px;border-radius:2px;background:var(--text3);margin:0 auto 20px;}
 .mtit{font-size:18px;font-weight:700;margin-bottom:16px;}
 .no{text-align:center;padding:24px;color:var(--text3);font-size:13px;}
+.ai-search-box{text-align:center;padding:20px;}
+.ai-search-btn{background:linear-gradient(135deg,var(--cyan),#0080ff);color:#000;font-size:14px;font-weight:700;padding:12px 20px;border-radius:14px;border:none;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:8px;}
+.ai-search-btn svg{width:16px;height:16px;}
+.ai-loading{display:flex;flex-direction:column;align-items:center;gap:10px;padding:24px;color:var(--text2);font-size:13px;}
+.ai-badge{display:inline-flex;align-items:center;gap:4px;background:linear-gradient(135deg,rgba(0,212,255,.15),rgba(0,128,255,.15));border:1px solid rgba(0,212,255,.3);color:var(--cyan);font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px;letter-spacing:.3px;text-transform:uppercase;}
 </style>
 </head>
 <body>
@@ -1270,16 +1275,83 @@ function sbrand(b) {
   rbf(); rplist();
 }
 
+let lastSearchQ = '';
 function fphn(q) {
   abrand='Tümü';
+  lastSearchQ = q.trim();
   fp=PHONES.filter(p=>(p.brand+' '+p.name).toLowerCase().includes(q.toLowerCase()));
   rbf(); rplist();
 }
 
 function rplist() {
   const l=document.getElementById('plist');
-  if(!fp.length){l.innerHTML='<div class="no">Bulunamadı</div>';return;}
-  l.innerHTML=fp.map(p=>`<div class="pitem" onclick="ppick(${PHONES.indexOf(p)})"><div><div class="pn">${p.brand} ${p.name}</div><div class="ps">${p.chip} · ${p.ram}</div></div><div style="display:flex;align-items:center;gap:8px"><div class="pp">${p.price}</div><div class="abdg">Ekle</div></div></div>`).join('');
+  if(!fp.length){
+    if (lastSearchQ.length >= 3) {
+      l.innerHTML = `<div class="ai-search-box">
+        <div style="font-size:13px;color:var(--text2);margin-bottom:12px">"${lastSearchQ}" listede yok</div>
+        <button class="ai-search-btn" onclick="aiSearchPhone()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+          AI ile Ara
+        </button>
+      </div>`;
+    } else {
+      l.innerHTML='<div class="no">Bulunamadı</div>';
+    }
+    return;
+  }
+  l.innerHTML=fp.map(p=>`<div class="pitem" onclick="ppick(${PHONES.indexOf(p)})"><div><div class="pn">${p.brand} ${p.name}${p.aiSourced?' <span class=\"ai-badge\">AI</span>':''}</div><div class="ps">${p.chip} · ${p.ram}</div></div><div style="display:flex;align-items:center;gap:8px"><div class="pp">${p.price}</div><div class="abdg">Ekle</div></div></div>`).join('');
+}
+
+const AI_WORKER_URL = 'https://dry-poetry-ac48.yusuf-aykac.workers.dev/ai';
+const phoneCache = {}; // session cache - aynı aramayı tekrar AI'a sormasın
+
+async function aiSearchPhone() {
+  const q = lastSearchQ;
+  if (!q) return;
+  const cacheKey = q.toLowerCase();
+  if (phoneCache[cacheKey]) {
+    addAiPhoneToList(phoneCache[cacheKey]);
+    return;
+  }
+  const l = document.getElementById('plist');
+  l.innerHTML = `<div class="ai-loading"><div class="spin"></div><span>"${q}" için yapay zeka aranıyor…</span></div>`;
+
+  const prompt = `Telefon modeli: "${q}". Bu tam olarak hangi telefon modeli, en güncel/bilinen halini bul. Sadece JSON döndür, başka hiçbir şey yazma, markdown code fence kullanma:
+{"brand":"Marka adı","name":"Model adı (marka hariç)","price":"₺XX.XXX (Türkiye güncel piyasa fiyatı tahmini)","ram":"XGB","storage":"XGB","chip":"İşlemci adı","cam":"Kamera MP bilgisi","bat":"XXXXmAh","scr":"X.X\\" XXHz","wt":"XXXg","os":"İşletim sistemi ve versiyon"}
+Eğer bu gerçek/bilinen bir telefon modeli değilse veya emin değilsen: {"error":"bulunamadi"}`;
+
+  try {
+    const res = await fetch(AI_WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: [{ role: 'user', content: prompt }] })
+    });
+    if (!res.ok) throw new Error('Sunucu hatası');
+    const data = await res.json();
+    let text = (data.content?.[0]?.text || data.reply || data.text || data.message || '').trim();
+    text = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
+    const parsed = JSON.parse(text);
+    if (parsed.error || !parsed.brand || !parsed.name) {
+      l.innerHTML = `<div class="no">"${q}" için bir sonuç bulunamadı.<br>Markayı da yazarak tekrar dene.</div>`;
+      return;
+    }
+    parsed.aiSourced = true;
+    phoneCache[cacheKey] = parsed;
+    addAiPhoneToList(parsed);
+  } catch(e) {
+    l.innerHTML = `<div class="no">Bağlantı hatası, tekrar dene.</div>`;
+  }
+}
+
+function addAiPhoneToList(phoneData) {
+  // Aynı telefon zaten PHONES'da var mı kontrol et
+  let idx = PHONES.findIndex(p => p.brand === phoneData.brand && p.name === phoneData.name);
+  if (idx === -1) {
+    PHONES.push(phoneData);
+    idx = PHONES.length - 1;
+  }
+  fp = [PHONES[idx]];
+  rplist();
 }
 
 function ppick(i) {
