@@ -236,6 +236,20 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .pemail{font-size:13px;color:var(--text2);margin-top:6px;}
 .admin-badge{background:linear-gradient(135deg,var(--cyan),#0080ff);color:#000;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;margin-left:8px;vertical-align:middle;}
 .apanel{background:rgba(0,212,255,.05);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:16px;}
+.apstats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0;}
+.apstat{background:var(--surf);border-radius:12px;padding:10px;text-align:center;}
+.apstat-n{font-size:18px;font-weight:700;color:var(--cyan);}
+.apstat-l{font-size:10px;color:var(--text2);margin-top:2px;text-transform:uppercase;letter-spacing:.4px;}
+.apbtn{width:100%;background:var(--surf2);border:1px solid var(--border2);color:var(--text);font-size:13px;font-weight:600;padding:11px;border-radius:10px;cursor:pointer;font-family:inherit;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:6px;}
+.apbtn svg{width:15px;height:15px;}
+/* Admin ilan listesi */
+.adm-row{display:flex;align-items:center;gap:10px;padding:10px;background:var(--surf);border-radius:12px;margin-bottom:8px;}
+.adm-row img{width:44px;height:44px;border-radius:8px;object-fit:cover;background:var(--surf2);flex-shrink:0;}
+.adm-info{flex:1;min-width:0;}
+.adm-model{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.adm-meta{font-size:11px;color:var(--text2);margin-top:2px;}
+.adm-del{width:32px;height:32px;border-radius:8px;background:rgba(255,69,58,.12);border:1px solid rgba(255,69,58,.25);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
+.adm-del svg{width:15px;height:15px;stroke:var(--red);}
 .aptit{font-size:14px;font-weight:700;color:var(--cyan);margin-bottom:6px;display:flex;align-items:center;gap:6px;}
 .signout{width:100%;background:rgba(255,69,58,.1);border:1px solid rgba(255,69,58,.2);color:var(--red);font-size:15px;font-weight:600;padding:14px;border-radius:14px;cursor:pointer;font-family:inherit;}
 
@@ -501,6 +515,19 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
   </div>
 </div>
 
+<!-- ADMIN MODAL -->
+<div class="mo" id="admin-mo" onclick="closemo('admin-mo')">
+  <div class="ms" onclick="event.stopPropagation()" style="max-height:85vh">
+    <div class="mh"></div>
+    <div class="mtit">Tüm İlanlar</div>
+    <div class="sw" style="margin-bottom:12px">
+      <svg class="sico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="si" type="text" id="adm-srch" placeholder="Model veya satıcı ara…" oninput="radmin()">
+    </div>
+    <div id="adm-list"></div>
+  </div>
+</div>
+
 <!-- PICKER MODAL -->
 <div class="mo" id="picker-mo" onclick="closemo('picker-mo')">
   <div class="ms" onclick="event.stopPropagation()">
@@ -575,8 +602,20 @@ function rprof() {
         </div>
         <div class="pemail">${user.email}</div>
       </div>
-      ${isAdmin?`<div class="apanel"><div class="aptit"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Yönetici</div><div style="font-size:13px;color:var(--text2)">Teknohane yönetici hesabı</div></div>`:''}
+      ${isAdmin?`<div class="apanel">
+        <div class="aptit"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Yönetici Paneli</div>
+        <div class="apstats">
+          <div class="apstat"><div class="apstat-n" id="adm-cnt-listing">–</div><div class="apstat-l">İlan</div></div>
+          <div class="apstat"><div class="apstat-n" id="adm-cnt-seller">–</div><div class="apstat-l">Satıcı</div></div>
+          <div class="apstat"><div class="apstat-n" id="adm-cnt-photo">–</div><div class="apstat-l">Fotoğraflı</div></div>
+        </div>
+        <button class="apbtn" onclick="openAdmin()">
+          <svg viewBox="0 0 24 24" stroke="var(--text)" fill="none" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+          Tüm İlanları Yönet
+        </button>
+      </div>`:''}
       <button class="signout" onclick="auth.signOut()">Çıkış Yap</button>`;
+    if (isAdmin) updateAdminStats();
   } else {
     c.innerHTML = `
       <div class="awrap">
@@ -643,6 +682,7 @@ async function loadListings() {
     listings.sort((a,b) => (b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
     listingsReady = true;
     rlistings();
+    if (user && ADMINS.includes(user.email)) updateAdminStats();
   } catch(e) {
     listingsReady = true;
     const g = document.getElementById('lgrid');
@@ -838,7 +878,45 @@ async function delListing(id) {
     await db.collection('teknohane_listings').doc(id).delete();
     listings = listings.filter(l => l.id !== id);
     rlistings();
+    if (document.getElementById('admin-mo')?.classList.contains('on')) radmin();
+    if (user && ADMINS.includes(user.email)) updateAdminStats();
   } catch(e) { alert('Silinemedi'); }
+}
+
+// ADMIN PANEL
+function updateAdminStats() {
+  const ln = document.getElementById('adm-cnt-listing');
+  const sn = document.getElementById('adm-cnt-seller');
+  const pn = document.getElementById('adm-cnt-photo');
+  if (!ln) return;
+  ln.textContent = listings.length;
+  sn.textContent = new Set(listings.map(l=>l.uid)).size;
+  pn.textContent = listings.filter(l=>l.photo1||l.photo2).length;
+}
+
+function openAdmin() {
+  document.getElementById('admin-mo').classList.add('on');
+  document.getElementById('adm-srch').value = '';
+  radmin();
+}
+
+function radmin() {
+  const list = document.getElementById('adm-list');
+  if (!list) return;
+  const q = (document.getElementById('adm-srch')?.value||'').toLowerCase();
+  let items = listings.filter(l => !q || l.model?.toLowerCase().includes(q) || l.ownerName?.toLowerCase().includes(q));
+  if (!items.length) { list.innerHTML = '<div class="no">İlan bulunamadı</div>'; return; }
+  list.innerHTML = items.map(l => `
+    <div class="adm-row">
+      ${l.photo1 ? `<img src="${l.photo1}">` : `<div style="width:44px;height:44px;border-radius:8px;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">📱</div>`}
+      <div class="adm-info">
+        <div class="adm-model">${l.model||'—'}</div>
+        <div class="adm-meta">₺${parseInt(l.price||0).toLocaleString('tr-TR')} · ${l.ownerName||'Anonim'}</div>
+      </div>
+      <div class="adm-del" onclick="delListing('${l.id}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M9 6V4h6v2"/></svg>
+      </div>
+    </div>`).join('');
 }
 
 // YOUTUBE
