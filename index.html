@@ -263,6 +263,31 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .low-n{font-size:11px;color:var(--text2);}
 .mbdg{font-size:10px;color:var(--cyan);font-weight:600;background:var(--cdim);padding:2px 7px;border-radius:6px;border:1px solid rgba(0,212,255,.2);}
 .fsel{width:100%;background:var(--surf);border:1px solid var(--border2);border-radius:12px;padding:12px 14px;color:var(--text);font-size:15px;font-family:inherit;outline:none;appearance:none;}
+.detail-toggle{display:flex;align-items:center;justify-content:space-between;background:var(--surf);border:1px solid var(--border2);border-radius:12px;padding:12px 14px;cursor:pointer;margin-bottom:14px;font-size:13px;font-weight:600;color:var(--cyan);}
+.detail-toggle svg{width:18px;height:18px;transition:transform .2s;}
+.detail-toggle.open svg{transform:rotate(180deg);}
+.fg2-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.fg2{margin-bottom:0;}
+.spec-pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+.spec-pill{background:var(--surf2);border:1px solid var(--border2);border-radius:8px;padding:4px 10px;font-size:11px;color:var(--text2);}
+.spec-pill b{color:var(--text);font-weight:600;}
+/* FİLTRE */
+.filter-toggle{display:flex;align-items:center;gap:6px;background:var(--surf);border:1px solid var(--border2);border-radius:10px;padding:8px 14px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text2);white-space:nowrap;}
+.filter-toggle.active{background:var(--cdim);border-color:rgba(0,212,255,.3);color:var(--cyan);}
+.filter-toggle svg{width:14px;height:14px;}
+.filter-panel{background:var(--surf);border:1px solid var(--border2);border-radius:14px;padding:14px;margin-bottom:14px;display:none;}
+.filter-panel.on{display:block;}
+.price-range{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+.price-range input{width:100%;background:var(--surf2);border:1px solid var(--border2);border-radius:10px;padding:9px 10px;color:var(--text);font-size:13px;font-family:inherit;outline:none;}
+.price-range span{color:var(--text3);font-size:12px;}
+.filter-brands{display:flex;flex-wrap:wrap;gap:6px;}
+.filter-actions{display:flex;gap:8px;margin-top:12px;}
+.filter-apply{flex:1;background:var(--cyan);color:#000;font-size:13px;font-weight:700;padding:10px;border-radius:10px;border:none;cursor:pointer;font-family:inherit;}
+.filter-clear{background:var(--surf2);color:var(--text2);font-size:13px;font-weight:600;padding:10px 16px;border-radius:10px;border:none;cursor:pointer;font-family:inherit;}
+/* SATILDI rozeti */
+.sold-badge{position:absolute;top:10px;right:10px;background:rgba(255,69,58,.92);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:8px;letter-spacing:.3px;z-index:2;}
+.lcard.sold{position:relative;opacity:.65;}
+.mark-sold-btn{background:rgba(48,209,88,.12);border:1px solid rgba(48,209,88,.25);color:var(--green);font-size:12px;font-weight:600;padding:6px 12px;border-radius:10px;cursor:pointer;font-family:inherit;}
 
 /* MODAL */
 .mo{display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);align-items:flex-end;}
@@ -468,6 +493,26 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
         <svg class="sico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input class="si" type="text" placeholder="İlan ara…" id="msrch" oninput="rlistings()">
       </div>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <div class="filter-toggle" id="filter-toggle" onclick="toggleFilterPanel()">
+          <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+          Filtrele
+        </div>
+      </div>
+      <div class="filter-panel" id="filter-panel">
+        <label class="fl" style="margin-bottom:8px;display:block">Fiyat Aralığı (₺)</label>
+        <div class="price-range">
+          <input type="number" id="f-min" placeholder="Min">
+          <span>—</span>
+          <input type="number" id="f-max" placeholder="Max">
+        </div>
+        <label class="fl" style="margin-bottom:8px;display:block">Marka</label>
+        <div class="filter-brands" id="filter-brands"></div>
+        <div class="filter-actions">
+          <button class="filter-apply" onclick="applyFilters()">Uygula</button>
+          <button class="filter-clear" onclick="clearFilters()">Temizle</button>
+        </div>
+      </div>
       <div class="mtabs">
         <button class="mtab on" onclick="smtab('all',this)">Tümü</button>
         <button class="mtab off" onclick="smtab('fav',this)">❤️ Favoriler</button>
@@ -596,7 +641,29 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
     <div class="fg"><label class="fl">Telefon Modeli</label><input class="fi" type="text" id="l-model" placeholder="Örn: Samsung Galaxy S24"></div>
     <div class="fg"><label class="fl">Fiyat (₺)</label><input class="fi" type="number" id="l-price" placeholder="25000"></div>
     <div class="fg"><label class="fl">Durum</label><select class="fsel" id="l-cond"><option>Sıfır</option><option>Az Kullanılmış</option><option>İkinci El</option></select></div>
+    <div class="fg"><label class="fl">Menşei</label><select class="fsel" id="l-origin"><option>Yurtiçi</option><option>Yurtdışı</option></select></div>
     <div class="fg"><label class="fl">Konum</label><input class="fi" type="text" id="l-loc" placeholder="Şehir / İlçe"></div>
+
+    <div class="detail-toggle" onclick="toggleDetailFields()">
+      <span>Detaylı Teknik Bilgiler</span>
+      <svg id="dt-chevron" viewBox="0 0 24 24" stroke="var(--cyan)" fill="none" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div id="detail-fields" style="display:none">
+      <div class="fg2-row">
+        <div class="fg2"><label class="fl">RAM</label><input class="fi" type="text" id="l-ram" placeholder="8GB"></div>
+        <div class="fg2"><label class="fl">Depolama</label><input class="fi" type="text" id="l-storage" placeholder="256GB"></div>
+      </div>
+      <div class="fg2-row">
+        <div class="fg2"><label class="fl">Renk</label><input class="fi" type="text" id="l-color" placeholder="Siyah"></div>
+        <div class="fg2"><label class="fl">Garanti</label><input class="fi" type="text" id="l-warranty" placeholder="Var / Yok / X ay"></div>
+      </div>
+      <div class="fg"><label class="fl">İşlemci</label><input class="fi" type="text" id="l-chip" placeholder="Snapdragon 8 Gen 3"></div>
+      <div class="fg2-row">
+        <div class="fg2"><label class="fl">Batarya Sağlığı</label><input class="fi" type="text" id="l-battery" placeholder="%95"></div>
+        <div class="fg2"><label class="fl">Kutu/Aksesuar</label><input class="fi" type="text" id="l-box" placeholder="Kutulu, şarj aleti var"></div>
+      </div>
+    </div>
+
     <div class="fg"><label class="fl">Açıklama</label><input class="fi" type="text" id="l-desc" placeholder="Kısa açıklama…"></div>
     <div class="fg"><label class="fl">WhatsApp Numaranız</label><input class="fi" type="tel" id="l-phone" placeholder="5XXXXXXXXX"></div>
     <label style="display:flex;align-items:flex-start;gap:10px;margin-bottom:16px;cursor:pointer">
@@ -854,6 +921,48 @@ function watchMyListingsForRefs() {
     }, () => {});
 }
 
+let filterMin = '', filterMax = '', filterBrand = 'Tümü';
+
+const MARKET_BRANDS = ['Tümü','Apple','Samsung','Xiaomi','Google','OnePlus','OPPO','vivo','Nothing','Sony','Motorola','realme','ASUS','Huawei','Honor'];
+
+function toggleFilterPanel() {
+  const panel = document.getElementById('filter-panel');
+  const toggle = document.getElementById('filter-toggle');
+  const isOpen = panel.classList.contains('on');
+  panel.classList.toggle('on', !isOpen);
+  if (!isOpen && !document.getElementById('filter-brands').children.length) {
+    document.getElementById('filter-brands').innerHTML = MARKET_BRANDS.map(b =>
+      `<button class="bf ${b===filterBrand?'on':'off'}" onclick="setFilterBrand('${b}',this)">${b}</button>`
+    ).join('');
+    document.getElementById('f-min').value = filterMin;
+    document.getElementById('f-max').value = filterMax;
+  }
+}
+
+function setFilterBrand(b, el) {
+  filterBrand = b;
+  document.querySelectorAll('#filter-brands .bf').forEach(x => x.className = x.textContent.trim()===b ? 'bf on' : 'bf off');
+}
+
+function applyFilters() {
+  filterMin = document.getElementById('f-min').value;
+  filterMax = document.getElementById('f-max').value;
+  const hasActive = filterMin || filterMax || filterBrand !== 'Tümü';
+  document.getElementById('filter-toggle').classList.toggle('active', !!hasActive);
+  document.getElementById('filter-panel').classList.remove('on');
+  rlistings();
+}
+
+function clearFilters() {
+  filterMin = ''; filterMax = ''; filterBrand = 'Tümü';
+  document.getElementById('f-min').value = '';
+  document.getElementById('f-max').value = '';
+  document.querySelectorAll('#filter-brands .bf').forEach(x => x.className = x.textContent.trim()==='Tümü' ? 'bf on' : 'bf off');
+  document.getElementById('filter-toggle').classList.remove('active');
+  document.getElementById('filter-panel').classList.remove('on');
+  rlistings();
+}
+
 function rlistings() {
   const grid = document.getElementById('lgrid');
   if (!grid) return;
@@ -862,14 +971,20 @@ function rlistings() {
   let items = listings.filter(l => !q || l.model?.toLowerCase().includes(q));
   if (mktab === 'fav') items = items.filter(l => favs.has(l.id));
   if (mktab === 'mine') items = user ? items.filter(l => l.uid === user.uid) : [];
+  if (filterMin) items = items.filter(l => parseInt(l.price||0) >= parseInt(filterMin));
+  if (filterMax) items = items.filter(l => parseInt(l.price||0) <= parseInt(filterMax));
+  if (filterBrand !== 'Tümü') items = items.filter(l => (l.model||'').toLowerCase().includes(filterBrand.toLowerCase()));
+  // Satılanları en alta al
+  items = [...items].sort((a,b) => (a.sold?1:0) - (b.sold?1:0));
   if (!items.length) {
-    grid.innerHTML = `<div class="load"><div style="font-size:40px">${mktab==='fav'?'❤️':mktab==='mine'?'📋':'📭'}</div><div>${mktab==='fav'?'Favori yok':mktab==='mine'?'Henüz ilanın yok':'Henüz ilan yok'}</div></div>`;
+    grid.innerHTML = `<div class="load"><div style="font-size:40px">${mktab==='fav'?'❤️':mktab==='mine'?'📋':'📭'}</div><div>${mktab==='fav'?'Favori yok':mktab==='mine'?'Henüz ilanın yok':'Sonuç bulunamadı'}</div></div>`;
     return;
   }
   grid.innerHTML = items.map(l => {
     const mine = user && l.uid === user.uid;
     const fav = favs.has(l.id);
-    return `<div class="lcard" onclick="openDetail('${l.id}')">
+    return `<div class="lcard ${l.sold?'sold':''}" onclick="openDetail('${l.id}')">
+      ${l.sold?'<div class="sold-badge">SATILDI</div>':''}
       <div class="ltit">${l.model||''}</div>
       <div class="lrow">
         <div class="lprc">₺${parseInt(l.price||0).toLocaleString('tr-TR')}</div>
@@ -913,9 +1028,18 @@ async function submitListing() {
     const data = {
       model, price,
       condition: document.getElementById('l-cond').value,
+      origin: document.getElementById('l-origin').value,
       location: document.getElementById('l-loc').value.trim(),
       desc: document.getElementById('l-desc').value.trim(),
       phone: document.getElementById('l-phone').value.trim(),
+      ram: document.getElementById('l-ram').value.trim(),
+      storage: document.getElementById('l-storage').value.trim(),
+      color: document.getElementById('l-color').value.trim(),
+      warranty: document.getElementById('l-warranty').value.trim(),
+      chip: document.getElementById('l-chip').value.trim(),
+      battery: document.getElementById('l-battery').value.trim(),
+      box: document.getElementById('l-box').value.trim(),
+      sold: false,
       uid: user.uid,
       ownerName: user.displayName || user.email?.split('@')[0] || 'Anonim',
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -925,11 +1049,21 @@ async function submitListing() {
     await db.collection('teknohane_listings').add(data);
     closemo('listing-mo');
     photos[0] = null; photos[1] = null;
-    ['l-model','l-price','l-loc','l-desc','l-phone'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    ['l-model','l-price','l-loc','l-desc','l-phone','l-ram','l-storage','l-color','l-warranty','l-chip','l-battery','l-box'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
     document.getElementById('l-agree').checked = false;
+    document.getElementById('detail-fields').style.display = 'none';
+    document.getElementById('dt-chevron')?.parentElement?.classList.remove('open');
     rmPhoto(0); rmPhoto(1);
     await loadListings();
   } catch(e) { alert('Hata: ' + e.message); }
+}
+
+function toggleDetailFields() {
+  const fields = document.getElementById('detail-fields');
+  const toggle = document.querySelector('.detail-toggle');
+  const isOpen = fields.style.display !== 'none';
+  fields.style.display = isOpen ? 'none' : 'block';
+  toggle.classList.toggle('open', !isOpen);
 }
 
 const photos = [null, null];
@@ -983,16 +1117,30 @@ function openDetail(id) {
   const ps = [l.photo1, l.photo2].filter(Boolean);
   const refs = l.referrers || [];
   const alreadyRef = user && refs.some(r => r.uid === user.uid);
+  const specs = [
+    l.ram ? {l:'RAM', v:l.ram} : null,
+    l.storage ? {l:'Depolama', v:l.storage} : null,
+    l.color ? {l:'Renk', v:l.color} : null,
+    l.warranty ? {l:'Garanti', v:l.warranty} : null,
+    l.chip ? {l:'İşlemci', v:l.chip} : null,
+    l.battery ? {l:'Batarya Sağlığı', v:l.battery} : null,
+    l.box ? {l:'Kutu/Aksesuar', v:l.box} : null,
+  ].filter(Boolean);
   document.getElementById('det-body').innerHTML = `
     ${ps.length ? `<div class="det-photos">${ps.map(p=>`<img class="det-photo" src="${p}">`).join('')}</div>` : ''}
+    ${l.sold ? `<div style="background:rgba(255,69,58,.12);border:1px solid rgba(255,69,58,.3);color:var(--red);font-size:13px;font-weight:700;padding:8px 14px;border-radius:10px;margin-bottom:12px;text-align:center">✓ Bu ilan satıldı</div>` : ''}
     <div style="font-size:22px;font-weight:700;margin-bottom:4px">${l.model||''}</div>
     <div style="font-size:28px;font-weight:700;color:var(--cyan);margin-bottom:10px">₺${parseInt(l.price||0).toLocaleString('tr-TR')}</div>
-    <div style="margin-bottom:14px"><span class="lcnd ${l.condition==='Sıfır'?'cn':'cu'}">${l.condition||''}</span></div>
+    <div style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap">
+      <span class="lcnd ${l.condition==='Sıfır'?'cn':'cu'}">${l.condition||''}</span>
+      ${l.origin?`<span class="lcnd" style="background:var(--surf2);color:var(--text2);border:1px solid var(--border2)">${l.origin}</span>`:''}
+    </div>
     <div class="det-info">
       ${l.location?`<div class="det-row"><span class="det-lbl">Konum</span><span>📍 ${l.location}</span></div>`:''}
       ${l.ownerName?`<div class="det-row"><span class="det-lbl">Satıcı</span><span>${l.ownerName}${mine?' (Ben)':''}</span></div>`:''}
     </div>
-    ${l.desc?`<div style="font-size:14px;color:var(--text2);line-height:1.6;padding:14px;background:var(--surf);border-radius:14px;margin-bottom:16px">${l.desc}</div>`:''}
+    ${specs.length ? `<div class="spec-pills">${specs.map(s=>`<div class="spec-pill"><b>${s.l}:</b> ${s.v}</div>`).join('')}</div>` : ''}
+    ${l.desc?`<div style="font-size:14px;color:var(--text2);line-height:1.6;padding:14px;background:var(--surf);border-radius:14px;margin:16px 0">${l.desc}</div>`:''}
     <div class="ref-box">
       <div class="ref-head">
         <span class="ref-count"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>${refs.length} kişi referans oldu</span>
@@ -1018,8 +1166,21 @@ function openDetail(id) {
         <svg viewBox="0 0 24 24" stroke="var(--red)"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M9 6V4h6v2"/></svg>
         <span class="abtn-lbl">Sil</span>
       </button>`:'<div></div>'}
-    </div>`;
+    </div>
+    ${mine?`<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px" onclick="toggleSold('${l.id}')">${l.sold?'↺ Satıldı İşaretini Kaldır':'✓ Satıldı Olarak İşaretle'}</button>`:''}`;
   document.getElementById('detail-mo').classList.add('on');
+}
+
+async function toggleSold(id) {
+  const l = listings.find(x => x.id === id);
+  if (!l || !user || l.uid !== user.uid) return;
+  const newSold = !l.sold;
+  try {
+    await db.collection('teknohane_listings').doc(id).update({ sold: newSold });
+    l.sold = newSold;
+    openDetail(id);
+    rlistings();
+  } catch(e) { alert('Hata: ' + e.message); }
 }
 
 async function becomeRef() {
