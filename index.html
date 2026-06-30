@@ -23,9 +23,21 @@
   --st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px);
   --tab:83px;
 }
+[data-theme="light"] {
+  --bg:#F4F7FB;--bg2:#FFFFFF;--surf:#FFFFFF;--surf2:#F0F4F9;--surf3:#E6ECF4;
+  --cyan:#0091BC;--cdim:rgba(0,145,188,0.08);--cglow:rgba(0,145,188,0.18);
+  --text:#0B1220;--text2:#5C6B7F;--text3:#9AA7B8;
+  --red:#E0342A;--green:#1FA856;
+  --border:rgba(0,145,188,0.15);--border2:rgba(11,18,32,0.08);
+}
+[data-theme="light"] body{background:var(--bg);}
+[data-theme="light"] #hdr{background:rgba(244,247,251,.85);box-shadow:0 1px 0 var(--border2);}
+[data-theme="light"] #tabs{background:rgba(255,255,255,.92);}
+[data-theme="light"] .lcard,[data-theme="light"] .vc,[data-theme="light"] .wc,[data-theme="light"] .mi,[data-theme="light"] .pitem,[data-theme="light"] .adm-row,[data-theme="light"] .adm-user-row,[data-theme="light"] .ud-item,[data-theme="light"] .ref-item,[data-theme="light"] .cmt{box-shadow:0 1px 3px rgba(11,18,32,0.06);}
+[data-theme="light"] .feat,[data-theme="light"] .ctbl,[data-theme="light"] .det-sheet,[data-theme="light"] .ms{box-shadow:0 4px 16px rgba(11,18,32,0.08);}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;}
 input,textarea{user-select:text;-webkit-user-select:text;}
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,sans-serif;overflow:hidden;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,sans-serif;overflow:hidden;transition:background-color .25s ease,color .25s ease;}
 #app{display:flex;flex-direction:column;height:100dvh;}
 
 /* HEADER */
@@ -355,6 +367,16 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .adm-del svg{width:15px;height:15px;stroke:var(--red);}
 .aptit{font-size:14px;font-weight:700;color:var(--cyan);margin-bottom:6px;display:flex;align-items:center;gap:6px;}
 .signout{width:100%;background:rgba(255,69,58,.1);border:1px solid rgba(255,69,58,.2);color:var(--red);font-size:15px;font-weight:600;padding:14px;border-radius:14px;cursor:pointer;font-family:inherit;}
+/* TEMA SEÇİCİ */
+.theme-panel{background:var(--surf);border:1px solid var(--border2);border-radius:14px;padding:14px;margin-bottom:16px;}
+.theme-title{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:10px;}
+.theme-opts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.theme-opt{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 4px;border-radius:10px;border:1px solid var(--border2);background:var(--surf2);cursor:pointer;}
+.theme-opt.on{border-color:var(--cyan);background:var(--cdim);}
+.theme-opt svg{width:18px;height:18px;stroke:var(--text2);fill:none;stroke-width:1.8;}
+.theme-opt.on svg{stroke:var(--cyan);}
+.theme-opt span{font-size:11px;font-weight:600;color:var(--text2);}
+.theme-opt.on span{color:var(--cyan);}
 
 /* AUTH */
 .awrap{display:flex;flex-direction:column;align-items:center;padding:32px 0;}
@@ -387,6 +409,16 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .mtit{font-size:18px;font-weight:700;margin-bottom:16px;}
 .no{text-align:center;padding:24px;color:var(--text3);font-size:13px;}
 </style>
+<script>
+// Sayfa render olmadan ÖNCE temayı uygula - "flash of wrong theme" önlenir
+(function(){
+  try {
+    var saved = localStorage.getItem('tk_theme');
+    var theme = saved || (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    if (theme === 'light') document.documentElement.setAttribute('data-theme', 'light');
+  } catch(e) {}
+})();
+</script>
 </head>
 <body>
 <div id="app">
@@ -827,6 +859,27 @@ async function syncUserProfile(u) {
 }
 
 // PROFILE
+function themePanelHTML() {
+  return `
+    <div class="theme-panel">
+      <div class="theme-title">Görünüm</div>
+      <div class="theme-opts">
+        <div class="theme-opt" data-theme="system" onclick="setTheme('system')">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          <span>Sistem</span>
+        </div>
+        <div class="theme-opt" data-theme="dark" onclick="setTheme('dark')">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          <span>Koyu</span>
+        </div>
+        <div class="theme-opt" data-theme="light" onclick="setTheme('light')">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <span>Açık</span>
+        </div>
+      </div>
+    </div>`;
+}
+
 function rprof() {
   const c = document.getElementById('profile-c');
   if (!c) return;
@@ -842,6 +895,7 @@ function rprof() {
         </div>
         <div class="pemail">${user.email}</div>
       </div>
+      ${themePanelHTML()}
       ${isAdmin?`<div class="apanel">
         <div class="aptit"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Yönetici Paneli</div>
         <div class="apstats">
@@ -856,6 +910,7 @@ function rprof() {
       </div>`:''}
       <button class="signout" onclick="auth.signOut()">Çıkış Yap</button>`;
     if (isAdmin) updateAdminStats();
+    updateThemeToggleUI();
   } else {
     c.innerHTML = `
       <div class="awrap">
@@ -875,7 +930,9 @@ function rprof() {
             Google ile Giriş Yap
           </button>
         </div>
-      </div>`;
+      </div>
+      ${themePanelHTML()}`;
+    updateThemeToggleUI();
   }
 }
 
@@ -1943,6 +2000,55 @@ function setupPTR(screenId, fn) {
   el.addEventListener('touchend',async()=>{if(!pull)return;pull=false;if(done){await fn();ptr.style.height='0';}});
 }
 
+// TEMA
+function applyTheme(theme) {
+  if (theme === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#F4F7FB');
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#00040F');
+  }
+}
+
+function getThemePref() {
+  try { return localStorage.getItem('tk_theme'); } catch(e) { return null; }
+}
+
+function resolveTheme() {
+  const saved = getThemePref();
+  if (saved === 'light' || saved === 'dark') return saved;
+  // Sistem tercihi
+  return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+}
+
+function initTheme() {
+  applyTheme(resolveTheme());
+  // Sistem teması değişirse ve kullanıcı manuel seçim yapmamışsa otomatik takip et
+  if (window.matchMedia) {
+    window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
+      if (!getThemePref()) applyTheme(resolveTheme());
+    });
+  }
+}
+
+function setTheme(theme) {
+  try {
+    if (theme === 'system') localStorage.removeItem('tk_theme');
+    else localStorage.setItem('tk_theme', theme);
+  } catch(e) {}
+  applyTheme(resolveTheme());
+  updateThemeToggleUI();
+}
+
+function updateThemeToggleUI() {
+  const saved = getThemePref();
+  const current = saved || 'system';
+  document.querySelectorAll('.theme-opt').forEach(el => {
+    el.classList.toggle('on', el.dataset.theme === current);
+  });
+}
+
 // NAVIGATION
 function gt(name) {
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
@@ -2034,6 +2140,7 @@ window.addEventListener('online', updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
 
 // INIT
+initTheme();
 rhome();
 loadListings();
 checkOnboarding();
