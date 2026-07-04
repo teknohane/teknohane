@@ -282,10 +282,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 
 /* TOAST BİLDİRİM */
 #offline-bar{display:none;position:fixed;top:var(--st);left:0;right:0;z-index:550;background:rgba(255,149,0,.95);backdrop-filter:blur(8px);color:#000;font-size:12px;font-weight:700;text-align:center;padding:7px;letter-spacing:.2px;}
-#splash{position:fixed;inset:0;z-index:9999;background:#00040F;display:flex;align-items:center;justify-content:center;transition:opacity .5s ease;}
+#splash{position:fixed;inset:0;z-index:9999;background:#00040F;display:flex;align-items:center;justify-content:center;transition:opacity .5s ease;overflow:hidden;}
 #splash.fade{opacity:0;pointer-events:none;}
 #splash.gone{display:none;}
-#splash img{width:100%;height:100%;object-fit:cover;object-position:center;}
+#splash img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center center;}
 #offline-bar.on{display:block;}
 
 #toast-wrap{position:fixed;top:calc(var(--st) + 64px);left:16px;right:16px;z-index:500;display:flex;flex-direction:column;gap:8px;pointer-events:none;}
@@ -2872,16 +2872,18 @@ function hideSplash() {
   const s = document.getElementById('splash');
   if (!s || s.classList.contains('fade')) return;
   s.classList.add('fade');
-  setTimeout(() => s.classList.add('gone'), 520);
+  setTimeout(() => {
+    s.classList.add('gone');
+    checkOnboarding(); // Splash tamamen kapandıktan sonra başlat
+  }, 520);
 }
 
 // INIT
 initTheme();
-rhome().finally(hideSplash); // YouTube hazır olunca kapat
+rhome().finally(hideSplash);
 loadListings();
-checkOnboarding();
 updateOnlineStatus();
-// En fazla 3 saniye beklet, sonra her halükarda kapat
+// En fazla 3 saniye beklet
 setTimeout(hideSplash, 3000);
 setInterval(() => checkNewVideo(), 3 * 60 * 1000); // Her 3 dakikada bir yeni video kontrolü
 setTimeout(()=>{
