@@ -349,6 +349,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .mtab.off{background:var(--surf);border:1px solid var(--border2);color:var(--text2);}
 .lgrid{display:flex;flex-direction:column;gap:12px;}
 .lcard{background:var(--surf);border:1px solid var(--border2);border-radius:16px;padding:14px;cursor:pointer;}
+.lcard-top{display:flex;gap:10px;align-items:flex-start;}
+.lcard-thumb{width:56px;height:56px;border-radius:10px;overflow:hidden;flex-shrink:0;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:22px;}
+.lcard-thumb img{width:100%;height:100%;object-fit:cover;}
+.lcard-top-info{flex:1;min-width:0;}
 .lcard:active{background:var(--surf2);}
 .ltit{font-size:15px;font-weight:600;margin-bottom:6px;}
 .lrow{display:flex;align-items:center;justify-content:space-between;margin-top:6px;}
@@ -874,7 +878,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 
     <div class="fg"><label class="fl">Açıklama</label><input class="fi" type="text" id="l-desc" placeholder="Kısa açıklama…"></div>
     <div class="fg"><label class="fl">WhatsApp Numaranız</label><input class="fi" type="tel" id="l-phone" placeholder="5XXXXXXXXX"></div>
-    <label style="display:flex;align-items:flex-start;gap:10px;margin-bottom:16px;cursor:pointer">
+    <label id="l-agree-wrap" style="display:flex;align-items:flex-start;gap:10px;margin-bottom:16px;cursor:pointer">
       <input type="checkbox" id="l-agree" style="width:18px;height:18px;margin-top:1px;accent-color:var(--cyan);flex-shrink:0">
       <span style="font-size:12px;color:var(--text2);line-height:1.5">Bu ürünün bana ait olduğunu, bilgilerin doğru olduğunu beyan ederim ve <a href="sartlar.html" target="_blank" style="color:var(--cyan)">Kullanım Şartları</a>'nı kabul ediyorum.</span>
     </label>
@@ -1233,6 +1237,8 @@ function dismissToast(t) {
 
 let unsubListings = null;
 let prevRefCounts = {};
+let prevPrices = {};
+let editingListingId = null;
 let listingsFirstLoad = true;
 
 function loadListings() {
@@ -1248,7 +1254,7 @@ function loadListings() {
 
       // İlk yüklemede bildirim tetikleme, sadece referans sayaçlarını başlat
       if (listingsFirstLoad) {
-        listings.forEach(l => { prevRefCounts[l.id] = (l.referrers||[]).length; });
+        listings.forEach(l => { prevRefCounts[l.id] = (l.referrers||[]).length; prevPrices[l.id] = parseInt(l.price||0); });
         listingsFirstLoad = false;
         return;
       }
@@ -1283,6 +1289,15 @@ function loadListings() {
             showToast('🤝', 'rgba(255,149,0,.15)', 'Yeni Referans', `${newRef?.name||'Biri'} "${l.model}" ilanına referans oldu`, () => openDetail(l.id));
           }
           prevRefCounts[l.id] = newCount;
+
+          // Fiyat indirimi bildirimi: bu ilanı favorileyen kullanıcıya haber ver
+          const newPrice = parseInt(l.price || 0);
+          const oldPrice = prevPrices[l.id];
+          if (oldPrice !== undefined && newPrice < oldPrice && favs.has(l.id) && (!user || l.uid !== user.uid)) {
+            const fark = oldPrice - newPrice;
+            showToast('💰', 'rgba(48,209,88,.15)', 'Favorindeki İlanda İndirim!', `${l.model}: ₺${oldPrice.toLocaleString('tr-TR')} → ₺${newPrice.toLocaleString('tr-TR')} (-₺${fark.toLocaleString('tr-TR')})`, () => openDetail(l.id));
+          }
+          prevPrices[l.id] = newPrice;
         }
       });
     }, () => {
@@ -1374,10 +1389,15 @@ function rlistings() {
     return `<div class="lcard ${l.sold?'sold':''}" onclick="openDetail('${l.id}')">
       ${l.sold?'<div class="sold-badge">SATILDI</div>':''}
       ${pending && !l.sold?'<div class="sold-badge" style="background:rgba(255,149,0,.92)">İNCELENİYOR</div>':''}
-      <div class="ltit">${l.model||''}</div>
-      <div class="lrow">
-        <div class="lprc">₺${parseInt(l.price||0).toLocaleString('tr-TR')}</div>
-        <div class="lcnd ${l.condition==='Sıfır'?'cn':'cu'}">${l.condition||''}</div>
+      <div class="lcard-top">
+        <div class="lcard-thumb">${l.photo1?`<img src="${l.photo1}">`:'📱'}</div>
+        <div class="lcard-top-info">
+          <div class="ltit">${l.model||''}</div>
+          <div class="lrow">
+            <div class="lprc">₺${parseInt(l.price||0).toLocaleString('tr-TR')}</div>
+            <div class="lcnd ${l.condition==='Sıfır'?'cn':'cu'}">${l.condition||''}</div>
+          </div>
+        </div>
       </div>
       ${l.desc?`<div style="font-size:12px;color:var(--text2);margin-top:6px">${l.desc}</div>`:''}
       <div class="lft" onclick="event.stopPropagation()">
@@ -1387,6 +1407,7 @@ function rlistings() {
             <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
           </div>
           ${l.phone?`<div class="wabtn2" onclick="ol('https://wa.me/90${l.phone}')"><svg viewBox="0 0 24 24" width="14" height="14" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.998 2C6.477 2 2 6.477 2 12c0 1.989.574 3.842 1.565 5.408L2 22l4.757-1.535A9.958 9.958 0 0 0 11.998 22c5.523 0 10-4.477 10-10S17.521 2 11.998 2z"/></svg>İletişim</div>`:''}
+          ${mine?`<button class="delbtn" style="background:var(--surf2);color:var(--cyan);border:1px solid var(--border2)" onclick="editListing('${l.id}')">Düzenle</button>`:''}
           ${mine?`<button class="delbtn" onclick="delListing('${l.id}')">Sil</button>`:''}
         </div>
       </div>
@@ -1404,6 +1425,10 @@ function smtab(t, el) {
 
 function newListing() {
   if (!user) { gt('profile'); return; }
+  editingListingId = null;
+  document.querySelector('#listing-mo .mtit').textContent = 'İlan Ver';
+  document.querySelector('#listing-mo .sbtn2').textContent = 'İlanı Yayınla';
+  document.getElementById('l-agree-wrap').style.display = '';
   document.getElementById('listing-mo').classList.add('on');
 }
 
@@ -1412,7 +1437,7 @@ async function submitListing() {
   const model = document.getElementById('l-model').value.trim();
   const price = document.getElementById('l-price').value.trim();
   if (!model || !price) { alert('Model ve fiyat zorunlu!'); return; }
-  if (!document.getElementById('l-agree').checked) { alert('Devam etmek için onay kutusunu işaretlemelisiniz.'); return; }
+  if (!editingListingId && !document.getElementById('l-agree').checked) { alert('Devam etmek için onay kutusunu işaretlemelisiniz.'); return; }
   try {
     const data = {
       model, price,
@@ -1428,25 +1453,78 @@ async function submitListing() {
       chip: document.getElementById('l-chip').value.trim(),
       battery: document.getElementById('l-battery').value.trim(),
       box: document.getElementById('l-box').value.trim(),
-      sold: false,
-      approved: false,
-      uid: user.uid,
-      ownerName: user.displayName || user.email?.split('@')[0] || 'Anonim',
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
-    if (photos[0]) data.photo1 = photos[0];
-    if (photos[1]) data.photo2 = photos[1];
-    await db.collection('teknohane_listings').add(data);
+
+    if (editingListingId) {
+      const old = listings.find(x => x.id === editingListingId);
+      if (!old || old.uid !== user.uid) { editingListingId = null; return; }
+      if (photos[0]) data.photo1 = photos[0]; else data.photo1 = firebase.firestore.FieldValue.delete();
+      if (photos[1]) data.photo2 = photos[1]; else data.photo2 = firebase.firestore.FieldValue.delete();
+      await db.collection('teknohane_listings').doc(editingListingId).update(data);
+      showToast('✓', 'rgba(48,209,88,.15)', 'İlan Güncellendi', `${model} güncellendi.`);
+    } else {
+      if (photos[0]) data.photo1 = photos[0];
+      if (photos[1]) data.photo2 = photos[1];
+      data.sold = false;
+      data.approved = false;
+      data.uid = user.uid;
+      data.ownerName = user.displayName || user.email?.split('@')[0] || 'Anonim';
+      data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      await db.collection('teknohane_listings').add(data);
+      showToast('⏳', 'rgba(255,149,0,.15)', 'İlanınız Gönderildi', 'İncelendikten sonra Pazar\'da yayınlanacaktır.');
+    }
+
     closemo('listing-mo');
     photos[0] = null; photos[1] = null;
+    editingListingId = null;
+    document.querySelector('#listing-mo .mtit').textContent = 'İlan Ver';
+    document.querySelector('#listing-mo .sbtn2').textContent = 'İlanı Yayınla';
+    document.getElementById('l-agree-wrap').style.display = '';
     ['l-model','l-price','l-loc','l-desc','l-phone','l-ram','l-storage','l-color','l-warranty','l-chip','l-battery','l-box'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
     document.getElementById('l-agree').checked = false;
     document.getElementById('detail-fields').style.display = 'none';
     document.getElementById('dt-chevron')?.parentElement?.classList.remove('open');
     rmPhoto(0); rmPhoto(1);
-    showToast('⏳', 'rgba(255,149,0,.15)', 'İlanınız Gönderildi', 'İncelendikten sonra Pazar\'da yayınlanacaktır.');
     // onSnapshot otomatik güncelleyecek, ekstra okuma gerekmiyor
   } catch(e) { alert('Hata: ' + e.message); }
+}
+
+function editListing(id) {
+  const l = listings.find(x => x.id === id);
+  if (!l || !user || l.uid !== user.uid) return;
+  editingListingId = id;
+  document.querySelector('#listing-mo .mtit').textContent = 'İlanı Düzenle';
+  document.querySelector('#listing-mo .sbtn2').textContent = 'Değişiklikleri Kaydet';
+  document.getElementById('l-model').value = l.model || '';
+  document.getElementById('l-price').value = l.price || '';
+  document.getElementById('l-cond').value = l.condition || 'Sıfır';
+  document.getElementById('l-origin').value = l.origin || 'Yurtiçi';
+  document.getElementById('l-loc').value = l.location || '';
+  document.getElementById('l-desc').value = l.desc || '';
+  document.getElementById('l-phone').value = l.phone || '';
+  document.getElementById('l-ram').value = l.ram || '';
+  document.getElementById('l-storage').value = l.storage || '';
+  document.getElementById('l-color').value = l.color || '';
+  document.getElementById('l-warranty').value = l.warranty || '';
+  document.getElementById('l-chip').value = l.chip || '';
+  document.getElementById('l-battery').value = l.battery || '';
+  document.getElementById('l-box').value = l.box || '';
+  document.getElementById('l-agree').checked = true;
+  document.getElementById('l-agree-wrap').style.display = 'none';
+  if (l.ram || l.storage || l.color || l.warranty || l.chip || l.battery || l.box) {
+    document.getElementById('detail-fields').style.display = 'block';
+    document.getElementById('dt-chevron')?.parentElement?.classList.add('open');
+  }
+  photos[0] = l.photo1 || null;
+  photos[1] = l.photo2 || null;
+  [0,1].forEach(i => {
+    const slot = document.getElementById('ps' + i);
+    const p = photos[i];
+    if (p) slot.innerHTML = `<img src="${p}"><div class="pslot-x" onclick="rmPhoto(${i});event.stopPropagation()">×</div><input type="file" id="pf${i}" accept="image/*" style="display:none" onchange="addPhoto(${i},this)">`;
+    else slot.innerHTML = `<svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>Ekle</span><input type="file" id="pf${i}" accept="image/*" style="display:none" onchange="addPhoto(${i},this)">`;
+  });
+  closemo('detail-mo');
+  document.getElementById('listing-mo').classList.add('on');
 }
 
 function toggleDetailFields() {
@@ -1596,6 +1674,7 @@ function openDetail(id) {
       </button>`:'<div></div>'}
     </div>
     ${pending && isAdmin ? `<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px" onclick="approveListing('${l.id}')">✓ İlanı Onayla ve Yayınla</button>`:''}
+    ${mine?`<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px;background:var(--surf2);color:var(--cyan);border:1px solid var(--border2)" onclick="editListing('${l.id}')">✏️ İlanı Düzenle</button>`:''}
     ${mine?`<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px" onclick="toggleSold('${l.id}')">${l.sold?'↺ Satıldı İşaretini Kaldır':'✓ Satıldı Olarak İşaretle'}</button>`:''}`;
   document.getElementById('detail-mo').classList.add('on');
 }
@@ -2989,17 +3068,17 @@ setTimeout(() => {
 // Açık modal varsa kapat, yoksa çıkış uyarısı göster
 let backPressedOnce = false;
 window.addEventListener('popstate', () => {
+  // Tam ekran görsel açıksa ÖNCE onu kapat (modalın üstünde göründüğü için öncelik bunda)
+  const fs = document.getElementById('img-fullscreen');
+  if (fs?.classList.contains('on')) {
+    fs.classList.remove('on');
+    history.pushState(null, '', location.href);
+    return;
+  }
   // Açık modal var mı kontrol et
   const openModal = document.querySelector('.mo.on');
   if (openModal) {
     openModal.classList.remove('on');
-    history.pushState(null, '', location.href);
-    return;
-  }
-  // Tam ekran görsel açıksa kapat
-  const fs = document.getElementById('img-fullscreen');
-  if (fs?.classList.contains('on')) {
-    fs.classList.remove('on');
     history.pushState(null, '', location.href);
     return;
   }
