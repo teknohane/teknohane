@@ -60,10 +60,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .notif-swipe-wrap{position:relative;overflow:hidden;}
 .notif-swipe-del{position:absolute;right:0;top:0;bottom:0;width:70px;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;}
 .notif-swipe-wrap .notif-item{position:relative;background:var(--bg2);touch-action:pan-y;}
-.msg-swipe-wrap{position:relative;overflow:hidden;align-self:flex-end;max-width:78%;border-radius:14px;}
-.msg-swipe-del{position:absolute;right:0;top:0;bottom:0;width:56px;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;}
-.msg-bubble{border-radius:14px;position:relative;background:var(--bg2);touch-action:pan-y;}
-.msg-del-btn{position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.4);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;line-height:1;cursor:pointer;z-index:3;}
+.msg-bubble{border-radius:14px;position:relative;background:var(--bg2);}
+/* Sohbet ekranı: mesaj listesi tam bağımsız kayabilsin, alt input her zaman sabit kalsın */
+#chat-thread-mo .det-sheet{overflow:hidden;display:flex;flex-direction:column;}
+#chat-messages{min-height:0;-webkit-overflow-scrolling:touch;}
 .notif-ic{width:38px;height:38px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;}
 .notif-txt{flex:1;min-width:0;}
 .notif-msg{font-size:13px;color:var(--text);line-height:1.4;}
@@ -1823,15 +1823,10 @@ function openChatThread(otherUid, otherName, prefill) {
         const body = m.imageUrl
           ? `<img src="${m.imageUrl}" onclick="openFullscreen('${m.imageUrl}')" style="max-width:100%;border-radius:10px;display:block;cursor:pointer">`
           : `${(m.text||'').replace(/</g,'&lt;')}`;
-        const delBtn = mine ? `<div class="msg-del-btn" onclick="event.stopPropagation();deleteChatMessage('${d.id}')">✕</div>` : '';
-        const bubble = `<div class="msg-bubble" style="background:${mine?'var(--cyan)':'var(--surf2)'};color:${mine?'#00121a':'var(--text)'};padding:${m.imageUrl?'6px':'9px 13px'};${mine?'border-bottom-right-radius:4px':'border-bottom-left-radius:4px'}${mine&&!m.imageUrl?';padding-right:26px':''};font-size:14px;line-height:1.4;word-break:break-word">${delBtn}${body}<div style="font-size:10px;opacity:.6;margin-top:3px;text-align:right">${time}</div></div>`;
-        if (mine) {
-          return `<div class="msg-swipe-wrap" data-id="${d.id}"><div class="msg-swipe-del">🗑️</div>${bubble}</div>`;
-        }
-        return `<div style="align-self:flex-start;max-width:78%">${bubble}</div>`;
+        const bubble = `<div class="msg-bubble" style="background:${mine?'var(--cyan)':'var(--surf2)'};color:${mine?'#00121a':'var(--text)'};padding:${m.imageUrl?'6px':'9px 13px'};${mine?'border-bottom-right-radius:4px':'border-bottom-left-radius:4px'};font-size:14px;line-height:1.4;word-break:break-word">${body}<div style="font-size:10px;opacity:.6;margin-top:3px;text-align:right">${time}</div></div>`;
+        return `<div style="align-self:${mine?'flex-end':'flex-start'};max-width:78%">${bubble}</div>`;
       }).join('');
       box.scrollTop = box.scrollHeight;
-      box.querySelectorAll('.msg-swipe-wrap').forEach(wrap => attachMsgSwipeDelete(wrap));
     }, e => { console.error('Sohbet yükleme hatası:', e); });
 }
 
@@ -1888,36 +1883,45 @@ async function sendChatImage(input) {
   } catch(e) { alert('Hata: ' + e.message); }
 }
 
-async function deleteChatMessage(msgId) {
-  if (!user || !currentChatOtherUid) return;
-  const id = chatIdFor(user.uid, currentChatOtherUid);
+// Bir sohbeti (tüm mesajlarıyla birlikte) tamamen siler
+async function deleteChatThread(chatId) {
   try {
-    await db.collection('teknohane_chats').doc(id).collection('messages').doc(msgId).delete();
+    const msgsSnap = await db.collection('teknohane_chats').doc(chatId).collection('messages').get();
+    const batch = db.batch();
+    msgsSnap.docs.forEach(d => batch.delete(d.ref));
+    batch.delete(db.collection('teknohane_chats').doc(chatId));
+    await batch.commit();
   } catch(e) { alert('Hata: ' + e.message); }
 }
 
-// Sohbette kendi mesajını sola kaydırarak silme (bildirim listesindeki ile aynı mantık)
-function attachMsgSwipeDelete(wrap) {
-  const bubble = wrap.querySelector('.msg-bubble');
-  const msgId = wrap.dataset.id;
+// Sohbet listesinde bir öğeyi sola kaydırarak silme (bildirim listesindeki ile aynı mantık)
+function attachChatSwipeDelete(wrap) {
+  const item = wrap.querySelector('.notif-item');
+  const chatId = wrap.dataset.id;
   let startX = 0, dx = 0, dragging = false;
-  bubble.addEventListener('touchstart', e => {
-    startX = e.touches[0].clientX; dragging = true; bubble.style.transition = 'none';
+  item.addEventListener('touchstart', e => {
+    startX = e.touches[0].clientX; dragging = true; item.style.transition = 'none';
   }, { passive: true });
-  bubble.addEventListener('touchmove', e => {
+  item.addEventListener('touchmove', e => {
     if (!dragging) return;
     dx = e.touches[0].clientX - startX;
-    if (dx < 0) bubble.style.transform = `translateX(${dx}px)`;
+    if (dx < 0) item.style.transform = `translateX(${dx}px)`;
   }, { passive: true });
-  bubble.addEventListener('touchend', () => {
+  item.addEventListener('touchend', () => {
     dragging = false;
-    bubble.style.transition = 'transform .2s ease';
-    if (dx < -70) {
-      bubble.style.transform = 'translateX(-100%)';
-      bubble.style.opacity = '0';
-      deleteChatMessage(msgId);
+    item.style.transition = 'transform .2s ease';
+    if (dx < -90) {
+      item.style.transform = 'translateX(-100%)';
+      item.style.opacity = '0';
+      deleteChatThread(chatId);
+      setTimeout(() => {
+        wrap.remove();
+        if (!document.querySelector('#chat-list .notif-swipe-wrap')) {
+          document.getElementById('chat-list').innerHTML = `<div class="no">Henüz mesajın yok</div>`;
+        }
+      }, 200);
     } else {
-      bubble.style.transform = 'translateX(0)';
+      item.style.transform = 'translateX(0)';
     }
     dx = 0;
   });
@@ -1945,11 +1949,15 @@ function openChatList() {
         const unread = (c.unreadBy||[]).includes(user.uid);
         const time = c.lastAt?.toDate ? fd(c.lastAt.toDate().toISOString()) : '';
         const preview = (c.lastMessage||'').slice(0,40) + ((c.lastMessage||'').length>40?'…':'');
-        return `<div class="notif-item ${unread?'unread':''}" style="cursor:pointer" onclick="openChatThread('${otherUid}','${otherName.replace(/'/g,"\\'")}')">
-          <div class="notif-ic" style="background:var(--surf2);color:var(--cyan);font-weight:700">${otherName[0].toUpperCase()}</div>
-          <div class="notif-txt"><div class="notif-msg">${otherName}</div><div class="notif-time">${preview || 'Sohbeti başlat'} · ${time}</div></div>
+        return `<div class="notif-swipe-wrap" data-id="${d.id}">
+          <div class="notif-swipe-del">🗑️</div>
+          <div class="notif-item ${unread?'unread':''}" style="cursor:pointer" onclick="openChatThread('${otherUid}','${otherName.replace(/'/g,"\\'")}')">
+            <div class="notif-ic" style="background:var(--surf2);color:var(--cyan);font-weight:700">${otherName[0].toUpperCase()}</div>
+            <div class="notif-txt"><div class="notif-msg">${otherName}</div><div class="notif-time">${preview || 'Sohbeti başlat'} · ${time}</div></div>
+          </div>
         </div>`;
       }).join('');
+      document.querySelectorAll('#chat-list .notif-swipe-wrap').forEach(wrap => attachChatSwipeDelete(wrap));
     }, e => { list.innerHTML = `<div class="no">Sohbetler yüklenemedi</div>`; console.error(e); });
 }
 
