@@ -587,7 +587,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 <body>
 <div id="app">
 <div id="offline-bar">📡 İnternet bağlantısı yok — bazı içerikler güncellenemiyor</div>
-<div style="position:fixed;top:0;left:0;right:0;z-index:9999;background:#0f0;color:#000;font-size:11px;font-weight:700;text-align:center;padding:4px;">🔧 TEST SÜRÜMÜ v-DEBUG-3</div>
 <div id="toast-wrap"></div>
 
 <!-- KARŞILAMA EKRANI -->
@@ -3370,12 +3369,52 @@ function rplist() {
   l.innerHTML=fp.map(p=>`<div class="pitem" onclick="ppick(${PHONES.indexOf(p)})"><div><div class="pn">${p.brand} ${p.name}</div><div class="ps">${p.chip||'—'} · ${p.ram||'—'}</div></div><div style="display:flex;align-items:center;gap:8px"><div class="pp">${p.price||'—'}</div><div class="abdg">Ekle</div></div></div>`).join('');
 }
 
+// Karşılaştırmada sadece tek telefon seçiliyken özellik tablosu + yorumları gösterir
+function rsingle(p, side) {
+  prRating[side] = 0;
+  const rows=[
+    {k:'chip',l:'İşlemci',v:p.chip},
+    {k:'ram',l:'RAM',v:p.ram},
+    {k:'storage',l:'Depolama',v:p.storage},
+    {k:'cam',l:'Kamera',v:p.cam},
+    {k:'bat',l:'Batarya',v:p.bat},
+    {k:'scr',l:'Ekran',v:p.scr},
+    {k:'wt',l:'Ağırlık',v:p.wt},
+    {k:'os',l:'İşletim Sistemi',v:p.os},
+  ];
+  document.getElementById('cmp-res').innerHTML=`
+    <div class="ctbl">
+      <div class="crow" style="background:rgba(0,212,255,.05)">
+        <div class="ccell lbl"></div>
+        <div class="ccell" style="font-weight:700;font-size:12px;color:var(--cyan)">${p.brand}<br>${p.name}</div>
+      </div>
+      <div class="crow"><div class="ccell lbl">Fiyat</div><div class="ccell val">${priceCell(p,side)}</div></div>
+      ${rows.map(r=>`<div class="crow"><div class="ccell lbl">${r.l}</div><div class="ccell val" id="spec-${r.k}-${side}">${r.v||(p.gsmarenaUrl?'<span class="spin-mini"></span>':'—')}</div></div>`).join('')}
+    </div>
+    <div class="cmp-price-note">🔄 simgesi olan fiyatlar Cimri.com'dan canlı kontrol edilebilir</div>
+    <div class="phone-reviews">
+      <div class="pr-tit">${p.brand} ${p.name} — Yorumlar</div>
+      <div id="pr-list-${side}"><div class="load"><div class="spin"></div></div></div>
+      ${renderReviewForm(side)}
+    </div>`;
+  loadPhoneReviews(p.id, 'pr-list-'+side);
+  fetchMissingSpecs(p, side);
+}
+
+// pA/pB durumuna göre karşılaştırma, tekli inceleme ya da boş görünüm arasında geçiş yapar
+function refreshCmp() {
+  if (pA && pB) rcmptbl();
+  else if (pA) rsingle(pA, 'a');
+  else if (pB) rsingle(pB, 'b');
+  else document.getElementById('cmp-res').innerHTML = '';
+}
+
 function ppick(i) {
   const p=PHONES[i];
   if(pslot==='a')pA=p;else pB=p;
   closemo('picker-mo');
   rslots();
-  if(pA&&pB)rcmptbl();else document.getElementById('cmp-res').innerHTML='';
+  refreshCmp();
 }
 
 function rslots() {
@@ -3387,7 +3426,7 @@ function rslots() {
   });
 }
 
-function cslot(s){if(s==='a')pA=null;else pB=null;rslots();document.getElementById('cmp-res').innerHTML='';}
+function cslot(s){if(s==='a')pA=null;else pB=null;rslots();refreshCmp();}
 
 async function shareComparison() {
   const a = pA, b = pB;
@@ -3533,6 +3572,15 @@ async function fetchLivePrice(side) {
   }
 }
 
+function priceCell(p, side) {
+  if (p.price) {
+    const btn = p.cimriUrl ? `<span class="live-price-btn" onclick="event.stopPropagation();fetchLivePrice('${side}')" title="Güncel fiyatı kontrol et">🔄</span>` : '';
+    return `<span id="price-${side}">${p.price}</span>${btn}`;
+  }
+  if (p.gsmarenaUrl) return `<span id="price-${side}" class="live-price-btn" onclick="event.stopPropagation();ol('${p.gsmarenaUrl}')" style="text-decoration:underline">Fiyat için bak →</span>`;
+  return `<span id="price-${side}">—</span>`;
+}
+
 function rcmptbl() {
   const a=pA,b=pB;
   prRating = { a: 0, b: 0 };
@@ -3546,14 +3594,6 @@ function rcmptbl() {
     {k:'wt',l:'Ağırlık',a:a.wt,b:b.wt},
     {k:'os',l:'İşletim Sistemi',a:a.os,b:b.os},
   ];
-  const priceCell = (p, side) => {
-    if (p.price) {
-      const btn = p.cimriUrl ? `<span class="live-price-btn" onclick="event.stopPropagation();fetchLivePrice('${side}')" title="Güncel fiyatı kontrol et">🔄</span>` : '';
-      return `<span id="price-${side}">${p.price}</span>${btn}`;
-    }
-    if (p.gsmarenaUrl) return `<span id="price-${side}" class="live-price-btn" onclick="event.stopPropagation();ol('${p.gsmarenaUrl}')" style="text-decoration:underline">Fiyat için bak →</span>`;
-    return `<span id="price-${side}">—</span>`;
-  };
   document.getElementById('cmp-res').innerHTML=`
     <div class="ctbl">
       <div class="crow" style="background:rgba(0,212,255,.05)">
