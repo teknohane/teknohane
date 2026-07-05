@@ -637,6 +637,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
         <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
         <div class="notif-badge" id="notif-badge" style="display:none">0</div>
       </div>
+      <div class="hbtn" id="hchat" style="display:none" onclick="openChatList()">
+        <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        <div class="notif-badge" id="chat-badge" style="display:none">0</div>
+      </div>
       <div class="hbtn" id="hav" style="display:none" onclick="gt('profile')">
         <img id="hav-img" src="" alt="">
       </div>
@@ -898,6 +902,31 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
       <span id="notif-clear-all" style="font-size:12px;color:var(--red);cursor:pointer;font-weight:600;display:none" onclick="clearAllNotifications()">Tümünü Sil</span>
     </div>
     <div id="notif-list"></div>
+  </div>
+</div>
+
+<div class="mo" id="chat-list-mo" onclick="closemo('chat-list-mo')">
+  <div class="ms" onclick="event.stopPropagation()">
+    <div class="mh"></div>
+    <div class="mtit">Mesajlar</div>
+    <div id="chat-list"></div>
+  </div>
+</div>
+
+<div class="mo" id="chat-thread-mo" onclick="exitChatThread()">
+  <div class="det-sheet" onclick="event.stopPropagation()" style="display:flex;flex-direction:column;height:92vh">
+    <div class="det-sticky">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--cyan);flex-shrink:0" id="chat-thread-av">?</div>
+        <div style="font-weight:700;font-size:15px" id="chat-thread-name">Kullanıcı</div>
+      </div>
+      <div class="det-close" onclick="exitChatThread()">×</div>
+    </div>
+    <div id="chat-messages" style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:8px"></div>
+    <div class="comment-input-area" style="padding:12px 20px calc(12px + var(--sb));border-top:1px solid var(--border2);margin-top:0;flex-shrink:0">
+      <textarea id="chat-input" placeholder="Mesaj yaz..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMessage();}"></textarea>
+      <button class="sbtn2" style="padding:10px 16px" onclick="sendChatMessage()">Gönder</button>
+    </div>
   </div>
 </div>
 
@@ -1171,6 +1200,7 @@ auth.onAuthStateChanged(u => {
     document.getElementById('hav').style.display = 'flex';
     document.getElementById('hlogin').style.display = 'none';
     document.getElementById('hbell').style.display = 'flex';
+    document.getElementById('hchat').style.display = 'flex';
     const img = document.getElementById('hav-img');
     img.src = u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.displayName||u.email)}&background=0D1526&color=00D4FF&size=64`;
 
@@ -1181,15 +1211,18 @@ auth.onAuthStateChanged(u => {
     // Favori/profil verisini arka planda çek ve senkronize et — UI'ı bloklamaz
     syncUserProfile(u);
     subscribeNotifBadge(u.uid);
+    subscribeChatBadge(u.uid);
   } else {
     document.getElementById('hav').style.display = 'none';
     document.getElementById('hlogin').style.display = 'flex';
     document.getElementById('hbell').style.display = 'none';
+    document.getElementById('hchat').style.display = 'none';
     favs = new Set();
     myProfileData = {};
     rprof();
     if (listingsReady) rlistings();
     unsubNotifBadge?.();
+    unsubChatBadge?.();
   }
 });
 
@@ -1586,7 +1619,8 @@ let unsubNotifBadge = null;
 const NOTIF_ICONS = {
   price_drop: { ic: '💰', bg: 'rgba(48,209,88,.15)' },
   listing_favorited: { ic: '❤️', bg: 'rgba(255,69,58,.12)' },
-  new_referrer: { ic: '🤝', bg: 'rgba(255,149,0,.15)' }
+  new_referrer: { ic: '🤝', bg: 'rgba(255,149,0,.15)' },
+  seller_review: { ic: '⭐', bg: 'rgba(255,204,0,.15)' }
 };
 
 function subscribeNotifBadge(uid) {
@@ -1693,6 +1727,145 @@ async function clickNotif(id, listingId, wasUnread) {
     gt('market');
     setTimeout(() => openDetail(listingId), 100);
   }
+}
+
+// ---- UYGULAMA İÇİ MESAJLAŞMA ----
+// teknohane_chats/{chatId} → participants:[uidA,uidB], names:{uid:ad}, lastMessage, lastAt, unreadBy:[uid,...]
+// teknohane_chats/{chatId}/messages/{msgId} → senderUid, text, createdAt
+let unsubChatBadge = null;
+let unsubChatList = null;
+let unsubChatThread = null;
+let currentChatOtherUid = null;
+
+function chatIdFor(a, b) { return [a, b].sort().join('_'); }
+
+function subscribeChatBadge(uid) {
+  unsubChatBadge?.();
+  unsubChatBadge = db.collection('teknohane_chats')
+    .where('participants', 'array-contains', uid)
+    .onSnapshot(snap => {
+      let unread = 0;
+      snap.docs.forEach(d => { if ((d.data().unreadBy||[]).includes(uid)) unread++; });
+      const badge = document.getElementById('chat-badge');
+      if (!badge) return;
+      if (unread > 0) { badge.textContent = unread > 9 ? '9+' : unread; badge.style.display = 'flex'; }
+      else badge.style.display = 'none';
+    }, () => {});
+}
+
+// Bir kullanıcıyla sohbeti başlatır/açar. listingCtx verilirse ilk mesaj kutusuna bağlam yazılır (opsiyonel).
+async function openChatWith(otherUid, otherName, listingCtx) {
+  if (!user) { gt('profile'); return; }
+  if (!otherUid || otherUid === user.uid) return;
+  const id = chatIdFor(user.uid, otherUid);
+  const ref = db.collection('teknohane_chats').doc(id);
+  const myName = user.displayName || user.email?.split('@')[0] || 'Kullanıcı';
+  try {
+    const snap = await ref.get();
+    if (!snap.exists) {
+      await ref.set({
+        participants: [user.uid, otherUid],
+        names: { [user.uid]: myName, [otherUid]: otherName || 'Kullanıcı' },
+        lastMessage: '', lastSenderUid: null,
+        lastAt: firebase.firestore.FieldValue.serverTimestamp(),
+        unreadBy: []
+      });
+    } else {
+      await ref.set({ names: { [user.uid]: myName, [otherUid]: otherName || snap.data().names?.[otherUid] || 'Kullanıcı' } }, { merge: true });
+    }
+  } catch(e) { alert('Hata: ' + e.message); return; }
+  openChatThread(otherUid, otherName, listingCtx ? `${listingCtx} ilanınız hakkında yazıyorum, ` : '');
+}
+
+function openChatThread(otherUid, otherName, prefill) {
+  if (!user) { gt('profile'); return; }
+  currentChatOtherUid = otherUid;
+  document.getElementById('chat-thread-name').textContent = otherName || 'Kullanıcı';
+  document.getElementById('chat-thread-av').textContent = (otherName || '?')[0].toUpperCase();
+  document.getElementById('chat-messages').innerHTML = `<div class="load" style="margin:auto"><div class="spin"></div></div>`;
+  const inp = document.getElementById('chat-input');
+  if (prefill) inp.value = prefill;
+  closemo('chat-list-mo');
+  document.getElementById('chat-thread-mo').classList.add('on');
+
+  const id = chatIdFor(user.uid, otherUid);
+  db.collection('teknohane_chats').doc(id).update({ unreadBy: firebase.firestore.FieldValue.arrayRemove(user.uid) }).catch(()=>{});
+
+  unsubChatThread?.();
+  unsubChatThread = db.collection('teknohane_chats').doc(id).collection('messages')
+    .orderBy('createdAt', 'asc')
+    .limitToLast(200)
+    .onSnapshot(snap => {
+      const box = document.getElementById('chat-messages');
+      if (!box) return;
+      if (snap.empty) { box.innerHTML = `<div class="no" style="margin:auto">Henüz mesaj yok, ilk mesajı sen yaz!</div>`; return; }
+      box.innerHTML = snap.docs.map(d => {
+        const m = d.data();
+        const mine = m.senderUid === user.uid;
+        const time = m.createdAt?.toDate ? m.createdAt.toDate().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}) : '';
+        return `<div style="align-self:${mine?'flex-end':'flex-start'};max-width:78%;background:${mine?'var(--cyan)':'var(--surf2)'};color:${mine?'#00121a':'var(--text)'};padding:9px 13px;border-radius:14px;${mine?'border-bottom-right-radius:4px':'border-bottom-left-radius:4px'};font-size:14px;line-height:1.4;word-break:break-word">${(m.text||'').replace(/</g,'&lt;')}<div style="font-size:10px;opacity:.6;margin-top:3px;text-align:right">${time}</div></div>`;
+      }).join('');
+      box.scrollTop = box.scrollHeight;
+    }, e => { console.error('Sohbet yükleme hatası:', e); });
+}
+
+function exitChatThread() {
+  document.getElementById('chat-thread-mo').classList.remove('on');
+  unsubChatThread?.(); unsubChatThread = null;
+  currentChatOtherUid = null;
+}
+
+async function sendChatMessage() {
+  if (!user || !currentChatOtherUid) return;
+  const inp = document.getElementById('chat-input');
+  const text = inp.value.trim();
+  if (!text) return;
+  inp.value = '';
+  const id = chatIdFor(user.uid, currentChatOtherUid);
+  const ref = db.collection('teknohane_chats').doc(id);
+  try {
+    await ref.collection('messages').add({
+      senderUid: user.uid,
+      text,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    await ref.set({
+      lastMessage: text,
+      lastSenderUid: user.uid,
+      lastAt: firebase.firestore.FieldValue.serverTimestamp(),
+      unreadBy: firebase.firestore.FieldValue.arrayUnion(currentChatOtherUid)
+    }, { merge: true });
+  } catch(e) { alert('Hata: ' + e.message); }
+}
+
+function openChatList() {
+  if (!user) { gt('profile'); return; }
+  document.getElementById('chat-list-mo').classList.add('on');
+  const list = document.getElementById('chat-list');
+  list.innerHTML = `<div class="load"><div class="spin"></div></div>`;
+  unsubChatList?.();
+  unsubChatList = db.collection('teknohane_chats')
+    .where('participants', 'array-contains', user.uid)
+    .onSnapshot(snap => {
+      if (snap.empty) { list.innerHTML = `<div class="no">Henüz mesajın yok</div>`; return; }
+      const docs = [...snap.docs].sort((a, b) => {
+        const ta = a.data().lastAt?.toMillis ? a.data().lastAt.toMillis() : 0;
+        const tb = b.data().lastAt?.toMillis ? b.data().lastAt.toMillis() : 0;
+        return tb - ta;
+      });
+      list.innerHTML = docs.map(d => {
+        const c = d.data();
+        const otherUid = c.participants.find(p => p !== user.uid);
+        const otherName = c.names?.[otherUid] || 'Kullanıcı';
+        const unread = (c.unreadBy||[]).includes(user.uid);
+        const time = c.lastAt?.toDate ? fd(c.lastAt.toDate().toISOString()) : '';
+        const preview = (c.lastMessage||'').slice(0,40) + ((c.lastMessage||'').length>40?'…':'');
+        return `<div class="notif-item ${unread?'unread':''}" style="cursor:pointer" onclick="openChatThread('${otherUid}','${otherName.replace(/'/g,"\\'")}')">
+          <div class="notif-ic" style="background:var(--surf2);color:var(--cyan);font-weight:700">${otherName[0].toUpperCase()}</div>
+          <div class="notif-txt"><div class="notif-msg">${otherName}</div><div class="notif-time">${preview || 'Sohbeti başlat'} · ${time}</div></div>
+        </div>`;
+      }).join('');
+    }, e => { list.innerHTML = `<div class="no">Sohbetler yüklenemedi</div>`; console.error(e); });
 }
 
 // ---- ÇEVRİMİÇİ / TOPLAM KULLANICI SAYACI ----
@@ -2146,7 +2319,7 @@ function openDetail(id) {
     </div>
     <div class="det-info">
       ${l.location?`<div class="det-row"><span class="det-lbl">Konum</span><span>📍 ${l.location}</span></div>`:''}
-      ${l.ownerName?`<div class="det-row"><span class="det-lbl">Satıcı</span><span ${!mine?`onclick="openPublicProfile('${l.uid}','${l.ownerName.replace(/'/g,"\\'")}');exitDetailPage(false)" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;color:var(--cyan)"`:''} >${l.ownerName}${mine?' (Ben)':''}</span></div>`:''}
+      ${l.ownerName?`<div class="det-row"><span class="det-lbl">Satıcı</span><span ${!mine?`onclick="openPublicProfile('${l.uid}','${l.ownerName.replace(/'/g,"\\'")}');exitDetailPage(false)" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;color:var(--cyan)"`:''} >${l.ownerName}${mine?' (Ben)':''}</span><span id="det-seller-rating"></span></div>`:''}
     </div>
     ${specs.length ? `<div class="spec-pills">${specs.map(s=>`<div class="spec-pill"><b>${s.l}:</b> ${s.v}</div>`).join('')}</div>` : ''}
     ${l.desc?`<div style="font-size:14px;color:var(--text2);line-height:1.6;padding:14px;background:var(--surf);border-radius:14px;margin:16px 0">${l.desc}</div>`:''}
@@ -2176,10 +2349,15 @@ function openDetail(id) {
         <span class="abtn-lbl">Sil</span>
       </button>`:'<div></div>'}
     </div>
+    ${!mine && l.uid ? `<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px;background:var(--surf2);color:var(--cyan);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;gap:8px" onclick="openChatWith('${l.uid}','${(l.ownerName||'Kullanıcı').replace(/'/g,"\\'")}','${(l.model||'').replace(/'/g,"\\'")}')">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+      Uygulama İçinden Mesaj Gönder
+    </button>` : ''}
     ${pending && isAdmin ? `<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px" onclick="approveListing('${l.id}')">✓ İlanı Onayla ve Yayınla</button>`:''}
     ${mine?`<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px;background:var(--surf2);color:var(--cyan);border:1px solid var(--border2)" onclick="editListing('${l.id}')">✏️ İlanı Düzenle</button>`:''}
     ${mine?`<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px" onclick="toggleSold('${l.id}')">${l.sold?'↺ Satıldı İşaretini Kaldır':'✓ Satıldı Olarak İşaretle'}</button>`:''}`;
   document.getElementById('detail-mo').classList.add('on');
+  if (l.uid) loadSellerRatingSummary(l.uid, 'det-seller-rating');
   if (isNewOpen) {
     openListingId = id;
     history.pushState({ listingDetail: id }, '', location.pathname + '?listing=' + id);
@@ -2737,12 +2915,22 @@ function openPublicProfile(uid, nameHint) {
     <div class="pub-hero">
       <div class="pub-av">${displayName[0].toUpperCase()}</div>
       <div class="pub-name">${displayName}${isMe?' (Sen)':''}</div>
+      <div id="pub-rating-badge" style="font-size:13px;font-weight:700;color:#FFCC00;margin-top:4px"><span style="color:var(--text3);font-weight:400">Yükleniyor…</span></div>
       ${joinedDate ? `<div class="pub-joined">📅 ${joinedDate}'den beri üye</div>` : ''}
+      ${!isMe ? `<button class="sbtn2" style="padding:9px 18px;margin-top:12px;display:inline-flex;align-items:center;gap:6px" onclick="closemo('pub-profile-mo');openChatWith('${uid}','${displayName.replace(/'/g,"\\'")}')">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        Mesaj Gönder
+      </button>` : ''}
     </div>
     <div class="pub-stats">
       <div class="apstat"><div class="apstat-n">${userListings.length}</div><div class="apstat-l">Aktif İlan</div></div>
       <div class="apstat"><div class="apstat-n">${soldListings.length}</div><div class="apstat-l">Satılan</div></div>
       <div class="apstat"><div class="apstat-n">${refCount}</div><div class="apstat-l">Referans</div></div>
+    </div>
+    <div class="ud-section">
+      <div class="ud-section-title">Satıcı Değerlendirmeleri</div>
+      <div id="sr-list"><div class="load"><div class="spin"></div></div></div>
+      ${renderSellerReviewForm(uid)}
     </div>
     <div class="ud-section">
       <div class="ud-section-title">Aktif İlanlar</div>
@@ -2770,6 +2958,7 @@ function openPublicProfile(uid, nameHint) {
     </div>` : ''}`;
 
   document.getElementById('pub-profile-mo').classList.add('on');
+  loadSellerReviews(uid, 'sr-list');
 }
 
 // KULLANICI ARAMA
@@ -3752,6 +3941,132 @@ async function deletePhoneReview(commentId, phoneId, containerId) {
   try {
     await db.collection('teknohane_comments').doc(commentId).delete();
     loadPhoneReviews(phoneId, containerId);
+  } catch(e) { alert('Hata: ' + e.message); }
+}
+
+// ---- SATICI PUANLAMA SİSTEMİ ----
+// teknohane_comments koleksiyonu tekrar kullanılır: targetType:'seller', targetId:sellerUid
+// Doküman ID'si "seller-{sellerUid}-{reviewerUid}" şeklinde sabitlenir; böylece kişi başı tek puan
+// kaydı garanti edilir ve yeniden gönderim mevcut puanı günceller (silip yeniden eklemeye gerek yok).
+let srRating = 0;
+
+function renderSellerReviewForm(sellerUid) {
+  if (!user) return `<div class="no" style="padding:10px 0">Puan vermek için giriş yap</div>`;
+  if (user.uid === sellerUid) return '';
+  return `
+    <div class="pr-form">
+      <div class="pr-star-pick" id="sr-stars">${[1,2,3,4,5].map(n=>`<span data-n="${n}" onclick="setSrStar(${n})">☆</span>`).join('')}</div>
+      <textarea class="fi" id="sr-text" placeholder="Bu satıcıyla ilgili deneyimini yaz (opsiyonel)..." style="min-height:60px;resize:vertical"></textarea>
+      <button class="sbtn2" style="padding:10px" onclick="submitSellerReview('${sellerUid}')">Satıcıyı Puanla</button>
+    </div>`;
+}
+
+function setSrStar(n) {
+  srRating = n;
+  document.querySelectorAll('#sr-stars span').forEach((el, i) => {
+    el.textContent = (i < n) ? '★' : '☆';
+  });
+}
+
+function updatePubRatingBadge(avg, count) {
+  const badge = document.getElementById('pub-rating-badge');
+  if (badge) badge.innerHTML = count ? `⭐ ${avg.toFixed(1)} <span style="color:var(--text3);font-weight:400">(${count} değerlendirme)</span>` : '<span style="color:var(--text3);font-weight:400">Henüz değerlendirme yok</span>';
+}
+
+// İlan detayında satıcı adının yanında gösterilecek kısa puan özeti (tam liste çekmeden)
+async function loadSellerRatingSummary(sellerUid, spanId) {
+  const el = document.getElementById(spanId);
+  if (!el) return;
+  try {
+    const snap = await db.collection('teknohane_comments')
+      .where('targetType', '==', 'seller')
+      .where('targetId', '==', sellerUid)
+      .limit(50)
+      .get();
+    if (snap.empty) return;
+    let total = 0, count = 0;
+    snap.docs.forEach(d => { const c = d.data(); if (c.rating) { total += c.rating; count++; } });
+    if (!count) return;
+    const avg = total / count;
+    el.innerHTML = ` · <span style="color:#FFCC00">⭐ ${avg.toFixed(1)}</span> <span style="color:var(--text3)">(${count})</span>`;
+  } catch(e) { /* sessizce geç */ }
+}
+
+async function loadSellerReviews(sellerUid, containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return {avg:0,count:0};
+  try {
+    const snap = await db.collection('teknohane_comments')
+      .where('targetType', '==', 'seller')
+      .where('targetId', '==', sellerUid)
+      .limit(50)
+      .get();
+    if (snap.empty) { el.innerHTML = `<div class="no" style="padding:10px 0">Henüz değerlendirme yok</div>`; updatePubRatingBadge(0,0); return {avg:0,count:0}; }
+    let totalStars = 0, count = 0;
+    const docs = [...snap.docs].sort((x, y) => {
+      const tx = x.data().createdAt?.toMillis ? x.data().createdAt.toMillis() : 0;
+      const ty = y.data().createdAt?.toMillis ? y.data().createdAt.toMillis() : 0;
+      return ty - tx;
+    });
+    const items = docs.map(d => {
+      const c = d.data();
+      if (c.rating) { totalStars += c.rating; count++; }
+      const stars = c.rating ? '★'.repeat(c.rating) + '☆'.repeat(5 - c.rating) : '';
+      const mine = user && c.uid === user.uid;
+      const time = c.createdAt?.toDate ? fd(c.createdAt.toDate().toISOString()) : '';
+      return `<div class="cmt">
+        <div class="cmt-head">
+          <span class="cmt-name">${c.name || 'Anonim'}</span>
+          ${stars ? `<span class="cmt-stars">${stars}</span>` : ''}
+          ${mine ? `<span class="cmt-del" onclick="deleteSellerReview('${d.id}','${sellerUid}','${containerId}')">Sil</span>` : ''}
+        </div>
+        ${c.text ? `<div class="cmt-txt">${c.text}</div>` : ''}
+        <div class="cmt-time">${time}</div>
+      </div>`;
+    }).join('');
+    const avg = count ? (totalStars / count) : 0;
+    const avgHtml = count ? `<div class="pr-avg"><span class="pr-stars">${'★'.repeat(Math.round(avg))}${'☆'.repeat(5 - Math.round(avg))}</span><span>${avg.toFixed(1)} / 5 (${count} oy)</span></div>` : '';
+    el.innerHTML = avgHtml + items;
+    updatePubRatingBadge(avg, count);
+    return {avg, count};
+  } catch(e) {
+    el.innerHTML = `<div class="no" style="padding:10px 0">Değerlendirmeler yüklenemedi<br><span style="font-size:11px;color:var(--text3)">${e.message}</span></div>`;
+    console.error('Satıcı değerlendirme yükleme hatası:', e);
+    return {avg:0,count:0};
+  }
+}
+
+async function submitSellerReview(sellerUid) {
+  if (!user) { gt('profile'); return; }
+  if (user.uid === sellerUid) return;
+  if (!srRating) { alert('Lütfen yıldız seçerek bir puan ver.'); return; }
+  const textEl = document.getElementById('sr-text');
+  const text = (textEl?.value || '').trim();
+  try {
+    await db.collection('teknohane_comments').doc(`seller-${sellerUid}-${user.uid}`).set({
+      targetType: 'seller',
+      targetId: sellerUid,
+      uid: user.uid,
+      name: user.displayName || user.email?.split('@')[0] || 'Anonim',
+      rating: srRating,
+      text,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    if (textEl) textEl.value = '';
+    const submittedRating = srRating;
+    srRating = 0;
+    document.querySelectorAll('#sr-stars span').forEach(el => el.textContent = '☆');
+    loadSellerReviews(sellerUid, 'sr-list');
+    notifyUser(sellerUid, 'seller_review', `Birisi seni ${submittedRating}★ ile değerlendirdi`, null);
+    showToast('⭐', 'rgba(255,204,0,.15)', 'Puanın Kaydedildi', 'Satıcı değerlendirmen için teşekkürler.');
+  } catch(e) { alert('Hata: ' + e.message); }
+}
+
+async function deleteSellerReview(commentId, sellerUid, containerId) {
+  if (!confirm('Değerlendirmen silinsin mi?')) return;
+  try {
+    await db.collection('teknohane_comments').doc(commentId).delete();
+    loadSellerReviews(sellerUid, containerId);
   } catch(e) { alert('Hata: ' + e.message); }
 }
 
