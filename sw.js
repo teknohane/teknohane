@@ -1,4 +1,4 @@
-const CACHE_NAME = 'teknohane-v5';
+const CACHE_NAME = 'teknohane-v6';
 const CACHE_URLS = [
   '/teknohane/manifest.json',
   '/teknohane/teknohane.png',
@@ -40,11 +40,12 @@ self.addEventListener('fetch', event => {
   // Sadece GET isteklerini ele al
   if (event.request.method !== 'GET') return;
 
-  // index.html / kök — HER ZAMAN network, asla cache'leme
-  // (uygulama güncellemelerinin anında yansıması için kritik)
+  // index.html / kök — HER ZAMAN network, asla cache'leme (tarayıcı HTTP cache'i dahil!)
+  // { cache: 'no-store' } olmadan fetch() bile GitHub Pages'in Cache-Control header'ına
+  // uyup tarayıcının kendi HTTP önbelleğinden eski içerik döndürebilir.
   if (url.pathname === '/teknohane/' || url.pathname === '/teknohane/index.html') {
     event.respondWith(
-      fetch(event.request)
+      fetch(event.request, { cache: 'no-store' })
         .catch(() => caches.match('/teknohane/') || caches.match('/teknohane/index.html'))
     );
     return;
@@ -52,7 +53,7 @@ self.addEventListener('fetch', event => {
 
   // go.html da network-first (yönlendirme mantığı güncel kalsın)
   if (url.pathname === '/teknohane/go.html') {
-    event.respondWith(fetch(event.request));
+    event.respondWith(fetch(event.request, { cache: 'no-store' }));
     return;
   }
 
@@ -85,6 +86,6 @@ self.addEventListener('fetch', event => {
 
   // Geri kalan her şey (varsa) — network-first, olmazsa cache dene
   event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request))
+    fetch(event.request, { cache: 'no-store' }).catch(() => caches.match(event.request))
   );
 });
