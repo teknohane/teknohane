@@ -587,7 +587,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 <body>
 <div id="app">
 <div id="offline-bar">📡 İnternet bağlantısı yok — bazı içerikler güncellenemiyor</div>
-<div style="position:fixed;top:0;left:0;right:0;z-index:9999;background:#ff0;color:#000;font-size:11px;font-weight:700;text-align:center;padding:4px;">🔧 TEST SÜRÜMÜ v-DEBUG-2</div>
 <div id="toast-wrap"></div>
 
 <!-- KARŞILAMA EKRANI -->
@@ -3588,26 +3587,13 @@ function rcmptbl() {
 // Liste görünümünde olmayan (kamera, ağırlık, OS) bilgileri, o telefonun kendi
 // GSMArena sayfasından tek seferlik çekip ilgili hücreleri günceller
 async function fetchMissingSpecs(p, side) {
-  if (!p.gsmarenaUrl) {
-    console.warn('fetchMissingSpecs: gsmarenaUrl yok', p);
-    ['cam','wt','os'].forEach(key => {
-      if (!p[key]) {
-        const el = document.getElementById(`spec-${key}-${side}`);
-        if (el) el.innerHTML = `<span style="font-size:10px;color:var(--red,#ff453a)">GSMArena linki yok</span>`;
-      }
-    });
-    return;
-  }
-  if (p.cam && p.wt && p.os) return;
+  if (!p.gsmarenaUrl || (p.cam && p.wt && p.os)) return;
   try {
     const r = await fetch(PHONES_API + '?detail=' + encodeURIComponent(p.gsmarenaUrl));
-    if (!r.ok) throw new Error('HTTP ' + r.status);
     const d = await r.json();
-    const allEmpty = !d.cam && !d.wt && !d.os;
     const fill = (key, val) => {
       const el = document.getElementById(`spec-${key}-${side}`);
       if (el && val) el.textContent = val;
-      else if (el && allEmpty) el.innerHTML = `<span style="font-size:9px;color:var(--red,#ff453a);word-break:break-all">Boş döndü: ${p.gsmarenaUrl}</span>`;
       else if (el) el.textContent = '—';
     };
     if (!p.cam) fill('cam', d.cam);
@@ -3616,12 +3602,8 @@ async function fetchMissingSpecs(p, side) {
     // Kalıcı olarak da işaretleyelim, tekrar seçilirse yeniden fetch etmesin
     p.cam = p.cam || d.cam; p.wt = p.wt || d.wt; p.os = p.os || d.os;
   } catch(e) {
-    console.error('fetchMissingSpecs hatası:', e, p.gsmarenaUrl);
     ['cam','wt','os'].forEach(key => {
-      if (!p[key]) {
-        const el = document.getElementById(`spec-${key}-${side}`);
-        if (el) el.innerHTML = `<span style="font-size:10px;color:var(--red,#ff453a)">Hata: ${e.message}</span>`;
-      }
+      if (!p[key]) { const el = document.getElementById(`spec-${key}-${side}`); if (el) el.textContent = '—'; }
     });
   }
 }
