@@ -1755,7 +1755,10 @@ const NOTIF_ICONS = {
   price_drop: { ic: '💰', bg: 'rgba(48,209,88,.15)' },
   listing_favorited: { ic: '❤️', bg: 'rgba(255,69,58,.12)' },
   new_referrer: { ic: '🤝', bg: 'rgba(255,149,0,.15)' },
-  seller_review: { ic: '⭐', bg: 'rgba(255,204,0,.15)' }
+  seller_review: { ic: '⭐', bg: 'rgba(255,204,0,.15)' },
+  post_liked: { ic: '❤️', bg: 'rgba(255,69,58,.12)' },
+  post_comment: { ic: '💬', bg: 'rgba(0,212,255,.12)' },
+  comment_liked: { ic: '❤️', bg: 'rgba(255,69,58,.12)' }
 };
 
 function subscribeNotifBadge(uid) {
@@ -3033,6 +3036,10 @@ async function likePost(id) {
     const pi = forumPosts.findIndex(x=>x.id===id);
     if (pi>-1) forumPosts[pi].likes = newLikes;
     renderPostDetail(); renderComments();
+    if (!isLiked && p.uid && p.uid !== user.uid) {
+      const name = user.displayName || user.email?.split('@')[0] || 'Biri';
+      notifyUser(p.uid, 'post_liked', `${name}, "${p.title}" gönderini beğendi`, null);
+    }
   } catch(e) {}
 }
 
@@ -3062,6 +3069,10 @@ async function submitComment() {
     const pi = forumPosts.findIndex(x=>x.id===p.id);
     if (pi>-1) forumPosts[pi].answerCount = p.answerCount;
     rForum();
+    if (p.uid && p.uid !== user.uid) {
+      const name = user.displayName || user.email?.split('@')[0] || 'Biri';
+      notifyUser(p.uid, 'post_comment', `${name}, "${p.title}" gönderine yorum yaptı`, null);
+    }
   } catch(e) { alert('Hata: '+e.message); }
 }
 
@@ -3071,13 +3082,18 @@ async function likeComment(cid) {
   const p = currentPost;
   const c = (p._comments||[]).find(x=>x.id===cid);
   if (!c) return;
-  const newLikes = (c.likes||[]).includes(user.uid)
+  const wasLiked = (c.likes||[]).includes(user.uid);
+  const newLikes = wasLiked
     ? c.likes.filter(x=>x!==user.uid)
     : [...(c.likes||[]), user.uid];
   try {
     await db.collection('teknohane_posts').doc(p.id).collection('comments').doc(cid).update({ likes: newLikes });
     c.likes = newLikes;
     renderComments();
+    if (!wasLiked && c.uid && c.uid !== user.uid) {
+      const name = user.displayName || user.email?.split('@')[0] || 'Biri';
+      notifyUser(c.uid, 'comment_liked', `${name}, yorumunu beğendi`, null);
+    }
   } catch(e) {}
 }
 
