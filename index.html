@@ -54,9 +54,12 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 #hbell{overflow:visible;}
 #hchat{overflow:visible;}
 .notif-badge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:var(--red);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;line-height:1;border:2px solid var(--bg);box-sizing:border-box;}
-.notif-item{display:flex;gap:12px;padding:14px 4px;border-bottom:1px solid var(--border2);cursor:pointer;}
+.notif-item{display:flex;gap:12px;padding:14px 4px;border-bottom:1px solid var(--border2);cursor:pointer;align-items:center;}
 .notif-item:last-child{border-bottom:none;}
-.notif-item.unread{background:rgba(0,212,255,.04);}
+.notif-item.unread{background:rgba(0,212,255,.09);border-left:3px solid var(--cyan);padding-left:9px;border-radius:0 10px 10px 0;}
+.notif-item.unread .notif-msg{font-weight:700;color:var(--text);}
+.notif-item.unread .notif-time{color:var(--cyan);font-weight:600;}
+.unread-dot{width:9px;height:9px;border-radius:50%;background:var(--cyan);flex-shrink:0;box-shadow:0 0 6px var(--cyan);}
 .notif-swipe-wrap{position:relative;overflow:hidden;}
 .notif-swipe-del{position:absolute;right:0;top:0;bottom:0;width:70px;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;}
 .notif-swipe-wrap .notif-item{position:relative;background:var(--bg2);touch-action:pan-y;}
@@ -86,6 +89,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 /* SCREENS */
 #screens{flex:1;overflow:hidden;position:relative;margin-top:calc(var(--st) + 58px);margin-bottom:var(--tab);}
 .screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;opacity:0;pointer-events:none;transition:opacity .2s;}
+#s-support{z-index:40;}
 .screen.on{opacity:1;pointer-events:all;}
 .screen::-webkit-scrollbar{display:none;}
 .sc{padding:16px 16px 32px;}
@@ -797,7 +801,12 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 
   <div class="screen" id="s-support">
     <div class="sc">
-      <div class="sh"><span class="st">Destek</span></div>
+      <div class="sh" style="display:flex;align-items:center;gap:10px">
+        <div class="det-close" onclick="closeSupportPage()">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </div>
+        <span class="st">Destek</span>
+      </div>
       <div class="mi" onclick="ol('https://wa.me/905519589317')">
         <div class="mil">
           <div class="mico" style="background:#25D366;min-width:36px;min-height:36px">
@@ -878,10 +887,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
     <div class="tab" data-s="market" onclick="gt('market')">
       <div class="tco" style="position:relative"><svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><div class="bell-dot" id="market-dot"></div></div>
       <span>Pazar</span>
-    </div>
-    <div class="tab" data-s="support" onclick="gt('support')">
-      <div class="tco"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
-      <span>Destek</span>
     </div>
     <div class="tab" data-s="profile" onclick="gt('profile')">
       <div class="tco"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
@@ -967,7 +972,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
     <div class="mh"></div>
     <div class="mtit">İlan Ver</div>
     <div class="fg">
-      <label class="fl">Fotoğraflar (max 2)</label>
+      <label class="fl">Fotoğraflar (max 4)</label>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px">
         <div class="pslot" id="ps0" onclick="document.getElementById('pf0').click()">
           <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
@@ -978,6 +983,16 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
           <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
           <span>Ekle</span>
           <input type="file" id="pf1" accept="image/*" style="display:none" onchange="addPhoto(1,this)">
+        </div>
+        <div class="pslot" id="ps2" onclick="document.getElementById('pf2').click()">
+          <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <span>Ekle</span>
+          <input type="file" id="pf2" accept="image/*" style="display:none" onchange="addPhoto(2,this)">
+        </div>
+        <div class="pslot" id="ps3" onclick="document.getElementById('pf3').click()">
+          <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <span>Ekle</span>
+          <input type="file" id="pf3" accept="image/*" style="display:none" onchange="addPhoto(3,this)">
         </div>
       </div>
     </div>
@@ -1209,7 +1224,7 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 const PUSH_API = 'https://teknohane-push.yusuf-aykac.workers.dev/';
 const VAPID_KEY = 'BPt5vY5P3Dr9DG2zHOQwhQKnH6V5UruqGisQRTlGWxkNaAYtYKAEG9xiTHn78yGq1DlrsnWFSazOquL_9krdtjY';
-const ADMINS = ['yusuf.aykac@gmail.com','memetklc5933@gmail.com','necatierdogan82@gmail.com'];
+const ADMINS = ['yusuf.aykac@gmail.com','memetklc5933@gmail.com'];
 let user = null;
 let myProfileData = {};
 let epNewPhotoDataUrl = null;
@@ -1328,12 +1343,7 @@ function rprof() {
         <div class="pemail">${user.email}</div>
       </div>
       <button class="apbtn" onclick="openEditProfile()">✏️ Profili Düzenle</button>
-      <div class="profile-tabs">
-        <div class="ptab on" onclick="switchProfileTab('mine',this)">İlanlarım</div>
-        <div class="ptab" onclick="switchProfileTab('favs',this)">Favorilerim</div>
-        <div class="ptab" onclick="switchProfileTab('refs',this)">Referanslarım</div>
-      </div>
-      <div id="profile-listings"></div>
+      <button class="apbtn" onclick="openSupportPage()">💬 Destek</button>
       ${pushPanelHTML()}
       ${themePanelHTML()}
       ${isAdmin?`<div class="apanel">
@@ -1351,8 +1361,6 @@ function rprof() {
       <button class="signout" onclick="auth.signOut()">Çıkış Yap</button>`;
     if (isAdmin) updateAdminStats();
     updateThemeToggleUI();
-    profileTab = 'mine';
-    renderProfileListings();
   } else {
     c.innerHTML = `
       <div class="awrap">
@@ -1787,7 +1795,8 @@ async function openNotifications() {
         <div class="notif-swipe-del">🗑️</div>
         <div class="notif-item ${n.read?'':'unread'}" onclick="clickNotif('${d.id}','${n.listingId||''}',${!n.read})">
           <div class="notif-ic" style="background:${meta.bg}">${meta.ic}</div>
-          <div class="notif-txt"><div class="notif-msg">${n.message}</div><div class="notif-time">${time}</div></div>
+          <div class="notif-txt" style="flex:1"><div class="notif-msg">${n.message}</div><div class="notif-time">${n.read?'':'<span style="color:var(--cyan);font-weight:700">Yeni · </span>'}${time}</div></div>
+          ${n.read?'':'<div class="unread-dot"></div>'}
         </div>
       </div>`;
     }).join('');
@@ -2109,7 +2118,8 @@ function openChatList() {
           <div class="notif-swipe-del">🗑️</div>
           <div class="notif-item ${unread?'unread':''}" style="cursor:pointer" onclick="openChatThread('${otherUid}','${otherName.replace(/'/g,"\\'")}')">
             <div class="notif-ic" style="background:var(--surf2);color:var(--cyan);font-weight:700;overflow:hidden">${avHtml}</div>
-            <div class="notif-txt"><div class="notif-msg">${otherName}</div><div class="notif-time">${preview || 'Sohbeti başlat'} · ${time}</div></div>
+            <div class="notif-txt" style="flex:1"><div class="notif-msg">${otherName}</div><div class="notif-time">${unread?'<span style="color:var(--cyan);font-weight:700">Yeni mesaj · </span>':''}${preview || 'Sohbeti başlat'} · ${time}</div></div>
+            ${unread?'<div class="unread-dot"></div>':''}
           </div>
         </div>`;
       }).join('');
@@ -2369,6 +2379,8 @@ async function submitListing() {
       if (!old || old.uid !== user.uid) { editingListingId = null; return; }
       if (photos[0]) data.photo1 = photos[0]; else data.photo1 = firebase.firestore.FieldValue.delete();
       if (photos[1]) data.photo2 = photos[1]; else data.photo2 = firebase.firestore.FieldValue.delete();
+      if (photos[2]) data.photo3 = photos[2]; else data.photo3 = firebase.firestore.FieldValue.delete();
+      if (photos[3]) data.photo4 = photos[3]; else data.photo4 = firebase.firestore.FieldValue.delete();
       await db.collection('teknohane_listings').doc(editingListingId).update(data);
 
       // Fiyat düştüyse, bu ilanı favorileyen HERKESE kalıcı bildirim gönder (çevrimdışı olsalar bile)
@@ -2386,6 +2398,8 @@ async function submitListing() {
     } else {
       if (photos[0]) data.photo1 = photos[0];
       if (photos[1]) data.photo2 = photos[1];
+      if (photos[2]) data.photo3 = photos[2];
+      if (photos[3]) data.photo4 = photos[3];
       data.sold = false;
       data.approved = false;
       data.uid = user.uid;
@@ -2396,7 +2410,7 @@ async function submitListing() {
     }
 
     closemo('listing-mo');
-    photos[0] = null; photos[1] = null;
+    photos[0] = null; photos[1] = null; photos[2] = null; photos[3] = null;
     editingListingId = null;
     document.querySelector('#listing-mo .mtit').textContent = 'İlan Ver';
     document.querySelector('#listing-mo .sbtn2').textContent = 'İlanı Yayınla';
@@ -2438,7 +2452,9 @@ function editListing(id) {
   }
   photos[0] = l.photo1 || null;
   photos[1] = l.photo2 || null;
-  [0,1].forEach(i => {
+  photos[2] = l.photo3 || null;
+  photos[3] = l.photo4 || null;
+  [0,1,2,3].forEach(i => {
     const slot = document.getElementById('ps' + i);
     const p = photos[i];
     if (p) slot.innerHTML = `<img src="${p}"><div class="pslot-x" onclick="rmPhoto(${i});event.stopPropagation()">×</div><input type="file" id="pf${i}" accept="image/*" style="display:none" onchange="addPhoto(${i},this)">`;
@@ -2456,7 +2472,7 @@ function toggleDetailFields() {
   toggle.classList.toggle('open', !isOpen);
 }
 
-const photos = [null, null];
+const photos = [null, null, null, null];
 
 function addPhoto(idx, input) {
   const file = input.files[0];
@@ -2532,7 +2548,7 @@ function openDetail(id) {
   const isAdmin = user && ADMINS.includes(user.email);
   const pending = l.approved === false;
   const fav = favs.has(l.id);
-  const ps = [l.photo1, l.photo2].filter(Boolean);
+  const ps = [l.photo1, l.photo2, l.photo3, l.photo4].filter(Boolean);
   const refs = l.referrers || [];
   const alreadyRef = user && refs.some(r => r.uid === user.uid);
   const specs = [
@@ -2586,9 +2602,9 @@ function openDetail(id) {
         <svg viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.998 2C6.477 2 2 6.477 2 12c0 1.989.574 3.842 1.565 5.408L2 22l4.757-1.535A9.958 9.958 0 0 0 11.998 22c5.523 0 10-4.477 10-10S17.521 2 11.998 2z"/></svg>
         <span class="abtn-lbl">İletişim</span>
       </button>`:'<div></div>'}
-      <button class="abtn act-ref" id="dref-btn" onclick="becomeRef()" ${(!user||mine||alreadyRef)?'style="opacity:.5;pointer-events:none"':''}>
+      <button class="abtn act-ref" id="dref-btn" onclick="toggleRef()" ${(!user||mine)?'style="opacity:.5;pointer-events:none"':''}>
         <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        <span class="abtn-lbl">${alreadyRef?'Referans Oldun':mine?'Kendi İlanın':'Referans Ol'}</span>
+        <span class="abtn-lbl">${alreadyRef?'Referansı Geri Çek':mine?'Kendi İlanın':'Referans Ol'}</span>
       </button>
       <button class="abtn act-fav2 ${fav?'on':''}" id="dfav" onclick="detFav()">
         <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
@@ -2694,23 +2710,30 @@ async function approveListing(id) {
   } catch(e) { alert('Hata: ' + e.message); }
 }
 
-async function becomeRef() {
+async function toggleRef() {
   if (!user || !currentListing) { gt('profile'); return; }
   const l = currentListing;
   if (user.uid === l.uid) return;
   const refs = l.referrers || [];
-  if (refs.some(r => r.uid === user.uid)) return;
-  const name = user.displayName || user.email?.split('@')[0] || 'Anonim';
-  const newRef = { uid: user.uid, name };
+  const already = refs.find(r => r.uid === user.uid);
   try {
-    await db.collection('teknohane_listings').doc(l.id).update({
-      referrers: firebase.firestore.FieldValue.arrayUnion(newRef)
-    });
-    l.referrers = [...refs, newRef];
+    if (already) {
+      await db.collection('teknohane_listings').doc(l.id).update({
+        referrers: firebase.firestore.FieldValue.arrayRemove(already)
+      });
+      l.referrers = refs.filter(r => r.uid !== user.uid);
+    } else {
+      const name = user.displayName || user.email?.split('@')[0] || 'Anonim';
+      const newRef = { uid: user.uid, name };
+      await db.collection('teknohane_listings').doc(l.id).update({
+        referrers: firebase.firestore.FieldValue.arrayUnion(newRef)
+      });
+      l.referrers = [...refs, newRef];
+      notifyUser(l.uid, 'new_referrer', `${name}, "${l.model}" ilanınıza referans oldu.`, l.id);
+    }
     const idx = listings.findIndex(x => x.id === l.id);
     if (idx > -1) listings[idx] = l;
     openDetail(l.id);
-    notifyUser(l.uid, 'new_referrer', `${name}, "${l.model}" ilanınıza referans oldu.`, l.id);
   } catch(e) { alert('Hata: ' + e.message); }
 }
 
@@ -3262,7 +3285,7 @@ function updateAdminStats() {
   if (!ln) return;
   ln.textContent = listings.length;
   sn.textContent = new Set(listings.map(l=>l.uid)).size;
-  pn.textContent = listings.filter(l=>l.photo1||l.photo2).length;
+  pn.textContent = listings.filter(l=>l.photo1||l.photo2||l.photo3||l.photo4).length;
 }
 
 function openAdmin() {
@@ -4384,6 +4407,18 @@ function updateThemeToggleUI() {
 }
 
 // NAVIGATION
+// Destek sayfası artık alt menüde değil, Profil içinden tam ekran açılıyor
+let supportPageOpen = false;
+function openSupportPage() {
+  supportPageOpen = true;
+  document.getElementById('s-support').classList.add('on');
+  history.pushState({ supportPage: true }, '', location.pathname);
+}
+function closeSupportPage() {
+  supportPageOpen = false;
+  document.getElementById('s-support').classList.remove('on');
+}
+
 function gt(name) {
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
@@ -4552,6 +4587,12 @@ window.addEventListener('popstate', () => {
   // İlan detay "sayfası" açıksa: kapat ve Pazar'a dön
   if (openListingId) {
     exitDetailPage(true);
+    history.pushState(null, '', location.pathname);
+    return;
+  }
+  // Destek "sayfası" açıksa: kapat ve Profil'e dön
+  if (supportPageOpen) {
+    closeSupportPage();
     history.pushState(null, '', location.pathname);
     return;
   }
