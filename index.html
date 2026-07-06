@@ -62,7 +62,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .notif-swipe-wrap .notif-item{position:relative;background:var(--bg2);touch-action:pan-y;}
 .msg-bubble{border-radius:14px;position:relative;background:var(--bg2);}
 /* Sohbet ekranı: mesaj listesi tam bağımsız kayabilsin, alt input her zaman sabit kalsın */
-#chat-thread-mo .det-sheet{overflow:hidden;display:flex;flex-direction:column;}
+#chat-thread-mo{align-items:stretch;background:var(--bg);backdrop-filter:none;-webkit-backdrop-filter:none;}
+#chat-thread-mo .det-sheet{overflow:hidden;display:flex;flex-direction:column;max-height:100dvh;height:100dvh;border-radius:0;border-top:none;animation:detpage .25s ease;}
 #chat-messages{min-height:0;-webkit-overflow-scrolling:touch;}
 .notif-ic{width:38px;height:38px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;}
 .notif-txt{flex:1;min-width:0;}
@@ -927,13 +928,16 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 </div>
 
 <div class="mo" id="chat-thread-mo" onclick="exitChatThread()">
-  <div class="det-sheet" onclick="event.stopPropagation()" style="display:flex;flex-direction:column;height:92vh">
+  <div class="det-sheet" onclick="event.stopPropagation()" style="display:flex;flex-direction:column;height:100dvh">
     <div class="det-sticky">
       <div style="display:flex;align-items:center;gap:10px">
-        <div style="width:36px;height:36px;border-radius:50%;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--cyan);flex-shrink:0" id="chat-thread-av">?</div>
+        <div class="det-close" onclick="exitChatThread()" style="flex-shrink:0">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </div>
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--cyan);flex-shrink:0;overflow:hidden" id="chat-thread-av">?</div>
         <div style="font-weight:700;font-size:15px" id="chat-thread-name">Kullanıcı</div>
       </div>
-      <div class="det-close" onclick="exitChatThread()">×</div>
+      <div style="width:32px"></div>
     </div>
     <div id="chat-messages" style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:8px"></div>
     <div class="comment-input-area" style="padding:12px 20px calc(12px + var(--sb));border-top:1px solid var(--border2);margin-top:0;flex-shrink:0">
@@ -1752,7 +1756,10 @@ async function clickNotif(id, listingId, wasUnread) {
 let unsubChatBadge = null;
 let unsubChatList = null;
 let unsubChatThread = null;
+let unsubChatDoc = null;
 let currentChatOtherUid = null;
+let currentChatMsgs = [];
+let currentChatOtherLastRead = 0;
 
 function chatIdFor(a, b) { return [a, b].sort().join('_'); }
 
@@ -1783,12 +1790,16 @@ async function openChatWith(otherUid, otherName, listingCtx) {
       await ref.set({
         participants: [user.uid, otherUid],
         names: { [user.uid]: myName, [otherUid]: otherName || 'Kullanıcı' },
+        avatars: { [user.uid]: user.photoURL || null },
         lastMessage: '', lastSenderUid: null,
         lastAt: firebase.firestore.FieldValue.serverTimestamp(),
-        unreadBy: []
+        unreadBy: [], lastRead: { [user.uid]: firebase.firestore.FieldValue.serverTimestamp() }
       });
     } else {
-      await ref.set({ names: { [user.uid]: myName, [otherUid]: otherName || snap.data().names?.[otherUid] || 'Kullanıcı' } }, { merge: true });
+      await ref.set({
+        names: { [user.uid]: myName, [otherUid]: otherName || snap.data().names?.[otherUid] || 'Kullanıcı' },
+        avatars: { [user.uid]: user.photoURL || null }
+      }, { merge: true });
     }
   } catch(e) { alert('Hata: ' + e.message); return; }
   openChatThread(otherUid, otherName, listingCtx ? `${listingCtx} ilanınız hakkında yazıyorum, ` : '');
@@ -1797,8 +1808,10 @@ async function openChatWith(otherUid, otherName, listingCtx) {
 function openChatThread(otherUid, otherName, prefill) {
   if (!user) { gt('profile'); return; }
   currentChatOtherUid = otherUid;
+  currentChatMsgs = [];
+  currentChatOtherLastRead = 0;
   document.getElementById('chat-thread-name').textContent = otherName || 'Kullanıcı';
-  document.getElementById('chat-thread-av').textContent = (otherName || '?')[0].toUpperCase();
+  document.getElementById('chat-thread-av').innerHTML = (otherName || '?')[0].toUpperCase();
   document.getElementById('chat-messages').innerHTML = `<div class="load" style="margin:auto"><div class="spin"></div></div>`;
   const inp = document.getElementById('chat-input');
   if (prefill) inp.value = prefill;
@@ -1806,34 +1819,65 @@ function openChatThread(otherUid, otherName, prefill) {
   document.getElementById('chat-thread-mo').classList.add('on');
 
   const id = chatIdFor(user.uid, otherUid);
-  db.collection('teknohane_chats').doc(id).update({ unreadBy: firebase.firestore.FieldValue.arrayRemove(user.uid) }).catch(()=>{});
+  const ref = db.collection('teknohane_chats').doc(id);
+  ref.set({
+    unreadBy: firebase.firestore.FieldValue.arrayRemove(user.uid),
+    [`lastRead.${user.uid}`]: firebase.firestore.FieldValue.serverTimestamp(),
+    [`avatars.${user.uid}`]: user.photoURL || null
+  }, { merge: true }).catch(()=>{});
+
+  unsubChatDoc?.();
+  unsubChatDoc = ref.onSnapshot(snap => {
+    const c = snap.data();
+    if (!c) return;
+    const av = c.avatars?.[otherUid];
+    const avEl = document.getElementById('chat-thread-av');
+    if (avEl) avEl.innerHTML = av ? `<img src="${av}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : (otherName || '?')[0].toUpperCase();
+    const lr = c.lastRead?.[otherUid];
+    currentChatOtherLastRead = lr?.toMillis ? lr.toMillis() : 0;
+    renderChatMessages();
+  }, () => {});
 
   unsubChatThread?.();
-  unsubChatThread = db.collection('teknohane_chats').doc(id).collection('messages')
+  unsubChatThread = ref.collection('messages')
     .orderBy('createdAt', 'asc')
     .limitToLast(200)
     .onSnapshot(snap => {
+      currentChatMsgs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderChatMessages();
       const box = document.getElementById('chat-messages');
-      if (!box) return;
-      if (snap.empty) { box.innerHTML = `<div class="no" style="margin:auto">Henüz mesaj yok, ilk mesajı sen yaz!</div>`; return; }
-      box.innerHTML = snap.docs.map(d => {
-        const m = d.data();
-        const mine = m.senderUid === user.uid;
-        const time = m.createdAt?.toDate ? m.createdAt.toDate().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}) : '';
-        const body = m.imageUrl
-          ? `<img src="${m.imageUrl}" onclick="openFullscreen('${m.imageUrl}')" style="max-width:100%;border-radius:10px;display:block;cursor:pointer">`
-          : `${(m.text||'').replace(/</g,'&lt;')}`;
-        const bubble = `<div class="msg-bubble" style="background:${mine?'var(--cyan)':'var(--surf2)'};color:${mine?'#00121a':'var(--text)'};padding:${m.imageUrl?'6px':'9px 13px'};${mine?'border-bottom-right-radius:4px':'border-bottom-left-radius:4px'};font-size:14px;line-height:1.4;word-break:break-word">${body}<div style="font-size:10px;opacity:.6;margin-top:3px;text-align:right">${time}</div></div>`;
-        return `<div style="align-self:${mine?'flex-end':'flex-start'};max-width:78%">${bubble}</div>`;
-      }).join('');
-      box.scrollTop = box.scrollHeight;
+      if (box) box.scrollTop = box.scrollHeight;
     }, e => { console.error('Sohbet yükleme hatası:', e); });
+}
+
+// currentChatMsgs + currentChatOtherLastRead'e göre mesaj listesini çizer (WhatsApp tarzı tik göstergesi dahil)
+function renderChatMessages() {
+  const box = document.getElementById('chat-messages');
+  if (!box) return;
+  if (!currentChatMsgs.length) { box.innerHTML = `<div class="no" style="margin:auto">Henüz mesaj yok, ilk mesajı sen yaz!</div>`; return; }
+  box.innerHTML = currentChatMsgs.map(m => {
+    const mine = m.senderUid === user.uid;
+    const time = m.createdAt?.toDate ? m.createdAt.toDate().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}) : '';
+    const body = m.imageUrl
+      ? `<img src="${m.imageUrl}" onclick="openFullscreen('${m.imageUrl}')" style="max-width:100%;border-radius:10px;display:block;cursor:pointer">`
+      : `${(m.text||'').replace(/</g,'&lt;')}`;
+    let ticks = '';
+    if (mine) {
+      const msgMillis = m.createdAt?.toMillis ? m.createdAt.toMillis() : 0;
+      const read = msgMillis && currentChatOtherLastRead && msgMillis <= currentChatOtherLastRead;
+      ticks = `<svg viewBox="0 0 16 16" width="14" height="14" style="margin-left:4px;flex-shrink:0" fill="none" stroke="${read?'#4FC3F7':'currentColor'}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 8 4.5 11.5 9 5"/>${read?'<polyline points="6 8 9.5 11.5 15 5"/>':''}</svg>`;
+    }
+    const bubble = `<div class="msg-bubble" style="background:${mine?'var(--cyan)':'var(--surf2)'};color:${mine?'#00121a':'var(--text)'};padding:${m.imageUrl?'6px':'9px 13px'};${mine?'border-bottom-right-radius:4px':'border-bottom-left-radius:4px'};font-size:14px;line-height:1.4;word-break:break-word">${body}<div style="font-size:10px;opacity:.6;margin-top:3px;display:flex;align-items:center;justify-content:flex-end">${time}${ticks}</div></div>`;
+    return `<div style="align-self:${mine?'flex-end':'flex-start'};max-width:78%">${bubble}</div>`;
+  }).join('');
 }
 
 function exitChatThread() {
   document.getElementById('chat-thread-mo').classList.remove('on');
   unsubChatThread?.(); unsubChatThread = null;
+  unsubChatDoc?.(); unsubChatDoc = null;
   currentChatOtherUid = null;
+  currentChatMsgs = [];
 }
 
 async function sendChatMessage() {
@@ -1946,13 +1990,15 @@ function openChatList() {
         const c = d.data();
         const otherUid = c.participants.find(p => p !== user.uid);
         const otherName = c.names?.[otherUid] || 'Kullanıcı';
+        const otherAv = c.avatars?.[otherUid];
         const unread = (c.unreadBy||[]).includes(user.uid);
         const time = c.lastAt?.toDate ? fd(c.lastAt.toDate().toISOString()) : '';
         const preview = (c.lastMessage||'').slice(0,40) + ((c.lastMessage||'').length>40?'…':'');
+        const avHtml = otherAv ? `<img src="${otherAv}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : otherName[0].toUpperCase();
         return `<div class="notif-swipe-wrap" data-id="${d.id}">
           <div class="notif-swipe-del">🗑️</div>
           <div class="notif-item ${unread?'unread':''}" style="cursor:pointer" onclick="openChatThread('${otherUid}','${otherName.replace(/'/g,"\\'")}')">
-            <div class="notif-ic" style="background:var(--surf2);color:var(--cyan);font-weight:700">${otherName[0].toUpperCase()}</div>
+            <div class="notif-ic" style="background:var(--surf2);color:var(--cyan);font-weight:700;overflow:hidden">${avHtml}</div>
             <div class="notif-txt"><div class="notif-msg">${otherName}</div><div class="notif-time">${preview || 'Sohbeti başlat'} · ${time}</div></div>
           </div>
         </div>`;
