@@ -1648,23 +1648,36 @@ async function sendPush(toUid, title, body, url) {
 }
 
 // Kullanıcı "Bildirimleri Aç" butonuna bastığında çalışır: izin ister, FCM token alır, Firestore'a kaydeder.
+let pushAutoSyncDone = false;
+
 async function enablePushNotifications() {
-  if (!user) { gt('profile'); return; }
+  await setupPush(false);
+}
+
+// silent=true: hata/başarı mesajı göstermez, sadece arka planda token'ı tazeler (izin zaten açıkken kullanılır)
+// silent=false: kullanıcı butona bastığında çalışır, her adımda geri bildirim gösterir
+async function setupPush(silent) {
+  if (!user) { if (!silent) gt('profile'); return; }
   if (typeof Notification === 'undefined' || !('serviceWorker' in navigator)) {
-    alert('Bu tarayıcı bildirimleri desteklemiyor.');
+    if (!silent) alert('Bu tarayıcı bildirimleri desteklemiyor.');
     return;
   }
-  showToast('⏳', 'rgba(0,212,255,.15)', 'Bildirimler Ayarlanıyor', 'Bir dakika sürebilir, lütfen bekle...');
+  if (!silent) showToast('⏳', 'rgba(0,212,255,.15)', 'Bildirimler Ayarlanıyor', 'Bir dakika sürebilir, lütfen bekle...');
   const withTimeout = (promise, ms, label) => Promise.race([
     promise,
     new Promise((_, reject) => setTimeout(() => reject(new Error(`"${label}" adımı ${ms/1000} saniyede yanıt vermedi (zaman aşımı)`)), ms))
   ]);
   try {
-    const perm = await withTimeout(Notification.requestPermission(), 15000, 'İzin isteme');
+    let perm = Notification.permission;
+    if (perm === 'default') {
+      perm = await withTimeout(Notification.requestPermission(), 15000, 'İzin isteme');
+    }
     if (perm !== 'granted') {
-      updatePushToggleUI();
-      if (perm === 'denied') alert('Bildirim izni engellendi. Tarayıcı/telefon ayarlarından Teknohane için bildirimlere izin vermen gerekiyor.');
-      else alert('Bildirim izni verilmedi (durum: ' + perm + ').');
+      if (!silent) {
+        updatePushToggleUI();
+        if (perm === 'denied') alert('Bildirim izni engellendi. Tarayıcı/telefon ayarlarından Teknohane için bildirimlere izin vermen gerekiyor.');
+        else alert('Bildirim izni verilmedi (durum: ' + perm + ').');
+      }
       return;
     }
     const swReg = await withTimeout(
@@ -1676,13 +1689,15 @@ async function enablePushNotifications() {
       messaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: swReg }),
       15000, 'FCM token alma'
     );
-    if (!token) { alert('Bildirim token\'ı alınamadı, tekrar dener misin?'); return; }
+    if (!token) { if (!silent) alert('Bildirim token\'ı alınamadı, tekrar dener misin?'); return; }
     await withTimeout(db.collection('teknohane_users').doc(user.uid).set({ fcmToken: token }, { merge: true }), 10000, 'Token kaydetme');
+    myProfileData.fcmToken = token;
     updatePushToggleUI();
-    showToast('🔔', 'rgba(0,212,255,.15)', 'Bildirimler Açıldı', 'Artık uygulama kapalıyken de bildirim alacaksın.');
+    if (!silent) showToast('🔔', 'rgba(0,212,255,.15)', 'Bildirimler Açıldı', 'Artık uygulama kapalıyken de bildirim alacaksın.');
+    else console.log('Push token sessizce senkronize edildi.');
   } catch(e) {
     console.error('Push kurulum hatası:', e);
-    alert('Bildirimler açılamadı:\n' + e.message);
+    if (!silent) alert('Bildirimler açılamadı:\n' + e.message);
   }
 }
 
@@ -1692,7 +1707,11 @@ function pushPanelHTML() {
   if (perm === 'unsupported') {
     statusText = 'Bu tarayıcıda desteklenmiyor'; statusColor = 'var(--text3)'; btnHtml = '';
   } else if (perm === 'granted') {
-    statusText = 'Açık'; statusColor = '#30D158'; btnHtml = '';
+    statusText = 'Açık'; statusColor = '#30D158';
+    // İzin tarayıcı seviyesinde açık olsa bile token hâlâ kaydedilmemiş olabilir (örn. izin başka yoldan verildiyse);
+    // bu yüzden "Açık" durumunda da manuel bir yenileme seçeneği bırakıyoruz.
+    btnHtml = `<button class="apbtn" style="margin-top:10px;opacity:.75" onclick="enablePushNotifications()">🔄 Bildirimleri Yenile</button>`;
+    if (!pushAutoSyncDone) { pushAutoSyncDone = true; setTimeout(() => setupPush(true), 300); }
   } else if (perm === 'denied') {
     statusText = 'Engellenmiş (telefon ayarlarından açman gerekir)'; statusColor = 'var(--red)'; btnHtml = '';
   } else {
