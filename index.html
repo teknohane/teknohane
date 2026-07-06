@@ -1820,11 +1820,11 @@ function openChatThread(otherUid, otherName, prefill) {
 
   const id = chatIdFor(user.uid, otherUid);
   const ref = db.collection('teknohane_chats').doc(id);
-  ref.set({
+  ref.update({
     unreadBy: firebase.firestore.FieldValue.arrayRemove(user.uid),
     [`lastRead.${user.uid}`]: firebase.firestore.FieldValue.serverTimestamp(),
     [`avatars.${user.uid}`]: user.photoURL || null
-  }, { merge: true }).catch(()=>{});
+  }).catch(()=>{});
 
   unsubChatDoc?.();
   unsubChatDoc = ref.onSnapshot(snap => {
