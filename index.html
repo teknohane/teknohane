@@ -1867,7 +1867,7 @@ function renderChatMessages() {
       const read = msgMillis && currentChatOtherLastRead && msgMillis <= currentChatOtherLastRead;
       ticks = `<svg viewBox="0 0 16 16" width="14" height="14" style="margin-left:4px;flex-shrink:0" fill="none" stroke="${read?'#0BA84A':'currentColor'}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 8 4.5 11.5 9 5"/>${read?'<polyline points="6 8 9.5 11.5 15 5"/>':''}</svg>`;
     }
-    const bubble = `<div class="msg-bubble" style="background:${mine?'var(--cyan)':'var(--surf2)'};color:${mine?'#00121a':'var(--text)'};padding:${m.imageUrl?'6px':'9px 13px'};${mine?'border-bottom-right-radius:4px':'border-bottom-left-radius:4px'};font-size:14px;line-height:1.4;word-break:break-word">${body}<div style="font-size:10px;opacity:.6;margin-top:3px;display:flex;align-items:center;justify-content:flex-end">${time}${ticks}</div></div>`;
+    const bubble = `<div class="msg-bubble" style="background:${mine?'var(--cdim)':'var(--surf2)'};color:var(--text);border:${mine?'1px solid rgba(0,212,255,.35)':'1px solid transparent'};padding:${m.imageUrl?'6px':'9px 13px'};${mine?'border-bottom-right-radius:4px':'border-bottom-left-radius:4px'};font-size:14px;line-height:1.4;word-break:break-word">${body}<div style="font-size:10px;opacity:.6;margin-top:3px;display:flex;align-items:center;justify-content:flex-end">${time}${ticks}</div></div>`;
     return `<div style="align-self:${mine?'flex-end':'flex-start'};max-width:78%">${bubble}</div>`;
   }).join('');
 }
