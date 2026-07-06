@@ -1195,7 +1195,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
 <script>
 firebase.initializeApp({
   apiKey:"AIzaSyADpIRNLQEIer_gplTgwKi_EKkfcyrYoqY",
@@ -1207,8 +1206,6 @@ firebase.initializeApp({
 });
 const auth = firebase.auth();
 const db = firebase.firestore();
-const PUSH_API = 'https://teknohane-push.yusuf-aykac.workers.dev/';
-const VAPID_KEY = 'BPt5vY5P3Dr9DG2zHOQwhQKnH6V5UruqGisQRTlGWxkNaAYtYKAEG9xiTHn78yGq1DlrsnWFSazOquL_9krdtjY';
 const ADMINS = ['yusuf.aykac@gmail.com','memetklc5933@gmail.com'];
 let user = null;
 let myProfileData = {};
@@ -1334,7 +1331,6 @@ function rprof() {
         <div class="ptab" onclick="switchProfileTab('refs',this)">Referanslarım</div>
       </div>
       <div id="profile-listings"></div>
-      ${pushPanelHTML()}
       ${themePanelHTML()}
       ${isAdmin?`<div class="apanel">
         <div class="aptit"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Yönetici Paneli</div>
@@ -1628,75 +1624,6 @@ async function notifyUser(toUid, type, message, listingId) {
       read: false
     });
   } catch(e) { /* sessizce geç */ }
-  sendPush(toUid, 'Teknohane', message, listingId ? `/teknohane/?listing=${listingId}` : '/teknohane/');
-}
-
-// ---- UYGULAMA KAPALIYKEN BİLDİRİM (PUSH / FCM) ----
-// Hedef kullanıcının kayıtlı FCM token'ını bulup Cloudflare Worker üzerinden push gönderir.
-// Kullanıcının bildirim izni yoksa veya token'ı yoksa sessizce hiçbir şey yapmaz.
-async function sendPush(toUid, title, body, url) {
-  try {
-    const snap = await db.collection('teknohane_users').doc(toUid).get();
-    const token = snap.data()?.fcmToken;
-    if (!token) return;
-    await fetch(PUSH_API, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token, title, body, url: url || 'https://teknohane.github.io/teknohane/' })
-    });
-  } catch(e) { /* sessizce geç, push olmadan da uygulama çalışmaya devam eder */ }
-}
-
-// Kullanıcı "Bildirimleri Aç" butonuna bastığında çalışır: izin ister, FCM token alır, Firestore'a kaydeder.
-async function enablePushNotifications() {
-  if (!user) { gt('profile'); return; }
-  if (typeof Notification === 'undefined' || !('serviceWorker' in navigator)) {
-    alert('Bu tarayıcı bildirimleri desteklemiyor.');
-    return;
-  }
-  try {
-    const perm = await Notification.requestPermission();
-    if (perm !== 'granted') {
-      updatePushToggleUI();
-      if (perm === 'denied') alert('Bildirim izni engellendi. Tarayıcı/telefon ayarlarından Teknohane için bildirimlere izin vermen gerekiyor.');
-      return;
-    }
-    const swReg = await navigator.serviceWorker.register('/teknohane/firebase-messaging-sw.js', { scope: '/teknohane/firebase-cloud-messaging-push-scope' });
-    const messaging = firebase.messaging();
-    const token = await messaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: swReg });
-    if (!token) { alert('Bildirim token\'ı alınamadı, tekrar dener misin?'); return; }
-    await db.collection('teknohane_users').doc(user.uid).set({ fcmToken: token }, { merge: true });
-    updatePushToggleUI();
-    showToast('🔔', 'rgba(0,212,255,.15)', 'Bildirimler Açıldı', 'Artık uygulama kapalıyken de bildirim alacaksın.');
-  } catch(e) {
-    alert('Bildirimler açılamadı: ' + e.message);
-  }
-}
-
-function pushPanelHTML() {
-  const perm = (typeof Notification !== 'undefined') ? Notification.permission : 'unsupported';
-  let statusText, statusColor, btnHtml;
-  if (perm === 'unsupported') {
-    statusText = 'Bu tarayıcıda desteklenmiyor'; statusColor = 'var(--text3)'; btnHtml = '';
-  } else if (perm === 'granted') {
-    statusText = 'Açık'; statusColor = '#30D158'; btnHtml = '';
-  } else if (perm === 'denied') {
-    statusText = 'Engellenmiş (telefon ayarlarından açman gerekir)'; statusColor = 'var(--red)'; btnHtml = '';
-  } else {
-    statusText = 'Kapalı'; statusColor = 'var(--text3)';
-    btnHtml = `<button class="apbtn" style="margin-top:10px" onclick="enablePushNotifications()">🔔 Bildirimleri Aç</button>`;
-  }
-  return `
-    <div class="theme-panel" id="push-panel">
-      <div class="theme-title">Bildirimler</div>
-      <div style="font-size:13px;color:${statusColor};font-weight:600">${statusText}</div>
-      ${btnHtml}
-    </div>`;
-}
-
-function updatePushToggleUI() {
-  const el = document.getElementById('push-panel');
-  if (el) el.outerHTML = pushPanelHTML();
 }
 
 // Uygulama arka plandaysa (sekme aktif değilse) gerçek bir sistem bildirimi gösterir.
@@ -1974,8 +1901,6 @@ async function sendChatMessage() {
       lastAt: firebase.firestore.FieldValue.serverTimestamp(),
       unreadBy: firebase.firestore.FieldValue.arrayUnion(currentChatOtherUid)
     }, { merge: true });
-    const myName = user.displayName || user.email?.split('@')[0] || 'Biri';
-    sendPush(currentChatOtherUid, myName, text, '/teknohane/');
   } catch(e) { alert('Hata: ' + e.message); }
 }
 
@@ -2000,8 +1925,6 @@ async function sendChatImage(input) {
       lastAt: firebase.firestore.FieldValue.serverTimestamp(),
       unreadBy: firebase.firestore.FieldValue.arrayUnion(currentChatOtherUid)
     }, { merge: true });
-    const myName = user.displayName || user.email?.split('@')[0] || 'Biri';
-    sendPush(currentChatOtherUid, myName, '📷 Fotoğraf gönderdi', '/teknohane/');
   } catch(e) { alert('Hata: ' + e.message); }
 }
 
