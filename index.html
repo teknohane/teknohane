@@ -1662,8 +1662,15 @@ async function sendPush(toUid, title, body, url) {
   } catch(e) { /* sessizce geç, push olmadan da uygulama çalışmaya devam eder */ }
 }
 
+// Uygulama şu an Capacitor native kabuğu (Android APK) içinde mi çalışıyor, yoksa normal tarayıcıda mı?
+function isNativeApp() {
+  return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+}
+
 // Kullanıcı "Bildirimleri Aç" butonuna bastığında çalışır: izin ister, FCM token alır, Firestore'a kaydeder.
 let pushAutoSyncDone = false;
+let nativePushStatus = 'default'; // 'default' | 'granted' | 'denied'
+let nativePushListenersAttached = false;
 
 async function enablePushNotifications() {
   await setupPush(false);
@@ -1673,6 +1680,49 @@ async function enablePushNotifications() {
 // silent=false: kullanıcı butona bastığında çalışır, her adımda geri bildirim gösterir
 async function setupPush(silent) {
   if (!user) { if (!silent) gt('profile'); return; }
+  if (isNativeApp()) return setupPushNative(silent);
+  return setupPushWeb(silent);
+}
+
+// ---- NATIVE (Capacitor / Android APK içinde) push kurulumu ----
+// Chrome'a hiç bağımlı değil, doğrudan Android'in kendi FCM sistemini kullanır.
+async function setupPushNative(silent) {
+  try {
+    const { PushNotifications } = Capacitor.Plugins;
+    if (!silent) showToast('⏳', 'rgba(0,212,255,.15)', 'Bildirimler Ayarlanıyor', 'Bir dakika sürebilir, lütfen bekle...');
+    const perm = await PushNotifications.requestPermissions();
+    if (perm.receive !== 'granted') {
+      nativePushStatus = 'denied';
+      updatePushToggleUI();
+      if (!silent) alert('Bildirim izni verilmedi. Telefon ayarlarından Teknohane için bildirimlere izin vermen gerekiyor.');
+      return;
+    }
+    nativePushStatus = 'granted';
+
+    if (!nativePushListenersAttached) {
+      nativePushListenersAttached = true;
+      PushNotifications.addListener('registration', async (token) => {
+        try {
+          await db.collection('teknohane_users').doc(user.uid).set({ fcmToken: token.value }, { merge: true });
+          myProfileData.fcmToken = token.value;
+          updatePushToggleUI();
+          showToast('🔔', 'rgba(0,212,255,.15)', 'Bildirimler Açıldı', 'Artık uygulama kapalıyken de bildirim alacaksın.');
+        } catch(e) { console.error('Push token kaydetme hatası:', e); }
+      });
+      PushNotifications.addListener('registrationError', (err) => {
+        console.error('Push kayıt hatası:', err);
+        if (!silent) alert('Bildirim token\'ı alınamadı: ' + (err?.error || 'bilinmeyen hata'));
+      });
+    }
+    await PushNotifications.register();
+  } catch(e) {
+    console.error('Native push kurulum hatası:', e);
+    if (!silent) alert('Bildirimler açılamadı:\n' + e.message);
+  }
+}
+
+// ---- WEB (normal tarayıcı) push kurulumu — test/geliştirme için geriye dönük uyumluluk ----
+async function setupPushWeb(silent) {
   if (typeof Notification === 'undefined' || !('serviceWorker' in navigator)) {
     if (!silent) alert('Bu tarayıcı bildirimleri desteklemiyor.');
     return;
@@ -1717,6 +1767,26 @@ async function setupPush(silent) {
 }
 
 function pushPanelHTML() {
+  if (isNativeApp()) {
+    let statusText, statusColor, btnHtml;
+    if (nativePushStatus === 'granted') {
+      statusText = 'Açık'; statusColor = '#30D158'; btnHtml = '';
+      if (!pushAutoSyncDone) { pushAutoSyncDone = true; setTimeout(() => setupPush(true), 300); }
+    } else if (nativePushStatus === 'denied') {
+      statusText = 'Engellenmiş (telefon ayarlarından açman gerekir)'; statusColor = 'var(--red)'; btnHtml = '';
+    } else {
+      statusText = 'Kapalı'; statusColor = 'var(--text3)';
+      btnHtml = `<button class="apbtn" style="margin-top:10px" onclick="enablePushNotifications()">🔔 Bildirimleri Aç</button>`;
+      if (!pushAutoSyncDone) { pushAutoSyncDone = true; setTimeout(() => setupPush(true), 300); }
+    }
+    return `
+      <div class="theme-panel" id="push-panel">
+        <div class="theme-title">Bildirimler</div>
+        <div style="font-size:13px;color:${statusColor};font-weight:600">${statusText}</div>
+        ${btnHtml}
+      </div>`;
+  }
+
   const perm = (typeof Notification !== 'undefined') ? Notification.permission : 'unsupported';
   let statusText, statusColor, btnHtml;
   if (perm === 'unsupported') {
