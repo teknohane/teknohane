@@ -289,7 +289,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 #detail-mo .det-sheet{max-height:100dvh;height:100dvh;border-radius:0;border-top:none;animation:detpage .25s ease;}
 @keyframes detpage{from{transform:translateX(16px);opacity:0;}to{transform:translateX(0);opacity:1;}}
 .det-sheet::-webkit-scrollbar{display:none;}
-.det-sticky{position:sticky;top:0;background:rgba(7,13,26,.95);backdrop-filter:blur(12px);padding:12px 20px;border-bottom:1px solid var(--border2);z-index:10;display:flex;align-items:center;justify-content:space-between;}
+.det-sticky{position:sticky;top:0;background:rgba(7,13,26,.95);backdrop-filter:blur(12px);padding:calc(12px + var(--st)) 20px 12px;border-bottom:1px solid var(--border2);z-index:10;display:flex;align-items:center;justify-content:space-between;}
 [data-theme="light"] .det-sticky{background:rgba(242,242,247,.92);}
 .det-close{width:32px;height:32px;border-radius:50%;background:var(--surf2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:22px;color:var(--text2);line-height:1;}
 .det-body{padding:20px 20px calc(24px + var(--sb));}
@@ -1565,7 +1565,13 @@ async function dologin() {
   const err=document.getElementById('aerr');
   if (!e||!p) return;
   try { await auth.signInWithEmailAndPassword(e,p); }
-  catch(ex) { if(err){err.textContent=ex.code==='auth/invalid-credential'?'E-posta veya şifre hatalı':ex.message;err.classList.add('on');} }
+  catch(ex) {
+    if (err) {
+      const codesForWrongCreds = ['auth/invalid-credential','auth/invalid-login-credentials','auth/wrong-password','auth/user-not-found'];
+      err.textContent = codesForWrongCreds.includes(ex.code) ? 'E-posta veya şifre hatalı' : (ex.code==='auth/too-many-requests' ? 'Çok fazla deneme yapıldı, lütfen biraz sonra tekrar dene' : 'Giriş yapılamadı, lütfen tekrar dene');
+      err.classList.add('on');
+    }
+  }
 }
 
 async function doregister() {
@@ -1575,7 +1581,15 @@ async function doregister() {
   const err=document.getElementById('aerr');
   if (!e||!p||!n) { if(err){err.textContent='Tüm alanları doldurun';err.classList.add('on');} return; }
   try { const c=await auth.createUserWithEmailAndPassword(e,p); await c.user.updateProfile({displayName:n}); }
-  catch(ex) { if(err){err.textContent=ex.code==='auth/email-already-in-use'?'Bu e-posta zaten kayıtlı':ex.message;err.classList.add('on');} }
+  catch(ex) {
+    if (err) {
+      const msg = ex.code==='auth/email-already-in-use' ? 'Bu e-posta zaten kayıtlı'
+        : ex.code==='auth/weak-password' ? 'Şifre en az 6 karakter olmalı'
+        : ex.code==='auth/invalid-email' ? 'Geçerli bir e-posta adresi girin'
+        : 'Kayıt oluşturulamadı, lütfen tekrar dene';
+      err.textContent = msg; err.classList.add('on');
+    }
+  }
 }
 
 async function forgotPassword() {
@@ -1590,7 +1604,10 @@ async function forgotPassword() {
     if (err) { err.textContent = ''; err.classList.remove('on'); }
     showToast('📧','var(--cdim)','E-posta Gönderildi', `${email} adresine şifre sıfırlama linki gönderildi.`);
   } catch(ex) {
-    if (err) { err.textContent = ex.code === 'auth/user-not-found' ? 'Bu e-posta ile kayıtlı kullanıcı bulunamadı' : ex.message; err.classList.add('on'); }
+    if (err) {
+      const msg = (ex.code === 'auth/user-not-found' || ex.code === 'auth/invalid-email') ? 'Bu e-posta ile kayıtlı bir hesap bulunamadı' : 'İşlem başarısız, lütfen tekrar dene';
+      err.textContent = msg; err.classList.add('on');
+    }
   }
 }
 
@@ -1925,6 +1942,8 @@ function openChatThread(otherUid, otherName, prefill) {
   if (prefill) inp.value = prefill;
   closemo('chat-list-mo');
   document.getElementById('chat-thread-mo').classList.add('on');
+  chatThreadOpen = true;
+  history.pushState({ chatThread: true }, '', location.pathname);
 
   const id = chatIdFor(user.uid, otherUid);
   const ref = db.collection('teknohane_chats').doc(id);
@@ -1986,6 +2005,7 @@ function exitChatThread() {
   unsubChatDoc?.(); unsubChatDoc = null;
   currentChatOtherUid = null;
   currentChatMsgs = [];
+  chatThreadOpen = false;
 }
 
 async function sendChatMessage() {
@@ -4415,6 +4435,7 @@ function updateThemeToggleUI() {
 // NAVIGATION
 // Destek sayfası artık alt menüde değil, Profil içinden tam ekran açılıyor
 let supportPageOpen = false;
+let chatThreadOpen = false;
 function openSupportPage() {
   supportPageOpen = true;
   document.getElementById('s-support').classList.add('on');
@@ -4599,6 +4620,12 @@ window.addEventListener('popstate', () => {
   // Destek "sayfası" açıksa: kapat ve Profil'e dön
   if (supportPageOpen) {
     closeSupportPage();
+    history.pushState(null, '', location.pathname);
+    return;
+  }
+  // Sohbet ekranı açıksa: kapat ve sohbet listesine/önceki ekrana dön
+  if (chatThreadOpen) {
+    exitChatThread();
     history.pushState(null, '', location.pathname);
     return;
   }
