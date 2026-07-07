@@ -1,91 +1,81 @@
-const CACHE_NAME = 'teknohane-v6';
-const CACHE_URLS = [
+// Teknohane Service Worker
+// Amaç: internet olmadığında tarayıcının kendi "Bu siteye ulaşılamıyor" hata sayfası yerine,
+// en son yüklenmiş uygulama kabuğunu (index.html) göstermek.
+// Not: Cloudflare Worker (telefon/fiyat/haber/push API) ve Firebase istekleri KESİNLİKLE
+// önbelleğe alınmıyor — bunlar her zaman canlı veri olarak ağdan çekilir.
+
+const CACHE_NAME = 'teknohane-shell-v1';
+const APP_SHELL = [
+  '/teknohane/',
+  '/teknohane/index.html',
   '/teknohane/manifest.json',
-  '/teknohane/teknohane.png',
-  '/teknohane/sartlar.html',
-  '/teknohane/icons/icon-72.png',
-  '/teknohane/icons/icon-96.png',
-  '/teknohane/icons/icon-128.png',
-  '/teknohane/icons/icon-144.png',
-  '/teknohane/icons/icon-152.png',
-  '/teknohane/icons/icon-192.png',
-  '/teknohane/icons/icon-384.png',
-  '/teknohane/icons/icon-512.png'
+  '/teknohane/teknohane.png'
 ];
 
-// INSTALL — statik dosyaları cache'le
-self.addEventListener('install', event => {
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(CACHE_URLS))
-      .catch(() => {}) // bir dosya eksikse install'u bozma
+      .then((cache) => cache.addAll(APP_SHELL))
+      .catch(() => {}) // Bir dosya bulunamazsa kurulum yine de devam etsin
   );
-  self.skipWaiting();
 });
 
-// ACTIVATE — eski cache'leri temizle
-self.addEventListener('activate', event => {
+self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    )
+    caches.keys()
+      .then((names) => Promise.all(
+        names.filter((n) => n !== CACHE_NAME).map((n) => caches.delete(n))
+      ))
+      .then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
-// FETCH
-self.addEventListener('fetch', event => {
-  const url = new URL(event.request.url);
+self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  if (req.method !== 'GET') return;
 
-  // Sadece GET isteklerini ele al
-  if (event.request.method !== 'GET') return;
+  const url = req.url;
 
-  // index.html / kök — HER ZAMAN network, asla cache'leme (tarayıcı HTTP cache'i dahil!)
-  // { cache: 'no-store' } olmadan fetch() bile GitHub Pages'in Cache-Control header'ına
-  // uyup tarayıcının kendi HTTP önbelleğinden eski içerik döndürebilir.
-  if (url.pathname === '/teknohane/' || url.pathname === '/teknohane/index.html') {
-    event.respondWith(
-      fetch(event.request, { cache: 'no-store' })
-        .catch(() => caches.match('/teknohane/') || caches.match('/teknohane/index.html'))
-    );
-    return;
+  // Cloudflare Worker / Firebase / Google API istekleri: her zaman ağdan çek, hiç dokunma
+  if (
+    url.includes('workers.dev') ||
+    url.includes('googleapis.com') ||
+    url.includes('gstatic.com') ||
+    url.includes('firestore') ||
+    url.includes('firebaseio.com')
+  ) {
+    return; // event.respondWith çağrılmazsa tarayıcı normal ağ isteğini yapar
   }
 
-  // go.html da network-first (yönlendirme mantığı güncel kalsın)
-  if (url.pathname === '/teknohane/go.html') {
-    event.respondWith(fetch(event.request, { cache: 'no-store' }));
-    return;
-  }
-
-  // Dış kaynaklar (YouTube API, Firebase, Google Fonts) — sadece network
-  // Offline'da bu veriler zaten anlamlı değil, cache'lemeye gerek yok
-  if (url.hostname !== 'teknohane.github.io') {
+  // Sayfa açılışı / navigasyon istekleri: önce ağı dene (güncel içerik için),
+  // ağ başarısız olursa (internet yok) önbellekteki uygulama kabuğunu göster.
+  if (req.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request).catch(() => new Response('', { status: 503 }))
-    );
-    return;
-  }
-
-  // Bizim statik dosyalarımız (ikon, manifest, logo, sartlar.html)
-  // Cache-first: hızlı yüklensin, offline'da da çalışsın
-  if (CACHE_URLS.some(u => url.pathname === u)) {
-    event.respondWith(
-      caches.match(event.request).then(cached => {
-        if (cached) return cached;
-        return fetch(event.request).then(res => {
-          if (res.ok) {
-            const clone = res.clone();
-            caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
-          }
+      fetch(req)
+        .then((res) => {
+          const resClone = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put('/teknohane/index.html', resClone));
           return res;
-        });
-      })
+        })
+        .catch(() =>
+          caches.match('/teknohane/index.html').then((cached) => cached || caches.match(req))
+        )
     );
     return;
   }
 
-  // Geri kalan her şey (varsa) — network-first, olmazsa cache dene
+  // Diğer statik dosyalar (ikon, manifest vb.): önce önbellek, yoksa ağdan çekip önbelleğe ekle
   event.respondWith(
-    fetch(event.request, { cache: 'no-store' }).catch(() => caches.match(event.request))
+    caches.match(req).then((cached) => {
+      if (cached) return cached;
+      return fetch(req)
+        .then((res) => {
+          const resClone = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone));
+          return res;
+        })
+        .catch(() => cached);
+    })
   );
 });
