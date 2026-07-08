@@ -2,30 +2,35 @@
 
 ## Öncelik
 
-Android donanım geri tuşu davranışını tamamen düzeltmek.
-
-## Hedef
-
-Uygulamanın tüm sayfalarında Android geri tuşu doğal şekilde çalışacak.
+Android donanım geri tuşu düzeltmesini tamamen doğrulamak.
 
 ## Yapılacaklar
 
-1. Mevcut geri tuşu davranışını analiz et.
+1. @capacitor/app pluginının kurulu olduğunu doğrula.
 
-2. @capacitor/app plugininin doğru kurulu olduğunu doğrula.
+2. Gerekirse:
 
-3. Hardware Back Button eventini yönet.
+npm install @capacitor/app
 
-4. Sayfa geçmişi (history.back()) ile entegre et.
+çalıştır.
 
-5. Ana sayfadayken geri tuşuna basıldığında uygulamadan çıkılması için kullanıcı deneyimine uygun davranış ekle.
+3. Ardından:
 
-6. Tüm ekranlarda gerçek cihaz testi yap.
+npx cap sync android
 
-## Başarı Kriteri
+çalıştır.
 
-- Destek sayfası ✔
-- Mesajlar sayfası ✔
-- Karşılaştırma ✔
-- Profil ✔
-- Diğer tüm ekranlar ✔
+4. Android Studio'da Clean Project yap.
+
+5. Yeni Signed AAB oluştur.
+
+6. Google Play Internal Testing sürümünü yayınla.
+
+7. Gerçek cihazda aşağıdaki senaryoları test et.
+
+- Destek sayfası
+- Mesajlar sayfası
+- İlan detay ekranı
+- Tam ekran görsel
+- Ana ekran
+- Çift basınca uygulamadan çıkış
