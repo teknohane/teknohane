@@ -588,6 +588,19 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .mh{width:36px;height:4px;border-radius:2px;background:var(--text3);margin:0 auto 20px;}
 .mtit{font-size:18px;font-weight:700;margin-bottom:16px;}
 .no{text-align:center;padding:24px;color:var(--text3);font-size:13px;}
+
+/* Tarayıcıdan erişim engeli: yalnızca body.tk-browser sınıfı varken devreye girer, native davranışı etkilemez */
+#browser-gate{display:none;}
+body.tk-browser #app{display:none;}
+body.tk-browser #browser-gate{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:100dvh;padding:32px;text-align:center;background:var(--bg);color:var(--text);
+  gap:16px;
+}
+.bg-logo{width:88px;height:88px;border-radius:20px;}
+.bg-title{font-size:22px;font-weight:700;}
+.bg-desc{font-size:14px;color:var(--text2);line-height:1.6;max-width:340px;}
+.bg-btn{margin-top:8px;padding:14px 28px;border-radius:14px;background:var(--cyan);color:#00040F;font-weight:700;font-size:15px;text-decoration:none;}
 </style>
 <script>
 // Sayfa render olmadan ÖNCE temayı uygula - "flash of wrong theme" önlenir
@@ -601,6 +614,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 </script>
 </head>
 <body>
+<script>if(!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform())){document.body.classList.add('tk-browser');}</script>
+<div id="browser-gate">
+  <img class="bg-logo" src="teknohane.png" alt="Teknohane">
+  <div class="bg-title">Teknohane Mobil Uygulaması</div>
+  <div class="bg-desc">Teknohane artık yalnızca mobil uygulama üzerinden kullanılmaktadır. Telefon karşılaştırmaları, ikinci el ilanlar, topluluk ve diğer tüm özellikler için lütfen mobil uygulamamızı kullanın.</div>
+  <a class="bg-btn" href="https://play.google.com/store/apps/details?id=io.github.teknohane.app">Google Play'den İndir</a>
+</div>
 <div id="app">
 <div id="offline-bar">📡 İnternet bağlantısı yok — bazı içerikler güncellenemiyor</div>
 <div id="toast-wrap"></div>
