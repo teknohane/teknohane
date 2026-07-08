@@ -4707,7 +4707,10 @@ window.addEventListener('popstate', () => {
     return;
   }
   // Modal yoksa çıkış uyarısı
-  if (backPressedOnce) return; // ikinci basışta çıksın
+  if (backPressedOnce) {
+    if (isNativeApp() && Capacitor.Plugins.App) Capacitor.Plugins.App.exitApp();
+    return; // ikinci basışta çıksın
+  }
   backPressedOnce = true;
   showToast('↩️','var(--surf2)','Çıkmak için tekrar geri bas','');
   history.pushState(null, '', location.href); // stack'e geri ekle
@@ -4715,6 +4718,15 @@ window.addEventListener('popstate', () => {
 });
 // Sayfa açılışında history stack'e bir kayıt ekle
 history.pushState(null, '', location.href);
+
+// Android donanım geri tuşunu mevcut popstate sistemine bağla (native ortamda, güvenli kontrol ile)
+if (isNativeApp()) {
+  if (Capacitor.Plugins.App) {
+    Capacitor.Plugins.App.addListener('backButton', () => history.back());
+  } else {
+    console.warn('Capacitor App plugin bulunamadı, donanım geri tuşu köprülenemedi.');
+  }
+}
 
 if('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
