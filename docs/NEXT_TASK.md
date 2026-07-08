@@ -1,23 +1,31 @@
 # NEXT TASK
 
-Öncelik:
+## Öncelik
 
-Google Play üzerinden yayınlanan sürümün telefonda test edilmesi.
+Android donanım geri tuşu davranışını tamamen düzeltmek.
 
-Yapılacaklar
+## Hedef
 
-1.
+Uygulamanın tüm sayfalarında Android geri tuşu doğal şekilde çalışacak.
 
-Push Notification çalışıyor mu?
+## Yapılacaklar
 
-2.
+1. Mevcut geri tuşu davranışını analiz et.
 
-requestPermissions hatası devam ediyor mu?
+2. @capacitor/app plugininin doğru kurulu olduğunu doğrula.
 
-3.
+3. Hardware Back Button eventini yönet.
 
-Android geri tuşu problemi çözülecek.
+4. Sayfa geçmişi (history.back()) ile entegre et.
 
-4.
+5. Ana sayfadayken geri tuşuna basıldığında uygulamadan çıkılması için kullanıcı deneyimine uygun davranış ekle.
 
-@capacitor/app pluginı eklenecek.
+6. Tüm ekranlarda gerçek cihaz testi yap.
+
+## Başarı Kriteri
+
+- Destek sayfası ✔
+- Mesajlar sayfası ✔
+- Karşılaştırma ✔
+- Profil ✔
+- Diğer tüm ekranlar ✔
