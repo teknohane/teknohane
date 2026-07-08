@@ -1,31 +1,29 @@
-# PROJECT STATUS
+# PROJECT_STATUS
 
 ## Proje Bilgisi
 
-Proje: Teknohane
+**Proje:** Teknohane
 
-Platform: Android (Capacitor)
+**Platform:** Android (Capacitor)
 
-Backend: Firebase
-
-Repository: github.com/teknohane/teknohane
+**Backend:** Firebase
 
 ---
 
 ## Güncel Durum
 
-🟢 Uygulama Google Play test sürecindedir.
+🟢 Uygulama Google Play kapalı test sürecindedir.
 
-🟢 Capacitor yapısı başarıyla çalışmaktadır.
+🟢 Push Notification sistemi kod tarafında entegre edilmiştir.
 
-🟢 Native Android App Bundle (versionCode 13) oluşturulmuştur.
+🟢 Android donanım geri tuşu için gerekli JavaScript entegrasyonu tamamlanmıştır.
 
-🟡 Push Notification sistemi kurulmuştur ancak gerçek cihaz üzerinde henüz doğrulanmamıştır.
+🟡 @capacitor/app pluginının native kurulumu henüz doğrulanmamıştır.
 
-🟡 Android geri tuşu davranışı düzeltilmeyi beklemektedir.
+🟡 Geri tuşu davranışı gerçek cihaz üzerinde henüz test edilmemiştir.
 
 ---
 
 ## Öncelikli Hedef
 
-Google Play üzerinden yayınlanan yeni sürümün doğrulanması ve Push Notification testlerinin tamamlanması.
+Android donanım geri tuşunun gerçek cihazda tamamen doğrulanması ve yeni AAB sürümünün Google Play'e yüklenmesi.
