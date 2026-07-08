@@ -1726,7 +1726,7 @@ async function setupPushNative(silent) {
           await db.collection('teknohane_users').doc(user.uid).set({ fcmToken: token.value }, { merge: true });
           myProfileData.fcmToken = token.value;
           updatePushToggleUI();
-          showToast('🔔', 'rgba(0,212,255,.15)', 'Bildirimler Açıldı', 'Artık uygulama kapalıyken de bildirim alacaksın.');
+          if (!silent) showToast('🔔', 'rgba(0,212,255,.15)', 'Bildirimler Açıldı', 'Artık uygulama kapalıyken de bildirim alacaksın.');
         } catch(e) { console.error('Push token kaydetme hatası:', e); }
       });
       PushNotifications.addListener('registrationError', (err) => {
@@ -2196,6 +2196,7 @@ function attachChatSwipeDelete(wrap) {
 function openChatList() {
   if (!user) { gt('profile'); return; }
   document.getElementById('chat-list-mo').classList.add('on');
+  history.pushState({ chatList: true }, '', location.pathname);
   const list = document.getElementById('chat-list');
   list.innerHTML = `<div class="load"><div class="spin"></div></div>`;
   unsubChatList?.();
