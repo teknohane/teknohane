@@ -2,36 +2,50 @@
 
 ## BUG-001
 
-Durum: Devam Ediyor
+**Durum:** Test Bekliyor
 
-Başlık:
+**Başlık**
 
-Push Notification requestPermissions undefined
+Push Notification sistemi
 
-Açıklama:
+**Açıklama**
 
-Yeni AAB oluşturuldu.
+Kod tarafındaki düzenlemeler tamamlandı.
 
-Plugin doğru şekilde projeye bağlandı.
-
-Sorunun çözülüp çözülmediği Google Play üzerinden yayınlanan sürümde test edilecek.
+Google Play üzerinden yayınlanan yeni sürümde gerçek cihaz testi bekleniyor.
 
 ---
 
 ## BUG-002
 
-Durum: Bekliyor
+**Durum:** Test Bekliyor
 
-Başlık:
+**Başlık**
 
 Android Donanım Geri Tuşu
 
-Açıklama:
+**Açıklama**
 
-Destek ve Mesajlar sayfalarında geri tuşu uygulamayı kapatıyor.
+Mevcut popstate yapısı korunarak Android donanım geri tuşu sisteme bağlandı.
 
-Çözüm:
+Native tarafta @capacitor/app pluginının kurulu olduğu doğrulanmalı.
 
-@capacitor/app pluginı kurulacak.
+Gerçek cihaz üzerinde tüm senaryolar test edilecek.
 
-history.back() mantığı eklenecek.
+---
+
+## BUG-003
+
+**Durum:** Açık
+
+**Başlık**
+
+@capacitor/app Native Kurulumu
+
+**Açıklama**
+
+Kod tarafındaki entegrasyon tamamlandı.
+
+Pluginın Android native tarafına kurulup kurulmadığı henüz doğrulanmadı.
+
+Kurulum tamamlandıktan sonra yeni AAB oluşturulacak.
