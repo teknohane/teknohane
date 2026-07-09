@@ -1580,6 +1580,7 @@ function rprof() {
     // güncel olan canlı Auth değerini kullanıyoruz — tek kaynak fonksiyonu bozmadan, en taze veriyle.
     const scoreProfileData = { ...myProfileData, emailVerified: user.emailVerified };
     const scoreInfo = computeTeknohaneScore(user.uid, scoreProfileData);
+    const lastSignIn = user.metadata?.lastSignInTime ? new Date(user.metadata.lastSignInTime) : null;
     const { score: teknohaneScore, listingsCount: myListingsCount, forumCount: myForumCount, compareCount: myCompareCount } = scoreInfo;
     const myLikesReceived = forumPosts.filter(p => p.uid === user.uid).reduce((s,p)=>s+(p.likes||[]).length,0);
     const scoreRingOffset = (276.5 * (1 - teknohaneScore/100)).toFixed(1);
