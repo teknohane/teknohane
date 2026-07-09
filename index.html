@@ -76,7 +76,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .hbtn img{width:36px;height:36px;border-radius:50%;object-fit:cover;}
 
 /* TABS */
-#tabs{position:fixed;bottom:0;left:0;right:0;z-index:100;background:rgba(0,4,15,.9);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid var(--border);padding-bottom:var(--sb);height:var(--tab);display:flex;align-items:flex-start;padding-top:10px;}
+#tabs{position:fixed;bottom:0;left:0;right:0;z-index:100;background:rgba(0,4,15,.9);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid var(--border);padding-bottom:var(--sb);height:calc(var(--tab) + var(--sb));display:flex;align-items:flex-start;padding-top:10px;}
 .tbar{display:flex;width:100%;justify-content:space-around;}
 .tab{display:flex;flex-direction:column;align-items:center;gap:4px;padding:0 8px;cursor:pointer;min-width:52px;}
 .tab svg{width:22px;height:22px;stroke:var(--text3);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:stroke .2s;}
@@ -87,7 +87,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .tab.on .tco{background:var(--cdim);}
 
 /* SCREENS */
-#screens{flex:1;overflow:hidden;position:relative;margin-top:calc(var(--st) + 58px);margin-bottom:var(--tab);}
+#screens{flex:1;overflow:hidden;position:relative;margin-top:calc(var(--st) + 58px);margin-bottom:calc(var(--tab) + var(--sb));}
 .screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;opacity:0;pointer-events:none;transition:opacity .2s;}
 #s-support{z-index:40;background:var(--bg);}
 .screen.on{opacity:1;pointer-events:all;}
@@ -1176,6 +1176,24 @@ body.tk-browser #browser-gate{
   </div>
 </div>
 
+<!-- TELEFON DOĞRULAMA MODAL -->
+<div class="mo" id="phone-verify-mo" onclick="closemo('phone-verify-mo')">
+  <div class="ms" onclick="event.stopPropagation()">
+    <div class="mh"></div>
+    <div class="mtit">Telefon Doğrulama</div>
+    <div id="pv-step-number">
+      <div class="fg"><label class="fl">Telefon Numarası</label><input class="fi" type="tel" id="pv-phone" placeholder="5XXXXXXXXX"></div>
+      <div id="pv-recaptcha"></div>
+      <button class="sbtn2" onclick="sendPhoneVerificationCode()">Kod Gönder</button>
+    </div>
+    <div id="pv-step-code" style="display:none">
+      <div class="fg"><label class="fl">Doğrulama Kodu</label><input class="fi" type="text" id="pv-code" placeholder="6 haneli kod" maxlength="6"></div>
+      <button class="sbtn2" onclick="confirmPhoneVerificationCode()">Doğrula</button>
+    </div>
+    <div class="aerr" id="pv-err"></div>
+  </div>
+</div>
+
 <!-- ADMIN MODAL -->
 <div class="mo" id="admin-mo" onclick="closemo('admin-mo')">
   <div class="ms" onclick="event.stopPropagation()" style="max-height:85vh">
@@ -1356,9 +1374,17 @@ function compressImageToWebP(file, maxDim, quality) {
         const canvas = document.createElement('canvas');
         canvas.width = w; canvas.height = h;
         canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Görsel sıkıştırılamadı')), 'image/webp', quality);
+        // Bazı Android WebView sürümleri canvas.toBlob ile WebP çıktısı vermiyor (sessizce PNG/JPEG'e
+        // düşüyor ya da başarısız oluyor) — WebP denenir, olmazsa JPEG'e güvenli şekilde geri dönülür.
+        canvas.toBlob(blob => {
+          if (blob && blob.type === 'image/webp') { resolve({ blob, mimeType: 'image/webp', ext: 'webp' }); return; }
+          canvas.toBlob(jblob => {
+            if (jblob) resolve({ blob: jblob, mimeType: 'image/jpeg', ext: 'jpg' });
+            else reject(new Error('Görsel sıkıştırılamadı (tarayıcı desteklemiyor)'));
+          }, 'image/jpeg', quality);
+        }, 'image/webp', quality);
       };
-      img.onerror = () => reject(new Error('Görsel okunamadı'));
+      img.onerror = () => reject(new Error('Görsel okunamadı — dosya bozuk olabilir'));
       img.src = e.target.result;
     };
     reader.onerror = () => reject(new Error('Dosya okunamadı'));
@@ -1368,10 +1394,10 @@ function compressImageToWebP(file, maxDim, quality) {
 
 // Bir Blob'u belirtilen Storage yoluna yükler, ilerleme yüzdesini onProgress ile bildirir, indirme URL'sini döner.
 // Aynı path her seferinde üzerine yazılır — eski dosya otomatik olarak yenisiyle değişir, Storage'da birikme olmaz.
-function uploadToStorage(path, blob, onProgress) {
+function uploadToStorage(path, blob, mimeType, onProgress) {
   return new Promise((resolve, reject) => {
     const ref = storage.ref(path);
-    const task = ref.put(blob, { contentType: 'image/webp' });
+    const task = ref.put(blob, { contentType: mimeType || blob.type || 'application/octet-stream' });
     task.on('state_changed',
       snap => { if (onProgress && snap.totalBytes) onProgress(Math.round(snap.bytesTransferred / snap.totalBytes * 100)); },
       err => reject(err),
@@ -1447,6 +1473,23 @@ async function syncUserProfile(u) {
       if (havImg && existingData.photoURL) havImg.src = existingData.photoURL;
     }
 
+    // Son görülme ve bu cihazın oturum kaydı: throttle'a tabi DEĞİL, her girişte güncellenir
+    // (Güvenlik Kartı'ndaki "Son Görülme"nin gerçek zamanlı ve senkron kalması için).
+    const deviceLabel = detectDeviceLabel();
+    let deviceSessionId = localStorage.getItem('tk_device_id');
+    if (!deviceSessionId) {
+      deviceSessionId = 'dev_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+      localStorage.setItem('tk_device_id', deviceSessionId);
+    }
+    db.collection('teknohane_users').doc(u.uid).set({
+      lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+      lastLoginDevice: deviceLabel
+    }, { merge: true }).catch(()=>{});
+    db.collection('teknohane_users').doc(u.uid).collection('sessions').doc(deviceSessionId).set({
+      device: deviceLabel,
+      lastActive: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true }).catch(()=>{});
+
     // Profil bilgisini (isim/email) günde en fazla 1 kez güncelle, her açılışta değil
     const now = Date.now();
     const lastSync = parseInt(localStorage.getItem('tk_last_profile_sync') || '0');
@@ -1457,8 +1500,6 @@ async function syncUserProfile(u) {
         displayName: u.displayName || u.email?.split('@')[0] || 'Kullanıcı',
         email: u.email || '',
         createdAt: existingData.createdAt || firebase.firestore.FieldValue.serverTimestamp(),
-        lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
-        lastLoginDevice: detectDeviceLabel(),
         emailVerified: !!u.emailVerified
       };
       // Kullanıcı özel bir profil fotoğrafı yüklediyse (customPhoto), onu asla üye olurken
@@ -1730,11 +1771,11 @@ function rprof() {
         <div class="psec-title">🔒 Güvenlik</div>
         <div class="pacc-row"><span class="pacc-lbl">E-posta Doğrulama</span><span class="pacc-val"${user.emailVerified?' style="color:#3DDC97"':''}>${user.emailVerified?'✓ Doğrulandı':'Doğrulanmadı'}</span></div>
         ${!user.emailVerified?`<button class="apbtn" onclick="sendVerificationEmail()" style="margin:4px 0 12px">Doğrulama E-postası Gönder</button>`:''}
-        <div class="pacc-row"><span class="pacc-lbl">Telefon Doğrulama</span><span class="pacc-val" style="cursor:pointer;color:var(--cyan)" onclick="showToast('ℹ️','rgba(0,212,255,.15)','Telefon Doğrulama','Bu özelliğin altyapısı hazır, doğrulama akışı yakında aktif olacak.')">Yakında</span></div>
+        <div class="pacc-row"><span class="pacc-lbl">Telefon Doğrulama</span><span class="pacc-val"${hasVerifiedPhoneNumber?' style="color:#3DDC97"':' style="cursor:pointer;color:var(--cyan)" onclick="openPhoneVerify()"'}>${hasVerifiedPhoneNumber?'✓ '+myProfileData.phoneNumber:'Doğrula'}</span></div>
         <div class="pacc-row"><span class="pacc-lbl">Şifre</span><span class="pacc-val" style="cursor:pointer;color:var(--cyan)" onclick="openEditProfile()">Değiştir</span></div>
         <div class="pacc-row"><span class="pacc-lbl">Son Giriş</span><span class="pacc-val">${lastSignIn?lastSignIn.toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}):'Henüz veri bulunmuyor'}</span></div>
         <div class="pacc-row"><span class="pacc-lbl">Kullanılan Cihaz</span><span class="pacc-val">${myProfileData.lastLoginDevice || detectDeviceLabel()}</span></div>
-        <div class="pacc-row"><span class="pacc-lbl">Aktif Oturumlar</span><span class="pacc-val" style="cursor:pointer;color:var(--cyan)" onclick="showToast('ℹ️','rgba(0,212,255,.15)','Aktif Oturumlar','Çoklu cihaz oturum takibi altyapısı hazırlanıyor, veri oluşunca burada listelenecek.')">Yakında</span></div>
+        <div class="pacc-row"><span class="pacc-lbl">Aktif Oturumlar</span><span class="pacc-val" id="pacc-sessions-count">Yükleniyor…</span></div>
       </div>
       ${isAdmin?`<div class="apanel">
         <div class="aptit"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#FFBE3C" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Yönetici Paneli</div>
@@ -1778,6 +1819,7 @@ function rprof() {
     if (isAdmin) updateAdminStats();
     updateThemeToggleUI();
     animateProfileStats();
+    loadActiveSessions();
   } else {
     c.innerHTML = `
       <div class="awrap">
@@ -1861,12 +1903,19 @@ async function handleProfilePhoto(input) {
   try {
     epPhotoUploading = true;
     prog.style.display = 'flex'; pctEl.textContent = '0%';
-    const blob = await compressImageToWebP(file, 400, 0.85);
+    const { blob, mimeType, ext } = await compressImageToWebP(file, 400, 0.85);
     preview.src = URL.createObjectURL(blob);
-    const url = await uploadToStorage(`profile-photos/${user.uid}/avatar.webp`, blob, pct => pctEl.textContent = pct + '%');
+    const oldUrl = myProfileData.photoURL;
+    const newPath = `profile-photos/${user.uid}/avatar.${ext}`;
+    const url = await uploadToStorage(newPath, blob, mimeType, pct => pctEl.textContent = pct + '%');
+    // Farklı bir cihazdan farklı formatta (webp/jpg) yüklendiyse, eski dosya Storage'da birikmesin diye silinir.
+    if (oldUrl && oldUrl.startsWith('https://') && !oldUrl.includes(encodeURIComponent(newPath))) {
+      storage.refFromURL(oldUrl).delete().catch(()=>{});
+    }
     epNewPhotoDataUrl = url;
   } catch (e) {
-    showToast('⚠️','rgba(255,69,58,.15)','Yükleme Başarısız', e.message || 'Fotoğraf yüklenemedi.');
+    console.error('Profil fotoğrafı yükleme hatası:', e);
+    showToast('⚠️','rgba(255,69,58,.15)','Yükleme Başarısız', e.code ? `${e.message} (${e.code})` : (e.message || 'Fotoğraf yüklenemedi.'));
   } finally {
     epPhotoUploading = false;
     prog.style.display = 'none';
@@ -1885,14 +1934,20 @@ async function handleCoverPhoto(input) {
   try {
     coverPhotoUploading = true;
     if (prog) { prog.style.display = 'flex'; if (pctEl) pctEl.textContent = '0%'; }
-    const blob = await compressImageToWebP(file, 1200, 0.82);
-    const url = await uploadToStorage(`cover-photos/${user.uid}/cover.webp`, blob, pct => { if (pctEl) pctEl.textContent = pct + '%'; });
+    const { blob, mimeType, ext } = await compressImageToWebP(file, 1200, 0.82);
+    const oldUrl = myProfileData.coverPhotoURL;
+    const newPath = `cover-photos/${user.uid}/cover.${ext}`;
+    const url = await uploadToStorage(newPath, blob, mimeType, pct => { if (pctEl) pctEl.textContent = pct + '%'; });
+    if (oldUrl && oldUrl.startsWith('https://') && !oldUrl.includes(encodeURIComponent(newPath))) {
+      storage.refFromURL(oldUrl).delete().catch(()=>{});
+    }
     await db.collection('teknohane_users').doc(user.uid).set({ coverPhotoURL: url }, { merge: true });
     myProfileData.coverPhotoURL = url;
     rprof();
     showToast('✓', 'rgba(48,209,88,.15)', 'Kaydedildi', 'Kapak fotoğrafın güncellendi.');
   } catch (e) {
-    showToast('⚠️','rgba(255,69,58,.15)','Yükleme Başarısız', e.message || 'Kapak fotoğrafı yüklenemedi.');
+    console.error('Kapak fotoğrafı yükleme hatası:', e);
+    showToast('⚠️','rgba(255,69,58,.15)','Yükleme Başarısız', e.code ? `${e.message} (${e.code})` : (e.message || 'Kapak fotoğrafı yüklenemedi.'));
   } finally {
     coverPhotoUploading = false;
     if (prog) prog.style.display = 'none';
@@ -1903,7 +1958,7 @@ async function handleCoverPhoto(input) {
 async function removeCoverPhoto() {
   if (!user || !myProfileData.coverPhotoURL) return;
   try {
-    await storage.ref(`cover-photos/${user.uid}/cover.webp`).delete().catch(()=>{});
+    await storage.refFromURL(myProfileData.coverPhotoURL).delete().catch(()=>{});
     await db.collection('teknohane_users').doc(user.uid).set({ coverPhotoURL: firebase.firestore.FieldValue.delete() }, { merge: true });
     myProfileData.coverPhotoURL = null;
     rprof();
@@ -1920,6 +1975,81 @@ async function sendVerificationEmail() {
     showToast('✓', 'rgba(48,209,88,.15)', 'Gönderildi', 'Doğrulama e-postası gönderildi, gelen kutunu kontrol et.');
   } catch (e) {
     showToast('⚠️','rgba(255,69,58,.15)','Hata','E-posta gönderilemedi: ' + (e.message || ''));
+  }
+}
+
+// Bu cihazdan/tarayıcıdan yapılan girişler `sessions` alt-koleksiyonuna kaydedilir (bkz. syncUserProfile).
+// Burada son 30 gün içinde aktif olan cihaz sayısını okuyup Güvenlik Kartı'nda gösteriyoruz.
+function loadActiveSessions() {
+  const el = document.getElementById('pacc-sessions-count');
+  if (!user || !el) return;
+  const cutoff = new Date(Date.now() - 30*24*60*60*1000);
+  db.collection('teknohane_users').doc(user.uid).collection('sessions')
+    .orderBy('lastActive', 'desc').limit(10).get()
+    .then(snap => {
+      const el2 = document.getElementById('pacc-sessions-count');
+      if (!el2) return;
+      const sessions = snap.docs.map(d => d.data()).filter(s => s.lastActive?.toDate && s.lastActive.toDate() > cutoff);
+      el2.textContent = sessions.length + (sessions.length===1?' cihaz':' cihaz');
+      if (sessions.length) {
+        el2.style.cursor = 'pointer'; el2.style.color = 'var(--cyan)';
+        el2.onclick = () => showToast('📱', 'rgba(0,212,255,.15)', 'Aktif Oturumlar', sessions.map(s=>s.device).join(', '));
+      }
+    })
+    .catch(() => { const el2 = document.getElementById('pacc-sessions-count'); if (el2) el2.textContent = 'Gösterilemiyor'; });
+}
+
+// ==== TELEFON NUMARASI DOĞRULAMA (Firebase Phone Auth — gerçek SMS OTP akışı) ====
+// Not: Firebase Console → Authentication → Sign-in method → Phone aktif edilmiş olmalı.
+let pvRecaptchaVerifier = null;
+let pvConfirmationResult = null;
+
+function openPhoneVerify() {
+  if (!user) return;
+  document.getElementById('pv-phone').value = '';
+  document.getElementById('pv-code').value = '';
+  document.getElementById('pv-step-number').style.display = 'block';
+  document.getElementById('pv-step-code').style.display = 'none';
+  const err = document.getElementById('pv-err'); err.textContent = ''; err.classList.remove('on');
+  document.getElementById('phone-verify-mo').classList.add('on');
+  setTimeout(() => {
+    try {
+      if (pvRecaptchaVerifier) pvRecaptchaVerifier.clear();
+      pvRecaptchaVerifier = new firebase.auth.RecaptchaVerifier('pv-recaptcha', { size: 'invisible' });
+    } catch (e) { console.error('reCAPTCHA başlatılamadı:', e); }
+  }, 200);
+}
+
+async function sendPhoneVerificationCode() {
+  const err = document.getElementById('pv-err'); err.textContent = ''; err.classList.remove('on');
+  const raw = document.getElementById('pv-phone').value.trim().replace(/\s+/g, '');
+  if (!/^5\d{9}$/.test(raw)) { err.textContent = 'Geçerli bir telefon numarası gir (5XXXXXXXXX)'; err.classList.add('on'); return; }
+  try {
+    pvConfirmationResult = await user.linkWithPhoneNumber('+90' + raw, pvRecaptchaVerifier);
+    document.getElementById('pv-step-number').style.display = 'none';
+    document.getElementById('pv-step-code').style.display = 'block';
+    showToast('✓', 'rgba(48,209,88,.15)', 'Kod Gönderildi', 'SMS ile gelen 6 haneli kodu gir.');
+  } catch (e) {
+    err.textContent = 'Kod gönderilemedi: ' + (e.message || 'bilinmeyen hata');
+    err.classList.add('on');
+  }
+}
+
+async function confirmPhoneVerificationCode() {
+  const err = document.getElementById('pv-err'); err.textContent = ''; err.classList.remove('on');
+  const code = document.getElementById('pv-code').value.trim();
+  if (!code || !pvConfirmationResult) return;
+  try {
+    const result = await pvConfirmationResult.confirm(code);
+    const phoneNumber = result.user.phoneNumber;
+    await db.collection('teknohane_users').doc(user.uid).set({ phoneNumber }, { merge: true });
+    myProfileData.phoneNumber = phoneNumber;
+    closemo('phone-verify-mo');
+    rprof();
+    showToast('✓', 'rgba(48,209,88,.15)', 'Doğrulandı', 'Telefon numaran başarıyla doğrulandı.');
+  } catch (e) {
+    err.textContent = 'Kod hatalı veya süresi doldu: ' + (e.message || '');
+    err.classList.add('on');
   }
 }
 
@@ -3920,6 +4050,7 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy) {
   const BADGES_DEF = computeBadges(uid, data, isTargetAdmin, scoreInfo);
   const joinedDateStr = data.createdAt?.toDate ? data.createdAt.toDate().toLocaleDateString('tr-TR',{month:'long',year:'numeric'}) : null;
   const lastSeenStr = data.lastSeen?.toDate ? timeAgo(data.lastSeen.toDate()) : null;
+  const isFollowingUser = (myProfileData.followingUids||[]).includes(uid);
 
   body.innerHTML = `
     <div class="phero">
@@ -3934,10 +4065,10 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy) {
       ${!isMe ? `
       <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:14px">
         <button class="sbtn2" style="padding:9px 16px;width:auto;display:inline-flex;align-items:center;gap:6px" onclick="closemo('pub-profile-mo');openChatWith('${uid}','${displayName.replace(/'/g,"\\'")}')">💬 Mesaj Gönder</button>
-        <button class="sbtn2" style="padding:9px 16px;width:auto;background:var(--surf2)" onclick="document.getElementById('pub-listings-section')?.scrollIntoView({behavior:'smooth'})">🛍️ İlanları</button>
-        ${!privacy.hideForumActivity?`<button class="sbtn2" style="padding:9px 16px;width:auto;background:var(--surf2)" onclick="document.getElementById('pub-forum-section')?.scrollIntoView({behavior:'smooth'})">💬 Forum</button>`:''}
-        <button class="sbtn2" style="padding:9px 16px;width:auto;background:var(--surf2)" onclick="showToast('ℹ️','rgba(0,212,255,.15)','Takip Et','Takip sistemi altyapısı hazırlanıyor, yakında aktif olacak.')">➕ Takip Et</button>
-        <button class="sbtn2" style="padding:9px 16px;width:auto;background:var(--surf2)" onclick="shareProfile('${uid}','${displayName.replace(/'/g,"\\'")}')">🔗 Paylaş</button>
+        <button class="sbtn2" style="padding:9px 16px;width:auto;background:var(--surf2);color:var(--text)" onclick="document.getElementById('pub-listings-section')?.scrollIntoView({behavior:'smooth'})">🛍️ İlanları</button>
+        ${!privacy.hideForumActivity?`<button class="sbtn2" style="padding:9px 16px;width:auto;background:var(--surf2);color:var(--text)" onclick="document.getElementById('pub-forum-section')?.scrollIntoView({behavior:'smooth'})">💬 Forum</button>`:''}
+        <button class="sbtn2" id="pub-follow-btn" style="padding:9px 16px;width:auto;background:var(--surf2);color:${isFollowingUser?'var(--cyan)':'var(--text)'}" onclick="toggleFollow('${uid}')">${isFollowingUser?'✓ Takip Ediliyor':'➕ Takip Et'}</button>
+        <button class="sbtn2" style="padding:9px 16px;width:auto;background:var(--surf2);color:var(--text)" onclick="shareProfile('${uid}','${displayName.replace(/'/g,"\\'")}')">🔗 Paylaş</button>
       </div>` : `
       <div style="margin-top:14px"><button class="sbtn2" style="width:auto;padding:9px 16px" onclick="shareProfile('${uid}','${displayName.replace(/'/g,"\\'")}')">🔗 Profilimi Paylaş</button></div>`}
     </div>
@@ -4054,6 +4185,27 @@ async function shareProfile(uid, name) {
       showToast('✓', 'rgba(48,209,88,.15)', 'Kopyalandı', 'Profil bağlantısı panoya kopyalandı.');
     }
   } catch (e) { /* kullanıcı paylaşımı iptal etmiş olabilir, sessizce geç */ }
+}
+
+// Takip listesi, hedef kullanıcının dokümanına değil, TAKİP EDENİN kendi dokümanına yazılır
+// (Firestore kuralları yalnızca doküman sahibinin kendi dokümanına yazmasına izin veriyor).
+async function toggleFollow(uid) {
+  if (!user || user.uid === uid) return;
+  const following = myProfileData.followingUids || [];
+  const isFollowing = following.includes(uid);
+  const updated = isFollowing ? following.filter(x => x !== uid) : [...following, uid];
+  try {
+    await db.collection('teknohane_users').doc(user.uid).set({ followingUids: updated }, { merge: true });
+    myProfileData.followingUids = updated;
+    const btn = document.getElementById('pub-follow-btn');
+    if (btn) {
+      btn.textContent = isFollowing ? '➕ Takip Et' : '✓ Takip Ediliyor';
+      btn.style.color = isFollowing ? 'var(--text)' : 'var(--cyan)';
+    }
+    showToast('✓', 'rgba(48,209,88,.15)', isFollowing?'Takipten Çıkıldı':'Takip Ediliyor', isFollowing?'Bu kullanıcıyı takipten çıktın.':'Bu kullanıcıyı artık takip ediyorsun.');
+  } catch (e) {
+    showToast('⚠️', 'rgba(255,69,58,.15)', 'Hata', 'İşlem gerçekleştirilemedi.');
+  }
 }
 
 // KULLANICI ARAMA
