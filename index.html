@@ -471,8 +471,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .marr{color:var(--text3);font-size:18px;}
 
 /* PROFILE */
-.phero{background:linear-gradient(135deg,var(--surf),var(--surf2));border-radius:20px;border:1px solid var(--border);padding:28px 24px;margin-bottom:20px;text-align:center;}
-.pav{width:90px;height:90px;border-radius:50%;object-fit:cover;border:3px solid var(--cyan);box-shadow:0 0 20px var(--cglow);margin:0 auto 16px;display:block;}
+.phero{background:var(--surf);border-radius:24px;border:1px solid var(--border);padding:0 24px 28px;margin-bottom:20px;text-align:center;overflow:hidden;position:relative;}
+.pcover{height:104px;margin:0 -24px 0;background:linear-gradient(135deg,var(--surf2),var(--surf3));position:relative;overflow:hidden;}
+.pcover::after{content:'';position:absolute;top:-50px;right:-30px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,var(--cglow),transparent 70%);opacity:.6;}
+.pav{width:92px;height:92px;border-radius:50%;object-fit:cover;border:3px solid var(--bg2);box-shadow:0 0 20px var(--cglow);margin:-46px auto 14px;display:block;position:relative;background:var(--surf);}
 .pav-edit-wrap{position:relative;width:90px;height:90px;margin:0 auto 16px;cursor:pointer;}
 .pav-edit-wrap img{width:90px;height:90px;border-radius:50%;object-fit:cover;border:3px solid var(--cyan);box-shadow:0 0 20px var(--cglow);display:block;}
 .pav-edit-badge{position:absolute;bottom:0;right:0;width:28px;height:28px;border-radius:50%;background:var(--cyan);display:flex;align-items:center;justify-content:center;border:2px solid var(--bg);}
@@ -1354,6 +1356,7 @@ function rprof() {
     const av = myProfileData.photoURL || user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName||user.email)}&background=0D1526&color=00D4FF&size=256`;
     c.innerHTML = `
       <div class="phero">
+        <div class="pcover"></div>
         <img class="pav" src="${av}" alt="">
         <div style="display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap">
           <span class="pname">${user.displayName||'Kullanıcı'}</span>
