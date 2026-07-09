@@ -1176,6 +1176,16 @@ body.tk-browser #browser-gate{
   </div>
 </div>
 
+<!-- FOTOĞRAF KAYNAĞI SEÇİM MODAL -->
+<div class="mo" id="photo-source-mo" onclick="closemo('photo-source-mo')">
+  <div class="ms" onclick="event.stopPropagation()" style="max-height:40vh">
+    <div class="mh"></div>
+    <div class="mtit">Fotoğraf Ekle</div>
+    <button class="apbtn" onclick="closemo('photo-source-mo');executePhotoPick('camera')" style="display:flex;align-items:center;gap:10px;justify-content:center">📷 Kamera ile Çek</button>
+    <button class="apbtn" onclick="closemo('photo-source-mo');executePhotoPick('gallery')" style="margin-top:10px;display:flex;align-items:center;gap:10px;justify-content:center">🖼️ Galeriden Seç</button>
+  </div>
+</div>
+
 <!-- TELEFON DOĞRULAMA MODAL -->
 <div class="mo" id="phone-verify-mo" onclick="closemo('phone-verify-mo')">
   <div class="ms" onclick="event.stopPropagation()">
@@ -2068,37 +2078,43 @@ function openEditProfile() {
 // Native uygulamada Capacitor Camera plugin'i (kamera/galeri seçici) kullanılır — HTML <input type=file>
 // Android WebView'lerde bazı cihazlarda 'change' olayını hiç tetiklemeyebiliyor, bu yüzden native
 // ortamda buna güvenmek yerine gerçek native picker'a geçiyoruz. Web'de dosya seçici olduğu gibi kalır.
-async function pickProfilePhoto() {
+let photoPickTarget = null; // 'profile' | 'cover' — uygulama içi kaynak seçim ekranı hangi hedefe yükleyecek
+
+function pickProfilePhoto() {
   if (isNativeApp() && window.Capacitor?.Plugins?.Camera) {
-    try {
-      const photo = await Capacitor.Plugins.Camera.getPhoto({ quality: 90, allowEditing: false, resultType: 'dataUrl', source: 'PROMPT' });
-      const blob = await (await fetch(photo.dataUrl)).blob();
-      await processProfilePhoto(blob);
-    } catch (e) {
-      if (e?.message !== 'User cancelled photos app') {
-        console.error('Kamera/galeri açılamadı:', e);
-        showToast('⚠️','rgba(255,69,58,.15)','Hata','Fotoğraf seçilemedi: ' + (e.message||''));
-      }
-    }
+    photoPickTarget = 'profile';
+    document.getElementById('photo-source-mo').classList.add('on');
   } else {
     document.getElementById('ep-photo-input').click();
   }
 }
 
-async function pickCoverPhoto() {
+function pickCoverPhoto() {
   if (isNativeApp() && window.Capacitor?.Plugins?.Camera) {
-    try {
-      const photo = await Capacitor.Plugins.Camera.getPhoto({ quality: 90, allowEditing: false, resultType: 'dataUrl', source: 'PROMPT' });
-      const blob = await (await fetch(photo.dataUrl)).blob();
-      await processCoverPhoto(blob);
-    } catch (e) {
-      if (e?.message !== 'User cancelled photos app') {
-        console.error('Kamera/galeri açılamadı:', e);
-        showToast('⚠️','rgba(255,69,58,.15)','Hata','Fotoğraf seçilemedi: ' + (e.message||''));
-      }
-    }
+    photoPickTarget = 'cover';
+    document.getElementById('photo-source-mo').classList.add('on');
   } else {
     document.getElementById('cover-photo-input').click();
+  }
+}
+
+// Android'in kendi sistem "PROMPT" seçim ekranı bazı cihazlarda ikonları düzgün çizemiyor (kırık/boş görünüm).
+// Bunun yerine kaynağı (Kamera/Galeri) doğrudan, kendi tasarımımızdaki bir seçim ekranından belirliyoruz.
+async function executePhotoPick(source) {
+  const target = photoPickTarget;
+  try {
+    const photo = await Capacitor.Plugins.Camera.getPhoto({
+      quality: 90, allowEditing: false, resultType: 'dataUrl',
+      source: source === 'camera' ? 'CAMERA' : 'PHOTOS'
+    });
+    const blob = await (await fetch(photo.dataUrl)).blob();
+    if (target === 'profile') await processProfilePhoto(blob);
+    else await processCoverPhoto(blob);
+  } catch (e) {
+    if (e?.message !== 'User cancelled photos app') {
+      console.error('Kamera/galeri açılamadı:', e);
+      showToast('⚠️','rgba(255,69,58,.15)','Hata','Fotoğraf seçilemedi: ' + (e.message||''));
+    }
   }
 }
 
