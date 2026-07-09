@@ -482,6 +482,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .puname{font-size:13px;color:var(--cyan);margin-top:2px;}
 .pname{font-size:22px;font-weight:700;letter-spacing:-.4px;}
 .pemail{font-size:13px;color:var(--text2);margin-top:6px;}
+.pbio{font-size:13px;color:var(--text);margin-top:10px;line-height:1.5;max-width:280px;margin-left:auto;margin-right:auto;}
 .pverify{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;margin-top:10px;}
 .pverify-item{font-size:11px;color:var(--text3);display:inline-flex;align-items:center;gap:4px;}
 .pverify-item.ok{color:#3DDC97;}
@@ -1137,6 +1138,11 @@ body.tk-browser #browser-gate{
       <input class="fi" type="text" id="ep-username" placeholder="kullaniciadi" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9_]/g,'')">
       <span style="font-size:11px;color:var(--text3);display:block;margin-top:4px">Sadece küçük harf, rakam ve alt çizgi (_). 3-20 karakter. Boş bırakılabilir.</span>
     </div>
+    <div class="fg">
+      <label class="fl">Biyografi</label>
+      <textarea class="fi" id="ep-bio" rows="3" maxlength="150" placeholder="Kendini kısaca tanıt..." style="resize:none;font-family:inherit" oninput="document.getElementById('ep-bio-count').textContent=this.value.length"></textarea>
+      <span style="font-size:11px;color:var(--text3);display:block;margin-top:4px"><span id="ep-bio-count">0</span>/150 karakter</span>
+    </div>
     <button class="sbtn2" onclick="saveProfileInfo()">Kaydet</button>
 
     <div id="ep-pass-section" style="display:none;margin-top:24px;padding-top:20px;border-top:1px solid var(--border2)">
@@ -1147,6 +1153,15 @@ body.tk-browser #browser-gate{
       <div class="fg"><label class="fl">Yeni Şifre (Tekrar)</label><input class="fi" type="password" id="ep-new-pass2" placeholder="••••••••"></div>
       <button class="sbtn2" onclick="changePassword()">Şifreyi Güncelle</button>
     </div>
+  </div>
+</div>
+
+<!-- TELEFON DÜZENLEME MODAL -->
+<div class="mo" id="phone-edit-mo" onclick="closemo('phone-edit-mo')">
+  <div class="ms" onclick="event.stopPropagation()">
+    <div class="mh"></div>
+    <div class="mtit">Telefon Koleksiyonum</div>
+    <div id="phone-edit-body"></div>
   </div>
 </div>
 
@@ -1430,16 +1445,17 @@ function rprof() {
   const isAdmin = user && ADMINS.includes(user.email);
   if (user) {
     const av = myProfileData.photoURL || user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName||user.email)}&background=0D1526&color=00D4FF&size=256`;
-    const hasPhone = !!myProfileData.phoneNumber;
+    const hasVerifiedPhoneNumber = !!myProfileData.phoneNumber;
+    const hasCurrentPhone = !!myProfileData.currentPhone;
     const myListingsCount = listings.filter(l => l.uid === user.uid).length;
     const myForumCount = forumPosts.filter(p => p.uid === user.uid).length;
     const myLikesReceived = forumPosts.filter(p => p.uid === user.uid).reduce((s,p)=>s+(p.likes||[]).length,0);
     const complItems = [
-      { done: !!myProfileData.customPhoto, label: 'Profil fotoğrafı ekle' },
-      { done: !!myProfileData.username, label: 'Kullanıcı adı belirle' },
-      { done: hasPhone, label: 'Telefon ekle' },
-      { done: !!myProfileData.bio, label: 'Biyografi ekle' },
-      { done: !!user.emailVerified, label: 'E-postanı doğrula' },
+      { done: !!myProfileData.customPhoto, label: 'Profil fotoğrafı ekle', action: 'openEditProfile()' },
+      { done: !!myProfileData.username, label: 'Kullanıcı adı belirle', action: 'openEditProfile()' },
+      { done: hasCurrentPhone, label: 'Telefon ekle', action: 'openPhoneEdit()' },
+      { done: !!myProfileData.bio, label: 'Biyografi ekle', action: 'openEditProfile()' },
+      { done: !!user.emailVerified, label: 'E-postanı doğrula', action: 'openEditProfile()' },
     ];
     const complDone = complItems.filter(i=>i.done).length;
     const complPct = Math.round(complDone/complItems.length*100);
@@ -1464,26 +1480,25 @@ function rprof() {
         </div>
         ${myProfileData.username?`<div class="puname">@${myProfileData.username}</div>`:''}
         <div class="pemail">${user.email}</div>
+        ${myProfileData.bio?`<div class="pbio">${myProfileData.bio}</div>`:''}
         <div class="pverify">
           <span class="pverify-item${user.emailVerified?' ok':''}">${user.emailVerified?'✓':'○'} E-posta ${user.emailVerified?'doğrulandı':'doğrulanmadı'}</span>
-          <span class="pverify-item${hasPhone?' ok':''}">${hasPhone?'✓':'○'} Telefon ${hasPhone?'doğrulandı':'eklenmedi'}</span>
+          <span class="pverify-item${hasVerifiedPhoneNumber?' ok':''}">${hasVerifiedPhoneNumber?'✓':'○'} Telefon ${hasVerifiedPhoneNumber?'doğrulandı':'eklenmedi'}</span>
         </div>
       </div>
       <div class="tscore-card">
         <div class="tscore-ring">
           <svg viewBox="0 0 100 100">
             <circle cx="50" cy="50" r="44" stroke="var(--border2)" stroke-width="6" fill="none"/>
-            <circle cx="50" cy="50" r="44" stroke="var(--cyan)" stroke-width="6" fill="none" stroke-linecap="round" stroke-dasharray="276.5" stroke-dashoffset="42.9" transform="rotate(-90 50 50)"/>
           </svg>
-          <div class="tscore-num">845</div>
+          <div class="tscore-num" style="font-size:15px;">Yakında</div>
         </div>
         <div class="tscore-label">Teknohane Skoru</div>
-        <div class="tscore-sub">Forum aktifliği, ilan paylaşımı ve karşılaştırmalardan hesaplanır</div>
+        <div class="tscore-sub">Forum aktifliği, ilan paylaşımı ve karşılaştırmalardan hesaplanacak — sistem henüz aktif değil</div>
       </div>
       <div class="trust-card">
-        <div class="trust-stars">★★★★★</div>
-        <div class="trust-num">98<span>/100</span></div>
-        <div class="trust-badge">Güvenilir Satıcı</div>
+        <div class="trust-stars" style="color:var(--text3);">☆☆☆☆☆</div>
+        <div class="trust-num" style="font-size:14px;color:var(--text2);">Henüz hesaplanmadı</div>
       </div>
       <div class="pstats-card">
         <div class="pstat-item"><div class="pstat-num" data-target="${myListingsCount}">0</div><div class="pstat-lbl">İlan</div></div>
@@ -1494,7 +1509,7 @@ function rprof() {
       ${complPct<100?`<div class="pcompl-card">
         <div class="pcompl-top"><span>Profil Tamamlanma</span><span class="pcompl-pct">%${complPct}</span></div>
         <div class="pcompl-bar"><div class="pcompl-fill" style="width:${complPct}%"></div></div>
-        <div class="pcompl-missing">${complMissing.map(i=>`<span class="pcompl-pill" onclick="openEditProfile()">+ ${i.label}</span>`).join('')}</div>
+        <div class="pcompl-missing">${complMissing.map(i=>`<span class="pcompl-pill" onclick="${i.action}">+ ${i.label}</span>`).join('')}</div>
       </div>`:''}
       <button class="apbtn" onclick="openEditProfile()">✏️ Profili Düzenle</button>
       <div class="psec-title" style="margin-top:4px">⚡ Hızlı İşlemler</div>
@@ -1513,30 +1528,28 @@ function rprof() {
         </div>
       </div>
       <div class="pcol-card" id="phone-collection">
-        <div class="psec-title">📱 Telefon Koleksiyonum</div>
+        <div class="psec-title" style="display:flex;align-items:center;justify-content:space-between">
+          <span>📱 Telefon Koleksiyonum</span>
+          <span onclick="openPhoneEdit()" style="cursor:pointer;width:28px;height:28px;border-radius:50%;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:13px">✏️</span>
+        </div>
+        ${myProfileData.currentPhone ? `
         <div class="pcol-current">
           <div class="pcol-current-ic">📱</div>
           <div>
-            <div class="pcol-current-name">Google Pixel 10 Pro XL</div>
+            <div class="pcol-current-name">${myProfileData.currentPhone.brand} ${myProfileData.currentPhone.model}</div>
             <div class="pcol-current-tag">Şu an kullanıyor</div>
           </div>
-        </div>
+        </div>` : `<div class="no" style="padding:16px 0">Henüz telefon eklenmedi</div>`}
+        ${(myProfileData.previousPhones||[]).length ? `
         <div class="pcol-prev-label">Önceki telefonlar</div>
         <div class="pcol-prev-row">
-          <div class="pcol-prev-item">Galaxy S24 Ultra</div>
-          <div class="pcol-prev-item">iPhone 15 Pro</div>
-          <div class="pcol-prev-item">Xiaomi 13</div>
-          <div class="pcol-prev-add" onclick="openEditProfile()">+ Ekle</div>
-        </div>
+          ${myProfileData.previousPhones.map(p=>`<div class="pcol-prev-item">${p.brand} ${p.model}</div>`).join('')}
+          <div class="pcol-prev-add" onclick="openPhoneEdit()">+ Ekle</div>
+        </div>` : `<div class="pcol-prev-add" onclick="openPhoneEdit()" style="text-align:center;margin-top:${myProfileData.currentPhone?'12':'0'}px">+ Telefon Ekle</div>`}
       </div>
       <div class="pbadge-card">
         <div class="psec-title">🏅 Rozetler</div>
-        <div class="pbadge-row">
-          <div class="pbadge-item earned"><div class="pbadge-ic">🎉</div><div class="pbadge-lbl">İlk İlan</div></div>
-          <div class="pbadge-item earned"><div class="pbadge-ic">🛡️</div><div class="pbadge-lbl">Güvenilir Satıcı</div></div>
-          <div class="pbadge-item"><div class="pbadge-ic">💬</div><div class="pbadge-lbl">Topluluk Üyesi</div></div>
-          <div class="pbadge-item"><div class="pbadge-ic">🚀</div><div class="pbadge-lbl">Erken Kullanıcı</div></div>
-        </div>
+        <div class="no" style="padding:16px 0">Henüz rozet kazanmadın.</div>
       </div>
       ${isAdmin?`<div class="apanel">
         <div class="aptit"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#FFBE3C" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Yönetici Paneli</div>
@@ -1552,7 +1565,7 @@ function rprof() {
       </div>`:''}
       <div class="pacc-card">
         <div class="psec-title">Hesap İstatistikleri</div>
-        <div class="pacc-row"><span class="pacc-lbl">Üyelik Tarihi</span><span class="pacc-val">${joinedDateStr||'—'}</span></div>
+        <div class="pacc-row"><span class="pacc-lbl">Üyelik Tarihi</span><span class="pacc-val">${joinedDateStr||'Henüz veri bulunmuyor'}</span></div>
         <div class="pacc-row"><span class="pacc-lbl">Hesap Türü</span><span class="pacc-val">${isAdmin?'Yönetici':'Standart Üye'}</span></div>
       </div>
       <div class="pact-card">
@@ -1561,7 +1574,7 @@ function rprof() {
         <div class="pact-row">
           <div class="pact-ic">${a.icon}</div>
           <div class="pact-body"><div class="pact-txt">${a.text}</div><div class="pact-time">${timeAgo(a.date)}</div></div>
-        </div>`).join(''):'<div class="no">Henüz bir etkinliğin yok</div>'}
+        </div>`).join(''):'<div class="no">Henüz etkinlik bulunmuyor.</div>'}
       </div>
       <div class="psec-title" style="margin-top:4px">⚙️ Ayarlar</div>
       ${pushPanelHTML()}
@@ -1628,6 +1641,8 @@ function openEditProfile() {
   document.getElementById('ep-avatar-preview').src = myProfileData.photoURL || user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName||user.email)}&background=0D1526&color=00D4FF&size=256`;
   document.getElementById('ep-name').value = user.displayName || '';
   document.getElementById('ep-username').value = myProfileData.username || '';
+  document.getElementById('ep-bio').value = myProfileData.bio || '';
+  document.getElementById('ep-bio-count').textContent = (myProfileData.bio || '').length;
   const err = document.getElementById('ep-err');
   err.textContent = ''; err.classList.remove('on');
 
@@ -1689,6 +1704,7 @@ async function saveProfileInfo() {
   err.textContent = ''; err.classList.remove('on');
   const name = document.getElementById('ep-name').value.trim();
   const uname = document.getElementById('ep-username').value.trim().toLowerCase();
+  const bio = document.getElementById('ep-bio').value.trim();
 
   if (!name) { err.textContent = 'Görünen ad boş olamaz'; err.classList.add('on'); return; }
   if (uname && !/^[a-z0-9_]{3,20}$/.test(uname)) {
@@ -1696,6 +1712,7 @@ async function saveProfileInfo() {
     err.classList.add('on');
     return;
   }
+  if (bio.length > 150) { err.textContent = 'Biyografi en fazla 150 karakter olabilir'; err.classList.add('on'); return; }
 
   try {
     const oldUsername = (myProfileData.username || '').toLowerCase();
@@ -1711,12 +1728,13 @@ async function saveProfileInfo() {
     await user.reload();
     user = auth.currentUser;
 
-    const fsUpdates = { displayName: name, username: uname || firebase.firestore.FieldValue.delete() };
+    const fsUpdates = { displayName: name, username: uname || firebase.firestore.FieldValue.delete(), bio: bio || firebase.firestore.FieldValue.delete() };
     if (epNewPhotoDataUrl) { fsUpdates.photoURL = epNewPhotoDataUrl; fsUpdates.customPhoto = true; }
     await db.collection('teknohane_users').doc(user.uid).set(fsUpdates, { merge: true });
 
     myProfileData.displayName = name;
     myProfileData.username = uname || null;
+    myProfileData.bio = bio || null;
     if (epNewPhotoDataUrl) { myProfileData.photoURL = epNewPhotoDataUrl; myProfileData.customPhoto = true; }
     epNewPhotoDataUrl = null;
 
@@ -1730,6 +1748,81 @@ async function saveProfileInfo() {
     if (e.message === 'TAKEN') { err.textContent = 'Bu kullanıcı adı zaten alınmış'; err.classList.add('on'); }
     else { err.textContent = 'Hata: ' + e.message; err.classList.add('on'); }
   }
+}
+
+function openPhoneEdit() {
+  if (!user) return;
+  renderPhoneEditModal();
+  document.getElementById('phone-edit-mo').classList.add('on');
+}
+
+function renderPhoneEditModal() {
+  const cur = myProfileData.currentPhone;
+  const prev = myProfileData.previousPhones || [];
+  const body = document.getElementById('phone-edit-body');
+  body.innerHTML = `
+    <div class="fg"><label class="fl">Şu Anki Telefonum</label></div>
+    ${cur ? `
+      <div class="pcol-prev-item" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <span>${cur.brand} ${cur.model}</span>
+        <span onclick="removeCurrentPhone()" style="color:var(--red);cursor:pointer;font-size:12px;font-weight:600">Kaldır</span>
+      </div>` : `
+      <div class="fg"><input class="fi" type="text" id="cp-brand" placeholder="Marka (örn. Google)"></div>
+      <div class="fg"><input class="fi" type="text" id="cp-model" placeholder="Model (örn. Pixel 10 Pro XL)"></div>
+      <button class="sbtn2" onclick="saveCurrentPhone()" style="margin-bottom:20px">Kaydet</button>`}
+    <div class="fg" style="margin-top:${cur?'0':'8'}px"><label class="fl">Önceki Telefonlarım</label></div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+      ${prev.length ? prev.map(p => `
+        <div class="pcol-prev-item" style="display:flex;align-items:center;justify-content:space-between;width:auto">
+          <span>${p.brand} ${p.model}</span>
+          <span onclick="removePreviousPhone('${p.id}')" style="color:var(--red);cursor:pointer;font-size:12px;font-weight:600">✕</span>
+        </div>`).join('') : `<div class="no" style="padding:12px 0">Henüz eski telefon eklenmedi</div>`}
+    </div>
+    <div class="fg"><input class="fi" type="text" id="pp-brand" placeholder="Marka"></div>
+    <div class="fg"><input class="fi" type="text" id="pp-model" placeholder="Model"></div>
+    <button class="sbtn2" onclick="addPreviousPhone()">+ Eski Telefon Ekle</button>`;
+}
+
+async function saveCurrentPhone() {
+  const brand = document.getElementById('cp-brand').value.trim();
+  const model = document.getElementById('cp-model').value.trim();
+  if (!brand || !model) { showToast('⚠️','rgba(255,69,58,.15)','Eksik Bilgi','Marka ve model alanlarını doldur.'); return; }
+  const phone = { brand, model };
+  await db.collection('teknohane_users').doc(user.uid).set({ currentPhone: phone }, { merge: true });
+  myProfileData.currentPhone = phone;
+  renderPhoneEditModal();
+  rprof();
+  showToast('✓', 'rgba(48,209,88,.15)', 'Kaydedildi', 'Şu anki telefonun güncellendi.');
+}
+
+async function removeCurrentPhone() {
+  await db.collection('teknohane_users').doc(user.uid).set({ currentPhone: firebase.firestore.FieldValue.delete() }, { merge: true });
+  myProfileData.currentPhone = null;
+  renderPhoneEditModal();
+  rprof();
+  showToast('✓', 'rgba(48,209,88,.15)', 'Kaydedildi', 'Şu anki telefon kaldırıldı.');
+}
+
+async function addPreviousPhone() {
+  const brand = document.getElementById('pp-brand').value.trim();
+  const model = document.getElementById('pp-model').value.trim();
+  if (!brand || !model) { showToast('⚠️','rgba(255,69,58,.15)','Eksik Bilgi','Marka ve model alanlarını doldur.'); return; }
+  const phone = { id: 'p' + Date.now(), brand, model };
+  await db.collection('teknohane_users').doc(user.uid).set({ previousPhones: firebase.firestore.FieldValue.arrayUnion(phone) }, { merge: true });
+  myProfileData.previousPhones = [...(myProfileData.previousPhones||[]), phone];
+  renderPhoneEditModal();
+  rprof();
+  showToast('✓', 'rgba(48,209,88,.15)', 'Kaydedildi', 'Telefon koleksiyonuna eklendi.');
+}
+
+async function removePreviousPhone(id) {
+  const phone = (myProfileData.previousPhones||[]).find(p => p.id === id);
+  if (!phone) return;
+  await db.collection('teknohane_users').doc(user.uid).set({ previousPhones: firebase.firestore.FieldValue.arrayRemove(phone) }, { merge: true });
+  myProfileData.previousPhones = (myProfileData.previousPhones||[]).filter(p => p.id !== id);
+  renderPhoneEditModal();
+  rprof();
+  showToast('✓', 'rgba(48,209,88,.15)', 'Kaydedildi', 'Telefon koleksiyonundan kaldırıldı.');
 }
 
 async function changePassword() {
