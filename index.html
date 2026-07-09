@@ -1213,6 +1213,35 @@ body.tk-banned #ban-gate{
   </div>
 </div>
 
+<!-- ŞİKAYET DETAY MODAL (admin) -->
+<div class="mo" id="complaint-detail-mo" onclick="closemo('complaint-detail-mo')">
+  <div class="ms" onclick="event.stopPropagation()" style="max-height:88vh">
+    <div class="mh"></div>
+    <div id="complaint-detail-body"></div>
+  </div>
+</div>
+
+<!-- ŞİKAYET ET MODAL -->
+<div class="mo" id="report-mo" onclick="closemo('report-mo')">
+  <div class="ms" onclick="event.stopPropagation()">
+    <div class="mh"></div>
+    <div class="mtit">Şikayet Et</div>
+    <div id="report-target-label" style="font-size:12px;color:var(--text2);margin-bottom:14px"></div>
+    <div class="fg"><label class="fl">Sebep</label>
+      <select class="fi" id="report-reason-select" onchange="document.getElementById('report-other-wrap').style.display=this.value==='diger'?'block':'none'"></select>
+    </div>
+    <div class="fg" id="report-other-wrap" style="display:none">
+      <label class="fl">Açıklama (Diğer)</label>
+      <textarea class="fi" id="report-other-text" rows="2" style="resize:none;font-family:inherit"></textarea>
+    </div>
+    <div class="fg"><label class="fl">Ek Açıklama (isteğe bağlı)</label>
+      <textarea class="fi" id="report-description" rows="3" style="resize:none;font-family:inherit" placeholder="Şikayetinle ilgili detay verebilirsin..."></textarea>
+    </div>
+    <div class="aerr" id="report-err"></div>
+    <button class="sbtn2" onclick="submitReport()">Şikayeti Gönder</button>
+  </div>
+</div>
+
 <!-- BAN MODAL -->
 <div class="mo" id="ban-mo" onclick="closemo('ban-mo')">
   <div class="ms" onclick="event.stopPropagation()" style="max-height:85vh">
@@ -1250,6 +1279,7 @@ body.tk-banned #ban-gate{
       <button class="mtab off" id="adm-tab-users" onclick="switchAdminTab('users')">Kullanıcılar</button>
       <button class="mtab off" id="adm-tab-forum" onclick="switchAdminTab('forum')">Forum</button>
       <button class="mtab off" id="adm-tab-logs" onclick="switchAdminTab('logs')">Loglar</button>
+      <button class="mtab off" id="adm-tab-complaints" onclick="switchAdminTab('complaints')">Şikayetler</button>
     </div>
 
     <div id="admin-listings-view">
@@ -1275,6 +1305,24 @@ body.tk-banned #ban-gate{
     <div id="admin-logs-view" style="display:none">
       <div id="adm-logs-list"><div class="load"><div class="spin"></div><span>Loglar yükleniyor…</span></div></div>
       <button class="apbtn" style="margin-top:12px;background:var(--surf2);color:var(--text)" onclick="loadAdminLogs(false)">Daha Fazla Yükle</button>
+    </div>
+
+    <div id="admin-complaints-view" style="display:none">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px" id="cmp-status-filters">
+        <span class="pcompl-pill" data-status="pending" onclick="setComplaintStatusFilter('pending')" style="background:var(--cyan);color:#000">Bekleyen</span>
+        <span class="pcompl-pill" data-status="reviewing" onclick="setComplaintStatusFilter('reviewing')">İnceleniyor</span>
+        <span class="pcompl-pill" data-status="resolved" onclick="setComplaintStatusFilter('resolved')">Sonuçlandı</span>
+        <span class="pcompl-pill" data-status="rejected" onclick="setComplaintStatusFilter('rejected')">Reddedildi</span>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px" id="cmp-type-filters">
+        <span class="pcompl-pill" data-type="all" onclick="setComplaintTypeFilter('all')" style="background:var(--cyan);color:#000">Tümü</span>
+        <span class="pcompl-pill" data-type="user" onclick="setComplaintTypeFilter('user')">Kullanıcı</span>
+        <span class="pcompl-pill" data-type="listing" onclick="setComplaintTypeFilter('listing')">İlan</span>
+        <span class="pcompl-pill" data-type="forum_post" onclick="setComplaintTypeFilter('forum_post')">Forum</span>
+        <span class="pcompl-pill" data-type="comment" onclick="setComplaintTypeFilter('comment')">Yorum</span>
+      </div>
+      <div id="adm-complaints-list"><div class="load"><div class="spin"></div><span>Şikayetler yükleniyor…</span></div></div>
+      <button class="apbtn" style="margin-top:12px;background:var(--surf2);color:var(--text)" onclick="loadComplaints(false)">Daha Fazla Yükle</button>
     </div>
   </div>
 </div>
@@ -1510,6 +1558,262 @@ async function loadAdminLogs(reset) {
     console.error('Loglar yüklenemedi:', e);
     list.innerHTML = '<div class="no">Loglar yüklenemedi (yetki veya bağlantı sorunu olabilir).</div>';
   }
+}
+
+// ==== ŞİKAYET SİSTEMİ — ADMIN TARAFI (Aşama 6) ====
+// Firestore seviyesinde durum (status) bazlı sayfalama yapılır (composite index çoğalmasın diye);
+// tür (type) filtresi zaten yüklenmiş sayfa içinde istemci tarafında uygulanır.
+let complaintsLastDoc = null;
+let complaintStatusFilter = 'pending';
+let complaintTypeFilter = 'all';
+let complaintsPageCache = [];
+
+function setComplaintStatusFilter(status) {
+  complaintStatusFilter = status;
+  document.querySelectorAll('#cmp-status-filters .pcompl-pill').forEach(el => {
+    const active = el.dataset.status === status;
+    el.style.background = active ? 'var(--cyan)' : '';
+    el.style.color = active ? '#000' : '';
+  });
+  loadComplaints(true);
+}
+
+function setComplaintTypeFilter(type) {
+  complaintTypeFilter = type;
+  document.querySelectorAll('#cmp-type-filters .pcompl-pill').forEach(el => {
+    const active = el.dataset.type === type;
+    el.style.background = active ? 'var(--cyan)' : '';
+    el.style.color = active ? '#000' : '';
+  });
+  rComplaintsList();
+}
+
+async function loadComplaints(reset) {
+  const list = document.getElementById('adm-complaints-list');
+  if (!list || !hasPermission('manageComplaints')) return;
+  if (reset) { complaintsLastDoc = null; complaintsPageCache = []; list.innerHTML = `<div class="load"><div class="spin"></div></div>`; }
+  try {
+    let q = db.collection('teknohane_complaints').where('status', '==', complaintStatusFilter).orderBy('createdAt', 'desc').limit(30);
+    if (complaintsLastDoc) q = q.startAfter(complaintsLastDoc);
+    const snap = await q.get();
+    complaintsLastDoc = snap.docs[snap.docs.length - 1] || complaintsLastDoc;
+    const newItems = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    complaintsPageCache = reset ? newItems : [...complaintsPageCache, ...newItems];
+    rComplaintsList();
+  } catch (e) {
+    console.error('Şikayetler yüklenemedi:', e);
+    list.innerHTML = '<div class="no">Şikayetler yüklenemedi (bir Firestore index\'i gerekebilir, konsolu kontrol edin).</div>';
+  }
+}
+
+function rComplaintsList() {
+  const list = document.getElementById('adm-complaints-list');
+  if (!list) return;
+  const items = complaintTypeFilter === 'all' ? complaintsPageCache : complaintsPageCache.filter(c => c.type === complaintTypeFilter);
+  if (!items.length) { list.innerHTML = '<div class="no">Bu filtrede şikayet yok.</div>'; return; }
+  const PRIORITY_COLORS = { low:'var(--text3)', normal:'var(--text2)', high:'#FF9500', critical:'var(--red)' };
+  const PRIORITY_LABELS = { low:'Düşük', normal:'Normal', high:'Yüksek', critical:'Kritik' };
+  list.innerHTML = items.map(c => {
+    const when = c.createdAt?.toDate ? timeAgo(c.createdAt.toDate()) : '—';
+    return `<div class="ud-item" onclick="openComplaintDetail('${c.id}')" style="flex-direction:column;align-items:stretch;gap:4px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span class="ud-item-name">${COMPLAINT_TYPE_LABELS[c.type]||c.type}: ${c.targetLabel||'—'}</span>
+        <span style="font-size:10px;font-weight:700;color:${PRIORITY_COLORS[c.priority||'normal']}">${PRIORITY_LABELS[c.priority||'normal']}</span>
+      </div>
+      <div class="ud-item-meta">${c.reasonLabel||'—'} · ${c.reporterName||'—'} · ${when}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderComplaintPreviewSkeleton(c) {
+  if (c.type === 'listing') {
+    const l = listings.find(x => x.id === c.targetId);
+    if (l) return `<div class="pcol-current">
+      <div class="pcol-current-ic">${l.photo1?`<img src="${l.photo1}" style="width:100%;height:100%;object-fit:cover;border-radius:12px">`:'📱'}</div>
+      <div><div class="pcol-current-name">${l.model}</div><div class="pcol-current-tag">₺${parseInt(l.price||0).toLocaleString('tr-TR')}</div></div>
+    </div>`;
+    return `<div class="ud-empty">${c.targetLabel} (ilan bulunamadı — silinmiş olabilir)</div>`;
+  }
+  if (c.type === 'forum_post') {
+    const p = forumPosts.find(x => x.id === c.targetId);
+    if (p) return `<div class="pacc-card"><div class="psec-title">${p.title||''}</div><div style="font-size:12px;color:var(--text2);line-height:1.5">${(p.body||'').slice(0,140)}${(p.body||'').length>140?'…':''}</div></div>`;
+    return `<div class="ud-empty">${c.targetLabel} (gönderi bulunamadı — silinmiş olabilir)</div>`;
+  }
+  if (c.type === 'user') return `<div id="cmp-user-preview"><div class="load"><div class="spin"></div></div></div>`;
+  if (c.type === 'comment') return `<div class="pacc-card"><div class="psec-title">Yorum İçeriği</div><div style="font-size:12px;color:var(--text2)">${c.targetLabel}</div></div>`;
+  return '';
+}
+
+async function loadComplaintUserPreview(uid) {
+  const el = document.getElementById('cmp-user-preview');
+  if (!el) return;
+  try {
+    const snap = await db.collection('teknohane_users').doc(uid).get();
+    if (!snap.exists) { el.innerHTML = '<div class="ud-empty">Kullanıcı bulunamadı</div>'; return; }
+    const u = snap.data();
+    const scoreInfo = computeTeknohaneScore(uid, u);
+    const av = u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.displayName||'Kullanıcı')}&background=0D1526&color=00D4FF&size=128`;
+    el.innerHTML = `<div class="pcol-current">
+      <img src="${av}" style="width:40px;height:40px;border-radius:50%;object-fit:cover">
+      <div><div class="pcol-current-name">${u.displayName||'Kullanıcı'}</div><div class="pcol-current-tag">Teknohane Skoru: ${scoreInfo.score}</div></div>
+    </div>`;
+  } catch(e) { el.innerHTML = '<div class="ud-empty">Yüklenemedi</div>'; }
+}
+
+async function loadComplaintDuplicateCount(id, c) {
+  const el = document.getElementById('cmp-duplicate-count');
+  if (!el) return;
+  try {
+    const snap = await db.collection('teknohane_complaints').where('type','==',c.type).where('targetId','==',c.targetId).get();
+    const count = snap.size;
+    el.textContent = count > 1 ? `⚠️ Bu ${(COMPLAINT_TYPE_LABELS[c.type]||c.type).toLowerCase()} hakkında daha önce ${count} şikayet yapılmış.` : 'Bu, bu hedef hakkındaki ilk şikayet.';
+  } catch(e) { el.textContent = 'Tekrar sayısı yüklenemedi.'; }
+}
+
+function openComplaintDetail(id) {
+  const c = complaintsPageCache.find(x => x.id === id);
+  if (!c) return;
+  renderComplaintDetail(id, c);
+  document.getElementById('complaint-detail-mo').classList.add('on');
+  loadComplaintDuplicateCount(id, c);
+  if (c.type === 'user') loadComplaintUserPreview(c.targetId);
+}
+
+function renderComplaintDetail(id, c) {
+  const body = document.getElementById('complaint-detail-body');
+  if (!body) return;
+  const when = c.createdAt?.toDate ? c.createdAt.toDate().toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+  const STATUS_LABELS = { pending:'Bekleyen', reviewing:'İnceleniyor', resolved:'Sonuçlandı', rejected:'Reddedildi' };
+
+  body.innerHTML = `
+    <div class="mtit" style="margin-bottom:2px">${COMPLAINT_TYPE_LABELS[c.type]||c.type} Şikayeti</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:14px">${STATUS_LABELS[c.status]||c.status}</div>
+
+    <div id="cmp-preview" style="margin-bottom:14px">${renderComplaintPreviewSkeleton(c)}</div>
+
+    <div class="pacc-card">
+      <div class="psec-title">Şikayet Bilgileri</div>
+      <div class="pacc-row"><span class="pacc-lbl">Şikayet Eden</span><span class="pacc-val">${c.reporterName||'—'}</span></div>
+      <div class="pacc-row"><span class="pacc-lbl">Sebep</span><span class="pacc-val">${c.reasonLabel||'—'}</span></div>
+      ${c.description?`<div class="pacc-row"><span class="pacc-lbl">Açıklama</span><span class="pacc-val" style="text-align:right;max-width:60%">${c.description}</span></div>`:''}
+      <div class="pacc-row"><span class="pacc-lbl">Tarih</span><span class="pacc-val">${when}</span></div>
+      <div class="pacc-row"><span class="pacc-lbl">Öncelik</span><span class="pacc-val">
+        <select id="cmp-priority-select" onchange="updateComplaintPriority('${id}', this.value)" style="background:var(--surf2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:2px 6px;font-size:12px">
+          ${['low','normal','high','critical'].map(p=>`<option value="${p}" ${(c.priority||'normal')===p?'selected':''}>${{low:'Düşük',normal:'Normal',high:'Yüksek',critical:'Kritik'}[p]}</option>`).join('')}
+        </select>
+      </span></div>
+    </div>
+
+    <div id="cmp-duplicate-count" class="pacc-card" style="text-align:center;font-size:12px;color:var(--text2)">Yükleniyor…</div>
+
+    <div class="ud-section">
+      <div class="ud-section-title">İşlem Geçmişi</div>
+      ${(c.history||[]).slice().reverse().map(h => `
+        <div class="pact-row">
+          <div class="pact-ic">📝</div>
+          <div class="pact-body"><div class="pact-txt">${h.detail||h.action}</div><div class="pact-time">${h.byName||''} · ${h.at?.toDate ? timeAgo(h.at.toDate()) : (h.at ? timeAgo(new Date(h.at)) : '')}</div></div>
+        </div>`).join('') || '<div class="ud-empty">Geçmiş yok</div>'}
+    </div>
+
+    <div class="ud-section">
+      <div class="ud-section-title">Yönetici İşlemleri</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${c.status==='pending'?`<button class="apbtn" onclick="reviewComplaint('${id}')">🔍 İncelemeye Al</button>`:''}
+        ${c.status!=='resolved' && c.status!=='rejected' ? `<button class="apbtn" style="background:rgba(48,209,88,.1);border-color:rgba(48,209,88,.3);color:#3DDC97" onclick="resolveComplaint('${id}')">✓ Kapat (Sonuçlandır)</button>
+        <button class="apbtn" style="background:var(--surf2);color:var(--text)" onclick="rejectComplaint('${id}')">✕ Reddet</button>` : ''}
+        ${c.targetOwnerUid ? `<button class="apbtn" style="background:rgba(255,69,58,.08);border-color:rgba(255,69,58,.25);color:var(--red)" onclick="closemo('complaint-detail-mo');openUserBan('${c.targetOwnerUid}')">🚫 Kullanıcıyı Banla</button>` : ''}
+        ${c.type==='listing'?`<button class="apbtn" style="background:rgba(255,69,58,.08);border-color:rgba(255,69,58,.25);color:var(--red)" onclick="complaintRemoveListing('${id}','${c.targetId}')">🗑️ İlanı Kaldır</button>`:''}
+        ${c.type==='forum_post'?`<button class="apbtn" style="background:rgba(255,69,58,.08);border-color:rgba(255,69,58,.25);color:var(--red)" onclick="complaintDeletePost('${id}','${c.targetId}')">🗑️ Gönderiyi Sil</button>`:''}
+        <button class="apbtn" style="background:var(--surf2);color:var(--text)" onclick="openComplaintNoteForm('${id}')">✉️ Şikayetçiye Not Ekle</button>
+        <div id="cmp-note-form-${id}"></div>
+      </div>
+    </div>`;
+}
+
+async function updateComplaintStatus(id, newStatus, actionLabel) {
+  const c = complaintsPageCache.find(x => x.id === id);
+  if (!c) return;
+  const oldStatus = c.status;
+  const historyEntry = { at: new Date(), by: user.uid, byName: myAdminRole?.displayName||user.displayName||user.email, action: newStatus, detail: actionLabel };
+  try {
+    await db.collection('teknohane_complaints').doc(id).set({
+      status: newStatus,
+      reviewedBy: user.uid,
+      reviewedByName: myAdminRole?.displayName||user.displayName||user.email,
+      reviewedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      history: firebase.firestore.FieldValue.arrayUnion(historyEntry)
+    }, { merge: true });
+    c.status = newStatus; c.history = [...(c.history||[]), historyEntry];
+    adminLog(`complaint_${newStatus}`, 'complaint', id, c.targetLabel, { status: oldStatus }, { status: newStatus }, 'success');
+    renderComplaintDetail(id, c);
+    rComplaintsList();
+    showToast('✓', 'rgba(48,209,88,.15)', 'Güncellendi', actionLabel);
+  } catch(e) {
+    showToast('⚠️', 'rgba(255,69,58,.15)', 'Hata', 'İşlem yapılamadı: ' + e.message);
+  }
+}
+function reviewComplaint(id) { updateComplaintStatus(id, 'reviewing', 'Şikayet incelemeye alındı'); }
+function resolveComplaint(id) { updateComplaintStatus(id, 'resolved', 'Şikayet sonuçlandırıldı'); }
+function rejectComplaint(id) { updateComplaintStatus(id, 'rejected', 'Şikayet reddedildi'); }
+
+async function updateComplaintPriority(id, priority) {
+  const c = complaintsPageCache.find(x => x.id === id);
+  if (!c) return;
+  const oldPriority = c.priority || 'normal';
+  const historyEntry = { at: new Date(), by: user.uid, byName: myAdminRole?.displayName||user.displayName||user.email, action: 'priority_changed', detail: `Öncelik değiştirildi: ${oldPriority} → ${priority}` };
+  try {
+    await db.collection('teknohane_complaints').doc(id).set({ priority, history: firebase.firestore.FieldValue.arrayUnion(historyEntry) }, { merge: true });
+    c.priority = priority; c.history = [...(c.history||[]), historyEntry];
+    adminLog('complaint_priority_changed', 'complaint', id, c.targetLabel, { priority: oldPriority }, { priority }, 'success');
+    rComplaintsList();
+    showToast('✓', 'rgba(48,209,88,.15)', 'Güncellendi', 'Öncelik değiştirildi.');
+  } catch(e) { showToast('⚠️', 'rgba(255,69,58,.15)', 'Hata', 'Öncelik değiştirilemedi.'); }
+}
+
+function openComplaintNoteForm(id) {
+  const wrap = document.getElementById(`cmp-note-form-${id}`);
+  if (!wrap) return;
+  wrap.innerHTML = `
+    <div class="fg" style="margin-top:8px"><textarea class="fi" id="cmp-note-text" rows="2" style="resize:none;font-family:inherit" placeholder="Şikayetçiye gönderilecek bilgi notu..."></textarea></div>
+    <button class="apbtn" onclick="addComplaintNote('${id}')">Gönder</button>`;
+}
+
+async function addComplaintNote(id) {
+  const c = complaintsPageCache.find(x => x.id === id);
+  const textEl = document.getElementById('cmp-note-text');
+  if (!c || !textEl) return;
+  const note = textEl.value.trim();
+  if (!note) return;
+  const historyEntry = { at: new Date(), by: user.uid, byName: myAdminRole?.displayName||user.displayName||user.email, action: 'note_added', detail: `Şikayetçiye not gönderildi: "${note}"` };
+  try {
+    await db.collection('teknohane_complaints').doc(id).set({ adminNote: note, history: firebase.firestore.FieldValue.arrayUnion(historyEntry) }, { merge: true });
+    c.history = [...(c.history||[]), historyEntry];
+    if (c.reporterUid) await notifyUser(c.reporterUid, 'complaint_update', `Şikayetin hakkında bir güncelleme var: ${note}`, null);
+    adminLog('complaint_note_added', 'complaint', id, c.targetLabel, null, { note }, 'success');
+    renderComplaintDetail(id, c);
+    showToast('✓', 'rgba(48,209,88,.15)', 'Gönderildi', 'Not, şikayetçiye bildirim olarak iletildi.');
+  } catch(e) { showToast('⚠️', 'rgba(255,69,58,.15)', 'Hata', 'Not gönderilemedi: ' + e.message); }
+}
+
+// Şikayet üzerinden tetiklenen aksiyonlar: mevcut fonksiyonları (delListing/adminDeletePost) olduğu gibi
+// çağırır (kendi adminLog kayıtlarını zaten kendileri yapıyor), yalnızca şikayetin geçmişine not düşer.
+async function complaintRemoveListing(complaintId, listingId) {
+  await delListing(listingId);
+  const c = complaintsPageCache.find(x => x.id === complaintId);
+  if (!c) return;
+  const historyEntry = { at: new Date(), by: user.uid, byName: myAdminRole?.displayName||user.displayName||user.email, action: 'listing_removed', detail: 'İlan şikayet üzerine kaldırıldı' };
+  await db.collection('teknohane_complaints').doc(complaintId).set({ history: firebase.firestore.FieldValue.arrayUnion(historyEntry), actionsTaken: firebase.firestore.FieldValue.arrayUnion('listing_removed') }, { merge: true }).catch(()=>{});
+  c.history = [...(c.history||[]), historyEntry];
+  renderComplaintDetail(complaintId, c);
+}
+async function complaintDeletePost(complaintId, postId) {
+  await adminDeletePost(postId);
+  const c = complaintsPageCache.find(x => x.id === complaintId);
+  if (!c) return;
+  const historyEntry = { at: new Date(), by: user.uid, byName: myAdminRole?.displayName||user.displayName||user.email, action: 'post_deleted', detail: 'Gönderi şikayet üzerine silindi' };
+  await db.collection('teknohane_complaints').doc(complaintId).set({ history: firebase.firestore.FieldValue.arrayUnion(historyEntry), actionsTaken: firebase.firestore.FieldValue.arrayUnion('post_deleted') }, { merge: true }).catch(()=>{});
+  c.history = [...(c.history||[]), historyEntry];
+  renderComplaintDetail(complaintId, c);
 }
 
 // Bir görsel dosyasını (File) belirtilen maksimum kenar uzunluğuna göre yeniden boyutlandırıp WebP Blob'a dönüştürür.
@@ -3793,6 +4097,7 @@ function openDetail(id) {
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
       Uygulama İçinden Mesaj Gönder
     </button>` : ''}
+    ${!mine && user ? `<div style="text-align:center;margin-top:10px"><span onclick="openReportModal('listing','${l.id}','${(l.model||'İlan').replace(/'/g,"\\'")}','${l.uid||''}')" style="font-size:12px;color:var(--text3);cursor:pointer;text-decoration:underline">🚩 İlanı Şikayet Et</span></div>` : ''}
     ${pending && isAdmin ? `<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px" onclick="approveListing('${l.id}')">✓ İlanı Onayla ve Yayınla</button>`:''}
     ${mine?`<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px;background:var(--surf2);color:var(--cyan);border:1px solid var(--border2)" onclick="editListing('${l.id}')">✏️ İlanı Düzenle</button>`:''}
     ${mine?`<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px" onclick="toggleSold('${l.id}')">${l.sold?'↺ Satıldı İşaretini Kaldır':'✓ Satıldı Olarak İşaretle'}</button>`:''}`;
@@ -4164,6 +4469,7 @@ function renderPostDetail() {
       </div>
       ${p.bestAnswer?'<span style="color:var(--green);font-size:12px;font-weight:700">✓ Çözüldü</span>':''}
       ${canDelete?`<button class="del-post-btn" onclick="deletePost('${p.id}')"><svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>Sil</button>`:''}
+      ${user && user.uid!==p.uid?`<span onclick="openReportModal('forum_post','${p.id}','${(p.title||'Gönderi').replace(/'/g,"\\'")}','${p.uid||''}')" style="font-size:11px;color:var(--text3);cursor:pointer;text-decoration:underline;margin-left:auto">🚩 Şikayet Et</span>`:''}
     </div>`;
   document.getElementById('comment-input-area').style.display = user ? 'flex' : 'none';
   document.getElementById('comment-inp').value = '';
@@ -4197,6 +4503,7 @@ function renderComments() {
           ${canBest && !isBest ? `<button class="mark-best-btn" onclick="markBest('${c.id}')">✓ En İyi</button>` : ''}
           ${canBest && isBest ? `<button class="unmark-best-btn" onclick="unmarkBest('${c.id}')">↺ Geri Al</button>` : ''}
           ${canDelComment ? `<button class="del-comment-btn" onclick="deleteComment('${c.id}')">Sil</button>` : ''}
+          ${user && !isCommentOwner ? `<button class="del-comment-btn" onclick="openReportModal('comment','${c.id}','${(c.body||'Yorum').slice(0,40).replace(/'/g,"\\'")}','${c.uid||''}')">🚩</button>` : ''}
         </div>
         <span style="font-size:11px;color:var(--text3)">${ts}</span>
       </div>
@@ -4462,7 +4769,8 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
         ${!privacy.hideForumActivity?`<button class="sbtn2" style="padding:9px 16px;width:auto;background:var(--surf2);color:var(--text)" onclick="document.getElementById('pub-forum-section')?.scrollIntoView({behavior:'smooth'})">💬 Forum</button>`:''}
         <button class="sbtn2" id="pub-follow-btn" style="padding:9px 16px;width:auto;background:var(--surf2);color:${isFollowingUser?'var(--cyan)':'var(--text)'}" onclick="toggleFollow('${uid}')">${isFollowingUser?'✓ Takip Ediliyor':'➕ Takip Et'}</button>
         <button class="sbtn2" style="padding:9px 16px;width:auto;background:var(--surf2);color:var(--text)" onclick="shareProfile('${uid}','${displayName.replace(/'/g,"\\'")}')">🔗 Paylaş</button>
-      </div>` : `
+      </div>
+      <div style="text-align:center;margin-top:8px"><span onclick="openReportModal('user','${uid}','${displayName.replace(/'/g,"\\'")}','${uid}')" style="font-size:12px;color:var(--text3);cursor:pointer;text-decoration:underline">🚩 Kullanıcıyı Şikayet Et</span></div>` : `
       <div style="display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap">
         <button class="sbtn2" style="width:auto;padding:9px 16px" onclick="shareProfile('${uid}','${displayName.replace(/'/g,"\\'")}')">🔗 Profilimi Paylaş</button>
         <button class="sbtn2" style="width:auto;padding:9px 16px;background:var(--surf2);color:var(--text)" onclick="document.getElementById('pub-qr-wrap').style.display=document.getElementById('pub-qr-wrap').style.display==='none'?'block':'none'">📱 QR Kod</button>
@@ -4713,7 +5021,7 @@ function openAdmin() {
 }
 
 function switchAdminTab(tab) {
-  ['listings','users','forum','logs'].forEach(t => {
+  ['listings','users','forum','logs','complaints'].forEach(t => {
     document.getElementById(`adm-tab-${t}`).className = tab===t ? 'mtab on' : 'mtab off';
     document.getElementById(`admin-${t}-view`).style.display = tab===t ? 'block' : 'none';
   });
@@ -4731,6 +5039,13 @@ function switchAdminTab(tab) {
       return;
     }
     loadAdminLogs(true);
+  }
+  if (tab === 'complaints') {
+    if (!hasPermission('manageComplaints')) {
+      document.getElementById('adm-complaints-list').innerHTML = '<div class="no">Bu bölümü görüntüleme yetkin yok.</div>';
+      return;
+    }
+    loadComplaints(true);
   }
 }
 
@@ -4786,9 +5101,11 @@ function rAdminForum() {
 
 async function adminDeletePost(id) {
   if (!confirm('Bu konu silinsin mi?')) return;
+  const p = forumPosts.find(x => x.id === id);
   try {
     await db.collection('teknohane_posts').doc(id).delete();
     forumPosts = forumPosts.filter(p => p.id !== id);
+    if (isAdminNow()) adminLog('delete_forum_post', 'forum_post', id, p?.title || id, p, null, 'success');
     rAdminForum(); rForum();
     showToast('🗑️','rgba(255,69,58,.15)','Konu Silindi','');
   } catch(e) { alert('Silinemedi'); }
@@ -5034,6 +5351,67 @@ function openUserLogs(uid) {
 }
 
 // ==== BAN SİSTEMİ (Aşama 5) ====
+// ==== ŞİKAYET SİSTEMİ — KULLANICI TARAFI (Aşama 6) ====
+const COMPLAINT_REASONS = [
+  { code: 'spam', label: 'Spam' },
+  { code: 'dolandiricilik', label: 'Dolandırıcılık' },
+  { code: 'sahte_ilan', label: 'Sahte İlan' },
+  { code: 'hakaret_kufur', label: 'Hakaret / Küfür' },
+  { code: 'uygunsuz_icerik', label: 'Uygunsuz İçerik' },
+  { code: 'yanlis_bilgi', label: 'Yanlış Bilgi' },
+  { code: 'telif', label: 'Telif' },
+  { code: 'diger', label: 'Diğer' },
+];
+const COMPLAINT_TYPE_LABELS = { user: 'Kullanıcı', listing: 'İlan', forum_post: 'Forum Gönderisi', comment: 'Yorum', message: 'Mesaj' };
+
+let reportContext = null; // { type, targetId, targetLabel, targetOwnerUid }
+
+function openReportModal(type, targetId, targetLabel, targetOwnerUid) {
+  if (!user) { gt('profile'); return; }
+  reportContext = { type, targetId, targetLabel, targetOwnerUid };
+  document.getElementById('report-target-label').textContent = `${COMPLAINT_TYPE_LABELS[type]||type}: ${targetLabel}`;
+  const sel = document.getElementById('report-reason-select');
+  sel.innerHTML = COMPLAINT_REASONS.map(r => `<option value="${r.code}">${r.label}</option>`).join('');
+  document.getElementById('report-other-wrap').style.display = 'none';
+  document.getElementById('report-other-text').value = '';
+  document.getElementById('report-description').value = '';
+  const err = document.getElementById('report-err'); err.textContent = ''; err.classList.remove('on');
+  document.getElementById('report-mo').classList.add('on');
+}
+
+async function submitReport() {
+  if (!user || !reportContext) return;
+  const err = document.getElementById('report-err'); err.textContent = ''; err.classList.remove('on');
+  const reasonCode = document.getElementById('report-reason-select').value;
+  const reasonObj = COMPLAINT_REASONS.find(r => r.code === reasonCode);
+  let reasonLabel = reasonObj?.label || 'Diğer';
+  if (reasonCode === 'diger') {
+    const otherText = document.getElementById('report-other-text').value.trim();
+    if (!otherText) { err.textContent = 'Diğer seçildiyse açıklama yazılmalı'; err.classList.add('on'); return; }
+    reasonLabel = otherText;
+  }
+  const description = document.getElementById('report-description').value.trim();
+  try {
+    await db.collection('teknohane_complaints').add({
+      type: reportContext.type,
+      targetId: reportContext.targetId,
+      targetLabel: reportContext.targetLabel,
+      targetOwnerUid: reportContext.targetOwnerUid || null,
+      reporterUid: user.uid,
+      reporterName: myProfileData.displayName || user.displayName || user.email,
+      reasonCode, reasonLabel, description,
+      status: 'pending',
+      priority: 'normal',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      history: [{ at: new Date(), by: user.uid, byName: myProfileData.displayName||user.displayName||user.email, action: 'created', detail: 'Şikayet oluşturuldu' }]
+    });
+    closemo('report-mo');
+    showToast('✓', 'rgba(48,209,88,.15)', 'Şikayet Alındı', 'Bildirimin için teşekkürler, ekibimiz inceleyecek.');
+  } catch(e) {
+    err.textContent = 'Gönderilemedi: ' + e.message; err.classList.add('on');
+  }
+}
+
 const BAN_REASONS = [
   { code: 'kufur_hakaret', label: 'Küfür / Hakaret' },
   { code: 'dolandiricilik', label: 'Dolandırıcılık' },
