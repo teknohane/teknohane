@@ -1227,7 +1227,7 @@ body.tk-browser #browser-gate{
     <div id="admin-users-view" style="display:none">
       <div class="sw" style="margin-bottom:12px">
         <svg class="sico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input class="si" type="text" id="adm-user-srch" placeholder="İsim veya e-posta ara…" oninput="rAdminUsers()">
+        <input class="si" type="text" id="adm-user-srch" placeholder="İsim, kullanıcı adı, e-posta, telefon veya UID ara…" oninput="rAdminUsers()">
       </div>
       <div id="adm-users-list"><div class="load"><div class="spin"></div><span>Kullanıcılar yükleniyor…</span></div></div>
     </div>
@@ -4649,7 +4649,13 @@ function switchAdminTab(tab) {
     document.getElementById(`adm-tab-${t}`).className = tab===t ? 'mtab on' : 'mtab off';
     document.getElementById(`admin-${t}-view`).style.display = tab===t ? 'block' : 'none';
   });
-  if (tab === 'users') loadAdminUsers();
+  if (tab === 'users') {
+    if (!hasPermission('manageUsers')) {
+      document.getElementById('adm-users-list').innerHTML = '<div class="no">Bu bölümü görüntüleme yetkin yok.</div>';
+      return;
+    }
+    loadAdminUsers();
+  }
   if (tab === 'forum') rAdminForum();
   if (tab === 'logs') {
     if (!hasPermission('viewLogs')) {
@@ -4720,28 +4726,35 @@ async function adminDeletePost(id) {
   } catch(e) { alert('Silinemedi'); }
 }
 let adminUsersCache = null;
+let adminRolesCache = {}; // uid -> admins/{uid} dokümanı (role, permissions, isActive)
 
 async function loadAdminUsers() {
   const list = document.getElementById('adm-users-list');
   if (!list) return;
   try {
-    const snap = await db.collection('teknohane_users').get();
-    adminUsersCache = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+    const [usersSnap, adminsSnap] = await Promise.all([
+      db.collection('teknohane_users').get(),
+      db.collection('admins').get().catch(() => ({ docs: [] }))
+    ]);
+    adminUsersCache = usersSnap.docs.map(d => ({ uid: d.id, ...d.data() }));
+    adminRolesCache = {};
+    adminsSnap.docs.forEach(d => { adminRolesCache[d.id] = d.data(); });
     rAdminUsers();
   } catch(e) {
     list.innerHTML = `<div class="no">Kullanıcılar yüklenemedi</div>`;
   }
 }
 
+const ROLE_LABELS = { super_admin: 'Süper Admin', admin: 'Admin', moderator: 'Moderatör', editor: 'Editör' };
+
 function rAdminUsers() {
   const list = document.getElementById('adm-users-list');
   if (!list || !adminUsersCache) return;
   const q = (document.getElementById('adm-user-srch')?.value||'').toLowerCase();
 
-  // Her kullanıcı için ilan sayısını listings'ten hesapla
+  // Her kullanıcı için ilan sayısını listings'ten hesapla (bellekte zaten var, ekstra sorgu yok)
   const enriched = adminUsersCache.map(u => {
     const userListings = listings.filter(l => l.uid === u.uid);
-    // İsim için fallback zinciri: kendi displayName → verdiği ilan → referans olduğu ilandaki kayıtlı isim
     let fallbackName = u.displayName;
     if (!fallbackName && userListings[0]) fallbackName = userListings[0].ownerName;
     if (!fallbackName) {
@@ -4750,31 +4763,32 @@ function rAdminUsers() {
         if (ref?.name) { fallbackName = ref.name; break; }
       }
     }
+    const roleInfo = adminRolesCache[u.uid];
+    const phoneText = u.currentPhone ? `${u.currentPhone.brand} ${u.currentPhone.model}` : '';
     return {
       ...u,
       listingCount: userListings.length,
       favCount: (u.favorites || []).length,
       displayName: fallbackName || 'İsimsiz Kullanıcı',
-      email: u.email || ''
+      email: u.email || '',
+      role: (roleInfo && roleInfo.isActive !== false) ? roleInfo.role : null,
+      searchBlob: `${fallbackName||''} ${u.email||''} ${u.username||''} ${u.uid} ${u.phoneNumber||''} ${phoneText}`.toLowerCase()
     };
   });
 
-  let items = enriched.filter(u =>
-    !q || u.displayName.toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q)
-  );
+  let items = enriched.filter(u => !q || u.searchBlob.includes(q));
 
   if (!items.length) { list.innerHTML = '<div class="no">Kullanıcı bulunamadı</div>'; return; }
 
   list.innerHTML = items.map(u => `
     <div class="adm-user-row" onclick="openUserDetail('${u.uid}')">
-      <div class="adm-user-av">${(u.displayName||'?')[0].toUpperCase()}</div>
+      ${u.photoURL ? `<img class="adm-user-av" src="${u.photoURL}" alt="">` : `<div class="adm-user-av">${(u.displayName||'?')[0].toUpperCase()}</div>`}
       <div class="adm-user-info">
-        <div class="adm-user-name">${u.displayName}</div>
+        <div class="adm-user-name">${u.displayName}${u.role?` <span class="admin-badge">${ROLE_LABELS[u.role]||u.role}</span>`:''}${u.banned?' <span class="admin-badge" style="background:var(--red)">BANLI</span>':''}</div>
         <div class="adm-user-email">${u.email}</div>
       </div>
       <div class="adm-user-stats">
         <div class="adm-user-stat"><div class="adm-user-stat-n">${u.listingCount}</div><div class="adm-user-stat-l">İlan</div></div>
-        <div class="adm-user-stat"><div class="adm-user-stat-n">${u.favCount}</div><div class="adm-user-stat-l">Favori</div></div>
       </div>
     </div>`).join('');
 }
@@ -4794,24 +4808,74 @@ function openUserDetail(uid) {
     }
   }
   displayName = displayName || 'İsimsiz Kullanıcı';
-  const isAdminU = !!u.isAdminPublic;
+
+  const roleInfo = adminRolesCache[uid];
+  const role = (roleInfo && roleInfo.isActive !== false) ? roleInfo.role : null;
+  const isBanned = !!u.banned;
+  const av = u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=0D1526&color=00D4FF&size=256`;
+
+  // Skor/rozet hesaplaması: profil sisteminde kullanılan aynı ortak fonksiyonlar (kod tekrarı yok)
+  const scoreInfo = computeTeknohaneScore(uid, u);
+  const teknohaneScore = scoreInfo.score;
+  const scoreRingOffset = (276.5 * (1 - teknohaneScore/100)).toFixed(1);
+  const BADGES_DEF = computeBadges(uid, u, !!u.isAdminPublic, scoreInfo);
+
+  const joinedDateStr = u.createdAt?.toDate ? u.createdAt.toDate().toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric'}) : 'Henüz veri bulunmuyor';
+  const lastSeenStr = u.lastSeen?.toDate ? timeAgo(u.lastSeen.toDate()) : 'Henüz veri bulunmuyor';
 
   document.getElementById('user-detail-body').innerHTML = `
-    <div class="ud-hero">
-      <div class="ud-av">${displayName[0].toUpperCase()}</div>
-      <div>
-        <div class="ud-name">${displayName}${isAdminU?' <span class="admin-badge">ADMIN</span>':''}</div>
-        <div class="ud-email">${u.email||'—'}</div>
+    <div class="phero" style="padding-bottom:20px">
+      <div class="pcover" style="${u.coverPhotoURL?`background-image:url('${u.coverPhotoURL}');background-size:cover;background-position:center;`:''}"></div>
+      <img class="pav" src="${av}" alt="">
+      <div class="pname">${displayName}</div>
+      ${u.username?`<div class="puname">@${u.username}</div>`:''}
+      <div class="pemail">${u.email||'—'}</div>
+
+      <!-- Hızlı Bilgi Kartı -->
+      <div class="pverify">
+        <span class="pverify-item" id="ud-online-chip">○ Yükleniyor…</span>
+        <span class="pverify-item${role?' ok':''}">${role?'✓':'○'} ${role?(ROLE_LABELS[role]||role):'Normal Kullanıcı'}</span>
+        <span class="pverify-item${u.emailVerified?' ok':''}">${u.emailVerified?'✓':'○'} E-posta ${u.emailVerified?'Doğrulandı':'Doğrulanmadı'}</span>
+        <span class="pverify-item${u.phoneNumber?' ok':''}">${u.phoneNumber?'✓':'○'} Telefon ${u.phoneNumber?'Doğrulandı':'Doğrulanmadı'}</span>
+        <span class="pverify-item${isBanned?'':' ok'}"${isBanned?' style="color:var(--red)"':''}>${isBanned?'⛔ Banlı':'✓ Ban Yok'}</span>
       </div>
     </div>
-    <div class="ud-stats">
-      <div class="apstat"><div class="apstat-n">${userListings.length}</div><div class="apstat-l">İlan</div></div>
-      <div class="apstat"><div class="apstat-n">${favListings.length}</div><div class="apstat-l">Favori</div></div>
-      <div class="apstat"><div class="apstat-n">${refListings.length}</div><div class="apstat-l">Referans</div></div>
+
+    <div class="pacc-card">
+      <div class="psec-title">Hesap Bilgileri</div>
+      <div class="pacc-row"><span class="pacc-lbl">UID</span><span class="pacc-val" style="font-size:10px;word-break:break-all;text-align:right;max-width:60%">${uid}</span></div>
+      <div class="pacc-row"><span class="pacc-lbl">Kayıt Tarihi</span><span class="pacc-val">${joinedDateStr}</span></div>
+      <div class="pacc-row"><span class="pacc-lbl">Son Giriş</span><span class="pacc-val">${lastSeenStr}</span></div>
+      <div class="pacc-row"><span class="pacc-lbl">Telefon Numarası</span><span class="pacc-val">${u.phoneNumber||'—'}</span></div>
+      <div class="pacc-row"><span class="pacc-lbl">Kullanılan Cihaz</span><span class="pacc-val">${u.lastLoginDevice||'—'}</span></div>
+      <div class="pacc-row"><span class="pacc-lbl">Takip Edilen</span><span class="pacc-val">${(u.followingUids||[]).length}</span></div>
+      <div class="pacc-row"><span class="pacc-lbl">Takipçi</span><span class="pacc-val" id="ud-followers-count">Yükleniyor…</span></div>
+      <div class="pacc-row"><span class="pacc-lbl">Forum Gönderisi</span><span class="pacc-val" id="ud-forum-count">Yükleniyor…</span></div>
+    </div>
+
+    <div class="tscore-card">
+      <div class="tscore-ring">
+        <svg viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="44" stroke="var(--border2)" stroke-width="6" fill="none"/>
+          <circle cx="50" cy="50" r="44" stroke="var(--cyan)" stroke-width="6" fill="none" stroke-linecap="round" stroke-dasharray="276.5" stroke-dashoffset="${scoreRingOffset}" transform="rotate(-90 50 50)"/>
+        </svg>
+        <div class="tscore-num">${teknohaneScore}</div>
+      </div>
+      <div class="tscore-label">Teknohane Skoru</div>
+    </div>
+
+    <div class="pbadge-card">
+      <div class="psec-title">🏅 Rozetler</div>
+      <div class="pbadge-row">
+        ${BADGES_DEF.map(b=>`
+          <div class="pbadge-item${b.done?' earned':''}">
+            <div class="pbadge-ic">${b.icon}</div><div class="pbadge-lbl">${b.label}</div>
+          </div>`).join('')}
+      </div>
     </div>
 
     <div class="ud-section">
-      <div class="ud-section-title">Verdiği İlanlar</div>
+      <div class="ud-section-title">İlanları (${userListings.length})</div>
       ${userListings.length ? userListings.map(l => `
         <div class="ud-item" onclick="closemo('user-detail-mo');openDetail('${l.id}')">
           <span class="ud-item-name">${l.model}${l.approved===false?' ⏳':''}${l.sold?' ✓':''}</span>
@@ -4835,9 +4899,75 @@ function openUserDetail(uid) {
           <span class="ud-item-name">${l.model}</span>
           <span class="ud-item-meta">${l.ownerName||'—'}</span>
         </div>`).join('') : '<div class="ud-empty">Referans olduğu ilan yok</div>'}
+    </div>
+
+    <div class="ud-section">
+      <div class="ud-section-title">Forum Gönderileri</div>
+      <div id="ud-forum-posts"><div class="load"><div class="spin"></div></div></div>
+    </div>
+
+    <div class="ud-section">
+      <div class="ud-section-title">Yönetici İşlemleri</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button class="apbtn" onclick="closemo('user-detail-mo');openPublicProfile('${uid}','${displayName.replace(/'/g,"\\'")}')">👁️ Profili Görüntüle</button>
+        <button class="apbtn" style="opacity:.5" onclick="openUserEdit('${uid}')">✏️ Düzenle</button>
+        <button class="apbtn" style="opacity:.5;background:rgba(255,69,58,.08);border-color:rgba(255,69,58,.25);color:var(--red)" onclick="openUserBan('${uid}')">🚫 Ban İşlemleri</button>
+        <button class="apbtn" style="opacity:.5" onclick="openUserLogs('${uid}')">📋 Logları Gör</button>
+      </div>
     </div>`;
 
   document.getElementById('user-detail-mo').classList.add('on');
+  loadUserDetailExtras(uid);
+}
+
+// Detay ekranı açıldığında, listede pahalı olacak (N+1) verileri yalnızca bu tek kullanıcı için yükler.
+async function loadUserDetailExtras(uid) {
+  db.collection('teknohane_presence').doc(uid).get().then(snap => {
+    const el = document.getElementById('ud-online-chip');
+    if (!el) return;
+    const online = snap.exists && isPresenceOnline(snap.data());
+    el.textContent = online ? '● Aktif' : '○ Pasif';
+    el.className = 'pverify-item' + (online ? ' ok' : '');
+  }).catch(() => {});
+
+  db.collection('teknohane_users').where('followingUids', 'array-contains', uid).get().then(snap => {
+    const el = document.getElementById('ud-followers-count');
+    if (el) el.textContent = snap.size;
+  }).catch(() => { const el = document.getElementById('ud-followers-count'); if (el) el.textContent = '—'; });
+
+  db.collection('teknohane_posts').where('uid', '==', uid).orderBy('createdAt', 'desc').limit(20).get().then(snap => {
+    const countEl = document.getElementById('ud-forum-count');
+    const listEl = document.getElementById('ud-forum-posts');
+    if (countEl) countEl.textContent = snap.size + (snap.size >= 20 ? '+' : '');
+    if (listEl) {
+      if (snap.empty) { listEl.innerHTML = '<div class="ud-empty">Henüz forum gönderisi yok</div>'; return; }
+      listEl.innerHTML = snap.docs.map(d => {
+        const p = d.data();
+        return `<div class="ud-item" onclick="closemo('user-detail-mo');openPost('${d.id}')">
+          <span class="ud-item-name">${p.title || 'Forum gönderisi'}</span>
+          <span class="ud-item-meta">${p.createdAt?.toDate ? timeAgo(p.createdAt.toDate()) : ''}</span>
+        </div>`;
+      }).join('');
+    }
+  }).catch(() => {
+    const countEl = document.getElementById('ud-forum-count');
+    const listEl = document.getElementById('ud-forum-posts');
+    if (countEl) countEl.textContent = '—';
+    if (listEl) listEl.innerHTML = '<div class="ud-empty">Gönderiler yüklenemedi</div>';
+  });
+}
+
+// ==== GELECEK MODÜLLER İÇİN HAZIR BAĞLANTI NOKTALARI (Aşama 5-6'da doldurulacak) ====
+// Bu üç fonksiyon bilinçli olarak şimdilik pasif — Ban Sistemi, Kullanıcı Düzenleme ve
+// Log Görüntüleme modülleri geldiğinde, imzaları (uid parametresi) değiştirmeden içleri doldurulacak.
+function openUserEdit(uid) {
+  showToast('ℹ️', 'rgba(0,212,255,.15)', 'Kullanıcı Düzenleme', 'Bu özellik ileride Kullanıcı Düzenleme modülüyle eklenecek.');
+}
+function openUserBan(uid) {
+  showToast('ℹ️', 'rgba(0,212,255,.15)', 'Ban İşlemleri', 'Bu özellik Aşama 5 — Ban Sistemi\'nde eklenecek.');
+}
+function openUserLogs(uid) {
+  showToast('ℹ️', 'rgba(0,212,255,.15)', 'Kullanıcı Logları', 'Bu özellik Log Görüntüleme modülüne bağlanacak.');
 }
 
 // YOUTUBE
