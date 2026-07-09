@@ -1365,6 +1365,7 @@ firebase.initializeApp({
   appId:"1:485904329467:web:579d932ae8f25958901e5e"
 });
 const auth = firebase.auth();
+auth.languageCode = 'tr'; // Telefon doğrulama SMS'i ve reCAPTCHA arayüzü Türkçe gelsin
 const db = firebase.firestore();
 const storage = firebase.storage();
 const PUSH_API = 'https://teknohane-push.yusuf-aykac.workers.dev/';
