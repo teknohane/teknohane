@@ -1203,6 +1203,7 @@ body.tk-browser #browser-gate{
       <button class="mtab on" id="adm-tab-listings" onclick="switchAdminTab('listings')">İlanlar</button>
       <button class="mtab off" id="adm-tab-users" onclick="switchAdminTab('users')">Kullanıcılar</button>
       <button class="mtab off" id="adm-tab-forum" onclick="switchAdminTab('forum')">Forum</button>
+      <button class="mtab off" id="adm-tab-logs" onclick="switchAdminTab('logs')">Loglar</button>
     </div>
 
     <div id="admin-listings-view">
@@ -1223,6 +1224,11 @@ body.tk-browser #browser-gate{
 
     <div id="admin-forum-view" style="display:none">
       <div id="adm-forum-list"><div class="load"><div class="spin"></div><span>Konular yükleniyor…</span></div></div>
+    </div>
+
+    <div id="admin-logs-view" style="display:none">
+      <div id="adm-logs-list"><div class="load"><div class="spin"></div><span>Loglar yükleniyor…</span></div></div>
+      <button class="apbtn" style="margin-top:12px;background:var(--surf2);color:var(--text)" onclick="loadAdminLogs(false)">Daha Fazla Yükle</button>
     </div>
   </div>
 </div>
@@ -1400,6 +1406,63 @@ function isAdminNow() {
 // Giriş yapmış kullanıcının belirli bir yetkiye sahip olup olmadığını söyler (aksiyon bazlı kontrol için).
 function hasPermission(perm) {
   return isAdminNow() && !!myAdminRole.permissions?.[perm];
+}
+
+// ==== ADMIN LOG SİSTEMİ (Aşama 3) ====
+// Her admin işleminden sonra çağrılır, admin_logs koleksiyonuna değiştirilemez/silinemez bir kayıt yazar
+// (bkz. Firestore Rules: admin_logs için update/delete daima false). Log yazımı asla ana işlemi bloklamaz
+// veya başarısız kılmaz — hata olursa yalnızca konsola yazılır.
+async function adminLog(action, targetType, targetId, targetLabel, oldValue, newValue, result) {
+  if (!user || !isAdminNow()) return;
+  try {
+    await db.collection('admin_logs').add({
+      adminUid: user.uid,
+      adminName: myAdminRole?.displayName || user.displayName || user.email || 'Bilinmeyen',
+      adminEmail: user.email || '',
+      action,
+      targetType,
+      targetId: targetId || null,
+      targetLabel: targetLabel || null,
+      oldValue: oldValue ?? null,
+      newValue: newValue ?? null,
+      result: result || 'success',
+      device: detectDeviceLabel(),
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  } catch (e) {
+    console.error('Admin log yazılamadı:', e);
+  }
+}
+
+// Log listesini yükler (sayfalama ile — her seferinde 30 kayıt).
+let adminLogsLastDoc = null;
+async function loadAdminLogs(reset) {
+  const list = document.getElementById('adm-logs-list');
+  if (!list || !hasPermission('viewLogs')) return;
+  if (reset) { adminLogsLastDoc = null; list.innerHTML = `<div class="load"><div class="spin"></div></div>`; }
+  try {
+    let q = db.collection('admin_logs').orderBy('createdAt', 'desc').limit(30);
+    if (adminLogsLastDoc) q = q.startAfter(adminLogsLastDoc);
+    const snap = await q.get();
+    if (snap.empty && reset) { list.innerHTML = '<div class="no">Henüz hiçbir yönetici işlemi kaydedilmedi.</div>'; return; }
+    adminLogsLastDoc = snap.docs[snap.docs.length - 1] || adminLogsLastDoc;
+    const rowsHtml = snap.docs.map(d => {
+      const l = d.data();
+      const when = l.createdAt?.toDate ? timeAgo(l.createdAt.toDate()) : '—';
+      const resultColor = (l.result === 'success') ? '#3DDC97' : 'var(--red)';
+      return `<div class="pact-row">
+        <div class="pact-ic">🛡️</div>
+        <div class="pact-body">
+          <div class="pact-txt"><b>${l.adminName||'Admin'}</b> — ${l.action} ${l.targetLabel?`(${l.targetLabel})`:''}</div>
+          <div class="pact-time">${when} · <span style="color:${resultColor}">${l.result||'success'}</span></div>
+        </div>
+      </div>`;
+    }).join('');
+    list.innerHTML = reset ? rowsHtml : list.innerHTML + rowsHtml;
+  } catch (e) {
+    console.error('Loglar yüklenemedi:', e);
+    list.innerHTML = '<div class="no">Loglar yüklenemedi (yetki veya bağlantı sorunu olabilir).</div>';
+  }
 }
 
 // Bir görsel dosyasını (File) belirtilen maksimum kenar uzunluğuna göre yeniden boyutlandırıp WebP Blob'a dönüştürür.
@@ -3729,11 +3792,15 @@ async function approveListing(id) {
     await db.collection('teknohane_listings').doc(id).update({ approved: true });
     const l = listings.find(x => x.id === id);
     if (l) l.approved = true;
+    adminLog('approve_listing', 'listing', id, l?.model || id, { approved: false }, { approved: true });
     exitDetailPage(false);
     rlistings();
     radmin();
     showToast('✓', 'rgba(48,209,88,.15)', 'İlan Onaylandı', `${l?.model||'İlan'} artık Pazar'da görünüyor.`);
-  } catch(e) { alert('Hata: ' + e.message); }
+  } catch(e) {
+    adminLog('approve_listing', 'listing', id, id, null, null, 'error: ' + e.message);
+    alert('Hata: ' + e.message);
+  }
 }
 
 async function toggleRef() {
@@ -3805,13 +3872,19 @@ async function notifyListingOwnerOnFav(l, adding) {
 
 async function delListing(id) {
   if (!confirm('İlan silinsin mi?')) return;
+  const l = listings.find(x => x.id === id);
+  const isAdminModeration = isAdminNow() && l && user.uid !== l.uid;
   try {
     await db.collection('teknohane_listings').doc(id).delete();
-    listings = listings.filter(l => l.id !== id);
+    listings = listings.filter(x => x.id !== id);
+    if (isAdminModeration) adminLog('delete_listing', 'listing', id, l?.model || id, l, null);
     rlistings();
     if (document.getElementById('admin-mo')?.classList.contains('on')) radmin();
     if (isAdminNow()) updateAdminStats();
-  } catch(e) { alert('Silinemedi'); }
+  } catch(e) {
+    if (isAdminModeration) adminLog('delete_listing', 'listing', id, l?.model || id, null, null, 'error: ' + e.message);
+    alert('Silinemedi');
+  }
 }
 
 // FORUM
@@ -4555,12 +4628,19 @@ function openAdmin() {
 }
 
 function switchAdminTab(tab) {
-  ['listings','users','forum'].forEach(t => {
+  ['listings','users','forum','logs'].forEach(t => {
     document.getElementById(`adm-tab-${t}`).className = tab===t ? 'mtab on' : 'mtab off';
     document.getElementById(`admin-${t}-view`).style.display = tab===t ? 'block' : 'none';
   });
   if (tab === 'users') loadAdminUsers();
   if (tab === 'forum') rAdminForum();
+  if (tab === 'logs') {
+    if (!hasPermission('viewLogs')) {
+      document.getElementById('adm-logs-list').innerHTML = '<div class="no">Bu bölümü görüntüleme yetkin yok.</div>';
+      return;
+    }
+    loadAdminLogs(true);
+  }
 }
 
 function radmin() {
