@@ -474,6 +474,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .phero{background:var(--surf);border-radius:24px;border:1px solid var(--border);padding:0 24px 28px;margin-bottom:20px;text-align:center;overflow:hidden;position:relative;}
 .pcover{height:104px;margin:0 -24px 0;background:linear-gradient(135deg,var(--surf2),var(--surf3));position:relative;overflow:hidden;}
 .pcover::after{content:'';position:absolute;top:-50px;right:-30px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,var(--cglow),transparent 70%);opacity:.6;}
+.pcover-edit{position:absolute;bottom:8px;right:8px;width:32px;height:32px;border-radius:50%;background:rgba(0,4,15,.55);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;}
+.pcover-edit svg{width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;}
+.pcover-remove{position:absolute;top:8px;right:8px;width:24px;height:24px;border-radius:50%;background:rgba(0,4,15,.6);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;z-index:2;}
+.pcover-progress{position:absolute;inset:0;background:rgba(0,4,15,.65);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:#fff;font-size:12px;font-weight:700;z-index:3;}
+.ep-photo-progress{position:absolute;inset:0;border-radius:50%;background:rgba(0,4,15,.65);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#fff;font-size:11px;font-weight:700;}
 .pav{width:92px;height:92px;border-radius:50%;object-fit:cover;border:3px solid var(--bg2);box-shadow:0 0 20px var(--cglow);margin:-46px auto 14px;display:block;position:relative;background:var(--surf);}
 .pav-edit-wrap{position:relative;width:90px;height:90px;margin:0 auto 16px;cursor:pointer;}
 .pav-edit-wrap img{width:90px;height:90px;border-radius:50%;object-fit:cover;border:3px solid var(--cyan);box-shadow:0 0 20px var(--cglow);display:block;}
@@ -526,6 +531,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .pbadge-item.earned{opacity:1;filter:none;}
 .pbadge-ic{width:60px;height:60px;border-radius:50%;background:var(--surf2);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 6px;}
 .pbadge-item.earned .pbadge-ic{border-color:rgba(0,212,255,.4);box-shadow:0 0 14px var(--cglow);background:rgba(0,212,255,.08);}
+.pbadge-item.pbadge-new .pbadge-ic{animation:pbadgePop .6s cubic-bezier(.34,1.56,.64,1);}
+@keyframes pbadgePop{0%{transform:scale(.3);opacity:0;}60%{transform:scale(1.15);opacity:1;}100%{transform:scale(1);}}
 .pbadge-lbl{font-size:10px;color:var(--text2);line-height:1.3;}
 .pqa-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px;}
 .pqa-item{background:var(--surf);border:1px solid var(--border);border-radius:16px;padding:16px 10px;text-align:center;cursor:pointer;position:relative;transition:transform .15s ease;}
@@ -1128,6 +1135,10 @@ body.tk-browser #browser-gate{
       <div class="pav-edit-badge">
         <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
       </div>
+      <div class="ep-photo-progress" id="ep-photo-progress" style="display:none">
+        <div class="spin" style="width:20px;height:20px;border-width:2px;"></div>
+        <span id="ep-photo-pct">0%</span>
+      </div>
       <input type="file" id="ep-photo-input" accept="image/*" style="display:none" onchange="handleProfilePhoto(this)">
     </div>
 
@@ -1310,6 +1321,7 @@ body.tk-browser #browser-gate{
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 <script>
 firebase.initializeApp({
   apiKey:"AIzaSyADpIRNLQEIer_gplTgwKi_EKkfcyrYoqY",
@@ -1321,12 +1333,67 @@ firebase.initializeApp({
 });
 const auth = firebase.auth();
 const db = firebase.firestore();
+const storage = firebase.storage();
 const PUSH_API = 'https://teknohane-push.yusuf-aykac.workers.dev/';
 const VAPID_KEY = 'BPt5vY5P3Dr9DG2zHOQwhQKnH6V5UruqGisQRTlGWxkNaAYtYKAEG9xiTHn78yGq1DlrsnWFSazOquL_9krdtjY';
 const ADMINS = ['yusuf.aykac@gmail.com','memetklc5933@gmail.com'];
 let user = null;
 let myProfileData = {};
+
+// Bir görsel dosyasını (File) belirtilen maksimum kenar uzunluğuna göre yeniden boyutlandırıp WebP Blob'a dönüştürür.
+// Hem profil hem kapak fotoğrafı yüklemesinde ortak kullanılır (kod tekrarını önler).
+function compressImageToWebP(file, maxDim, quality) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = e => {
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) { h = Math.round(h * (maxDim / w)); w = maxDim; }
+          else { w = Math.round(w * (maxDim / h)); h = maxDim; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Görsel sıkıştırılamadı')), 'image/webp', quality);
+      };
+      img.onerror = () => reject(new Error('Görsel okunamadı'));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error('Dosya okunamadı'));
+    reader.readAsDataURL(file);
+  });
+}
+
+// Bir Blob'u belirtilen Storage yoluna yükler, ilerleme yüzdesini onProgress ile bildirir, indirme URL'sini döner.
+// Aynı path her seferinde üzerine yazılır — eski dosya otomatik olarak yenisiyle değişir, Storage'da birikme olmaz.
+function uploadToStorage(path, blob, onProgress) {
+  return new Promise((resolve, reject) => {
+    const ref = storage.ref(path);
+    const task = ref.put(blob, { contentType: 'image/webp' });
+    task.on('state_changed',
+      snap => { if (onProgress && snap.totalBytes) onProgress(Math.round(snap.bytesTransferred / snap.totalBytes * 100)); },
+      err => reject(err),
+      () => { task.snapshot.ref.getDownloadURL().then(resolve).catch(reject); }
+    );
+  });
+}
+
+// Kullanıcının native (Capacitor) mi yoksa hangi tarayıcıdan bağlandığını en iyi çaba (best-effort) ile tahmin eder.
+function detectDeviceLabel() {
+  if (window.Capacitor && Capacitor.getPlatform) {
+    const p = Capacitor.getPlatform();
+    if (p === 'android') return 'Android Uygulaması';
+    if (p === 'ios') return 'iOS Uygulaması';
+  }
+  const ua = navigator.userAgent || '';
+  if (/Android/i.test(ua)) return 'Android Tarayıcı';
+  if (/iPhone|iPad|iPod/i.test(ua)) return 'iOS Tarayıcı';
+  return 'Web Tarayıcı';
+}
 let epNewPhotoDataUrl = null;
+let epPhotoUploading = false;
 let listings = [];
 let favs = new Set();
 let mktab = 'all';
@@ -1390,7 +1457,9 @@ async function syncUserProfile(u) {
         displayName: u.displayName || u.email?.split('@')[0] || 'Kullanıcı',
         email: u.email || '',
         createdAt: existingData.createdAt || firebase.firestore.FieldValue.serverTimestamp(),
-        lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+        lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+        lastLoginDevice: detectDeviceLabel(),
+        emailVerified: !!u.emailVerified
       };
       // Kullanıcı özel bir profil fotoğrafı yüklediyse (customPhoto), onu asla üye olurken
       // gelen sağlayıcı (Google vb.) fotoğrafıyla ezme — sadece hiç özel fotoğraf yoksa senkronize et
@@ -1425,6 +1494,66 @@ function themePanelHTML() {
     </div>`;
 }
 
+// ==== PROFİL ORTAK FONKSİYONLARI ====
+// Bu üç fonksiyon hem kendi profilim (rprof) hem başka kullanıcı profili (openPublicProfile)
+// tarafından kullanılır — tek doğruluk kaynağı, kod tekrarı yok.
+
+// Teknohane Skoru: 0-100 arası, yalnızca Firestore'da gerçekten var olan alanlardan hesaplanır
+// (Auth-özel alanlar kullanılmaz ki başka kullanıcılar için de doğru çalışsın).
+function computeTeknohaneScore(uid, profileData) {
+  const listingsCount = listings.filter(l => l.uid === uid).length;
+  const forumCount = forumPosts.filter(p => p.uid === uid).length;
+  const compareCount = profileData.compareCount || 0;
+  const lastSeenDate = profileData.lastSeen?.toDate ? profileData.lastSeen.toDate() : null;
+  const isRecentlyActive = lastSeenDate ? (Date.now() - lastSeenDate.getTime()) < 7*24*60*60*1000 : false;
+  const criteria = [
+    { done: !!profileData.customPhoto, weight: 10 },
+    { done: !!profileData.bio, weight: 10 },
+    { done: !!profileData.currentPhone, weight: 10 },
+    { done: listingsCount >= 1, weight: 15 },
+    { done: forumCount >= 1, weight: 15 },
+    { done: compareCount >= 1, weight: 15 },
+    { done: isRecentlyActive, weight: 10 },
+    { done: !!profileData.emailVerified, weight: 15 },
+  ];
+  const score = criteria.reduce((sum,item)=>sum+(item.done?item.weight:0),0);
+  return { score, listingsCount, forumCount, compareCount, isRecentlyActive };
+}
+
+// Rozet tanımları: gerçek veriden hesaplanır, hem kendi hem başka profil için aynı liste kullanılır.
+const FIRST_MEMBER_CUTOFF = new Date('2026-07-15');
+const EARLY_USER_CUTOFF = new Date('2026-09-01');
+function computeBadges(uid, profileData, isTargetAdmin, scoreInfo) {
+  const likesReceived = forumPosts.filter(p=>p.uid===uid).reduce((s,p)=>s+(p.likes||[]).length,0);
+  const joinedDate = profileData.createdAt?.toDate ? profileData.createdAt.toDate() : null;
+  return [
+    { id:'first-member', icon:'🌟', label:'İlk Üye', done: !!(joinedDate && joinedDate < FIRST_MEMBER_CUTOFF) },
+    { id:'first-listing', icon:'🎉', label:'İlk İlan', done: scoreInfo.listingsCount>=1 },
+    { id:'100-likes', icon:'❤️', label:'100 Beğeni', done: likesReceived>=100 },
+    { id:'forum-member', icon:'💬', label:'Forum Üyesi', done: scoreInfo.forumCount>=3 },
+    { id:'community-contributor', icon:'📢', label:'Topluluk Katkıcısı', done: scoreInfo.forumCount>=10 },
+    { id:'verified', icon:'✅', label:'Doğrulanmış Hesap', done: !!profileData.emailVerified },
+    { id:'early-user', icon:'🚀', label:'Erken Kullanıcı', done: !!(joinedDate && joinedDate < EARLY_USER_CUTOFF) },
+    { id:'vip', icon:'💎', label:'VIP', done: !!profileData.vip },
+    { id:'admin', icon:'🛡️', label:'Yönetici', done: !!isTargetAdmin },
+    { id:'10-sales', icon:'🏆', label:'10 Satış', done:false, locked:true, info:'Satış takip sistemi henüz aktif değil, veri oluşunca bu rozet otomatik açılacak.' },
+  ];
+}
+
+// Gizlilik ayarlarını varsayılan değerlerle birlikte normalize eder (privacy alanı hiç yoksa hepsi açık kabul edilir).
+function getPrivacy(profileData) {
+  const p = profileData.privacy || {};
+  return {
+    publicProfile: p.publicProfile !== false,
+    hidePhones: !!p.hidePhones,
+    hideLastSeen: !!p.hideLastSeen,
+    hideScore: !!p.hideScore,
+    hideBadges: !!p.hideBadges,
+    hideListings: !!p.hideListings,
+    hideForumActivity: !!p.hideForumActivity,
+  };
+}
+
 function animateProfileStats() {
   document.querySelectorAll('#profile-c .pstat-num').forEach(el => {
     const target = parseInt(el.dataset.target || '0', 10);
@@ -1447,15 +1576,41 @@ function rprof() {
     const av = myProfileData.photoURL || user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName||user.email)}&background=0D1526&color=00D4FF&size=256`;
     const hasVerifiedPhoneNumber = !!myProfileData.phoneNumber;
     const hasCurrentPhone = !!myProfileData.currentPhone;
-    const myListingsCount = listings.filter(l => l.uid === user.uid).length;
-    const myForumCount = forumPosts.filter(p => p.uid === user.uid).length;
+    // Kendi skorum için, Firestore'daki (günde 1 senkronize olan) emailVerified yerine her zaman
+    // güncel olan canlı Auth değerini kullanıyoruz — tek kaynak fonksiyonu bozmadan, en taze veriyle.
+    const scoreProfileData = { ...myProfileData, emailVerified: user.emailVerified };
+    const scoreInfo = computeTeknohaneScore(user.uid, scoreProfileData);
+    const { score: teknohaneScore, listingsCount: myListingsCount, forumCount: myForumCount, compareCount: myCompareCount } = scoreInfo;
     const myLikesReceived = forumPosts.filter(p => p.uid === user.uid).reduce((s,p)=>s+(p.likes||[]).length,0);
+    const scoreRingOffset = (276.5 * (1 - teknohaneScore/100)).toFixed(1);
+    const scoreDesc = teknohaneScore>=86 ? 'Teknohane\'de üst düzey bir kullanıcısın 🚀'
+      : teknohaneScore>=61 ? 'Aktif bir Teknohane kullanıcısısın'
+      : teknohaneScore>=31 ? 'İyi gidiyorsun, birkaç adım daha'
+      : 'Profilini tamamlayarak skorunu artırabilirsin';
+
+    // Güven Puanı: yalnızca gerçek `rating` verisi varsa gösterilir, uygulama tarafında asla hesaplanmaz/yazılmaz (altyapı — ileride backend/Cloud Function besleyecek)
+    const myRating = typeof myProfileData.rating === 'number' ? myProfileData.rating : null;
+
+    const BADGES_DEF = computeBadges(user.uid, scoreProfileData, isAdmin, scoreInfo);
+    const myPrivacy = getPrivacy(myProfileData);
+    const earnedNow = BADGES_DEF.filter(b=>b.done).map(b=>b.id);
+    const previouslyEarned = myProfileData.earnedBadges || [];
+    const newlyUnlocked = earnedNow.filter(id => !previouslyEarned.includes(id));
+    if (newlyUnlocked.length && user) {
+      myProfileData.earnedBadges = [...previouslyEarned, ...newlyUnlocked];
+      db.collection('teknohane_users').doc(user.uid).set({ earnedBadges: firebase.firestore.FieldValue.arrayUnion(...newlyUnlocked) }, { merge:true }).catch(()=>{});
+    }
+
     const complItems = [
       { done: !!myProfileData.customPhoto, label: 'Profil fotoğrafı ekle', action: 'openEditProfile()' },
+      { done: !!myProfileData.coverPhotoURL, label: 'Kapak fotoğrafı ekle', action: "document.getElementById('cover-photo-input').click()" },
       { done: !!myProfileData.username, label: 'Kullanıcı adı belirle', action: 'openEditProfile()' },
       { done: hasCurrentPhone, label: 'Telefon ekle', action: 'openPhoneEdit()' },
       { done: !!myProfileData.bio, label: 'Biyografi ekle', action: 'openEditProfile()' },
-      { done: !!user.emailVerified, label: 'E-postanı doğrula', action: 'openEditProfile()' },
+      { done: !!user.emailVerified, label: 'E-postanı doğrula', action: 'sendVerificationEmail()' },
+      { done: myListingsCount>=1, label: 'İlk ilanını paylaş', action: "gt('market')" },
+      { done: myForumCount>=1, label: 'Forumda ilk mesajını yaz', action: "gt('community')" },
+      { done: myCompareCount>=1, label: 'İlk karşılaştırmanı yap', action: "gt('compare')" },
     ];
     const complDone = complItems.filter(i=>i.done).length;
     const complPct = Math.round(complDone/complItems.length*100);
@@ -1472,7 +1627,17 @@ function rprof() {
     const topActivity = activityItems.slice(0,4);
     c.innerHTML = `
       <div class="phero">
-        <div class="pcover"></div>
+        <div class="pcover" style="${myProfileData.coverPhotoURL?`background-image:url('${myProfileData.coverPhotoURL}');background-size:cover;background-position:center;`:''}">
+          <div class="pcover-edit" onclick="document.getElementById('cover-photo-input').click()">
+            <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          </div>
+          ${myProfileData.coverPhotoURL?`<div class="pcover-remove" onclick="removeCoverPhoto()">✕</div>`:''}
+          <div class="pcover-progress" id="cover-progress" style="display:none">
+            <div class="spin" style="width:22px;height:22px;border-width:2px;"></div>
+            <span id="cover-progress-pct">0%</span>
+          </div>
+        </div>
+        <input type="file" id="cover-photo-input" accept="image/*" style="display:none" onchange="handleCoverPhoto(this)">
         <img class="pav" src="${av}" alt="">
         <div style="display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap">
           <span class="pname">${user.displayName||'Kullanıcı'}</span>
@@ -1490,19 +1655,23 @@ function rprof() {
         <div class="tscore-ring">
           <svg viewBox="0 0 100 100">
             <circle cx="50" cy="50" r="44" stroke="var(--border2)" stroke-width="6" fill="none"/>
+            <circle cx="50" cy="50" r="44" stroke="var(--cyan)" stroke-width="6" fill="none" stroke-linecap="round" stroke-dasharray="276.5" stroke-dashoffset="${scoreRingOffset}" transform="rotate(-90 50 50)"/>
           </svg>
-          <div class="tscore-num" style="font-size:15px;">Yakında</div>
+          <div class="tscore-num">${teknohaneScore}</div>
         </div>
         <div class="tscore-label">Teknohane Skoru</div>
-        <div class="tscore-sub">Forum aktifliği, ilan paylaşımı ve karşılaştırmalardan hesaplanacak — sistem henüz aktif değil</div>
+        <div class="tscore-sub">${scoreDesc}</div>
       </div>
       <div class="trust-card">
+        ${myRating !== null ? `
+        <div class="trust-stars">${'★'.repeat(Math.round(myRating))}${'☆'.repeat(5-Math.round(myRating))}</div>
+        <div class="trust-num">${myRating.toFixed(1)}<span>/5</span></div>` : `
         <div class="trust-stars" style="color:var(--text3);">☆☆☆☆☆</div>
-        <div class="trust-num" style="font-size:14px;color:var(--text2);">Henüz hesaplanmadı</div>
+        <div class="trust-num" style="font-size:14px;color:var(--text2);">Henüz hesaplanmadı</div>`}
       </div>
       <div class="pstats-card">
         <div class="pstat-item"><div class="pstat-num" data-target="${myListingsCount}">0</div><div class="pstat-lbl">İlan</div></div>
-        <div class="pstat-item"><div class="pstat-num" data-target="0">0</div><div class="pstat-lbl">Karşılaştırma</div></div>
+        <div class="pstat-item"><div class="pstat-num" data-target="${myCompareCount}">0</div><div class="pstat-lbl">Karşılaştırma</div></div>
         <div class="pstat-item"><div class="pstat-num" data-target="${myForumCount}">0</div><div class="pstat-lbl">Forum</div></div>
         <div class="pstat-item"><div class="pstat-num" data-target="${myLikesReceived}">0</div><div class="pstat-lbl">Beğeni</div></div>
       </div>
@@ -1520,8 +1689,8 @@ function rprof() {
         <div class="pqa-item" onclick="openSupportPage()">
           <div class="pqa-ic">💬</div><div class="pqa-lbl">Destek</div>
         </div>
-        <div class="pqa-item disabled">
-          <div class="pqa-ic">🔒</div><div class="pqa-lbl">Güvenlik</div><div class="pqa-soon">Yakında</div>
+        <div class="pqa-item" onclick="document.getElementById('security-section')?.scrollIntoView({behavior:'smooth'})">
+          <div class="pqa-ic">🔒</div><div class="pqa-lbl">Güvenlik</div>
         </div>
         <div class="pqa-item" onclick="document.getElementById('phone-collection')?.scrollIntoView({behavior:'smooth'})">
           <div class="pqa-ic">📱</div><div class="pqa-lbl">Telefonlarım</div>
@@ -1549,7 +1718,22 @@ function rprof() {
       </div>
       <div class="pbadge-card">
         <div class="psec-title">🏅 Rozetler</div>
-        <div class="no" style="padding:16px 0">Henüz rozet kazanmadın.</div>
+        <div class="pbadge-row">
+          ${BADGES_DEF.map(b=>`
+            <div class="pbadge-item${b.done?' earned':''}${newlyUnlocked.includes(b.id)?' pbadge-new':''}"${b.locked&&!b.done?` onclick="showToast('ℹ️','rgba(0,212,255,.15)','${b.label}','${b.info}')"`:''}>
+              <div class="pbadge-ic">${b.icon}</div><div class="pbadge-lbl">${b.label}</div>
+            </div>`).join('')}
+        </div>
+      </div>
+      <div class="pacc-card" id="security-section">
+        <div class="psec-title">🔒 Güvenlik</div>
+        <div class="pacc-row"><span class="pacc-lbl">E-posta Doğrulama</span><span class="pacc-val"${user.emailVerified?' style="color:#3DDC97"':''}>${user.emailVerified?'✓ Doğrulandı':'Doğrulanmadı'}</span></div>
+        ${!user.emailVerified?`<button class="apbtn" onclick="sendVerificationEmail()" style="margin:4px 0 12px">Doğrulama E-postası Gönder</button>`:''}
+        <div class="pacc-row"><span class="pacc-lbl">Telefon Doğrulama</span><span class="pacc-val" style="cursor:pointer;color:var(--cyan)" onclick="showToast('ℹ️','rgba(0,212,255,.15)','Telefon Doğrulama','Bu özelliğin altyapısı hazır, doğrulama akışı yakında aktif olacak.')">Yakında</span></div>
+        <div class="pacc-row"><span class="pacc-lbl">Şifre</span><span class="pacc-val" style="cursor:pointer;color:var(--cyan)" onclick="openEditProfile()">Değiştir</span></div>
+        <div class="pacc-row"><span class="pacc-lbl">Son Giriş</span><span class="pacc-val">${lastSignIn?lastSignIn.toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}):'Henüz veri bulunmuyor'}</span></div>
+        <div class="pacc-row"><span class="pacc-lbl">Kullanılan Cihaz</span><span class="pacc-val">${myProfileData.lastLoginDevice || detectDeviceLabel()}</span></div>
+        <div class="pacc-row"><span class="pacc-lbl">Aktif Oturumlar</span><span class="pacc-val" style="cursor:pointer;color:var(--cyan)" onclick="showToast('ℹ️','rgba(0,212,255,.15)','Aktif Oturumlar','Çoklu cihaz oturum takibi altyapısı hazırlanıyor, veri oluşunca burada listelenecek.')">Yakında</span></div>
       </div>
       ${isAdmin?`<div class="apanel">
         <div class="aptit"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#FFBE3C" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Yönetici Paneli</div>
@@ -1575,6 +1759,16 @@ function rprof() {
           <div class="pact-ic">${a.icon}</div>
           <div class="pact-body"><div class="pact-txt">${a.text}</div><div class="pact-time">${timeAgo(a.date)}</div></div>
         </div>`).join(''):'<div class="no">Henüz etkinlik bulunmuyor.</div>'}
+      </div>
+      <div class="pacc-card">
+        <div class="psec-title">🔐 Gizlilik</div>
+        <div class="pacc-row"><span class="pacc-lbl">Profil Görünürlüğü</span><span class="pacc-val" style="cursor:pointer;color:var(--cyan)" onclick="togglePrivacySetting('publicProfile')">${myPrivacy.publicProfile?'Herkese Açık':'Gizli'}</span></div>
+        <div class="pacc-row"><span class="pacc-lbl">Telefon Koleksiyonu</span><span class="pacc-val" style="cursor:pointer;color:var(--cyan)" onclick="togglePrivacySetting('hidePhones')">${myPrivacy.hidePhones?'Gizli':'Görünür'}</span></div>
+        <div class="pacc-row"><span class="pacc-lbl">Son Görülme</span><span class="pacc-val" style="cursor:pointer;color:var(--cyan)" onclick="togglePrivacySetting('hideLastSeen')">${myPrivacy.hideLastSeen?'Gizli':'Görünür'}</span></div>
+        <div class="pacc-row"><span class="pacc-lbl">Teknohane Skoru</span><span class="pacc-val" style="cursor:pointer;color:var(--cyan)" onclick="togglePrivacySetting('hideScore')">${myPrivacy.hideScore?'Gizli':'Görünür'}</span></div>
+        <div class="pacc-row"><span class="pacc-lbl">Rozetler</span><span class="pacc-val" style="cursor:pointer;color:var(--cyan)" onclick="togglePrivacySetting('hideBadges')">${myPrivacy.hideBadges?'Gizli':'Görünür'}</span></div>
+        <div class="pacc-row"><span class="pacc-lbl">İlanlarım</span><span class="pacc-val" style="cursor:pointer;color:var(--cyan)" onclick="togglePrivacySetting('hideListings')">${myPrivacy.hideListings?'Gizli':'Görünür'}</span></div>
+        <div class="pacc-row"><span class="pacc-lbl">Forum Aktivitem</span><span class="pacc-val" style="cursor:pointer;color:var(--cyan)" onclick="togglePrivacySetting('hideForumActivity')">${myPrivacy.hideForumActivity?'Gizli':'Görünür'}</span></div>
       </div>
       <div class="psec-title" style="margin-top:4px">⚙️ Ayarlar</div>
       ${pushPanelHTML()}
@@ -1655,32 +1849,77 @@ function openEditProfile() {
   document.getElementById('edit-profile-mo').classList.add('on');
 }
 
-function handleProfilePhoto(input) {
+async function handleProfilePhoto(input) {
   const file = input.files[0];
   if (!file) return;
-  if (file.size > 10 * 1024 * 1024) { alert('Fotoğraf çok büyük (max 10MB)'); input.value=''; return; }
-  const img = new Image();
-  const reader = new FileReader();
-  reader.onload = e => {
-    img.onload = () => {
-      const maxW = 400;
-      let w = img.width, h = img.height;
-      if (w > maxW) { h = h * (maxW / w); w = maxW; }
-      const canvas = document.createElement('canvas');
-      canvas.width = w; canvas.height = h;
-      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      let quality = 0.8;
-      let dataUrl = canvas.toDataURL('image/jpeg', quality);
-      while (dataUrl.length > 150 * 1024 * 1.37 && quality > 0.3) {
-        quality -= 0.1;
-        dataUrl = canvas.toDataURL('image/jpeg', quality);
-      }
-      epNewPhotoDataUrl = dataUrl;
-      document.getElementById('ep-avatar-preview').src = dataUrl;
-    };
-    img.src = e.target.result;
-  };
-  reader.readAsDataURL(file);
+  if (file.size > 10 * 1024 * 1024) { showToast('⚠️','rgba(255,69,58,.15)','Dosya Çok Büyük','Fotoğraf en fazla 10MB olabilir.'); input.value=''; return; }
+  if (!user) return;
+  const preview = document.getElementById('ep-avatar-preview');
+  const prog = document.getElementById('ep-photo-progress');
+  const pctEl = document.getElementById('ep-photo-pct');
+  try {
+    epPhotoUploading = true;
+    prog.style.display = 'flex'; pctEl.textContent = '0%';
+    const blob = await compressImageToWebP(file, 400, 0.85);
+    preview.src = URL.createObjectURL(blob);
+    const url = await uploadToStorage(`profile-photos/${user.uid}/avatar.webp`, blob, pct => pctEl.textContent = pct + '%');
+    epNewPhotoDataUrl = url;
+  } catch (e) {
+    showToast('⚠️','rgba(255,69,58,.15)','Yükleme Başarısız', e.message || 'Fotoğraf yüklenemedi.');
+  } finally {
+    epPhotoUploading = false;
+    prog.style.display = 'none';
+    input.value = '';
+  }
+}
+
+let coverPhotoUploading = false;
+async function handleCoverPhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 10 * 1024 * 1024) { showToast('⚠️','rgba(255,69,58,.15)','Dosya Çok Büyük','Kapak fotoğrafı en fazla 10MB olabilir.'); input.value=''; return; }
+  if (!user) return;
+  const prog = document.getElementById('cover-progress');
+  const pctEl = document.getElementById('cover-progress-pct');
+  try {
+    coverPhotoUploading = true;
+    if (prog) { prog.style.display = 'flex'; if (pctEl) pctEl.textContent = '0%'; }
+    const blob = await compressImageToWebP(file, 1200, 0.82);
+    const url = await uploadToStorage(`cover-photos/${user.uid}/cover.webp`, blob, pct => { if (pctEl) pctEl.textContent = pct + '%'; });
+    await db.collection('teknohane_users').doc(user.uid).set({ coverPhotoURL: url }, { merge: true });
+    myProfileData.coverPhotoURL = url;
+    rprof();
+    showToast('✓', 'rgba(48,209,88,.15)', 'Kaydedildi', 'Kapak fotoğrafın güncellendi.');
+  } catch (e) {
+    showToast('⚠️','rgba(255,69,58,.15)','Yükleme Başarısız', e.message || 'Kapak fotoğrafı yüklenemedi.');
+  } finally {
+    coverPhotoUploading = false;
+    if (prog) prog.style.display = 'none';
+    input.value = '';
+  }
+}
+
+async function removeCoverPhoto() {
+  if (!user || !myProfileData.coverPhotoURL) return;
+  try {
+    await storage.ref(`cover-photos/${user.uid}/cover.webp`).delete().catch(()=>{});
+    await db.collection('teknohane_users').doc(user.uid).set({ coverPhotoURL: firebase.firestore.FieldValue.delete() }, { merge: true });
+    myProfileData.coverPhotoURL = null;
+    rprof();
+    showToast('✓', 'rgba(48,209,88,.15)', 'Kaldırıldı', 'Kapak fotoğrafı kaldırıldı.');
+  } catch (e) {
+    showToast('⚠️','rgba(255,69,58,.15)','Hata','Kapak fotoğrafı kaldırılamadı.');
+  }
+}
+
+async function sendVerificationEmail() {
+  if (!user || user.emailVerified) return;
+  try {
+    await user.sendEmailVerification();
+    showToast('✓', 'rgba(48,209,88,.15)', 'Gönderildi', 'Doğrulama e-postası gönderildi, gelen kutunu kontrol et.');
+  } catch (e) {
+    showToast('⚠️','rgba(255,69,58,.15)','Hata','E-posta gönderilemedi: ' + (e.message || ''));
+  }
 }
 
 // Kullanıcı adı benzersizliğini teknohane_usernames koleksiyonunda transaction ile garanti eder
@@ -1702,6 +1941,7 @@ async function saveProfileInfo() {
   if (!user) return;
   const err = document.getElementById('ep-err');
   err.textContent = ''; err.classList.remove('on');
+  if (epPhotoUploading) { err.textContent = 'Fotoğraf yükleniyor, lütfen bekle...'; err.classList.add('on'); return; }
   const name = document.getElementById('ep-name').value.trim();
   const uname = document.getElementById('ep-username').value.trim().toLowerCase();
   const bio = document.getElementById('ep-bio').value.trim();
@@ -1763,9 +2003,12 @@ function renderPhoneEditModal() {
   body.innerHTML = `
     <div class="fg"><label class="fl">Şu Anki Telefonum</label></div>
     ${cur ? `
-      <div class="pcol-prev-item" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div class="pcol-prev-item" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;width:auto">
         <span>${cur.brand} ${cur.model}</span>
-        <span onclick="removeCurrentPhone()" style="color:var(--red);cursor:pointer;font-size:12px;font-weight:600">Kaldır</span>
+        <span style="display:flex;gap:12px;align-items:center">
+          <span onclick="editCurrentPhone()" style="cursor:pointer;font-size:13px">✏️</span>
+          <span onclick="removeCurrentPhone()" style="color:var(--red);cursor:pointer;font-size:12px;font-weight:600">Kaldır</span>
+        </span>
       </div>` : `
       <div class="fg"><input class="fi" type="text" id="cp-brand" placeholder="Marka (örn. Google)"></div>
       <div class="fg"><input class="fi" type="text" id="cp-model" placeholder="Model (örn. Pixel 10 Pro XL)"></div>
@@ -1775,7 +2018,11 @@ function renderPhoneEditModal() {
       ${prev.length ? prev.map(p => `
         <div class="pcol-prev-item" style="display:flex;align-items:center;justify-content:space-between;width:auto">
           <span>${p.brand} ${p.model}</span>
-          <span onclick="removePreviousPhone('${p.id}')" style="color:var(--red);cursor:pointer;font-size:12px;font-weight:600">✕</span>
+          <span style="display:flex;gap:10px;align-items:center">
+            <span onclick="markPreviousAsCurrent('${p.id}')" style="cursor:pointer;font-size:11px;color:var(--cyan);font-weight:600">Kullanıyorum</span>
+            <span onclick="editPreviousPhone('${p.id}')" style="cursor:pointer;font-size:13px">✏️</span>
+            <span onclick="removePreviousPhone('${p.id}')" style="color:var(--red);cursor:pointer;font-size:12px;font-weight:600">✕</span>
+          </span>
         </div>`).join('') : `<div class="no" style="padding:12px 0">Henüz eski telefon eklenmedi</div>`}
     </div>
     <div class="fg"><input class="fi" type="text" id="pp-brand" placeholder="Marka"></div>
@@ -1783,16 +2030,29 @@ function renderPhoneEditModal() {
     <button class="sbtn2" onclick="addPreviousPhone()">+ Eski Telefon Ekle</button>`;
 }
 
-async function saveCurrentPhone() {
-  const brand = document.getElementById('cp-brand').value.trim();
-  const model = document.getElementById('cp-model').value.trim();
-  if (!brand || !model) { showToast('⚠️','rgba(255,69,58,.15)','Eksik Bilgi','Marka ve model alanlarını doldur.'); return; }
-  const phone = { brand, model };
+async function saveCurrentPhoneDirect(phone) {
   await db.collection('teknohane_users').doc(user.uid).set({ currentPhone: phone }, { merge: true });
   myProfileData.currentPhone = phone;
   renderPhoneEditModal();
   rprof();
-  showToast('✓', 'rgba(48,209,88,.15)', 'Kaydedildi', 'Şu anki telefonun güncellendi.');
+  showToast('✓', 'rgba(48,209,88,.15)', 'Kaydedildi', 'Telefon bilgisi güncellendi.');
+}
+
+async function saveCurrentPhone() {
+  const brand = document.getElementById('cp-brand').value.trim();
+  const model = document.getElementById('cp-model').value.trim();
+  if (!brand || !model) { showToast('⚠️','rgba(255,69,58,.15)','Eksik Bilgi','Marka ve model alanlarını doldur.'); return; }
+  await saveCurrentPhoneDirect({ brand, model });
+}
+
+function editCurrentPhone() {
+  const cur = myProfileData.currentPhone;
+  if (!cur) return;
+  const brand = prompt('Marka', cur.brand);
+  if (brand === null || !brand.trim()) return;
+  const model = prompt('Model', cur.model);
+  if (model === null || !model.trim()) return;
+  saveCurrentPhoneDirect({ brand: brand.trim(), model: model.trim() });
 }
 
 async function removeCurrentPhone() {
@@ -1823,6 +2083,51 @@ async function removePreviousPhone(id) {
   renderPhoneEditModal();
   rprof();
   showToast('✓', 'rgba(48,209,88,.15)', 'Kaydedildi', 'Telefon koleksiyonundan kaldırıldı.');
+}
+
+function editPreviousPhone(id) {
+  const phone = (myProfileData.previousPhones||[]).find(p => p.id === id);
+  if (!phone) return;
+  const brand = prompt('Marka', phone.brand);
+  if (brand === null || !brand.trim()) return;
+  const model = prompt('Model', phone.model);
+  if (model === null || !model.trim()) return;
+  savePreviousPhoneEdit(id, brand.trim(), model.trim());
+}
+
+async function savePreviousPhoneEdit(id, brand, model) {
+  const list = (myProfileData.previousPhones||[]).map(p => p.id === id ? { ...p, brand, model } : p);
+  await db.collection('teknohane_users').doc(user.uid).set({ previousPhones: list }, { merge: true });
+  myProfileData.previousPhones = list;
+  renderPhoneEditModal();
+  rprof();
+  showToast('✓', 'rgba(48,209,88,.15)', 'Kaydedildi', 'Telefon bilgisi güncellendi.');
+}
+
+async function markPreviousAsCurrent(id) {
+  const phone = (myProfileData.previousPhones||[]).find(p => p.id === id);
+  if (!phone) return;
+  const oldCurrent = myProfileData.currentPhone;
+  let newPrevious = (myProfileData.previousPhones||[]).filter(p => p.id !== id);
+  if (oldCurrent) newPrevious = [...newPrevious, { id: 'p' + Date.now(), brand: oldCurrent.brand, model: oldCurrent.model }];
+  const newCurrent = { brand: phone.brand, model: phone.model };
+  await db.collection('teknohane_users').doc(user.uid).set({ currentPhone: newCurrent, previousPhones: newPrevious }, { merge: true });
+  myProfileData.currentPhone = newCurrent;
+  myProfileData.previousPhones = newPrevious;
+  renderPhoneEditModal();
+  rprof();
+  showToast('✓', 'rgba(48,209,88,.15)', 'Kaydedildi', 'Şu anki telefonun güncellendi.');
+}
+
+// Tek bir gizlilik ayarını açıp kapatır, getPrivacy() ile aynı varsayılanları kullanarak Firestore'a yazar.
+async function togglePrivacySetting(key) {
+  if (!user) return;
+  const current = getPrivacy(myProfileData);
+  const updated = { ...current, [key]: !current[key] };
+  await db.collection('teknohane_users').doc(user.uid).set({ privacy: updated }, { merge: true });
+  myProfileData.privacy = updated;
+  rprof();
+  showToast('✓', 'rgba(48,209,88,.15)', 'Kaydedildi', 'Gizlilik ayarın güncellendi.');
 }
 
 async function changePassword() {
@@ -3236,7 +3541,7 @@ function rForum() {
         </div>
         <div class="post-title">${p.title||''}</div>
         <div class="post-body-preview">${p.body||''}</div>
-        <div style="font-size:11px;color:var(--text3);margin-top:6px">${p.authorName||'—'} · ${ts}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:6px"><span onclick="event.stopPropagation();openPublicProfile('${p.uid}','${(p.authorName||'').replace(/'/g,"\\'")}')" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted">${p.authorName||'—'}</span> · ${ts}</div>
       </div>
       <div class="post-card-footer">
         <div class="post-card-footer-item">
@@ -3351,7 +3656,7 @@ function renderPostDetail() {
         ${catLabel?`<div class="post-cat-badge">${catLabel}</div>`:''}
       </div>
       <div style="font-size:18px;font-weight:700;margin-bottom:8px;line-height:1.3">${p.title}</div>
-      <div style="font-size:12px;color:var(--text3);margin-bottom:12px">${p.authorName} · ${ts}</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:12px"><span onclick="openPublicProfile('${p.uid}','${(p.authorName||'').replace(/'/g,"\\'")}')" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted">${p.authorName}</span> · ${ts}</div>
     </div>
     ${p.imageUrl?`<img class="post-detail-img" src="${p.imageUrl}" onclick="openFullscreen('${p.imageUrl}')">` : ''}
     <div class="post-detail-body">${p.body||''}</div>
@@ -3388,7 +3693,7 @@ function renderComments() {
     const ts = c.createdAt?.toDate ? timeAgo(c.createdAt.toDate()) : '';
     return `<div class="comment-item ${isBest?'best':''}" id="cmt-${c.id}">
       ${isBest?'<div class="best-badge">✓ En İyi Cevap</div>':''}
-      <div class="comment-author">${c.authorName||'—'}</div>
+      <div class="comment-author" onclick="openPublicProfile('${c.uid}','${(c.authorName||'').replace(/'/g,"\\'")}')" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;display:inline-block">${c.authorName||'—'}</div>
       <div class="comment-text">${c.body||''}</div>
       ${c.imageUrl?`<img class="comment-img" src="${c.imageUrl}" onclick="openFullscreen('${c.imageUrl}')">` : ''}
       <div class="comment-meta">
@@ -3555,56 +3860,150 @@ function timeAgo(date) {
 }
 
 // GENEL KULLANICI PROFİLİ
-function openPublicProfile(uid, nameHint) {
+async function openPublicProfile(uid, nameHint) {
   const body = document.getElementById('pub-profile-body');
   if (!body) return;
+  document.getElementById('pub-profile-mo').classList.add('on');
+  body.innerHTML = `<div class="load" style="padding:60px 0"><div class="spin"></div></div>`;
 
-  // listings'ten bu kullanıcıya ait veriyi topla
+  const isMe = user && user.uid === uid;
+  const isViewerAdmin = user && ADMINS.includes(user.email);
+  let data = {};
+  try {
+    const snap = await db.collection('teknohane_users').doc(uid).get();
+    if (snap.exists) data = snap.data();
+  } catch (e) { /* çevrimdışı olabilir, elimizdeki en iyi tahminle devam ederiz */ }
+
+  const privacy = getPrivacy(data);
+  if (!isMe && !privacy.publicProfile && !isViewerAdmin) {
+    body.innerHTML = `<div class="no" style="padding:60px 24px">🔒 Bu kullanıcı profilini gizli tutuyor.</div>`;
+    return;
+  }
+
+  renderPublicProfileBody(uid, data, nameHint, isMe, privacy);
+
+  if (!privacy.hideForumActivity) {
+    db.collectionGroup('comments').where('uid','==',uid).orderBy('createdAt','desc').limit(5).get()
+      .then(snap => {
+        const el = document.getElementById('pub-comments-list');
+        if (!el) return;
+        if (snap.empty) { el.innerHTML = '<div class="ud-empty">Henüz yorum yok</div>'; return; }
+        el.innerHTML = snap.docs.map(d => {
+          const cm = d.data();
+          return `<div class="pact-row"><div class="pact-ic">💭</div><div class="pact-body"><div class="pact-txt">${(cm.text||'').slice(0,80)}</div><div class="pact-time">${cm.createdAt?.toDate?timeAgo(cm.createdAt.toDate()):''}</div></div></div>`;
+        }).join('');
+      })
+      .catch(() => { const el = document.getElementById('pub-comments-list'); if (el) el.innerHTML = '<div class="ud-empty">Yorumlar şu an gösterilemiyor</div>'; });
+  }
+}
+
+function renderPublicProfileBody(uid, data, nameHint, isMe, privacy) {
+  const body = document.getElementById('pub-profile-body');
   const userListings = listings.filter(l => l.uid === uid && l.approved !== false && !l.sold);
   const soldListings = listings.filter(l => l.uid === uid && l.sold);
   const refCount = listings.filter(l => (l.referrers||[]).some(r => r.uid === uid)).length;
-  const isMe = user && user.uid === uid;
+  const isTargetAdmin = data.email && ADMINS.includes(data.email);
 
-  // İsim: hint → ilandan → referanstan
-  let displayName = nameHint;
+  let displayName = data.displayName || nameHint;
   if (!displayName) {
     const l = listings.find(x => x.uid === uid);
     displayName = l?.ownerName;
   }
-  if (!displayName) {
-    for (const l of listings) {
-      const ref = (l.referrers||[]).find(r => r.uid === uid);
-      if (ref?.name) { displayName = ref.name; break; }
-    }
-  }
   displayName = displayName || 'Kullanıcı';
+  const av = data.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=0D1526&color=00D4FF&size=256`;
 
-  // adminUsersCache'te ek bilgi var mı?
-  const cached = adminUsersCache?.find(x => x.uid === uid);
-  const joinedDate = cached?.createdAt?.toDate ? cached.createdAt.toDate().toLocaleDateString('tr-TR', {month:'long', year:'numeric'}) : null;
+  const scoreInfo = computeTeknohaneScore(uid, data);
+  const teknohaneScore = scoreInfo.score;
+  const scoreRingOffset = (276.5 * (1 - teknohaneScore/100)).toFixed(1);
+  const myRating = typeof data.rating === 'number' ? data.rating : null;
+  const BADGES_DEF = computeBadges(uid, data, isTargetAdmin, scoreInfo);
+  const joinedDateStr = data.createdAt?.toDate ? data.createdAt.toDate().toLocaleDateString('tr-TR',{month:'long',year:'numeric'}) : null;
+  const lastSeenStr = data.lastSeen?.toDate ? timeAgo(data.lastSeen.toDate()) : null;
 
   body.innerHTML = `
-    <div class="pub-hero">
-      <div class="pub-av">${displayName[0].toUpperCase()}</div>
-      <div class="pub-name">${displayName}${isMe?' (Sen)':''}</div>
-      <div id="pub-rating-badge" style="font-size:13px;font-weight:700;color:#FFCC00;margin-top:4px"><span style="color:var(--text3);font-weight:400">Yükleniyor…</span></div>
-      ${joinedDate ? `<div class="pub-joined">📅 ${joinedDate}'den beri üye</div>` : ''}
-      ${!isMe ? `<button class="sbtn2" style="padding:9px 18px;margin-top:12px;display:inline-flex;align-items:center;gap:6px" onclick="closemo('pub-profile-mo');openChatWith('${uid}','${displayName.replace(/'/g,"\\'")}')">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-        Mesaj Gönder
-      </button>` : ''}
+    <div class="phero">
+      <div class="pcover" style="${data.coverPhotoURL?`background-image:url('${data.coverPhotoURL}');background-size:cover;background-position:center;`:''}"></div>
+      <img class="pav" src="${av}" alt="">
+      <div class="pname">${displayName}${isMe?' (Sen)':''}</div>
+      ${data.username?`<div class="puname">@${data.username}</div>`:''}
+      ${data.bio?`<div class="pbio">${data.bio}</div>`:''}
+      <div class="pverify">
+        <span class="pverify-item${data.emailVerified?' ok':''}">${data.emailVerified?'✓':'○'} E-posta ${data.emailVerified?'doğrulandı':'doğrulanmadı'}</span>
+      </div>
+      ${!isMe ? `
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:14px">
+        <button class="sbtn2" style="padding:9px 16px;width:auto;display:inline-flex;align-items:center;gap:6px" onclick="closemo('pub-profile-mo');openChatWith('${uid}','${displayName.replace(/'/g,"\\'")}')">💬 Mesaj Gönder</button>
+        <button class="sbtn2" style="padding:9px 16px;width:auto;background:var(--surf2)" onclick="document.getElementById('pub-listings-section')?.scrollIntoView({behavior:'smooth'})">🛍️ İlanları</button>
+        ${!privacy.hideForumActivity?`<button class="sbtn2" style="padding:9px 16px;width:auto;background:var(--surf2)" onclick="document.getElementById('pub-forum-section')?.scrollIntoView({behavior:'smooth'})">💬 Forum</button>`:''}
+        <button class="sbtn2" style="padding:9px 16px;width:auto;background:var(--surf2)" onclick="showToast('ℹ️','rgba(0,212,255,.15)','Takip Et','Takip sistemi altyapısı hazırlanıyor, yakında aktif olacak.')">➕ Takip Et</button>
+        <button class="sbtn2" style="padding:9px 16px;width:auto;background:var(--surf2)" onclick="shareProfile('${uid}','${displayName.replace(/'/g,"\\'")}')">🔗 Paylaş</button>
+      </div>` : `
+      <div style="margin-top:14px"><button class="sbtn2" style="width:auto;padding:9px 16px" onclick="shareProfile('${uid}','${displayName.replace(/'/g,"\\'")}')">🔗 Profilimi Paylaş</button></div>`}
     </div>
+
+    ${!privacy.hideScore ? `
+    <div class="tscore-card">
+      <div class="tscore-ring">
+        <svg viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="44" stroke="var(--border2)" stroke-width="6" fill="none"/>
+          <circle cx="50" cy="50" r="44" stroke="var(--cyan)" stroke-width="6" fill="none" stroke-linecap="round" stroke-dasharray="276.5" stroke-dashoffset="${scoreRingOffset}" transform="rotate(-90 50 50)"/>
+        </svg>
+        <div class="tscore-num">${teknohaneScore}</div>
+      </div>
+      <div class="tscore-label">Teknohane Skoru</div>
+    </div>` : ''}
+
+    <div class="trust-card">
+      ${myRating !== null ? `
+      <div class="trust-stars">${'★'.repeat(Math.round(myRating))}${'☆'.repeat(5-Math.round(myRating))}</div>
+      <div class="trust-num">${myRating.toFixed(1)}<span>/5</span></div>` : `
+      <div class="trust-stars" style="color:var(--text3);">☆☆☆☆☆</div>
+      <div class="trust-num" style="font-size:14px;color:var(--text2);">Henüz hesaplanmadı</div>`}
+    </div>
+
     <div class="pub-stats">
       <div class="apstat"><div class="apstat-n">${userListings.length}</div><div class="apstat-l">Aktif İlan</div></div>
       <div class="apstat"><div class="apstat-n">${soldListings.length}</div><div class="apstat-l">Satılan</div></div>
       <div class="apstat"><div class="apstat-n">${refCount}</div><div class="apstat-l">Referans</div></div>
     </div>
+
+    ${!privacy.hideBadges ? `
+    <div class="pbadge-card">
+      <div class="psec-title">🏅 Rozetler</div>
+      <div class="pbadge-row">
+        ${BADGES_DEF.map(b=>`
+          <div class="pbadge-item${b.done?' earned':''}"${b.locked&&!b.done?` onclick="showToast('ℹ️','rgba(0,212,255,.15)','${b.label}','${b.info}')"`:''}>
+            <div class="pbadge-ic">${b.icon}</div><div class="pbadge-lbl">${b.label}</div>
+          </div>`).join('')}
+      </div>
+    </div>` : ''}
+
+    ${!privacy.hidePhones && data.currentPhone ? `
+    <div class="pcol-card">
+      <div class="psec-title">📱 Kullandığı Telefon</div>
+      <div class="pcol-current">
+        <div class="pcol-current-ic">📱</div>
+        <div><div class="pcol-current-name">${data.currentPhone.brand} ${data.currentPhone.model}</div></div>
+      </div>
+      ${(data.previousPhones||[]).length?`
+      <div class="pcol-prev-label">Önceki telefonlar</div>
+      <div class="pcol-prev-row">${data.previousPhones.map(p=>`<div class="pcol-prev-item">${p.brand} ${p.model}</div>`).join('')}</div>`:''}
+    </div>` : ''}
+
+    <div class="pacc-card">
+      <div class="psec-title">Hakkında</div>
+      <div class="pacc-row"><span class="pacc-lbl">Üyelik Tarihi</span><span class="pacc-val">${joinedDateStr||'Henüz veri bulunmuyor'}</span></div>
+      ${!privacy.hideLastSeen?`<div class="pacc-row"><span class="pacc-lbl">Son Görülme</span><span class="pacc-val">${lastSeenStr||'Henüz veri bulunmuyor'}</span></div>`:''}
+    </div>
+
     <div class="ud-section">
       <div class="ud-section-title">Satıcı Değerlendirmeleri</div>
       <div id="sr-list"><div class="load"><div class="spin"></div></div></div>
       ${renderSellerReviewForm(uid)}
     </div>
-    <div class="ud-section">
+
+    ${!privacy.hideListings ? `
+    <div class="ud-section" id="pub-listings-section">
       <div class="ud-section-title">Aktif İlanlar</div>
       ${userListings.length ? userListings.map(l => `
         <div class="pub-listing-card" onclick="closemo('pub-profile-mo');openDetail('${l.id}')">
@@ -3627,10 +4026,33 @@ function openPublicProfile(uid, nameHint) {
             <div class="pub-listing-price">₺${parseInt(l.price||0).toLocaleString('tr-TR')}</div>
           </div>
         </div>`).join('')}
+    </div>` : ''}` : ''}
+
+    ${!privacy.hideForumActivity ? `
+    <div class="ud-section" id="pub-forum-section">
+      <div class="ud-section-title">Forumdaki Konular</div>
+      ${(() => { const posts = forumPosts.filter(p=>p.uid===uid).slice(0,5);
+        return posts.length ? posts.map(p=>`<div class="pact-row"><div class="pact-ic">📝</div><div class="pact-body"><div class="pact-txt">${p.title||'Forum gönderisi'}</div><div class="pact-time">${p.createdAt?.toDate?timeAgo(p.createdAt.toDate()):''}</div></div></div>`).join('') : '<div class="ud-empty">Henüz forum konusu yok</div>'; })()}
+    </div>
+    <div class="ud-section">
+      <div class="ud-section-title">Yorumları</div>
+      <div id="pub-comments-list"><div class="load"><div class="spin"></div></div></div>
     </div>` : ''}`;
 
-  document.getElementById('pub-profile-mo').classList.add('on');
   loadSellerReviews(uid, 'sr-list');
+}
+
+async function shareProfile(uid, name) {
+  const url = `https://teknohane.github.io/teknohane/?profile=${uid}`;
+  const shareData = { title: `Teknohane — ${name}`, text: `${name} adlı kullanıcının Teknohane profiline göz at.`, url };
+  try {
+    if (navigator.share) {
+      await navigator.share(shareData);
+    } else {
+      await navigator.clipboard.writeText(url);
+      showToast('✓', 'rgba(48,209,88,.15)', 'Kopyalandı', 'Profil bağlantısı panoya kopyalandı.');
+    }
+  } catch (e) { /* kullanıcı paylaşımı iptal etmiş olabilir, sessizce geç */ }
 }
 
 // KULLANICI ARAMA
@@ -4264,11 +4686,23 @@ function rsingle(p, side) {
 }
 
 // pA/pB durumuna göre karşılaştırma, tekli inceleme ya da boş görünüm arasında geçiş yapar
+let lastCountedCompare = null;
 function refreshCmp() {
-  if (pA && pB) rcmptbl();
+  if (pA && pB) { rcmptbl(); trackCompareUsage(pA, pB); }
   else if (pA) rsingle(pA, 'a');
   else if (pB) rsingle(pB, 'b');
   else document.getElementById('cmp-res').innerHTML = '';
+}
+
+// Kullanıcı tam bir karşılaştırma (iki telefon seçili) gördüğünde, aynı çift için tekrar saymadan Firestore sayacını artırır.
+// Bu veri Teknohane Skoru, Profil Tamamlama ve ileride rozet sisteminde kullanılır.
+function trackCompareUsage(a, b) {
+  if (!user) return;
+  const key = [a.name, b.name].sort().join('|');
+  if (key === lastCountedCompare) return;
+  lastCountedCompare = key;
+  db.collection('teknohane_users').doc(user.uid).set({ compareCount: firebase.firestore.FieldValue.increment(1) }, { merge: true }).catch(()=>{});
+  myProfileData.compareCount = (myProfileData.compareCount || 0) + 1;
 }
 
 function ppick(i) {
