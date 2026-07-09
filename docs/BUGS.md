@@ -2,50 +2,48 @@
 
 ## BUG-001
 
-**Durum:** Test Bekliyor
+Durum: Açık
 
-**Başlık**
+Android geri tuşu bazı ekranlarda çalışmıyor.
 
-Push Notification sistemi
+Mesajlar ve Destek ekranında geri tuşuna basıldığında uygulama ana ekrana dönüyor.
 
-**Açıklama**
-
-Kod tarafındaki düzenlemeler tamamlandı.
-
-Google Play üzerinden yayınlanan yeni sürümde gerçek cihaz testi bekleniyor.
+Önceki çözüm gerçek cihaz testinde başarılı olmadı.
 
 ---
 
 ## BUG-002
 
-**Durum:** Test Bekliyor
+Durum: Açık
 
-**Başlık**
+İlk bildirim izni verildikten sonra uygulama her açıldığında
 
-Android Donanım Geri Tuşu
+"Bildirim izni verildi"
 
-**Açıklama**
+bildirimi tekrar gösteriliyor.
 
-Mevcut popstate yapısı korunarak Android donanım geri tuşu sisteme bağlandı.
-
-Native tarafta @capacitor/app pluginının kurulu olduğu doğrulanmalı.
-
-Gerçek cihaz üzerinde tüm senaryolar test edilecek.
+İzin zaten verilmiş olmasına rağmen toast tekrar oluşuyor.
 
 ---
 
 ## BUG-003
 
-**Durum:** Açık
+Durum: Açık
 
-**Başlık**
+Gesture Navigation sırasında uygulama küçültülürken yeşil checkerboard arka plan oluşuyor.
 
-@capacitor/app Native Kurulumu
+Native tema kaynaklı olduğu düşünülüyor.
 
-**Açıklama**
+---
 
-Kod tarafındaki entegrasyon tamamlandı.
+## BUG-004
 
-Pluginın Android native tarafına kurulup kurulmadığı henüz doğrulanmadı.
+Durum: Planlandı
 
-Kurulum tamamlandıktan sonra yeni AAB oluşturulacak.
+Tarayıcıdan erişim tamamen kapatılacak.
+
+Web kullanıcıları yalnızca
+
+"Teknohane Mobil Uygulaması"
+
+yönlendirme ekranını görecek.
