@@ -1,36 +1,23 @@
 # NEXT TASK
 
-## Öncelik
+## Öncelik Sırası
 
-Android donanım geri tuşu düzeltmesini tamamen doğrulamak.
+### P0
 
-## Yapılacaklar
+- Android geri tuşu sorunu
+- Bildirim izni toast sorunu
 
-1. @capacitor/app pluginının kurulu olduğunu doğrula.
+### P1
 
-2. Gerekirse:
+- Gesture Navigation sırasında oluşan yeşil arka plan
 
-npm install @capacitor/app
+### P2
 
-çalıştır.
+- Tarayıcı erişimini kapatıp yalnızca mobil uygulamaya yönlendirme
 
-3. Ardından:
+### Daha Sonra
 
-npx cap sync android
-
-çalıştır.
-
-4. Android Studio'da Clean Project yap.
-
-5. Yeni Signed AAB oluştur.
-
-6. Google Play Internal Testing sürümünü yayınla.
-
-7. Gerçek cihazda aşağıdaki senaryoları test et.
-
-- Destek sayfası
-- Mesajlar sayfası
-- İlan detay ekranı
-- Tam ekran görsel
-- Ana ekran
-- Çift basınca uygulamadan çıkış
+- Yönetici Paneli Aşama 4
+- Ban Sistemi
+- Dashboard
+- Şikayet Sistemi
