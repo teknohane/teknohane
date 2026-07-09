@@ -1130,7 +1130,7 @@ body.tk-browser #browser-gate{
     <div class="mh"></div>
     <div class="mtit">Profili Düzenle</div>
 
-    <div class="pav-edit-wrap" onclick="document.getElementById('ep-photo-input').click()">
+    <div class="pav-edit-wrap" onclick="pickProfilePhoto()">
       <img id="ep-avatar-preview" src="" alt="">
       <div class="pav-edit-badge">
         <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
@@ -1307,6 +1307,15 @@ body.tk-browser #browser-gate{
   </div>
 </div>
 
+<!-- TAKİPÇİLER / TAKİP EDİLENLER MODAL -->
+<div class="mo" id="followlist-mo" onclick="closemo('followlist-mo')">
+  <div class="ms" onclick="event.stopPropagation()" style="max-height:85vh">
+    <div class="mh"></div>
+    <div class="mtit" id="followlist-title">Takipçiler</div>
+    <div id="followlist-body"></div>
+  </div>
+</div>
+
 <!-- KULLANICI ARAMA MODAL -->
 <div class="mo" id="user-search-mo" onclick="closemo('user-search-mo')">
   <div class="ms" onclick="event.stopPropagation()" style="max-height:85vh">
@@ -1354,9 +1363,44 @@ const db = firebase.firestore();
 const storage = firebase.storage();
 const PUSH_API = 'https://teknohane-push.yusuf-aykac.workers.dev/';
 const VAPID_KEY = 'BPt5vY5P3Dr9DG2zHOQwhQKnH6V5UruqGisQRTlGWxkNaAYtYKAEG9xiTHn78yGq1DlrsnWFSazOquL_9krdtjY';
-const ADMINS = ['yusuf.aykac@gmail.com','memetklc5933@gmail.com'];
 let user = null;
 let myProfileData = {};
+
+// ==== YÖNETİCİ ROL/YETKİ SİSTEMİ ====
+// Sabit e-posta listesi tamamen kaldırıldı. Artık tek doğruluk kaynağı Firestore'daki
+// admins/{uid} dokümanıdır. Giriş yapıldığında bir kez okunup myAdminRole'e önbelleklenir.
+let myAdminRole = null; // null = admin değil, aksi halde { role, permissions, isActive, ... }
+
+// Her rol için varsayılan yetki matrisi — yeni bir admin dokümanı oluşturulurken referans olarak
+// kullanılır. Her admin dokümanındaki `permissions` alanı bundan bağımsız olarak elle özelleştirilebilir
+// (örn. belirli bir moderatöre ekstra bir yetki tanımlamak için).
+const ROLE_DEFAULT_PERMISSIONS = {
+  super_admin: { manageUsers:true, manageListings:true, banUsers:true, manageAdmins:true, sendNotifications:true, viewLogs:true, manageBadges:true, manageComplaints:true, manageContent:true },
+  admin:       { manageUsers:true, manageListings:true, banUsers:true, manageAdmins:false, sendNotifications:true, viewLogs:true, manageBadges:true, manageComplaints:true, manageContent:true },
+  moderator:   { manageUsers:false, manageListings:true, banUsers:false, manageAdmins:false, sendNotifications:false, viewLogs:true, manageBadges:false, manageComplaints:true, manageContent:false },
+  editor:      { manageUsers:false, manageListings:false, banUsers:false, manageAdmins:false, sendNotifications:false, viewLogs:false, manageBadges:false, manageComplaints:false, manageContent:true },
+};
+
+// Kullanıcının admin dokümanını Firestore'dan okuyup önbelleğe alır. Giriş yapıldığında bir kez çağrılır.
+async function loadMyAdminRole(uid) {
+  try {
+    const snap = await db.collection('admins').doc(uid).get();
+    myAdminRole = (snap.exists && snap.data().isActive !== false) ? snap.data() : null;
+  } catch (e) {
+    myAdminRole = null; // Doküman yoksa veya okuma reddedildiyse (admin değilsin) sessizce normal kullanıcı gibi devam et
+  }
+  if (document.getElementById('s-profile')?.classList.contains('on')) rprof();
+}
+
+// Giriş yapmış kullanıcının aktif bir admin rolü olup olmadığını söyler (panel giriş kontrolü için).
+function isAdminNow() {
+  return !!(user && myAdminRole && myAdminRole.isActive !== false);
+}
+
+// Giriş yapmış kullanıcının belirli bir yetkiye sahip olup olmadığını söyler (aksiyon bazlı kontrol için).
+function hasPermission(perm) {
+  return isAdminNow() && !!myAdminRole.permissions?.[perm];
+}
 
 // Bir görsel dosyasını (File) belirtilen maksimum kenar uzunluğuna göre yeniden boyutlandırıp WebP Blob'a dönüştürür.
 // Hem profil hem kapak fotoğrafı yüklemesinde ortak kullanılır (kod tekrarını önler).
@@ -1417,6 +1461,38 @@ function uploadToStorage(path, blob, mimeType, onProgress) {
 }
 
 // Kullanıcının native (Capacitor) mi yoksa hangi tarayıcıdan bağlandığını en iyi çaba (best-effort) ile tahmin eder.
+// ==== ONLINE DURUMU (teknohane_presence koleksiyonu, kurallarda zaten hazırdı ama hiç kullanılmıyordu) ====
+// "Online" kabul edilme eşiği: son 2 dakika içinde bir heartbeat yazılmışsa.
+const PRESENCE_ONLINE_WINDOW_MS = 2 * 60 * 1000;
+let presenceHeartbeatTimer = null;
+
+function startPresenceHeartbeat(uid) {
+  writePresenceHeartbeat(uid);
+  if (presenceHeartbeatTimer) clearInterval(presenceHeartbeatTimer);
+  presenceHeartbeatTimer = setInterval(() => {
+    if (document.visibilityState === 'visible' && user) writePresenceHeartbeat(uid);
+  }, 60 * 1000);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && user) writePresenceHeartbeat(uid);
+  });
+}
+
+function stopPresenceHeartbeat() {
+  if (presenceHeartbeatTimer) { clearInterval(presenceHeartbeatTimer); presenceHeartbeatTimer = null; }
+}
+
+function writePresenceHeartbeat(uid) {
+  db.collection('teknohane_presence').doc(uid).set({
+    online: true,
+    lastActive: firebase.firestore.FieldValue.serverTimestamp()
+  }, { merge: true }).catch(() => {});
+}
+
+function isPresenceOnline(presenceData) {
+  if (!presenceData?.lastActive?.toDate) return false;
+  return (Date.now() - presenceData.lastActive.toDate().getTime()) < PRESENCE_ONLINE_WINDOW_MS;
+}
+
 function detectDeviceLabel() {
   if (window.Capacitor && Capacitor.getPlatform) {
     const p = Capacitor.getPlatform();
@@ -1454,6 +1530,8 @@ auth.onAuthStateChanged(u => {
     syncUserProfile(u);
     subscribeNotifBadge(u.uid);
     subscribeChatBadge(u.uid);
+    startPresenceHeartbeat(u.uid);
+    loadMyAdminRole(u.uid);
   } else {
     document.getElementById('hav').style.display = 'none';
     document.getElementById('hlogin').style.display = 'flex';
@@ -1465,6 +1543,8 @@ auth.onAuthStateChanged(u => {
     if (listingsReady) rlistings();
     unsubNotifBadge?.();
     unsubChatBadge?.();
+    stopPresenceHeartbeat();
+    myAdminRole = null;
   }
 });
 
@@ -1597,6 +1677,7 @@ function getPrivacy(profileData) {
   return {
     publicProfile: p.publicProfile !== false,
     hidePhones: !!p.hidePhones,
+    hidePhoneNumber: !!p.hidePhoneNumber,
     hideLastSeen: !!p.hideLastSeen,
     hideScore: !!p.hideScore,
     hideBadges: !!p.hideBadges,
@@ -1622,7 +1703,7 @@ function animateProfileStats() {
 function rprof() {
   const c = document.getElementById('profile-c');
   if (!c) return;
-  const isAdmin = user && ADMINS.includes(user.email);
+  const isAdmin = isAdminNow();
   if (user) {
     const av = myProfileData.photoURL || user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName||user.email)}&background=0D1526&color=00D4FF&size=256`;
     const hasVerifiedPhoneNumber = !!myProfileData.phoneNumber;
@@ -1680,7 +1761,7 @@ function rprof() {
     c.innerHTML = `
       <div class="phero">
         <div class="pcover" style="${myProfileData.coverPhotoURL?`background-image:url('${myProfileData.coverPhotoURL}');background-size:cover;background-position:center;`:''}">
-          <div class="pcover-edit" onclick="document.getElementById('cover-photo-input').click()">
+          <div class="pcover-edit" onclick="pickCoverPhoto()">
             <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
           </div>
           ${myProfileData.coverPhotoURL?`<div class="pcover-remove" onclick="removeCoverPhoto()">✕</div>`:''}
@@ -1701,6 +1782,16 @@ function rprof() {
         <div class="pverify">
           <span class="pverify-item${user.emailVerified?' ok':''}">${user.emailVerified?'✓':'○'} E-posta ${user.emailVerified?'doğrulandı':'doğrulanmadı'}</span>
           <span class="pverify-item${hasVerifiedPhoneNumber?' ok':''}">${hasVerifiedPhoneNumber?'✓':'○'} Telefon ${hasVerifiedPhoneNumber?'doğrulandı':'eklenmedi'}</span>
+        </div>
+        <div style="display:flex;justify-content:center;gap:28px;margin-top:14px">
+          <div style="text-align:center;cursor:pointer" onclick="openFollowList('${user.uid}','followers','${(user.displayName||'Sen').replace(/'/g,"\\'")}')">
+            <div style="font-size:18px;font-weight:700" id="my-followers-count">…</div>
+            <div style="font-size:11px;color:var(--text2)">Takipçi</div>
+          </div>
+          <div style="text-align:center;cursor:pointer" onclick="openFollowList('${user.uid}','following','${(user.displayName||'Sen').replace(/'/g,"\\'")}')">
+            <div style="font-size:18px;font-weight:700">${(myProfileData.followingUids||[]).length}</div>
+            <div style="font-size:11px;color:var(--text2)">Takip Edilen</div>
+          </div>
         </div>
       </div>
       <div class="tscore-card">
@@ -1782,10 +1873,16 @@ function rprof() {
         <div class="pacc-row"><span class="pacc-lbl">E-posta Doğrulama</span><span class="pacc-val"${user.emailVerified?' style="color:#3DDC97"':''}>${user.emailVerified?'✓ Doğrulandı':'Doğrulanmadı'}</span></div>
         ${!user.emailVerified?`<button class="apbtn" onclick="sendVerificationEmail()" style="margin:4px 0 12px">Doğrulama E-postası Gönder</button>`:''}
         <div class="pacc-row"><span class="pacc-lbl">Telefon Doğrulama</span><span class="pacc-val"${hasVerifiedPhoneNumber?' style="color:#3DDC97"':' style="cursor:pointer;color:var(--cyan)" onclick="openPhoneVerify()"'}>${hasVerifiedPhoneNumber?'✓ '+myProfileData.phoneNumber:'Doğrula'}</span></div>
+        ${hasVerifiedPhoneNumber?`<div style="display:flex;gap:8px;margin:4px 0 12px">
+          <button class="apbtn" style="flex:1;padding:10px;font-size:13px" onclick="openPhoneVerify()">Değiştir</button>
+          <button class="apbtn" style="flex:1;padding:10px;font-size:13px;background:rgba(255,69,58,.08);border-color:rgba(255,69,58,.25);color:var(--red)" onclick="removeVerifiedPhoneNumber()">Kaldır</button>
+        </div>`:''}
         <div class="pacc-row"><span class="pacc-lbl">Şifre</span><span class="pacc-val" style="cursor:pointer;color:var(--cyan)" onclick="openEditProfile()">Değiştir</span></div>
-        <div class="pacc-row"><span class="pacc-lbl">Son Giriş</span><span class="pacc-val">${lastSignIn?lastSignIn.toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}):'Henüz veri bulunmuyor'}</span></div>
+        <div class="pacc-row"><span class="pacc-lbl">Durum</span><span class="pacc-val" style="color:#3DDC97">● Çevrimiçi</span></div>
+        <div class="pacc-row"><span class="pacc-lbl">Son Giriş</span><span class="pacc-val">${lastSignIn?timeAgo(lastSignIn):'Henüz veri bulunmuyor'}</span></div>
         <div class="pacc-row"><span class="pacc-lbl">Kullanılan Cihaz</span><span class="pacc-val">${myProfileData.lastLoginDevice || detectDeviceLabel()}</span></div>
         <div class="pacc-row"><span class="pacc-lbl">Aktif Oturumlar</span><span class="pacc-val" id="pacc-sessions-count">Yükleniyor…</span></div>
+        <button class="apbtn" style="margin-top:12px;background:rgba(255,69,58,.08);border-color:rgba(255,69,58,.25);color:var(--red)" onclick="auth.signOut()">Oturumu Kapat</button>
       </div>
       ${isAdmin?`<div class="apanel">
         <div class="aptit"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#FFBE3C" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Yönetici Paneli</div>
@@ -1816,6 +1913,7 @@ function rprof() {
         <div class="psec-title">🔐 Gizlilik</div>
         <div class="pacc-row"><span class="pacc-lbl">Profil Görünürlüğü</span><span class="pacc-val" style="cursor:pointer;color:var(--cyan)" onclick="togglePrivacySetting('publicProfile')">${myPrivacy.publicProfile?'Herkese Açık':'Gizli'}</span></div>
         <div class="pacc-row"><span class="pacc-lbl">Telefon Koleksiyonu</span><span class="pacc-val" style="cursor:pointer;color:var(--cyan)" onclick="togglePrivacySetting('hidePhones')">${myPrivacy.hidePhones?'Gizli':'Görünür'}</span></div>
+        <div class="pacc-row"><span class="pacc-lbl">Telefon Numaram</span><span class="pacc-val" style="cursor:pointer;color:var(--cyan)" onclick="togglePrivacySetting('hidePhoneNumber')">${myPrivacy.hidePhoneNumber?'Gizli':'Görünür'}</span></div>
         <div class="pacc-row"><span class="pacc-lbl">Son Görülme</span><span class="pacc-val" style="cursor:pointer;color:var(--cyan)" onclick="togglePrivacySetting('hideLastSeen')">${myPrivacy.hideLastSeen?'Gizli':'Görünür'}</span></div>
         <div class="pacc-row"><span class="pacc-lbl">Teknohane Skoru</span><span class="pacc-val" style="cursor:pointer;color:var(--cyan)" onclick="togglePrivacySetting('hideScore')">${myPrivacy.hideScore?'Gizli':'Görünür'}</span></div>
         <div class="pacc-row"><span class="pacc-lbl">Rozetler</span><span class="pacc-val" style="cursor:pointer;color:var(--cyan)" onclick="togglePrivacySetting('hideBadges')">${myPrivacy.hideBadges?'Gizli':'Görünür'}</span></div>
@@ -1830,6 +1928,7 @@ function rprof() {
     updateThemeToggleUI();
     animateProfileStats();
     loadActiveSessions();
+    loadMyFollowersCount();
   } else {
     c.innerHTML = `
       <div class="awrap">
@@ -1902,42 +2001,88 @@ function openEditProfile() {
   document.getElementById('edit-profile-mo').classList.add('on');
 }
 
+// Native uygulamada Capacitor Camera plugin'i (kamera/galeri seçici) kullanılır — HTML <input type=file>
+// Android WebView'lerde bazı cihazlarda 'change' olayını hiç tetiklemeyebiliyor, bu yüzden native
+// ortamda buna güvenmek yerine gerçek native picker'a geçiyoruz. Web'de dosya seçici olduğu gibi kalır.
+async function pickProfilePhoto() {
+  if (isNativeApp() && window.Capacitor?.Plugins?.Camera) {
+    try {
+      const photo = await Capacitor.Plugins.Camera.getPhoto({ quality: 90, allowEditing: false, resultType: 'dataUrl', source: 'PROMPT' });
+      const blob = await (await fetch(photo.dataUrl)).blob();
+      await processProfilePhoto(blob);
+    } catch (e) {
+      if (e?.message !== 'User cancelled photos app') {
+        console.error('Kamera/galeri açılamadı:', e);
+        showToast('⚠️','rgba(255,69,58,.15)','Hata','Fotoğraf seçilemedi: ' + (e.message||''));
+      }
+    }
+  } else {
+    document.getElementById('ep-photo-input').click();
+  }
+}
+
+async function pickCoverPhoto() {
+  if (isNativeApp() && window.Capacitor?.Plugins?.Camera) {
+    try {
+      const photo = await Capacitor.Plugins.Camera.getPhoto({ quality: 90, allowEditing: false, resultType: 'dataUrl', source: 'PROMPT' });
+      const blob = await (await fetch(photo.dataUrl)).blob();
+      await processCoverPhoto(blob);
+    } catch (e) {
+      if (e?.message !== 'User cancelled photos app') {
+        console.error('Kamera/galeri açılamadı:', e);
+        showToast('⚠️','rgba(255,69,58,.15)','Hata','Fotoğraf seçilemedi: ' + (e.message||''));
+      }
+    }
+  } else {
+    document.getElementById('cover-photo-input').click();
+  }
+}
+
+// Web'de <input type=file> hâlâ kullanılıyor (masaüstü/mobil tarayıcıda güvenilir çalışır) — seçilince buraya düşer.
 async function handleProfilePhoto(input) {
   const file = input.files[0];
-  if (!file) return;
-  if (file.size > 10 * 1024 * 1024) { showToast('⚠️','rgba(255,69,58,.15)','Dosya Çok Büyük','Fotoğraf en fazla 10MB olabilir.'); input.value=''; return; }
+  input.value = '';
+  if (file) await processProfilePhoto(file);
+}
+
+async function processProfilePhoto(file) {
+  if (file.size > 10 * 1024 * 1024) { showToast('⚠️','rgba(255,69,58,.15)','Dosya Çok Büyük','Fotoğraf en fazla 10MB olabilir.'); return; }
   if (!user) return;
   const preview = document.getElementById('ep-avatar-preview');
   const prog = document.getElementById('ep-photo-progress');
   const pctEl = document.getElementById('ep-photo-pct');
   try {
     epPhotoUploading = true;
-    prog.style.display = 'flex'; pctEl.textContent = '0%';
+    if (prog) { prog.style.display = 'flex'; if (pctEl) pctEl.textContent = '0%'; }
     const { blob, mimeType, ext } = await compressImageToWebP(file, 400, 0.85);
-    preview.src = URL.createObjectURL(blob);
+    if (preview) preview.src = URL.createObjectURL(blob);
     const oldUrl = myProfileData.photoURL;
     const newPath = `profile-photos/${user.uid}/avatar.${ext}`;
-    const url = await uploadToStorage(newPath, blob, mimeType, pct => pctEl.textContent = pct + '%');
+    const url = await uploadToStorage(newPath, blob, mimeType, pct => { if (pctEl) pctEl.textContent = pct + '%'; });
     // Farklı bir cihazdan farklı formatta (webp/jpg) yüklendiyse, eski dosya Storage'da birikmesin diye silinir.
     if (oldUrl && oldUrl.startsWith('https://') && !oldUrl.includes(encodeURIComponent(newPath))) {
       storage.refFromURL(oldUrl).delete().catch(()=>{});
     }
     epNewPhotoDataUrl = url;
+    showToast('✓', 'rgba(48,209,88,.15)', 'Hazır', 'Fotoğraf yüklendi — kaydetmek için "Kaydet"e bas.');
   } catch (e) {
     console.error('Profil fotoğrafı yükleme hatası:', e);
-    showToast('⚠️','rgba(255,69,58,.15)','Yükleme Başarısız', e.code ? `${e.message} (${e.code})` : (e.message || 'Fotoğraf yüklenemedi.'));
+    showToast('⚠️','rgba(255,69,58,.15)','Yükleme Başarısız', e.code ? `${e.message} (${e.code})` : (e.message || 'Fotoğraf yüklenemedi.'), null, 15000);
   } finally {
     epPhotoUploading = false;
-    prog.style.display = 'none';
-    input.value = '';
+    if (prog) prog.style.display = 'none';
   }
 }
 
 let coverPhotoUploading = false;
 async function handleCoverPhoto(input) {
   const file = input.files[0];
-  if (!file) return;
-  if (file.size > 10 * 1024 * 1024) { showToast('⚠️','rgba(255,69,58,.15)','Dosya Çok Büyük','Kapak fotoğrafı en fazla 10MB olabilir.'); input.value=''; return; }
+  input.value = '';
+  if (file) await processCoverPhoto(file);
+}
+
+async function processCoverPhoto(file) {
+  if (file.size > 10 * 1024 * 1024) { showToast('⚠️','rgba(255,69,58,.15)','Dosya Çok Büyük','Kapak fotoğrafı en fazla 10MB olabilir.'); return; }
   if (!user) return;
   const prog = document.getElementById('cover-progress');
   const pctEl = document.getElementById('cover-progress-pct');
@@ -1957,11 +2102,10 @@ async function handleCoverPhoto(input) {
     showToast('✓', 'rgba(48,209,88,.15)', 'Kaydedildi', 'Kapak fotoğrafın güncellendi.');
   } catch (e) {
     console.error('Kapak fotoğrafı yükleme hatası:', e);
-    showToast('⚠️','rgba(255,69,58,.15)','Yükleme Başarısız', e.code ? `${e.message} (${e.code})` : (e.message || 'Kapak fotoğrafı yüklenemedi.'));
+    showToast('⚠️','rgba(255,69,58,.15)','Yükleme Başarısız', e.code ? `${e.message} (${e.code})` : (e.message || 'Kapak fotoğrafı yüklenemedi.'), null, 15000);
   } finally {
     coverPhotoUploading = false;
     if (prog) prog.style.display = 'none';
-    input.value = '';
   }
 }
 
@@ -2009,6 +2153,13 @@ function loadActiveSessions() {
     .catch(() => { const el2 = document.getElementById('pacc-sessions-count'); if (el2) el2.textContent = 'Gösterilemiyor'; });
 }
 
+function loadMyFollowersCount() {
+  if (!user) return;
+  db.collection('teknohane_users').where('followingUids', 'array-contains', user.uid).get()
+    .then(snap => { const el = document.getElementById('my-followers-count'); if (el) el.textContent = snap.size; })
+    .catch(() => { const el = document.getElementById('my-followers-count'); if (el) el.textContent = '—'; });
+}
+
 // ==== TELEFON NUMARASI DOĞRULAMA (Firebase Phone Auth — gerçek SMS OTP akışı) ====
 // Not: Firebase Console → Authentication → Sign-in method → Phone aktif edilmiş olmalı.
 let pvRecaptchaVerifier = null;
@@ -2035,6 +2186,11 @@ async function sendPhoneVerificationCode() {
   const raw = document.getElementById('pv-phone').value.trim().replace(/\s+/g, '');
   if (!/^5\d{9}$/.test(raw)) { err.textContent = 'Geçerli bir telefon numarası gir (5XXXXXXXXX)'; err.classList.add('on'); return; }
   try {
+    // Zaten doğrulanmış bir numara varsa (değiştirme senaryosu), önce eskisini bağlantısını
+    // kaldırmadan yeni bir telefonu linklemek Firebase Auth'ta hata verir — önce unlink ediyoruz.
+    if (user.providerData.some(p => p.providerId === 'phone')) {
+      await user.unlink('phone').catch(() => {});
+    }
     pvConfirmationResult = await user.linkWithPhoneNumber('+90' + raw, pvRecaptchaVerifier);
     document.getElementById('pv-step-number').style.display = 'none';
     document.getElementById('pv-step-code').style.display = 'block';
@@ -2042,6 +2198,21 @@ async function sendPhoneVerificationCode() {
   } catch (e) {
     err.textContent = 'Kod gönderilemedi: ' + (e.message || 'bilinmeyen hata');
     err.classList.add('on');
+  }
+}
+
+async function removeVerifiedPhoneNumber() {
+  if (!user) return;
+  try {
+    if (user.providerData.some(p => p.providerId === 'phone')) {
+      await user.unlink('phone').catch(() => {});
+    }
+    await db.collection('teknohane_users').doc(user.uid).set({ phoneNumber: firebase.firestore.FieldValue.delete() }, { merge: true });
+    myProfileData.phoneNumber = null;
+    rprof();
+    showToast('✓', 'rgba(48,209,88,.15)', 'Kaldırıldı', 'Doğrulanmış telefon numaran kaldırıldı.');
+  } catch (e) {
+    showToast('⚠️', 'rgba(255,69,58,.15)', 'Hata', 'Telefon numarası kaldırılamadı.');
   }
 }
 
@@ -2387,7 +2558,7 @@ async function forgotPassword() {
 // Tüm ilan verisi, yeni ilan bildirimi ve referans bildirimi
 // AYNI onSnapshot'tan besleniyor — gereksiz tekrar okuma yok.
 
-function showToast(icon, iconBg, title, desc, onClick) {
+function showToast(icon, iconBg, title, desc, onClick, duration) {
   const wrap = document.getElementById('toast-wrap');
   if (!wrap) return;
   const t = document.createElement('div');
@@ -2396,7 +2567,7 @@ function showToast(icon, iconBg, title, desc, onClick) {
   if (onClick) t.onclick = () => { onClick(); dismissToast(t); };
   else t.onclick = () => dismissToast(t);
   wrap.appendChild(t);
-  setTimeout(() => dismissToast(t), 4500);
+  setTimeout(() => dismissToast(t), duration || 4500);
   while (wrap.children.length > 3) wrap.removeChild(wrap.firstChild);
 }
 function dismissToast(t) {
@@ -2998,7 +3169,7 @@ function loadListings() {
       listings = snap.docs.map(d => ({id:d.id,...d.data()}));
       listingsReady = true;
       rlistings();
-      if (user && ADMINS.includes(user.email)) updateAdminStats();
+      if (isAdminNow()) updateAdminStats();
       if (document.getElementById('s-profile')?.classList.contains('on')) renderProfileListings();
 
       // İlk yüklemede bildirim tetikleme, sadece referans sayaçlarını başlat
@@ -3021,7 +3192,7 @@ function loadListings() {
       }
 
       // Sonraki değişikliklerde bildirim kontrolü
-      const isAdminUser = user && ADMINS.includes(user.email);
+      const isAdminUser = isAdminNow();
       snap.docChanges().forEach(change => {
         const l = { id: change.doc.id, ...change.doc.data() };
 
@@ -3400,7 +3571,7 @@ function openDetail(id) {
   const isNewOpen = openListingId !== id;
   const l = currentListing;
   const mine = user && l.uid === user.uid;
-  const isAdmin = user && ADMINS.includes(user.email);
+  const isAdmin = isAdminNow();
   const pending = l.approved === false;
   const fav = favs.has(l.id);
   const ps = [l.photo1, l.photo2, l.photo3, l.photo4].filter(Boolean);
@@ -3553,7 +3724,7 @@ async function toggleSold(id) {
 }
 
 async function approveListing(id) {
-  if (!user || !ADMINS.includes(user.email)) return;
+  if (!user || !isAdminNow()) return;
   try {
     await db.collection('teknohane_listings').doc(id).update({ approved: true });
     const l = listings.find(x => x.id === id);
@@ -3639,7 +3810,7 @@ async function delListing(id) {
     listings = listings.filter(l => l.id !== id);
     rlistings();
     if (document.getElementById('admin-mo')?.classList.contains('on')) radmin();
-    if (user && ADMINS.includes(user.email)) updateAdminStats();
+    if (isAdminNow()) updateAdminStats();
   } catch(e) { alert('Silinemedi'); }
 }
 
@@ -3808,7 +3979,7 @@ function renderPostDetail() {
   const p = currentPost;
   const liked = user && (p.likes||[]).includes(user.uid);
   const isOwner = user && user.uid === p.uid;
-  const isAdmin = user && ADMINS.includes(user.email);
+  const isAdmin = isAdminNow();
   const canDelete = isOwner || isAdmin;
   const ts = p.createdAt?.toDate ? p.createdAt.toDate().toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric'}) : '';
   const pt = POST_TYPES[p.type] || POST_TYPES.tartisma;
@@ -3844,7 +4015,7 @@ function renderComments() {
   const p = currentPost;
   const comments = p._comments || [];
   const isOwner = user && user.uid === p.uid;
-  const isAdmin = user && ADMINS.includes(user.email);
+  const isAdmin = isAdminNow();
   const list = document.getElementById('comments-list');
   if (!list) return;
   if (!comments.length) { list.innerHTML = '<div class="no" style="padding:16px 0">Henüz yorum yok — ilk yorumu sen yap!</div>'; return; }
@@ -4016,11 +4187,14 @@ function openFullscreen(url) {
 
 function timeAgo(date) {
   const s = Math.floor((Date.now()-date.getTime())/1000);
-  if (s<60) return 'şimdi';
-  if (s<3600) return `${Math.floor(s/60)} dk önce`;
-  if (s<86400) return `${Math.floor(s/3600)} sa önce`;
+  if (s<60) return 'Az önce';
+  if (s<3600) return `${Math.floor(s/60)} dakika önce`;
+  if (s<86400) return `${Math.floor(s/3600)} saat önce`;
+  if (s<172800) return 'Dün';
   if (s<604800) return `${Math.floor(s/86400)} gün önce`;
-  return date.toLocaleDateString('tr-TR',{day:'numeric',month:'short'});
+  if (s<2592000) return `${Math.floor(s/604800)} hafta önce`;
+  if (s<31536000) return `${Math.floor(s/2592000)} ay önce`;
+  return `${Math.floor(s/31536000)} yıl önce`;
 }
 
 // GENEL KULLANICI PROFİLİ
@@ -4031,7 +4205,7 @@ async function openPublicProfile(uid, nameHint) {
   body.innerHTML = `<div class="load" style="padding:60px 0"><div class="spin"></div></div>`;
 
   const isMe = user && user.uid === uid;
-  const isViewerAdmin = user && ADMINS.includes(user.email);
+  const isViewerAdmin = isAdminNow();
   let data = {};
   try {
     const snap = await db.collection('teknohane_users').doc(uid).get();
@@ -4044,7 +4218,22 @@ async function openPublicProfile(uid, nameHint) {
     return;
   }
 
-  renderPublicProfileBody(uid, data, nameHint, isMe, privacy);
+  let presenceData = null;
+  try {
+    const pSnap = await db.collection('teknohane_presence').doc(uid).get();
+    if (pSnap.exists) presenceData = pSnap.data();
+  } catch (e) {}
+
+  renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceData);
+
+  // Takipçi/takip edilen sayıları — teknohane_users koleksiyonunda sorgu gerektirir,
+  // ayrı ve asenkron yükleniyor ki ana profil render'ı bu sorguyu beklemek zorunda kalmasın.
+  db.collection('teknohane_users').where('followingUids', 'array-contains', uid).get()
+    .then(snap => { const el = document.getElementById('pub-followers-count'); if (el) el.textContent = snap.size; })
+    .catch(() => { const el = document.getElementById('pub-followers-count'); if (el) el.textContent = '—'; });
+  const followingCount = (data.followingUids || []).length;
+  const followingEl = document.getElementById('pub-following-count');
+  if (followingEl) followingEl.textContent = followingCount;
 
   if (!privacy.hideForumActivity) {
     db.collectionGroup('comments').where('uid','==',uid).orderBy('createdAt','desc').limit(5).get()
@@ -4061,12 +4250,12 @@ async function openPublicProfile(uid, nameHint) {
   }
 }
 
-function renderPublicProfileBody(uid, data, nameHint, isMe, privacy) {
+function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceData) {
   const body = document.getElementById('pub-profile-body');
   const userListings = listings.filter(l => l.uid === uid && l.approved !== false && !l.sold);
   const soldListings = listings.filter(l => l.uid === uid && l.sold);
   const refCount = listings.filter(l => (l.referrers||[]).some(r => r.uid === uid)).length;
-  const isTargetAdmin = data.email && ADMINS.includes(data.email);
+  const isTargetAdmin = !!data.isAdminPublic;
 
   let displayName = data.displayName || nameHint;
   if (!displayName) {
@@ -4084,16 +4273,29 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy) {
   const joinedDateStr = data.createdAt?.toDate ? data.createdAt.toDate().toLocaleDateString('tr-TR',{month:'long',year:'numeric'}) : null;
   const lastSeenStr = data.lastSeen?.toDate ? timeAgo(data.lastSeen.toDate()) : null;
   const isFollowingUser = (myProfileData.followingUids||[]).includes(uid);
+  const isOnlineNow = isPresenceOnline(presenceData);
+  const shareUrl = `https://teknohane.github.io/teknohane/?profile=${uid}`;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&bgcolor=00040F&color=00D4FF&data=${encodeURIComponent(shareUrl)}`;
 
   body.innerHTML = `
     <div class="phero">
       <div class="pcover" style="${data.coverPhotoURL?`background-image:url('${data.coverPhotoURL}');background-size:cover;background-position:center;`:''}"></div>
       <img class="pav" src="${av}" alt="">
-      <div class="pname">${displayName}${isMe?' (Sen)':''}</div>
+      <div class="pname">${displayName}${isMe?' (Sen)':''} ${isOnlineNow?'<span style="color:#3DDC97;font-size:12px;vertical-align:middle">●</span>':''}</div>
       ${data.username?`<div class="puname">@${data.username}</div>`:''}
       ${data.bio?`<div class="pbio">${data.bio}</div>`:''}
       <div class="pverify">
         <span class="pverify-item${data.emailVerified?' ok':''}">${data.emailVerified?'✓':'○'} E-posta ${data.emailVerified?'doğrulandı':'doğrulanmadı'}</span>
+      </div>
+      <div style="display:flex;justify-content:center;gap:28px;margin-top:14px">
+        <div style="text-align:center;cursor:pointer" onclick="openFollowList('${uid}','followers','${displayName.replace(/'/g,"\\'")}')">
+          <div style="font-size:18px;font-weight:700" id="pub-followers-count">…</div>
+          <div style="font-size:11px;color:var(--text2)">Takipçi</div>
+        </div>
+        <div style="text-align:center;cursor:pointer" onclick="openFollowList('${uid}','following','${displayName.replace(/'/g,"\\'")}')">
+          <div style="font-size:18px;font-weight:700" id="pub-following-count">…</div>
+          <div style="font-size:11px;color:var(--text2)">Takip Edilen</div>
+        </div>
       </div>
       ${!isMe ? `
       <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:14px">
@@ -4103,7 +4305,11 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy) {
         <button class="sbtn2" id="pub-follow-btn" style="padding:9px 16px;width:auto;background:var(--surf2);color:${isFollowingUser?'var(--cyan)':'var(--text)'}" onclick="toggleFollow('${uid}')">${isFollowingUser?'✓ Takip Ediliyor':'➕ Takip Et'}</button>
         <button class="sbtn2" style="padding:9px 16px;width:auto;background:var(--surf2);color:var(--text)" onclick="shareProfile('${uid}','${displayName.replace(/'/g,"\\'")}')">🔗 Paylaş</button>
       </div>` : `
-      <div style="margin-top:14px"><button class="sbtn2" style="width:auto;padding:9px 16px" onclick="shareProfile('${uid}','${displayName.replace(/'/g,"\\'")}')">🔗 Profilimi Paylaş</button></div>`}
+      <div style="display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap">
+        <button class="sbtn2" style="width:auto;padding:9px 16px" onclick="shareProfile('${uid}','${displayName.replace(/'/g,"\\'")}')">🔗 Profilimi Paylaş</button>
+        <button class="sbtn2" style="width:auto;padding:9px 16px;background:var(--surf2);color:var(--text)" onclick="document.getElementById('pub-qr-wrap').style.display=document.getElementById('pub-qr-wrap').style.display==='none'?'block':'none'">📱 QR Kod</button>
+      </div>
+      <div id="pub-qr-wrap" style="display:none;margin-top:16px"><img src="${qrUrl}" style="width:140px;height:140px;border-radius:12px;border:1px solid var(--border)"></div>`}
     </div>
 
     ${!privacy.hideScore ? `
@@ -4158,7 +4364,8 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy) {
     <div class="pacc-card">
       <div class="psec-title">Hakkında</div>
       <div class="pacc-row"><span class="pacc-lbl">Üyelik Tarihi</span><span class="pacc-val">${joinedDateStr||'Henüz veri bulunmuyor'}</span></div>
-      ${!privacy.hideLastSeen?`<div class="pacc-row"><span class="pacc-lbl">Son Görülme</span><span class="pacc-val">${lastSeenStr||'Henüz veri bulunmuyor'}</span></div>`:''}
+      ${!privacy.hideLastSeen?`<div class="pacc-row"><span class="pacc-lbl">Son Görülme</span><span class="pacc-val">${isOnlineNow?'<span style="color:#3DDC97">● Çevrimiçi</span>':(lastSeenStr||'Henüz veri bulunmuyor')}</span></div>`:''}
+      ${!privacy.hidePhoneNumber && data.phoneNumber?`<div class="pacc-row"><span class="pacc-lbl">Telefon</span><span class="pacc-val">${data.phoneNumber}</span></div>`:''}
     </div>
 
     <div class="ud-section">
@@ -4238,6 +4445,51 @@ async function toggleFollow(uid) {
     showToast('✓', 'rgba(48,209,88,.15)', isFollowing?'Takipten Çıkıldı':'Takip Ediliyor', isFollowing?'Bu kullanıcıyı takipten çıktın.':'Bu kullanıcıyı artık takip ediyorsun.');
   } catch (e) {
     showToast('⚠️', 'rgba(255,69,58,.15)', 'Hata', 'İşlem gerçekleştirilemedi.');
+  }
+}
+
+// Takipçiler: followingUids dizisinde bu uid'yi içeren tüm kullanıcı dokümanlarını sorgular.
+// Takip Edilenler: hedef kullanıcının kendi followingUids dizisindeki uid'leri tek tek/gruplar halinde çeker.
+async function openFollowList(uid, type, name) {
+  document.getElementById('followlist-mo').classList.add('on');
+  document.getElementById('followlist-title').textContent = (type === 'followers' ? `${name} — Takipçiler` : `${name} — Takip Edilenler`);
+  const body = document.getElementById('followlist-body');
+  body.innerHTML = `<div class="load"><div class="spin"></div></div>`;
+  try {
+    let users = [];
+    if (type === 'followers') {
+      const snap = await db.collection('teknohane_users').where('followingUids', 'array-contains', uid).get();
+      users = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+    } else {
+      let followingUids;
+      if (user && user.uid === uid) followingUids = myProfileData.followingUids || [];
+      else {
+        const snap = await db.collection('teknohane_users').doc(uid).get();
+        followingUids = snap.exists ? (snap.data().followingUids || []) : [];
+      }
+      if (followingUids.length) {
+        const chunks = [];
+        for (let i = 0; i < followingUids.length; i += 30) chunks.push(followingUids.slice(i, i + 30));
+        const results = await Promise.all(chunks.map(c => db.collection('teknohane_users').where(firebase.firestore.FieldPath.documentId(), 'in', c).get()));
+        results.forEach(snap => snap.docs.forEach(d => users.push({ uid: d.id, ...d.data() })));
+      }
+    }
+    if (!users.length) { body.innerHTML = `<div class="no" style="padding:40px 0">${type==='followers'?'Henüz takipçi yok':'Henüz kimseyi takip etmiyor'}</div>`; return; }
+    body.innerHTML = users.map(u => {
+      const uav = u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.displayName||'Kullanıcı')}&background=0D1526&color=00D4FF&size=64`;
+      const uFollowing = (myProfileData.followingUids||[]).includes(u.uid);
+      const safeName = (u.displayName||'Kullanıcı').replace(/'/g,"\\'");
+      return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+        <img src="${uav}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;cursor:pointer" onclick="closemo('followlist-mo');openPublicProfile('${u.uid}','${safeName}')">
+        <div style="flex:1;cursor:pointer" onclick="closemo('followlist-mo');openPublicProfile('${u.uid}','${safeName}')">
+          <div style="font-size:14px;font-weight:600">${u.displayName||'Kullanıcı'}</div>
+          ${u.username?`<div style="font-size:12px;color:var(--text2)">@${u.username}</div>`:''}
+        </div>
+        ${user && u.uid !== user.uid ? `<button class="sbtn2" style="width:auto;padding:6px 12px;font-size:12px;background:${uFollowing?'var(--surf2)':'var(--cyan)'};color:${uFollowing?'var(--text)':'#000'}" onclick="toggleFollow('${u.uid}').then(()=>openFollowList('${uid}','${type}','${name.replace(/'/g,"\\'")}'))">${uFollowing?'✓ Takip Ediliyor':'➕ Takip Et'}</button>` : ''}
+      </div>`;
+    }).join('');
+  } catch (e) {
+    body.innerHTML = `<div class="no" style="padding:40px 0">Liste şu an yüklenemiyor</div>`;
   }
 }
 
@@ -4445,7 +4697,7 @@ function openUserDetail(uid) {
     }
   }
   displayName = displayName || 'İsimsiz Kullanıcı';
-  const isAdminU = ADMINS.includes(u.email);
+  const isAdminU = !!u.isAdminPublic;
 
   document.getElementById('user-detail-body').innerHTML = `
     <div class="ud-hero">
