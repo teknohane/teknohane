@@ -482,11 +482,73 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .puname{font-size:13px;color:var(--cyan);margin-top:2px;}
 .pname{font-size:22px;font-weight:700;letter-spacing:-.4px;}
 .pemail{font-size:13px;color:var(--text2);margin-top:6px;}
+.pverify{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;margin-top:10px;}
+.pverify-item{font-size:11px;color:var(--text3);display:inline-flex;align-items:center;gap:4px;}
+.pverify-item.ok{color:#3DDC97;}
+.tscore-card{background:var(--surf);border:1px solid rgba(0,212,255,.25);border-radius:20px;padding:22px;margin-bottom:16px;text-align:center;position:relative;overflow:hidden;}
+.tscore-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,212,255,.07),transparent 60%);pointer-events:none;}
+.tscore-ring{position:relative;width:108px;height:108px;margin:0 auto 6px;}
+.tscore-ring svg{width:100%;height:100%;}
+.tscore-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;color:var(--text);text-shadow:0 0 16px var(--cglow);}
+.tscore-label{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text2);margin-top:2px;}
+.tscore-sub{font-size:11px;color:var(--text3);margin-top:6px;max-width:230px;margin-left:auto;margin-right:auto;line-height:1.4;}
+.trust-card{background:var(--surf2);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:16px;text-align:center;}
+.trust-stars{color:#FFB84D;font-size:16px;letter-spacing:3px;}
+.trust-num{font-size:20px;font-weight:700;margin-top:4px;}
+.trust-num span{font-size:13px;font-weight:500;color:var(--text2);}
+.trust-badge{display:inline-block;margin-top:8px;background:rgba(61,221,151,.12);color:#3DDC97;font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;}
+.pstats-card{display:flex;background:var(--surf);border:1px solid var(--border);border-radius:18px;padding:18px 8px;margin-bottom:16px;}
+.pstat-item{flex:1;text-align:center;position:relative;}
+.pstat-item+.pstat-item::before{content:'';position:absolute;left:0;top:6px;bottom:6px;width:1px;background:var(--border);opacity:.6;}
+.pstat-num{font-size:20px;font-weight:700;color:var(--text);}
+.pstat-lbl{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-top:2px;}
+.pcompl-card{background:var(--surf);border:1px solid var(--border);border-radius:16px;padding:16px 18px;margin-bottom:16px;}
+.pcompl-top{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:600;color:var(--text2);}
+.pcompl-pct{color:var(--cyan);font-weight:700;}
+.pcompl-bar{height:7px;border-radius:20px;background:var(--surf3);margin-top:8px;overflow:hidden;}
+.pcompl-fill{height:100%;background:linear-gradient(90deg,var(--cyan),#0080ff);border-radius:20px;transition:width .5s ease;}
+.pcompl-missing{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+.pcompl-pill{font-size:11px;color:var(--cyan);background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.25);padding:4px 10px;border-radius:20px;cursor:pointer;}
+.psec-title{font-size:14px;font-weight:700;margin-bottom:14px;}
+.pcol-card{background:var(--surf);border:1px solid var(--border);border-radius:18px;padding:18px;margin-bottom:16px;}
+.pcol-current{display:flex;align-items:center;gap:12px;background:rgba(0,212,255,.06);border:1px solid rgba(0,212,255,.2);border-radius:14px;padding:12px 14px;margin-bottom:16px;}
+.pcol-current-ic{width:40px;height:40px;border-radius:12px;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.pcol-current-name{font-size:14px;font-weight:700;}
+.pcol-current-tag{font-size:11px;color:var(--cyan);margin-top:2px;}
+.pcol-prev-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;}
+.pcol-prev-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;}
+.pcol-prev-item{flex-shrink:0;background:var(--surf2);border:1px solid var(--border2);border-radius:12px;padding:10px 14px;font-size:12px;color:var(--text2);white-space:nowrap;}
+.pcol-prev-add{flex-shrink:0;border:1px dashed var(--border2);border-radius:12px;padding:10px 14px;font-size:12px;color:var(--cyan);white-space:nowrap;cursor:pointer;}
+.pbadge-card{background:var(--surf);border:1px solid var(--border);border-radius:18px;padding:18px;margin-bottom:16px;}
+.pbadge-row{display:flex;gap:14px;overflow-x:auto;padding-bottom:2px;}
+.pbadge-item{flex-shrink:0;text-align:center;width:72px;opacity:.35;filter:grayscale(1);}
+.pbadge-item.earned{opacity:1;filter:none;}
+.pbadge-ic{width:60px;height:60px;border-radius:50%;background:var(--surf2);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 6px;}
+.pbadge-item.earned .pbadge-ic{border-color:rgba(0,212,255,.4);box-shadow:0 0 14px var(--cglow);background:rgba(0,212,255,.08);}
+.pbadge-lbl{font-size:10px;color:var(--text2);line-height:1.3;}
+.pqa-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px;}
+.pqa-item{background:var(--surf);border:1px solid var(--border);border-radius:16px;padding:16px 10px;text-align:center;cursor:pointer;position:relative;transition:transform .15s ease;}
+.pqa-item:active{transform:scale(.97);}
+.pqa-item.disabled{opacity:.5;cursor:not-allowed;}
+.pqa-ic{width:40px;height:40px;border-radius:12px;background:rgba(0,212,255,.08);display:flex;align-items:center;justify-content:center;font-size:19px;margin:0 auto 8px;}
+.pqa-lbl{font-size:12px;font-weight:600;color:var(--text);}
+.pqa-soon{font-size:9px;color:var(--text3);margin-top:2px;}
+.pacc-card{background:var(--surf);border:1px solid var(--border);border-radius:16px;padding:16px 18px;margin-bottom:16px;}
+.pacc-row{display:flex;justify-content:space-between;font-size:13px;padding:8px 0;border-bottom:1px solid var(--border);}
+.pacc-row:last-child{border-bottom:none;}
+.pacc-lbl{color:var(--text2);}
+.pacc-val{font-weight:600;}
+.pact-card{background:var(--surf);border:1px solid var(--border);border-radius:16px;padding:16px 18px;margin-bottom:16px;}
+.pact-row{display:flex;gap:10px;padding:9px 0;}
+.pact-row+.pact-row{border-top:1px solid var(--border);}
+.pact-ic{width:30px;height:30px;border-radius:50%;background:rgba(0,212,255,.08);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.pact-txt{font-size:13px;color:var(--text);}
+.pact-time{font-size:11px;color:var(--text3);margin-top:2px;}
 .admin-badge{background:linear-gradient(135deg,var(--cyan),#0080ff);color:#000;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;margin-left:8px;vertical-align:middle;}
-.apanel{background:rgba(0,212,255,.05);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:16px;}
+.apanel{background:rgba(255,190,60,.05);border:1px solid rgba(255,190,60,.25);border-radius:16px;padding:16px;margin-bottom:16px;}
 .apstats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0;}
 .apstat{background:var(--surf);border-radius:12px;padding:10px;text-align:center;}
-.apstat-n{font-size:18px;font-weight:700;color:var(--cyan);}
+.apstat-n{font-size:18px;font-weight:700;color:#FFBE3C;}
 .apstat-l{font-size:10px;color:var(--text2);margin-top:2px;text-transform:uppercase;letter-spacing:.4px;}
 .apbtn{width:100%;background:var(--surf2);border:1px solid var(--border2);color:var(--text);font-size:13px;font-weight:600;padding:11px;border-radius:10px;cursor:pointer;font-family:inherit;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:6px;}
 .profile-tabs{display:flex;gap:8px;margin:20px 0 12px;}
@@ -547,7 +609,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .ud-item-meta{font-size:11px;color:var(--text3);}
 .ud-empty{font-size:12px;color:var(--text3);padding:10px 0;}
 .adm-del svg{width:15px;height:15px;stroke:var(--red);}
-.aptit{font-size:14px;font-weight:700;color:var(--cyan);margin-bottom:6px;display:flex;align-items:center;gap:6px;}
+.aptit{font-size:14px;font-weight:700;color:#FFBE3C;margin-bottom:6px;display:flex;align-items:center;gap:6px;}
 .signout{width:100%;background:rgba(255,69,58,.1);border:1px solid rgba(255,69,58,.2);color:var(--red);font-size:15px;font-weight:600;padding:14px;border-radius:14px;cursor:pointer;font-family:inherit;}
 /* TEMA SEÇİCİ */
 .theme-panel{background:var(--surf);border:1px solid var(--border2);border-radius:14px;padding:14px;margin-bottom:16px;}
@@ -1348,12 +1410,50 @@ function themePanelHTML() {
     </div>`;
 }
 
+function animateProfileStats() {
+  document.querySelectorAll('#profile-c .pstat-num').forEach(el => {
+    const target = parseInt(el.dataset.target || '0', 10);
+    if (!target) { el.textContent = '0'; return; }
+    let cur = 0;
+    const step = Math.max(1, Math.ceil(target / 20));
+    const timer = setInterval(() => {
+      cur += step;
+      if (cur >= target) { cur = target; clearInterval(timer); }
+      el.textContent = cur;
+    }, 30);
+  });
+}
+
 function rprof() {
   const c = document.getElementById('profile-c');
   if (!c) return;
   const isAdmin = user && ADMINS.includes(user.email);
   if (user) {
     const av = myProfileData.photoURL || user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName||user.email)}&background=0D1526&color=00D4FF&size=256`;
+    const hasPhone = !!myProfileData.phoneNumber;
+    const myListingsCount = listings.filter(l => l.uid === user.uid).length;
+    const myForumCount = forumPosts.filter(p => p.uid === user.uid).length;
+    const myLikesReceived = forumPosts.filter(p => p.uid === user.uid).reduce((s,p)=>s+(p.likes||[]).length,0);
+    const complItems = [
+      { done: !!myProfileData.customPhoto, label: 'Profil fotoğrafı ekle' },
+      { done: !!myProfileData.username, label: 'Kullanıcı adı belirle' },
+      { done: hasPhone, label: 'Telefon ekle' },
+      { done: !!myProfileData.bio, label: 'Biyografi ekle' },
+      { done: !!user.emailVerified, label: 'E-postanı doğrula' },
+    ];
+    const complDone = complItems.filter(i=>i.done).length;
+    const complPct = Math.round(complDone/complItems.length*100);
+    const complMissing = complItems.filter(i=>!i.done);
+    const joinedDateStr = myProfileData.createdAt?.toDate ? myProfileData.createdAt.toDate().toLocaleDateString('tr-TR',{month:'long',year:'numeric'}) : null;
+    const activityItems = [];
+    listings.filter(l=>l.uid===user.uid).forEach(l=>{
+      if (l.createdAt?.toDate) activityItems.push({ ts:l.createdAt.toMillis?l.createdAt.toMillis():0, date:l.createdAt.toDate(), icon:'🛍️', text:`"${l.model||'İlan'}" yayınladın` });
+    });
+    forumPosts.filter(p=>p.uid===user.uid).forEach(p=>{
+      if (p.createdAt?.toDate) activityItems.push({ ts:p.createdAt.toMillis?p.createdAt.toMillis():0, date:p.createdAt.toDate(), icon:'💬', text:`"${p.title||'Forum gönderisi'}" paylaştın` });
+    });
+    activityItems.sort((a,b)=>b.ts-a.ts);
+    const topActivity = activityItems.slice(0,4);
     c.innerHTML = `
       <div class="phero">
         <div class="pcover"></div>
@@ -1364,13 +1464,82 @@ function rprof() {
         </div>
         ${myProfileData.username?`<div class="puname">@${myProfileData.username}</div>`:''}
         <div class="pemail">${user.email}</div>
+        <div class="pverify">
+          <span class="pverify-item${user.emailVerified?' ok':''}">${user.emailVerified?'✓':'○'} E-posta ${user.emailVerified?'doğrulandı':'doğrulanmadı'}</span>
+          <span class="pverify-item${hasPhone?' ok':''}">${hasPhone?'✓':'○'} Telefon ${hasPhone?'doğrulandı':'eklenmedi'}</span>
+        </div>
       </div>
+      <div class="tscore-card">
+        <div class="tscore-ring">
+          <svg viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="44" stroke="var(--border2)" stroke-width="6" fill="none"/>
+            <circle cx="50" cy="50" r="44" stroke="var(--cyan)" stroke-width="6" fill="none" stroke-linecap="round" stroke-dasharray="276.5" stroke-dashoffset="42.9" transform="rotate(-90 50 50)"/>
+          </svg>
+          <div class="tscore-num">845</div>
+        </div>
+        <div class="tscore-label">Teknohane Skoru</div>
+        <div class="tscore-sub">Forum aktifliği, ilan paylaşımı ve karşılaştırmalardan hesaplanır</div>
+      </div>
+      <div class="trust-card">
+        <div class="trust-stars">★★★★★</div>
+        <div class="trust-num">98<span>/100</span></div>
+        <div class="trust-badge">Güvenilir Satıcı</div>
+      </div>
+      <div class="pstats-card">
+        <div class="pstat-item"><div class="pstat-num" data-target="${myListingsCount}">0</div><div class="pstat-lbl">İlan</div></div>
+        <div class="pstat-item"><div class="pstat-num" data-target="0">0</div><div class="pstat-lbl">Karşılaştırma</div></div>
+        <div class="pstat-item"><div class="pstat-num" data-target="${myForumCount}">0</div><div class="pstat-lbl">Forum</div></div>
+        <div class="pstat-item"><div class="pstat-num" data-target="${myLikesReceived}">0</div><div class="pstat-lbl">Beğeni</div></div>
+      </div>
+      ${complPct<100?`<div class="pcompl-card">
+        <div class="pcompl-top"><span>Profil Tamamlanma</span><span class="pcompl-pct">%${complPct}</span></div>
+        <div class="pcompl-bar"><div class="pcompl-fill" style="width:${complPct}%"></div></div>
+        <div class="pcompl-missing">${complMissing.map(i=>`<span class="pcompl-pill" onclick="openEditProfile()">+ ${i.label}</span>`).join('')}</div>
+      </div>`:''}
       <button class="apbtn" onclick="openEditProfile()">✏️ Profili Düzenle</button>
-      <button class="apbtn" onclick="openSupportPage()">💬 Destek</button>
-      ${pushPanelHTML()}
-      ${themePanelHTML()}
+      <div class="psec-title" style="margin-top:4px">⚡ Hızlı İşlemler</div>
+      <div class="pqa-grid">
+        <div class="pqa-item" onclick="document.getElementById('push-panel')?.scrollIntoView({behavior:'smooth'})">
+          <div class="pqa-ic">🔔</div><div class="pqa-lbl">Bildirimler</div>
+        </div>
+        <div class="pqa-item" onclick="openSupportPage()">
+          <div class="pqa-ic">💬</div><div class="pqa-lbl">Destek</div>
+        </div>
+        <div class="pqa-item disabled">
+          <div class="pqa-ic">🔒</div><div class="pqa-lbl">Güvenlik</div><div class="pqa-soon">Yakında</div>
+        </div>
+        <div class="pqa-item" onclick="document.getElementById('phone-collection')?.scrollIntoView({behavior:'smooth'})">
+          <div class="pqa-ic">📱</div><div class="pqa-lbl">Telefonlarım</div>
+        </div>
+      </div>
+      <div class="pcol-card" id="phone-collection">
+        <div class="psec-title">📱 Telefon Koleksiyonum</div>
+        <div class="pcol-current">
+          <div class="pcol-current-ic">📱</div>
+          <div>
+            <div class="pcol-current-name">Google Pixel 10 Pro XL</div>
+            <div class="pcol-current-tag">Şu an kullanıyor</div>
+          </div>
+        </div>
+        <div class="pcol-prev-label">Önceki telefonlar</div>
+        <div class="pcol-prev-row">
+          <div class="pcol-prev-item">Galaxy S24 Ultra</div>
+          <div class="pcol-prev-item">iPhone 15 Pro</div>
+          <div class="pcol-prev-item">Xiaomi 13</div>
+          <div class="pcol-prev-add" onclick="openEditProfile()">+ Ekle</div>
+        </div>
+      </div>
+      <div class="pbadge-card">
+        <div class="psec-title">🏅 Rozetler</div>
+        <div class="pbadge-row">
+          <div class="pbadge-item earned"><div class="pbadge-ic">🎉</div><div class="pbadge-lbl">İlk İlan</div></div>
+          <div class="pbadge-item earned"><div class="pbadge-ic">🛡️</div><div class="pbadge-lbl">Güvenilir Satıcı</div></div>
+          <div class="pbadge-item"><div class="pbadge-ic">💬</div><div class="pbadge-lbl">Topluluk Üyesi</div></div>
+          <div class="pbadge-item"><div class="pbadge-ic">🚀</div><div class="pbadge-lbl">Erken Kullanıcı</div></div>
+        </div>
+      </div>
       ${isAdmin?`<div class="apanel">
-        <div class="aptit"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Yönetici Paneli</div>
+        <div class="aptit"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#FFBE3C" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Yönetici Paneli</div>
         <div class="apstats">
           <div class="apstat"><div class="apstat-n" id="adm-cnt-listing">–</div><div class="apstat-l">İlan</div></div>
           <div class="apstat"><div class="apstat-n" id="adm-cnt-seller">–</div><div class="apstat-l">Satıcı</div></div>
@@ -1381,9 +1550,26 @@ function rprof() {
           Tüm İlanları Yönet
         </button>
       </div>`:''}
+      <div class="pacc-card">
+        <div class="psec-title">Hesap İstatistikleri</div>
+        <div class="pacc-row"><span class="pacc-lbl">Üyelik Tarihi</span><span class="pacc-val">${joinedDateStr||'—'}</span></div>
+        <div class="pacc-row"><span class="pacc-lbl">Hesap Türü</span><span class="pacc-val">${isAdmin?'Yönetici':'Standart Üye'}</span></div>
+      </div>
+      <div class="pact-card">
+        <div class="psec-title">Son Etkinlikler</div>
+        ${topActivity.length?topActivity.map(a=>`
+        <div class="pact-row">
+          <div class="pact-ic">${a.icon}</div>
+          <div class="pact-body"><div class="pact-txt">${a.text}</div><div class="pact-time">${timeAgo(a.date)}</div></div>
+        </div>`).join(''):'<div class="no">Henüz bir etkinliğin yok</div>'}
+      </div>
+      <div class="psec-title" style="margin-top:4px">⚙️ Ayarlar</div>
+      ${pushPanelHTML()}
+      ${themePanelHTML()}
       <button class="signout" onclick="auth.signOut()">Çıkış Yap</button>`;
     if (isAdmin) updateAdminStats();
     updateThemeToggleUI();
+    animateProfileStats();
   } else {
     c.innerHTML = `
       <div class="awrap">
