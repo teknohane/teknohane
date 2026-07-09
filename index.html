@@ -673,6 +673,21 @@ body.tk-browser #browser-gate{
 .bg-title{font-size:22px;font-weight:700;}
 .bg-desc{font-size:14px;color:var(--text2);line-height:1.6;max-width:340px;}
 .bg-btn{margin-top:8px;padding:14px 28px;border-radius:14px;background:var(--cyan);color:#00040F;font-weight:700;font-size:15px;text-decoration:none;}
+
+/* Ban ekranı: yalnızca body.tk-banned sınıfı varken devreye girer, browser-gate ile aynı deseni kullanır */
+#ban-gate{display:none;}
+body.tk-banned #app{display:none;}
+body.tk-banned #ban-gate{
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+  height:100dvh;padding:32px 24px;text-align:center;background:var(--bg);color:var(--text);
+  gap:14px;position:fixed;inset:0;z-index:9999;overflow-y:auto;
+}
+.ban-icon{width:72px;height:72px;border-radius:50%;background:rgba(255,69,58,.12);display:flex;align-items:center;justify-content:center;font-size:32px;margin-top:12vh;}
+.ban-card{background:var(--surf);border:1px solid var(--border);border-radius:16px;padding:16px 18px;width:100%;max-width:340px;text-align:left;margin-top:4px;}
+.ban-row{display:flex;justify-content:space-between;font-size:13px;padding:8px 0;border-bottom:1px solid var(--border);gap:10px;}
+.ban-row:last-child{border-bottom:none;}
+.ban-lbl{color:var(--text2);flex-shrink:0;}
+.ban-val{font-weight:600;text-align:right;}
 </style>
 <script>
 // Sayfa render olmadan ÖNCE temayı uygula - "flash of wrong theme" önlenir
@@ -692,6 +707,18 @@ body.tk-browser #browser-gate{
   <div class="bg-title">Teknohane Mobil Uygulaması</div>
   <div class="bg-desc">Teknohane artık yalnızca mobil uygulama üzerinden kullanılmaktadır. Telefon karşılaştırmaları, ikinci el ilanlar, topluluk ve diğer tüm özellikler için lütfen mobil uygulamamızı kullanın.</div>
   <a class="bg-btn" href="https://play.google.com/store/apps/details?id=io.github.teknohane.app">Google Play'den İndir</a>
+</div>
+<div id="ban-gate">
+  <div class="ban-icon">⛔</div>
+  <div class="bg-title">Hesabın Askıya Alındı</div>
+  <div class="bg-desc" id="ban-user-message">Bu hesap, Teknohane kullanım şartlarına aykırı davranış nedeniyle kısıtlandı.</div>
+  <div class="ban-card">
+    <div class="ban-row"><span class="ban-lbl">Sebep</span><span class="ban-val" id="ban-reason">—</span></div>
+    <div class="ban-row"><span class="ban-lbl">Ban Türü</span><span class="ban-val" id="ban-type">—</span></div>
+    <div class="ban-row"><span class="ban-lbl">Kalan Süre</span><span class="ban-val" id="ban-remaining">—</span></div>
+  </div>
+  <div class="bg-desc" style="margin-top:4px">İtiraz etmek için: <a href="mailto:teknohaane@hotmail.com" style="color:var(--cyan)">teknohaane@hotmail.com</a></div>
+  <button class="bg-btn" style="border:none;cursor:pointer;font-family:inherit" onclick="auth.signOut()">Çıkış Yap</button>
 </div>
 <div id="app">
 <div id="offline-bar">📡 İnternet bağlantısı yok — bazı içerikler güncellenemiyor</div>
@@ -1186,6 +1213,15 @@ body.tk-browser #browser-gate{
   </div>
 </div>
 
+<!-- BAN MODAL -->
+<div class="mo" id="ban-mo" onclick="closemo('ban-mo')">
+  <div class="ms" onclick="event.stopPropagation()" style="max-height:85vh">
+    <div class="mh"></div>
+    <div class="mtit">Ban İşlemleri</div>
+    <div id="ban-modal-body"></div>
+  </div>
+</div>
+
 <!-- TELEFON DOĞRULAMA MODAL -->
 <div class="mo" id="phone-verify-mo" onclick="closemo('phone-verify-mo')">
   <div class="ms" onclick="event.stopPropagation()">
@@ -1630,6 +1666,7 @@ async function syncUserProfile(u) {
     if (snap.exists) {
       favs = new Set(existingData.favorites || []);
       myProfileData = existingData;
+      checkBanStatus(); // ban kontrolü mümkün olan en erken noktada, diğer her şeyden önce
       rlistings(); // favoriler geldi, listeyi güncelle (kalp ikonları doğru görünsün)
       if (document.getElementById('s-profile')?.classList.contains('on')) rprof();
       // Özel yüklenmiş bir profil fotoğrafı varsa header'ı ona göre güncelle
@@ -1758,6 +1795,37 @@ function getPrivacy(profileData) {
     hideListings: !!p.hideListings,
     hideForumActivity: !!p.hideForumActivity,
   };
+}
+
+// ==== BAN DURUMU (paylaşılan — hem admin panelindeki rozet hem tam ekran engelleme aynı fonksiyonu kullanır) ====
+// Geçici banların süresi dolduğunda otomatik olarak "banlı değil" sonucunu döner.
+function isCurrentlyBanned(profileData) {
+  if (!profileData || !profileData.banned) return false;
+  if (profileData.banType === 'permanent' || !profileData.banExpiresAt) return true;
+  const expires = profileData.banExpiresAt?.toDate ? profileData.banExpiresAt.toDate() : null;
+  return expires ? expires.getTime() > Date.now() : true;
+}
+
+// Giriş yapıldığında (syncUserProfile içinden) çağrılır; banlıysa tam ekran engelleme ekranını açar.
+function checkBanStatus() {
+  if (isCurrentlyBanned(myProfileData)) {
+    document.body.classList.add('tk-banned');
+    const msgEl = document.getElementById('ban-user-message');
+    const reasonEl = document.getElementById('ban-reason');
+    const typeEl = document.getElementById('ban-type');
+    const remainEl = document.getElementById('ban-remaining');
+    if (msgEl) msgEl.textContent = myProfileData.banUserMessage || 'Bu hesap, Teknohane kullanım şartlarına aykırı davranış nedeniyle kısıtlandı.';
+    if (reasonEl) reasonEl.textContent = myProfileData.banReasonLabel || 'Belirtilmedi';
+    if (typeEl) typeEl.textContent = myProfileData.banType === 'permanent' ? 'Süresiz' : 'Geçici';
+    if (remainEl) {
+      const expires = myProfileData.banExpiresAt?.toDate ? myProfileData.banExpiresAt.toDate() : null;
+      remainEl.textContent = expires
+        ? expires.toLocaleDateString('tr-TR', { day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' }) + ' tarihine kadar'
+        : 'Süresiz';
+    }
+  } else {
+    document.body.classList.remove('tk-banned');
+  }
 }
 
 function animateProfileStats() {
@@ -4784,7 +4852,7 @@ function rAdminUsers() {
     <div class="adm-user-row" onclick="openUserDetail('${u.uid}')">
       ${u.photoURL ? `<img class="adm-user-av" src="${u.photoURL}" alt="">` : `<div class="adm-user-av">${(u.displayName||'?')[0].toUpperCase()}</div>`}
       <div class="adm-user-info">
-        <div class="adm-user-name">${u.displayName}${u.role?` <span class="admin-badge">${ROLE_LABELS[u.role]||u.role}</span>`:''}${u.banned?' <span class="admin-badge" style="background:var(--red)">BANLI</span>':''}</div>
+        <div class="adm-user-name">${u.displayName}${u.role?` <span class="admin-badge">${ROLE_LABELS[u.role]||u.role}</span>`:''}${isCurrentlyBanned(u)?' <span class="admin-badge" style="background:var(--red)">BANLI</span>':''}</div>
         <div class="adm-user-email">${u.email}</div>
       </div>
       <div class="adm-user-stats">
@@ -4811,7 +4879,7 @@ function openUserDetail(uid) {
 
   const roleInfo = adminRolesCache[uid];
   const role = (roleInfo && roleInfo.isActive !== false) ? roleInfo.role : null;
-  const isBanned = !!u.banned;
+  const isBanned = isCurrentlyBanned(u);
   const av = u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=0D1526&color=00D4FF&size=256`;
 
   // Skor/rozet hesaplaması: profil sisteminde kullanılan aynı ortak fonksiyonlar (kod tekrarı yok)
@@ -4911,7 +4979,7 @@ function openUserDetail(uid) {
       <div style="display:flex;flex-direction:column;gap:8px">
         <button class="apbtn" onclick="closemo('user-detail-mo');openPublicProfile('${uid}','${displayName.replace(/'/g,"\\'")}')">👁️ Profili Görüntüle</button>
         <button class="apbtn" style="opacity:.5" onclick="openUserEdit('${uid}')">✏️ Düzenle</button>
-        <button class="apbtn" style="opacity:.5;background:rgba(255,69,58,.08);border-color:rgba(255,69,58,.25);color:var(--red)" onclick="openUserBan('${uid}')">🚫 Ban İşlemleri</button>
+        <button class="apbtn" style="background:rgba(255,69,58,.08);border-color:rgba(255,69,58,.25);color:var(--red)" onclick="openUserBan('${uid}')">🚫 Ban İşlemleri</button>
         <button class="apbtn" style="opacity:.5" onclick="openUserLogs('${uid}')">📋 Logları Gör</button>
       </div>
     </div>`;
@@ -4957,17 +5025,169 @@ async function loadUserDetailExtras(uid) {
   });
 }
 
-// ==== GELECEK MODÜLLER İÇİN HAZIR BAĞLANTI NOKTALARI (Aşama 5-6'da doldurulacak) ====
-// Bu üç fonksiyon bilinçli olarak şimdilik pasif — Ban Sistemi, Kullanıcı Düzenleme ve
-// Log Görüntüleme modülleri geldiğinde, imzaları (uid parametresi) değiştirmeden içleri doldurulacak.
+// ==== GELECEK MODÜLLER İÇİN HAZIR BAĞLANTI NOKTALARI (Kullanıcı Düzenleme, Log Görüntüleme henüz doldurulmadı) ====
 function openUserEdit(uid) {
   showToast('ℹ️', 'rgba(0,212,255,.15)', 'Kullanıcı Düzenleme', 'Bu özellik ileride Kullanıcı Düzenleme modülüyle eklenecek.');
 }
-function openUserBan(uid) {
-  showToast('ℹ️', 'rgba(0,212,255,.15)', 'Ban İşlemleri', 'Bu özellik Aşama 5 — Ban Sistemi\'nde eklenecek.');
-}
 function openUserLogs(uid) {
   showToast('ℹ️', 'rgba(0,212,255,.15)', 'Kullanıcı Logları', 'Bu özellik Log Görüntüleme modülüne bağlanacak.');
+}
+
+// ==== BAN SİSTEMİ (Aşama 5) ====
+const BAN_REASONS = [
+  { code: 'kufur_hakaret', label: 'Küfür / Hakaret' },
+  { code: 'dolandiricilik', label: 'Dolandırıcılık' },
+  { code: 'spam', label: 'Spam' },
+  { code: 'sahte_ilan', label: 'Sahte İlan' },
+  { code: 'yaniltici_bilgi', label: 'Yanıltıcı Bilgi' },
+  { code: 'uygunsuz_icerik', label: 'Uygunsuz İçerik' },
+  { code: 'coklu_hesap', label: 'Çoklu Hesap' },
+  { code: 'diger', label: 'Diğer' },
+];
+
+function openUserBan(uid) {
+  if (!hasPermission('banUsers')) {
+    showToast('⚠️', 'rgba(255,69,58,.15)', 'Yetkin Yok', 'Ban işlemleri için gerekli yetkiye sahip değilsin.');
+    return;
+  }
+  renderBanModal(uid);
+  document.getElementById('ban-mo').classList.add('on');
+}
+
+function renderBanModal(uid) {
+  const u = adminUsersCache?.find(x => x.uid === uid);
+  const body = document.getElementById('ban-modal-body');
+  if (!u || !body) return;
+
+  if (isCurrentlyBanned(u)) {
+    const expiresStr = u.banExpiresAt?.toDate ? u.banExpiresAt.toDate().toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}) : null;
+    body.innerHTML = `
+      <div class="pacc-card">
+        <div class="pacc-row"><span class="pacc-lbl">Sebep</span><span class="pacc-val">${u.banReasonLabel||'—'}</span></div>
+        <div class="pacc-row"><span class="pacc-lbl">Tür</span><span class="pacc-val">${u.banType==='permanent'?'Süresiz':'Geçici'}</span></div>
+        ${expiresStr?`<div class="pacc-row"><span class="pacc-lbl">Bitiş</span><span class="pacc-val">${expiresStr}</span></div>`:''}
+        <div class="pacc-row"><span class="pacc-lbl">Uygulayan</span><span class="pacc-val">${u.bannedByName||'—'}</span></div>
+        ${u.banAdminNote?`<div class="pacc-row"><span class="pacc-lbl">Yönetici Notu</span><span class="pacc-val">${u.banAdminNote}</span></div>`:''}
+      </div>
+      <button class="apbtn" style="background:rgba(48,209,88,.1);border-color:rgba(48,209,88,.3);color:#3DDC97" onclick="removeBan('${uid}')">✓ Banı Kaldır</button>`;
+    return;
+  }
+
+  body.innerHTML = `
+    <div class="fg"><label class="fl">Ban Süresi</label>
+      <select class="fi" id="ban-duration" onchange="document.getElementById('ban-custom-date-wrap').style.display=this.value==='custom'?'block':'none'">
+        <option value="permanent">Süresiz</option>
+        <option value="1">1 Gün</option>
+        <option value="3">3 Gün</option>
+        <option value="7">7 Gün</option>
+        <option value="15">15 Gün</option>
+        <option value="30">30 Gün</option>
+        <option value="custom">Özel Tarih Seç</option>
+      </select>
+    </div>
+    <div class="fg" id="ban-custom-date-wrap" style="display:none">
+      <label class="fl">Bitiş Tarihi</label>
+      <input class="fi" type="datetime-local" id="ban-custom-date">
+    </div>
+    <div class="fg"><label class="fl">Sebep</label>
+      <select class="fi" id="ban-reason-select" onchange="document.getElementById('ban-other-wrap').style.display=this.value==='diger'?'block':'none'">
+        ${BAN_REASONS.map(r=>`<option value="${r.code}">${r.label}</option>`).join('')}
+      </select>
+    </div>
+    <div class="fg" id="ban-other-wrap" style="display:none">
+      <label class="fl">Açıklama (Diğer)</label>
+      <textarea class="fi" id="ban-other-text" rows="2" style="resize:none;font-family:inherit"></textarea>
+    </div>
+    <div class="fg"><label class="fl">Yönetici Notu (yalnızca adminler görür)</label>
+      <textarea class="fi" id="ban-admin-note" rows="2" style="resize:none;font-family:inherit"></textarea>
+    </div>
+    <div class="fg"><label class="fl">Kullanıcıya Gösterilecek Açıklama</label>
+      <textarea class="fi" id="ban-user-msg" rows="2" style="resize:none;font-family:inherit" placeholder="Bu hesap ... nedeniyle kısıtlandı."></textarea>
+    </div>
+    <div class="aerr" id="ban-err"></div>
+    <button class="apbtn" style="background:rgba(255,69,58,.08);border-color:rgba(255,69,58,.25);color:var(--red)" onclick="applyBan('${uid}')">🚫 Banı Uygula</button>`;
+}
+
+async function applyBan(uid) {
+  if (!hasPermission('banUsers')) return;
+  const err = document.getElementById('ban-err'); err.textContent=''; err.classList.remove('on');
+
+  const duration = document.getElementById('ban-duration').value;
+  const reasonCode = document.getElementById('ban-reason-select').value;
+  const reasonObj = BAN_REASONS.find(r=>r.code===reasonCode);
+  let reasonLabel = reasonObj?.label || 'Diğer';
+  if (reasonCode === 'diger') {
+    const otherText = document.getElementById('ban-other-text').value.trim();
+    if (!otherText) { err.textContent = 'Diğer seçildiyse açıklama yazılmalı'; err.classList.add('on'); return; }
+    reasonLabel = otherText;
+  }
+  const adminNote = document.getElementById('ban-admin-note').value.trim();
+  const userMessage = document.getElementById('ban-user-msg').value.trim();
+
+  let banType, banExpiresDate;
+  if (duration === 'permanent') { banType = 'permanent'; banExpiresDate = null; }
+  else if (duration === 'custom') {
+    const customVal = document.getElementById('ban-custom-date').value;
+    if (!customVal) { err.textContent = 'Bitiş tarihi seçilmeli'; err.classList.add('on'); return; }
+    banType = 'temporary'; banExpiresDate = new Date(customVal);
+  } else {
+    banType = 'temporary';
+    banExpiresDate = new Date(Date.now() + parseInt(duration) * 24 * 60 * 60 * 1000);
+  }
+
+  const u = adminUsersCache?.find(x => x.uid === uid);
+  const targetName = u?.displayName || uid;
+  const oldVal = { banned: !!u?.banned };
+  const banData = {
+    banned: true,
+    banType,
+    banExpiresAt: banExpiresDate ? firebase.firestore.Timestamp.fromDate(banExpiresDate) : null,
+    banReasonCode: reasonCode,
+    banReasonLabel: reasonLabel,
+    banAdminNote: adminNote,
+    banUserMessage: userMessage,
+    bannedBy: user.uid,
+    bannedByName: myAdminRole?.displayName || user.displayName || user.email,
+    bannedAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+
+  try {
+    await db.collection('teknohane_users').doc(uid).set(banData, { merge: true });
+    if (u) Object.assign(u, banData);
+    adminLog('ban_user', 'user', uid, targetName, oldVal, { banned:true, banType, banExpiresAt: banExpiresDate, reasonLabel }, 'success');
+    closemo('ban-mo');
+    rAdminUsers();
+    showToast('✓', 'rgba(48,209,88,.15)', 'Banlandı', `${targetName} kullanıcısı banlandı.`);
+  } catch(e) {
+    adminLog('ban_user', 'user', uid, targetName, oldVal, null, 'error: ' + e.message);
+    err.textContent = 'Hata: ' + e.message; err.classList.add('on');
+  }
+}
+
+async function removeBan(uid) {
+  if (!hasPermission('banUsers')) return;
+  const u = adminUsersCache?.find(x => x.uid === uid);
+  const targetName = u?.displayName || uid;
+  const oldVal = u ? { banned: true, banType: u.banType, banReasonLabel: u.banReasonLabel } : null;
+  try {
+    await db.collection('teknohane_users').doc(uid).set({
+      banned: false,
+      banType: firebase.firestore.FieldValue.delete(),
+      banExpiresAt: firebase.firestore.FieldValue.delete(),
+      banReasonCode: firebase.firestore.FieldValue.delete(),
+      banReasonLabel: firebase.firestore.FieldValue.delete(),
+      banAdminNote: firebase.firestore.FieldValue.delete(),
+      banUserMessage: firebase.firestore.FieldValue.delete(),
+    }, { merge: true });
+    if (u) { u.banned = false; delete u.banType; delete u.banExpiresAt; delete u.banReasonLabel; }
+    adminLog('unban_user', 'user', uid, targetName, oldVal, { banned:false }, 'success');
+    closemo('ban-mo');
+    rAdminUsers();
+    showToast('✓', 'rgba(48,209,88,.15)', 'Ban Kaldırıldı', `${targetName} kullanıcısının banı kaldırıldı.`);
+  } catch(e) {
+    adminLog('unban_user', 'user', uid, targetName, oldVal, null, 'error: ' + e.message);
+    showToast('⚠️', 'rgba(255,69,58,.15)', 'Hata', 'Ban kaldırılamadı: ' + e.message);
+  }
 }
 
 // YOUTUBE
