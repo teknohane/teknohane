@@ -1392,10 +1392,31 @@ body.tk-maintenance #maintenance-gate{
     </div>
 
     <div id="admin-forum-view" style="display:none">
-      <div id="adm-forum-list"><div class="load"><div class="spin"></div><span>Konular yükleniyor…</span></div></div>
+      <div style="display:flex;gap:6px;margin-bottom:12px">
+        <span class="pcompl-pill" id="fmt-posts" onclick="setForumModTab('posts')" style="background:var(--cyan);color:#000">Gönderiler</span>
+        <span class="pcompl-pill" id="fmt-comments" onclick="setForumModTab('comments')">Yorumlar</span>
+      </div>
+      <div id="admin-forum-posts-sub"><div id="adm-forum-list"><div class="load"><div class="spin"></div><span>Konular yükleniyor…</span></div></div></div>
+      <div id="admin-forum-comments-sub" style="display:none">
+        <div id="adm-comments-list"><div class="load"><div class="spin"></div></div></div>
+        <button class="apbtn" style="margin-top:12px;background:var(--surf2);color:var(--text)" onclick="loadAdminComments(false)">Daha Fazla Yükle</button>
+      </div>
     </div>
 
     <div id="admin-logs-view" style="display:none">
+      <div class="sw" style="margin-bottom:10px">
+        <svg class="sico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="si" type="text" id="log-search" placeholder="Admin adı, işlem veya hedef ara…" oninput="loadAdminLogs(true)">
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px" id="log-type-filters">
+        <span class="pcompl-pill" data-type="all" onclick="setLogTypeFilter('all')" style="background:var(--cyan);color:#000">Tümü</span>
+        <span class="pcompl-pill" data-type="ban" onclick="setLogTypeFilter('ban')">Kullanıcı/Ban</span>
+        <span class="pcompl-pill" data-type="listing" onclick="setLogTypeFilter('listing')">İlan</span>
+        <span class="pcompl-pill" data-type="forum" onclick="setLogTypeFilter('forum')">Forum</span>
+        <span class="pcompl-pill" data-type="complaint" onclick="setLogTypeFilter('complaint')">Şikayet</span>
+        <span class="pcompl-pill" data-type="announcement" onclick="setLogTypeFilter('announcement')">Duyuru</span>
+        <span class="pcompl-pill" data-type="settings" onclick="setLogTypeFilter('settings')">Sistem Ayarları</span>
+      </div>
       <div id="adm-logs-list"><div class="load"><div class="spin"></div><span>Loglar yükleniyor…</span></div></div>
       <button class="apbtn" style="margin-top:12px;background:var(--surf2);color:var(--text)" onclick="loadAdminLogs(false)">Daha Fazla Yükle</button>
     </div>
@@ -1688,18 +1709,45 @@ async function adminLog(action, targetType, targetId, targetLabel, oldValue, new
 
 // Log listesini yükler (sayfalama ile — her seferinde 30 kayıt).
 let adminLogsLastDoc = null;
+let adminLogTypeFilter = 'all';
+const LOG_TYPE_GROUPS = {
+  all: null,
+  ban: ['user'], // action metnine göre ayrıca istemci tarafında süzülecek
+  announcement: ['announcement'],
+  listing: ['listing'],
+  forum: ['forum_post', 'comment'],
+  complaint: ['complaint'],
+  settings: ['settings'],
+};
+
+function setLogTypeFilter(type) {
+  adminLogTypeFilter = type;
+  document.querySelectorAll('#log-type-filters .pcompl-pill').forEach(el => {
+    const active = el.dataset.type === type;
+    el.style.background = active ? 'var(--cyan)' : '';
+    el.style.color = active ? '#000' : '';
+  });
+  loadAdminLogs(true);
+}
+
 async function loadAdminLogs(reset) {
   const list = document.getElementById('adm-logs-list');
   if (!list || !hasPermission('viewLogs')) return;
   if (reset) { adminLogsLastDoc = null; list.innerHTML = `<div class="load"><div class="spin"></div></div>`; }
   try {
-    let q = db.collection('admin_logs').orderBy('createdAt', 'desc').limit(30);
+    let q = db.collection('admin_logs');
+    const targetTypes = LOG_TYPE_GROUPS[adminLogTypeFilter];
+    if (targetTypes) q = q.where('targetType', 'in', targetTypes);
+    q = q.orderBy('createdAt', 'desc').limit(30);
     if (adminLogsLastDoc) q = q.startAfter(adminLogsLastDoc);
     const snap = await q.get();
-    if (snap.empty && reset) { list.innerHTML = '<div class="no">Henüz hiçbir yönetici işlemi kaydedilmedi.</div>'; return; }
+    if (snap.empty && reset) { list.innerHTML = '<div class="no">Bu filtrede kayıt yok.</div>'; return; }
     adminLogsLastDoc = snap.docs[snap.docs.length - 1] || adminLogsLastDoc;
+    const search = (document.getElementById('log-search')?.value || '').toLowerCase();
     const rowsHtml = snap.docs.map(d => {
       const l = d.data();
+      return { l, blob: `${l.adminName||''} ${l.action||''} ${l.targetLabel||''}`.toLowerCase() };
+    }).filter(x => !search || x.blob.includes(search)).map(({l}) => {
       const when = l.createdAt?.toDate ? timeAgo(l.createdAt.toDate()) : '—';
       const resultColor = (l.result === 'success') ? '#3DDC97' : 'var(--red)';
       return `<div class="pact-row">
@@ -1710,10 +1758,11 @@ async function loadAdminLogs(reset) {
         </div>
       </div>`;
     }).join('');
-    list.innerHTML = reset ? rowsHtml : list.innerHTML + rowsHtml;
+    list.innerHTML = reset ? (rowsHtml || '<div class="no">Aramayla eşleşen kayıt yok.</div>') : list.innerHTML + rowsHtml;
   } catch (e) {
     console.error('Loglar yüklenemedi:', e);
-    list.innerHTML = '<div class="no">Loglar yüklenemedi (yetki veya bağlantı sorunu olabilir).</div>';
+    const urlMatch = e.message?.match(/https:\/\/console\.firebase\.google\.com[^\s)]+/);
+    list.innerHTML = `<div class="no">Loglar yüklenemedi.<br><span style="font-size:11px;color:var(--text3)">${e.message||''}</span>${urlMatch?`<br><a href="${urlMatch[0]}" target="_blank" style="color:var(--cyan);font-size:12px">→ Eksik index'i buradan oluştur</a>`:''}</div>`;
   }
 }
 
@@ -2023,6 +2072,7 @@ async function loadDashboard() {
     const [
       totalUsers, todayUsers, online, totalPosts, totalComments,
       totalComplaints, pendingComplaints, resolvedComplaints, banned, activeToday, bannedToday,
+      loginsToday, messagesToday,
       recentLogsSnap, recentUsersSnap, weeklyUsersSnap, weeklyComplaintsSnap
     ] = await Promise.all([
       safeCount(db.collection('teknohane_users')),
@@ -2036,13 +2086,15 @@ async function loadDashboard() {
       safeCount(db.collection('teknohane_users').where('banned', '==', true)),
       safeCount(db.collection('teknohane_users').where('lastSeen', '>=', todayStart)),
       safeCount(db.collection('teknohane_users').where('bannedAt', '>=', todayStart)),
+      safeCount(db.collectionGroup('sessions').where('lastActive', '>=', todayStart)),
+      safeCount(db.collectionGroup('messages').where('createdAt', '>=', todayStart)),
       safeGet(db.collection('admin_logs').orderBy('createdAt', 'desc').limit(20)),
       safeGet(db.collection('teknohane_users').orderBy('createdAt', 'desc').limit(10)),
       safeGet(db.collection('teknohane_users').where('createdAt', '>=', sevenDaysAgo)),
       safeGet(db.collection('teknohane_complaints').where('createdAt', '>=', sevenDaysAgo)),
     ]);
 
-    const stats = { totalUsers, todayUsers, online, totalListings: listings.length, totalPosts, totalComments, totalComplaints, pendingComplaints, resolvedComplaints, banned, activeToday };
+    const stats = { totalUsers, todayUsers, online, totalListings: listings.length, totalPosts, totalComments, totalComplaints, pendingComplaints, resolvedComplaints, banned, activeToday, loginsToday, messagesToday };
     const pendingListings = listings.filter(l => l.approved === false).length;
     const publishedListings = listings.filter(l => l.approved !== false && !l.sold).length;
     const soldListings = listings.filter(l => l.sold).length;
@@ -2078,6 +2130,7 @@ function renderDashboard(stats, pending, recentLogs, recentUsers, recentListings
         ['Forum Gönderisi', stats.totalPosts], ['Toplam Yorum', stats.totalComments],
         ['Toplam Şikayet', stats.totalComplaints], ['Bekleyen Şikayet', stats.pendingComplaints], ['Çözülen Şikayet', stats.resolvedComplaints],
         ['Banlı Kullanıcı', stats.banned], ['Bugün Aktif', stats.activeToday],
+        ['Son 24s Giriş', stats.loginsToday], ['Son 24s Mesaj', stats.messagesToday],
       ].map(([label,val]) => `<div class="pstat-item" style="flex:1 1 28%;min-width:85px;margin-bottom:12px"><div class="pstat-num">${fmt(val)}</div><div class="pstat-lbl">${label}</div></div>`).join('')}
     </div>
 
@@ -4756,7 +4809,7 @@ function rlistings() {
   }
 
   let items = source.filter(l => !q || l.model?.toLowerCase().includes(q));
-  if (mktab !== 'mine') items = items.filter(l => !isSoldExpired(l));
+  if (mktab !== 'mine') items = items.filter(l => !isSoldExpired(l) && !l.paused);
   if (filterMin) items = items.filter(l => parseInt(l.price||0) >= parseInt(filterMin));
   if (filterMax) items = items.filter(l => parseInt(l.price||0) <= parseInt(filterMax));
   if (filterBrand !== 'Tümü') items = items.filter(l => (l.model||'').toLowerCase().includes(filterBrand.toLowerCase()));
@@ -5186,9 +5239,9 @@ async function toggleSold(id) {
 async function approveListing(id) {
   if (!user || !isAdminNow()) return;
   try {
-    await db.collection('teknohane_listings').doc(id).update({ approved: true });
+    await db.collection('teknohane_listings').doc(id).update({ approved: true, rejected: false });
     const l = listings.find(x => x.id === id);
-    if (l) l.approved = true;
+    if (l) { l.approved = true; l.rejected = false; }
     adminLog('approve_listing', 'listing', id, l?.model || id, { approved: false }, { approved: true });
     exitDetailPage(false);
     rlistings();
@@ -5198,6 +5251,72 @@ async function approveListing(id) {
     adminLog('approve_listing', 'listing', id, id, null, null, 'error: ' + e.message);
     alert('Hata: ' + e.message);
   }
+}
+
+const LISTING_REJECT_REASONS = [
+  { code: 'sahte', label: 'Sahte İlan' }, { code: 'yaniltici', label: 'Yanıltıcı Bilgi' },
+  { code: 'uygunsuz', label: 'Uygunsuz İçerik' }, { code: 'kurallara_aykiri', label: 'Kurallara Aykırı Fiyat/İçerik' },
+  { code: 'diger', label: 'Diğer' },
+];
+
+function rejectListingPrompt(id) {
+  if (!hasPermission('manageListings')) { showToast('⚠️','rgba(255,69,58,.15)','Yetkin Yok',''); return; }
+  const options = LISTING_REJECT_REASONS.map((r,i) => `${i+1}) ${r.label}`).join('\n');
+  const choice = prompt(`Red sebebi seç (1-${LISTING_REJECT_REASONS.length}):\n${options}`);
+  if (choice === null) return;
+  const idx = parseInt(choice) - 1;
+  const reason = LISTING_REJECT_REASONS[idx];
+  if (!reason) { showToast('⚠️','rgba(255,69,58,.15)','Geçersiz','Geçerli bir numara seçmelisin.'); return; }
+  let note = '';
+  if (reason.code === 'diger') {
+    note = prompt('Red açıklaması yaz:') || '';
+    if (!note.trim()) { showToast('⚠️','rgba(255,69,58,.15)','Eksik','Açıklama yazmalısın.'); return; }
+  }
+  rejectListing(id, reason.code, reason.label, note.trim());
+}
+
+async function rejectListing(id, reasonCode, reasonLabel, note) {
+  const l = listings.find(x => x.id === id);
+  try {
+    await db.collection('teknohane_listings').doc(id).update({
+      approved: false, rejected: true, rejectReasonCode: reasonCode, rejectReasonLabel: reasonLabel, rejectNote: note || ''
+    });
+    if (l) Object.assign(l, { approved: false, rejected: true, rejectReasonLabel: reasonLabel });
+    adminLog('reject_listing', 'listing', id, l?.model||id, { approved: null }, { rejected: true, reasonLabel }, 'success');
+    exitDetailPage(false);
+    rlistings(); radmin();
+    showToast('✓', 'rgba(255,149,0,.15)', 'İlan Reddedildi', reasonLabel);
+  } catch(e) { showToast('⚠️','rgba(255,69,58,.15)','Hata','İşlem yapılamadı: ' + e.message); }
+}
+
+async function toggleListingPaused(id) {
+  if (!hasPermission('manageListings')) { showToast('⚠️','rgba(255,69,58,.15)','Yetkin Yok',''); return; }
+  const l = listings.find(x => x.id === id);
+  if (!l) return;
+  const newVal = !l.paused;
+  try {
+    await db.collection('teknohane_listings').doc(id).update({ paused: newVal });
+    l.paused = newVal;
+    adminLog(newVal?'pause_listing':'unpause_listing', 'listing', id, l.model||id, { paused: !newVal }, { paused: newVal }, 'success');
+    rlistings(); radmin();
+    showToast('✓', 'rgba(48,209,88,.15)', newVal?'Pasife Alındı':'Tekrar Yayında', '');
+  } catch(e) { showToast('⚠️','rgba(255,69,58,.15)','Hata','İşlem yapılamadı: ' + e.message); }
+}
+
+async function adminToggleSold(id) {
+  if (!hasPermission('manageListings')) { showToast('⚠️','rgba(255,69,58,.15)','Yetkin Yok',''); return; }
+  const l = listings.find(x => x.id === id);
+  if (!l) return;
+  const newVal = !l.sold;
+  try {
+    const upd = { sold: newVal };
+    upd.soldAt = newVal ? firebase.firestore.FieldValue.serverTimestamp() : firebase.firestore.FieldValue.delete();
+    await db.collection('teknohane_listings').doc(id).update(upd);
+    l.sold = newVal;
+    adminLog(newVal?'mark_listing_sold':'unmark_listing_sold', 'listing', id, l.model||id, { sold: !newVal }, { sold: newVal }, 'success');
+    rlistings(); radmin();
+    showToast('✓', 'rgba(48,209,88,.15)', newVal?'Satıldı İşaretlendi':'Satıldı Bilgisi Kaldırıldı', '');
+  } catch(e) { showToast('⚠️','rgba(255,69,58,.15)','Hata','İşlem yapılamadı: ' + e.message); }
 }
 
 async function toggleRef() {
@@ -6134,8 +6253,13 @@ function radmin() {
     <div class="adm-row" style="${pending?'border:1px solid rgba(255,149,0,.35);background:rgba(255,149,0,.05)':''}" onclick="openDetail('${l.id}')">
       ${l.photo1 ? `<img src="${l.photo1}">` : `<div style="width:44px;height:44px;border-radius:8px;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">📱</div>`}
       <div class="adm-info">
-        <div class="adm-model">${l.featured?'⭐ ':''}${l.model||'—'}${pending?' <span style="color:#FF9500;font-size:10px;font-weight:700">⏳ ONAY BEKLİYOR</span>':''}</div>
+        <div class="adm-model">${l.featured?'⭐ ':''}${l.sold?'✅ ':''}${l.paused?'⏸️ ':''}${l.model||'—'}${pending?' <span style="color:#FF9500;font-size:10px;font-weight:700">⏳ ONAY BEKLİYOR</span>':''}${l.rejected?' <span style="color:var(--red);font-size:10px;font-weight:700">✕ REDDEDİLDİ</span>':''}</div>
         <div class="adm-meta">₺${parseInt(l.price||0).toLocaleString('tr-TR')} · ${l.ownerName||'Anonim'}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px" onclick="event.stopPropagation()">
+          ${pending?`<span class="pcompl-pill" style="cursor:pointer" onclick="rejectListingPrompt('${l.id}')">Reddet</span>`:''}
+          ${!pending && !l.rejected ? `<span class="pcompl-pill" style="cursor:pointer" onclick="toggleListingPaused('${l.id}')">${l.paused?'Yayına Al':'Pasife Al'}</span>` : ''}
+          ${!pending && !l.rejected ? `<span class="pcompl-pill" style="cursor:pointer" onclick="adminToggleSold('${l.id}')">${l.sold?'Satıldıyı Kaldır':'Satıldı İşaretle'}</span>` : ''}
+        </div>
       </div>
       <span class="pcompl-pill" onclick="event.stopPropagation();toggleListingFeatured('${l.id}')" style="cursor:pointer;flex-shrink:0">${l.featured?'⭐':'☆'}</span>
       <div class="adm-del" onclick="event.stopPropagation();delListing('${l.id}')">
@@ -6179,6 +6303,7 @@ function rAdminForum() {
       </div>
       <div style="font-size:11px;color:var(--text3)">${p.authorName} · ${(p.likes||[]).length} beğeni · ${p.answerCount||0} yorum</div>
       <div style="display:flex;gap:6px" onclick="event.stopPropagation()">
+        <span class="pcompl-pill" onclick="openForumPostEdit('${p.id}')" style="cursor:pointer">✏️ Düzenle</span>
         <span class="pcompl-pill" onclick="toggleForumPin('${p.id}')" style="cursor:pointer">${p.pinned?'Sabitlemeyi Kaldır':'📌 Sabitle'}</span>
         ${p.uid?`<span class="pcompl-pill" onclick="closemo('admin-mo');openUserEdit('${p.uid}')" style="cursor:pointer">⚠️ Yazarı Uyar</span>`:''}
       </div>
@@ -6198,6 +6323,136 @@ async function toggleForumPin(id) {
     rAdminForum(); rForum();
     showToast('✓','rgba(48,209,88,.15)', newVal?'Sabitlendi':'Sabitleme Kaldırıldı', '');
   } catch(e) { showToast('⚠️','rgba(255,69,58,.15)','Hata','İşlem yapılamadı: ' + e.message); }
+}
+
+function setForumModTab(tab) {
+  document.getElementById('fmt-posts').style.background = tab==='posts' ? 'var(--cyan)' : '';
+  document.getElementById('fmt-posts').style.color = tab==='posts' ? '#000' : '';
+  document.getElementById('fmt-comments').style.background = tab==='comments' ? 'var(--cyan)' : '';
+  document.getElementById('fmt-comments').style.color = tab==='comments' ? '#000' : '';
+  document.getElementById('admin-forum-posts-sub').style.display = tab==='posts' ? 'block' : 'none';
+  document.getElementById('admin-forum-comments-sub').style.display = tab==='comments' ? 'block' : 'none';
+  if (tab === 'comments' && !adminCommentsLoadedOnce) loadAdminComments(true);
+}
+
+function openForumPostEdit(id) {
+  if (!hasPermission('manageListings')) { showToast('⚠️','rgba(255,69,58,.15)','Yetkin Yok',''); return; }
+  const p = forumPosts.find(x => x.id === id);
+  if (!p) return;
+  const newTitle = prompt('Gönderi başlığı:', p.title || '');
+  if (newTitle === null) return;
+  const newBody = prompt('Gönderi metni:', p.body || '');
+  if (newBody === null) return;
+  saveForumPostEdit(id, newTitle.trim(), newBody.trim());
+}
+
+async function saveForumPostEdit(id, title, body) {
+  const p = forumPosts.find(x => x.id === id);
+  try {
+    await db.collection('teknohane_posts').doc(id).set({ title, body }, { merge: true });
+    if (p) { p.title = title; p.body = body; }
+    adminLog('edit_forum_post', 'forum_post', id, title||id, null, { title, body }, 'success');
+    rAdminForum(); rForum();
+    showToast('✓','rgba(48,209,88,.15)','Kaydedildi','');
+  } catch(e) { showToast('⚠️','rgba(255,69,58,.15)','Hata','Düzenlenemedi: ' + e.message); }
+}
+
+// ==== YORUM MODERASYONU (Aşama 2) ====
+// collectionGroup sorgusu ile TÜM gönderilerin yorumlarını tek sorguda, sayfalamalı çeker —
+// her gönderi için ayrı ayrı sorgu atmaz (N+1 riski yok).
+let adminCommentsCache = [];
+let adminCommentsLastDoc = null;
+let adminCommentsHasMore = true;
+let adminCommentsLoadedOnce = false;
+
+async function loadAdminComments(reset) {
+  const list = document.getElementById('adm-comments-list');
+  if (!list || !hasPermission('manageComplaints')) return;
+  if (reset) { adminCommentsCache = []; adminCommentsLastDoc = null; adminCommentsHasMore = true; }
+  if (!adminCommentsHasMore) return;
+  list.innerHTML = adminCommentsCache.length ? list.innerHTML : `<div class="load"><div class="spin"></div></div>`;
+  try {
+    let q = db.collectionGroup('comments').orderBy('createdAt', 'desc').limit(30);
+    if (adminCommentsLastDoc) q = q.startAfter(adminCommentsLastDoc);
+    const snap = await q.get();
+    adminCommentsLastDoc = snap.docs[snap.docs.length-1] || adminCommentsLastDoc;
+    adminCommentsHasMore = snap.docs.length === 30;
+    const newItems = snap.docs.map(d => ({ id: d.id, postId: d.ref.parent.parent.id, ...d.data() }));
+    adminCommentsCache = reset ? newItems : [...adminCommentsCache, ...newItems];
+    adminCommentsLoadedOnce = true;
+    renderAdminCommentsList();
+  } catch(e) {
+    console.error('Yorumlar yüklenemedi:', e);
+    const urlMatch = e.message?.match(/https:\/\/console\.firebase\.google\.com[^\s)]+/);
+    list.innerHTML = `<div class="no">Yorumlar yüklenemedi.<br><span style="font-size:11px;color:var(--text3)">${e.message||''}</span>${urlMatch?`<br><a href="${urlMatch[0]}" target="_blank" style="color:var(--cyan);font-size:12px">→ Eksik index'i buradan oluştur</a>`:''}</div>`;
+  }
+}
+
+function renderAdminCommentsList() {
+  const list = document.getElementById('adm-comments-list');
+  if (!list) return;
+  if (!adminCommentsCache.length) { list.innerHTML = '<div class="no">Yorum yok</div>'; return; }
+  list.innerHTML = adminCommentsCache.map(c => {
+    const post = forumPosts.find(p => p.id === c.postId);
+    const complaintCount = complaintsPageCache.filter(x => x.type === 'comment' && x.targetId === c.id).length;
+    return `<div class="adm-row" style="flex-direction:column;align-items:flex-start;gap:6px">
+      <div style="font-size:12px;color:var(--text);width:100%">${(c.body||'').slice(0,120)}${(c.body||'').length>120?'…':''}${c.hidden?' <span style="color:var(--red);font-size:10px">(GİZLİ)</span>':''}</div>
+      <div style="font-size:11px;color:var(--text3)">${c.authorName||'—'} · ${post?.title?('"'+post.title.slice(0,25)+'"'):'Gönderi'} · ${c.createdAt?.toDate?timeAgo(c.createdAt.toDate()):''} · ${(c.likes||[]).length} beğeni${complaintCount?` · ⚠️ ${complaintCount} şikayet`:''}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <span class="pcompl-pill" style="cursor:pointer" onclick="editAdminComment('${c.postId}','${c.id}')">Düzenle</span>
+        <span class="pcompl-pill" style="cursor:pointer" onclick="toggleCommentHidden('${c.postId}','${c.id}')">${c.hidden?'Göster':'Gizle'}</span>
+        <span class="pcompl-pill" style="cursor:pointer;color:var(--red)" onclick="deleteAdminComment('${c.postId}','${c.id}')">Sil</span>
+        ${c.uid?`<span class="pcompl-pill" style="cursor:pointer" onclick="closemo('admin-mo');openUserEdit('${c.uid}')">Yazarı Uyar/Bildir</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function deleteAdminComment(postId, commentId) {
+  if (!hasPermission('manageComplaints')) return;
+  if (!confirm('Bu yorum silinsin mi?')) return;
+  const c = adminCommentsCache.find(x => x.id === commentId);
+  try {
+    await db.collection('teknohane_posts').doc(postId).collection('comments').doc(commentId).delete();
+    adminCommentsCache = adminCommentsCache.filter(x => x.id !== commentId);
+    adminLog('delete_comment', 'comment', commentId, (c?.body||'').slice(0,40), c, null, 'success');
+    renderAdminCommentsList();
+    showToast('🗑️','rgba(255,69,58,.15)','Silindi','');
+  } catch(e) { showToast('⚠️','rgba(255,69,58,.15)','Hata','Silinemedi: ' + e.message); }
+}
+
+async function toggleCommentHidden(postId, commentId) {
+  if (!hasPermission('manageComplaints')) return;
+  const c = adminCommentsCache.find(x => x.id === commentId);
+  if (!c) return;
+  const newVal = !c.hidden;
+  try {
+    await db.collection('teknohane_posts').doc(postId).collection('comments').doc(commentId).set({ hidden: newVal }, { merge: true });
+    c.hidden = newVal;
+    adminLog(newVal?'hide_comment':'unhide_comment', 'comment', commentId, (c.body||'').slice(0,40), { hidden: !newVal }, { hidden: newVal }, 'success');
+    renderAdminCommentsList();
+    showToast('✓','rgba(48,209,88,.15)', newVal?'Gizlendi':'Gösterildi', '');
+  } catch(e) { showToast('⚠️','rgba(255,69,58,.15)','Hata','İşlem yapılamadı: ' + e.message); }
+}
+
+function editAdminComment(postId, commentId) {
+  if (!hasPermission('manageComplaints')) return;
+  const c = adminCommentsCache.find(x => x.id === commentId);
+  if (!c) return;
+  const newBody = prompt('Yorum metni:', c.body || '');
+  if (newBody === null) return;
+  saveAdminCommentEdit(postId, commentId, newBody.trim());
+}
+
+async function saveAdminCommentEdit(postId, commentId, body) {
+  const c = adminCommentsCache.find(x => x.id === commentId);
+  try {
+    await db.collection('teknohane_posts').doc(postId).collection('comments').doc(commentId).set({ body }, { merge: true });
+    if (c) c.body = body;
+    adminLog('edit_comment', 'comment', commentId, body.slice(0,40), null, { body }, 'success');
+    renderAdminCommentsList();
+    showToast('✓','rgba(48,209,88,.15)','Kaydedildi','');
+  } catch(e) { showToast('⚠️','rgba(255,69,58,.15)','Hata','Düzenlenemedi: ' + e.message); }
 }
 
 async function adminDeletePost(id) {
