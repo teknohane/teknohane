@@ -3786,14 +3786,6 @@ async function setupPushNative(silent) {
         console.error('Push kayıt hatası:', err);
         if (!silent) alert('Bildirim token\'ı alınamadı: ' + (err?.error || 'bilinmeyen hata'));
       });
-      // Uygulama kapalı/arka plandayken gelen bir push bildirimine dokunulduğunda tetiklenir —
-      // bildirimin taşıdığı hedefe (ilan/gönderi/profil) yönlendirir.
-      PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
-        try {
-          const data = action?.notification?.data || {};
-          navigateFromNotificationUrl(data.url || data.click_action || '');
-        } catch(e) { console.error('Push yönlendirme hatası:', e); }
-      });
     }
     await PushNotifications.register();
   } catch(e) {
@@ -7228,6 +7220,7 @@ function gt(name) {
   }
   if(name==='community') loadForum();
   if(name==='compare') loadExtraPhones();
+  if(name==='profile') rprof();
   showTabTip(name);
 }
 
@@ -7313,6 +7306,25 @@ function waListingLink(model, phone) {
   return `https://wa.me/90${phone}?text=${encodeURIComponent(msg)}`;
 }
 function closemo(id) { document.getElementById(id)?.classList.remove('on'); }
+
+// ==== MODAL KATMANLAMA SİSTEMİ (kalıcı) ====
+// Sorun: tüm .mo modalleri aynı sabit z-index'i (300) paylaşıyordu — iki modal aynı anda açıkken
+// hangisinin üstte göründüğü DOM sırasına bağlı kalıyordu, açılış sırasına değil. Bu, örneğin forum/
+// profil gibi kendisi modal olan bir ekrandan açılan "Şikayet Et" modalının bazen arkada kalmasına
+// (ve dokunuşların altındaki modale gitmesine) yol açıyordu.
+// Çözüm: her .mo elemanının 'class' değişimini izleyip, 'on' sınıfı eklendiği anda o modali otomatik
+// olarak o ana kadarki en yüksek z-index'in bir üstüne çıkarıyoruz — en son açılan HER ZAMAN en üstte.
+// Bu, mevcut hiçbir "classList.add('on')" çağrısının değiştirilmesini gerektirmiyor, kod tekrarı yok.
+let modalZCounter = 300;
+document.querySelectorAll('.mo').forEach(mo => {
+  new MutationObserver(muts => {
+    for (const m of muts) {
+      if (m.attributeName === 'class' && mo.classList.contains('on')) {
+        mo.style.zIndex = ++modalZCounter;
+      }
+    }
+  }).observe(mo, { attributes: true, attributeFilter: ['class'] });
+});
 
 // ONLINE/OFFLINE DURUMU
 function updateOnlineStatus() {
@@ -7430,6 +7442,19 @@ if (isNativeApp()) {
     });
   } else {
     console.warn('Capacitor App plugin bulunamadı, donanım geri tuşu köprülenemedi.');
+  }
+  // Bildirim tıklama dinleyicisi İZİN İSTEĞİNDEN VE GİRİŞTEN BAĞIMSIZ, uygulama açılır açılmaz
+  // (soğuk başlatma dahil) kaydedilir. Daha önce bu, izin isteme akışının (setupPushNative) içinde,
+  // yalnızca kullanıcı zaten giriş yapmış ve izin akışı tamamlanmışsa kaydediliyordu — uygulama
+  // tamamen kapalıyken bir bildirime dokunularak açıldığında bu akış çok geç devreye giriyor,
+  // native tarafın olayı JS tarafı hazır olmadan tetiklemiş olma ihtimali vardı.
+  if (Capacitor.Plugins.PushNotifications) {
+    Capacitor.Plugins.PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+      try {
+        const data = action?.notification?.data || {};
+        navigateFromNotificationUrl(data.url || data.click_action || '');
+      } catch(e) { console.error('Push yönlendirme hatası:', e); }
+    });
   }
 }
 
