@@ -2709,6 +2709,7 @@ auth.onAuthStateChanged(u => {
     favs = new Set();
     myProfileData = {};
     markDataStale('profile'); // sonraki girişte (farklı bir hesap dahil) eski durumun sızmaması için
+    profileExtrasLoadedForUid = null;
     rprof();
     if (listingsReady) rlistings();
     unsubNotifBadge?.();
@@ -2817,6 +2818,9 @@ function computeTeknohaneScore(uid, profileData) {
   const listingsCount = listings.filter(l => l.uid === uid).length;
   const forumCount = forumPosts.filter(p => p.uid === uid).length;
   const compareCount = profileData.compareCount || 0;
+  // Referans sayısı: zaten bellekte yüklü olan `listings` dizisinden hesaplanır — ek Firestore
+  // sorgusu gerekmez, koleksiyon büyüklüğünden bağımsız (yalnızca o an yüklü sayfa üzerinden).
+  const referralCount = listings.filter(l => (l.referrers||[]).some(r => r.uid === uid)).length;
   const lastSeenDate = profileData.lastSeen?.toDate ? profileData.lastSeen.toDate() : null;
   const isRecentlyActive = lastSeenDate ? (Date.now() - lastSeenDate.getTime()) < 7*24*60*60*1000 : false;
   const criteria = [
@@ -2830,7 +2834,7 @@ function computeTeknohaneScore(uid, profileData) {
     { done: !!profileData.emailVerified, weight: 15 },
   ];
   const score = criteria.reduce((sum,item)=>sum+(item.done?item.weight:0),0);
-  return { score, listingsCount, forumCount, compareCount, isRecentlyActive };
+  return { score, listingsCount, forumCount, compareCount, referralCount, isRecentlyActive };
 }
 
 // Rozet tanımları: gerçek veriden hesaplanır, hem kendi hem başka profil için aynı liste kullanılır.
@@ -2845,9 +2849,12 @@ function computeBadges(uid, profileData, isTargetAdmin, scoreInfo) {
     { id:'100-likes', icon:'❤️', label:'100 Beğeni', done: likesReceived>=100 },
     { id:'forum-member', icon:'💬', label:'Forum Üyesi', done: scoreInfo.forumCount>=3 },
     { id:'community-contributor', icon:'📢', label:'Topluluk Katkıcısı', done: scoreInfo.forumCount>=10 },
-    { id:'verified', icon:'✅', label:'Doğrulanmış Hesap', done: !!profileData.emailVerified },
+    // Artık yalnızca e-posta doğrulamasıyla değil, admin onayıyla da (adminVerified) kazanılabiliyor.
+    { id:'verified', icon:'✅', label:'Doğrulanmış Hesap', done: !!profileData.emailVerified || !!profileData.adminVerified },
     { id:'early-user', icon:'🚀', label:'Erken Kullanıcı', done: !!(joinedDate && joinedDate < EARLY_USER_CUTOFF) },
     { id:'vip', icon:'💎', label:'VIP', done: !!profileData.vip },
+    { id:'trusted-seller', icon:'🤝', label:'Güvenilir Satıcı', done: !!profileData.trustedSeller },
+    { id:'referrer', icon:'🔗', label:'Referans Kahramanı', done: (scoreInfo.referralCount||0)>=5 },
     { id:'admin', icon:'🛡️', label:'Yönetici', done: !!isTargetAdmin },
     { id:'10-sales', icon:'🏆', label:'10 Satış', done:false, locked:true, info:'Satış takip sistemi henüz aktif değil, veri oluşunca bu rozet otomatik açılacak.' },
   ];
@@ -2913,6 +2920,20 @@ function animateProfileStats() {
   });
 }
 
+// Yeni kazanılan rozetleri tespit edip Firestore'a yazar (yalnızca gerçekten yeni bir şey varsa).
+// Önceden bu mantık rprof() render fonksiyonunun içine gömülüydü — render ve yazma sorumluluğu
+// karışıyordu. Davranış birebir aynı, yalnızca ayrı ve adlandırılmış bir fonksiyona taşındı.
+function syncEarnedBadges(earnedNow) {
+  if (!user) return [];
+  const previouslyEarned = myProfileData.earnedBadges || [];
+  const newlyUnlocked = earnedNow.filter(id => !previouslyEarned.includes(id));
+  if (newlyUnlocked.length) {
+    myProfileData.earnedBadges = [...previouslyEarned, ...newlyUnlocked];
+    db.collection('teknohane_users').doc(user.uid).set({ earnedBadges: firebase.firestore.FieldValue.arrayUnion(...newlyUnlocked) }, { merge:true }).catch(()=>{});
+  }
+  return newlyUnlocked;
+}
+
 function rprof() {
   const c = document.getElementById('profile-c');
   if (!c) return;
@@ -2948,12 +2969,7 @@ function rprof() {
     const BADGES_DEF = computeBadges(user.uid, scoreProfileData, isAdmin, scoreInfo);
     const myPrivacy = getPrivacy(myProfileData);
     const earnedNow = BADGES_DEF.filter(b=>b.done).map(b=>b.id);
-    const previouslyEarned = myProfileData.earnedBadges || [];
-    const newlyUnlocked = earnedNow.filter(id => !previouslyEarned.includes(id));
-    if (newlyUnlocked.length && user) {
-      myProfileData.earnedBadges = [...previouslyEarned, ...newlyUnlocked];
-      db.collection('teknohane_users').doc(user.uid).set({ earnedBadges: firebase.firestore.FieldValue.arrayUnion(...newlyUnlocked) }, { merge:true }).catch(()=>{});
-    }
+    const newlyUnlocked = syncEarnedBadges(earnedNow);
 
     const complItems = [
       { done: !!myProfileData.customPhoto, label: 'Profil fotoğrafı ekle', action: 'openEditProfile()' },
@@ -2976,6 +2992,14 @@ function rprof() {
     });
     forumPosts.filter(p=>p.uid===user.uid).forEach(p=>{
       if (p.createdAt?.toDate) activityItems.push({ ts:p.createdAt.toMillis?p.createdAt.toMillis():0, date:p.createdAt.toDate(), icon:'💬', text:`"${p.title||'Forum gönderisi'}" paylaştın` });
+    });
+    // Referans olunan ilanlar da aktivite geçmişine dahil — zaten bellekte olan listings dizisinden,
+    // ek sorgu yok. Yalnızca `at` zaman damgası taşıyan (bu değişiklikten sonra eklenen) referanslar
+    // görünür — eski referanslarda bu alan yok, sahte bir tarih uydurulmuyor.
+    listings.forEach(l => {
+      const myRef = (l.referrers||[]).find(r => r.uid === user.uid);
+      const refDate = myRef?.at?.toDate ? myRef.at.toDate() : (myRef?.at instanceof Date ? myRef.at : null);
+      if (refDate) activityItems.push({ ts: refDate.getTime(), date: refDate, icon:'🔗', text:`"${l.model||'İlan'}" ilanına referans oldun` });
     });
     activityItems.sort((a,b)=>b.ts-a.ts);
     const topActivity = activityItems.slice(0,4);
@@ -3038,12 +3062,15 @@ function rprof() {
         <div class="pstat-item"><div class="pstat-num" data-target="${myCompareCount}">0</div><div class="pstat-lbl">Karşılaştırma</div></div>
         <div class="pstat-item"><div class="pstat-num" data-target="${myForumCount}">0</div><div class="pstat-lbl">Forum</div></div>
         <div class="pstat-item"><div class="pstat-num" data-target="${myLikesReceived}">0</div><div class="pstat-lbl">Beğeni</div></div>
+        <div class="pstat-item"><div class="pstat-num" data-target="${scoreInfo.referralCount||0}">0</div><div class="pstat-lbl">Referans</div></div>
       </div>
-      ${complPct<100?`<div class="pcompl-card">
+      <div class="pcompl-card">
         <div class="pcompl-top"><span>Profil Tamamlanma</span><span class="pcompl-pct">%${complPct}</span></div>
         <div class="pcompl-bar"><div class="pcompl-fill" style="width:${complPct}%"></div></div>
-        <div class="pcompl-missing">${complMissing.map(i=>`<span class="pcompl-pill" onclick="${i.action}">+ ${i.label}</span>`).join('')}</div>
-      </div>`:''}
+        ${complPct<100
+          ? `<div class="pcompl-missing">${complMissing.map(i=>`<span class="pcompl-pill" onclick="${i.action}">+ ${i.label}</span>`).join('')}</div>`
+          : `<div style="font-size:12px;color:#3DDC97;margin-top:8px">✓ Profilin eksiksiz — harika gidiyorsun!</div>`}
+      </div>
       <button class="apbtn" onclick="openEditProfile()">✏️ Profili Düzenle</button>
       <div class="psec-title" style="margin-top:4px">⚡ Hızlı İşlemler</div>
       <div class="pqa-grid">
@@ -3148,8 +3175,7 @@ function rprof() {
     if (isAdmin) updateAdminStats();
     updateThemeToggleUI();
     animateProfileStats();
-    loadActiveSessions();
-    loadMyFollowersCount();
+    loadProfileExtrasIfNeeded();
   } else {
     c.innerHTML = `
       <div class="awrap">
@@ -3366,6 +3392,18 @@ async function sendVerificationEmail() {
 
 // Bu cihazdan/tarayıcıdan yapılan girişler `sessions` alt-koleksiyonuna kaydedilir (bkz. syncUserProfile).
 // Burada son 30 gün içinde aktif olan cihaz sayısını okuyup Güvenlik Kartı'nda gösteriyoruz.
+// Aktif oturum sayısı ve takipçi sayısı sorguları, önceden HER rprof() çağrısında (örn. tek bir
+// gizlilik anahtarını değiştirmek gibi küçük bir işlemde bile) tekrar tekrar çalışıyordu — biri
+// Firestore genelinde bir array-contains sorgusu olduğu için bu gereksiz, tekrar eden bir maliyetti.
+// Artık bu iki sorgu, giriş yapan kullanıcı başına yalnızca BİR KEZ (oturum boyunca) çalışıyor.
+let profileExtrasLoadedForUid = null;
+function loadProfileExtrasIfNeeded() {
+  if (!user || profileExtrasLoadedForUid === user.uid) return;
+  profileExtrasLoadedForUid = user.uid;
+  loadActiveSessions();
+  loadMyFollowersCount();
+}
+
 function loadActiveSessions() {
   const el = document.getElementById('pacc-sessions-count');
   if (!user || !el) return;
@@ -5333,7 +5371,7 @@ async function toggleRef() {
       l.referrers = refs.filter(r => r.uid !== user.uid);
     } else {
       const name = user.displayName || user.email?.split('@')[0] || 'Anonim';
-      const newRef = { uid: user.uid, name };
+      const newRef = { uid: user.uid, name, at: new Date() };
       await db.collection('teknohane_listings').doc(l.id).update({
         referrers: firebase.firestore.FieldValue.arrayUnion(newRef)
       });
@@ -6713,6 +6751,7 @@ function openUserEdit(uid) {
     <div class="fg"><label class="fl">Biyografi</label><textarea class="fi" id="ue-bio" rows="2" style="resize:none;font-family:inherit">${u.bio||''}</textarea></div>
     <div class="fg"><label class="fl" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="ue-vip" ${u.vip?'checked':''}> VIP rozeti</label></div>
     <div class="fg"><label class="fl" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="ue-trusted" ${u.trustedSeller?'checked':''}> Güvenilir Satıcı rozeti</label></div>
+    <div class="fg"><label class="fl" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="ue-adminverified" ${u.adminVerified?'checked':''}> Doğrulanmış Hesap (admin onayı)</label></div>
     <div class="aerr" id="ue-err"></div>
     <button class="sbtn2" onclick="saveUserEdit('${uid}')">Kaydet</button>
     <div class="ud-section" style="margin-top:18px">
@@ -6758,6 +6797,7 @@ async function saveUserEdit(uid) {
     bio: document.getElementById('ue-bio').value.trim(),
     vip: document.getElementById('ue-vip').checked,
     trustedSeller: document.getElementById('ue-trusted').checked,
+    adminVerified: document.getElementById('ue-adminverified').checked,
   };
   try {
     await db.collection('teknohane_users').doc(uid).set(data, { merge: true });
