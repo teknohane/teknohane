@@ -4,7 +4,7 @@
 // Not: Cloudflare Worker (telefon/fiyat/haber/push API) ve Firebase istekleri KESİNLİKLE
 // önbelleğe alınmıyor — bunlar her zaman canlı veri olarak ağdan çekilir.
 
-const CACHE_NAME = 'teknohane-shell-v1';
+const CACHE_NAME = 'teknohane-shell-v2';
 const APP_SHELL = [
   '/teknohane/',
   '/teknohane/index.html',
@@ -50,7 +50,16 @@ self.addEventListener('fetch', (event) => {
 
   // Sayfa açılışı / navigasyon istekleri: önce ağı dene (güncel içerik için),
   // ağ başarısız olursa (internet yok) önbellekteki uygulama kabuğunu göster.
-  if (req.mode === 'navigate') {
+  // Not: req.mode === 'navigate' kontrolüne EK olarak URL'i de kontrol ediyoruz — çünkü Capacitor'ın
+  // native Android WebView'i ana sayfa isteğini her zaman 'navigate' olarak işaretlemeyebiliyor.
+  // Bu durumda istek yanlışlıkla aşağıdaki "önce önbellek" dalına düşüp index.html'in bir daha asla
+  // güncellenmemesine (kalıcı olarak eski sürümde kalmasına) neden oluyordu.
+  const isAppShellRequest = req.mode === 'navigate'
+    || url === self.registration.scope
+    || url.endsWith('/teknohane/')
+    || url.endsWith('/teknohane/index.html');
+
+  if (isAppShellRequest) {
     event.respondWith(
       fetch(req)
         .then((res) => {

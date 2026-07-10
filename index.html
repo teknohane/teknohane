@@ -789,6 +789,7 @@ body.tk-banned #ban-gate{
 <div id="screens">
 
   <div class="screen on" id="s-home">
+    <div id="announcements-wrap"></div>
     <div class="sc" id="home-c">
       <div class="load"><div class="spin"></div><span>Yükleniyor…</span></div>
     </div>
@@ -1213,6 +1214,23 @@ body.tk-banned #ban-gate{
   </div>
 </div>
 
+<!-- DUYURU FORM MODAL (admin) -->
+<div class="mo" id="announcement-form-mo" onclick="closemo('announcement-form-mo')">
+  <div class="ms" onclick="event.stopPropagation()" style="max-height:88vh">
+    <div class="mh"></div>
+    <div class="mtit" id="ann-form-title">Yeni Duyuru</div>
+    <div id="announcement-form-body"></div>
+  </div>
+</div>
+
+<!-- DUYURU İSTATİSTİK MODAL (admin) -->
+<div class="mo" id="announcement-stats-mo" onclick="closemo('announcement-stats-mo')">
+  <div class="ms" onclick="event.stopPropagation()" style="max-height:85vh">
+    <div class="mh"></div>
+    <div id="announcement-stats-body"></div>
+  </div>
+</div>
+
 <!-- ŞİKAYET DETAY MODAL (admin) -->
 <div class="mo" id="complaint-detail-mo" onclick="closemo('complaint-detail-mo')">
   <div class="ms" onclick="event.stopPropagation()" style="max-height:88vh">
@@ -1281,6 +1299,12 @@ body.tk-banned #ban-gate{
       <button class="mtab off" id="adm-tab-logs" onclick="switchAdminTab('logs')">Loglar</button>
       <button class="mtab off" id="adm-tab-complaints" onclick="switchAdminTab('complaints')">Şikayetler</button>
       <button class="mtab off" id="adm-tab-dashboard" onclick="switchAdminTab('dashboard')">Dashboard</button>
+      <button class="mtab off" id="adm-tab-announcements" onclick="switchAdminTab('announcements')">Duyurular</button>
+    </div>
+
+    <div id="admin-announcements-view" style="display:none">
+      <button class="apbtn" style="margin-bottom:12px" onclick="openAnnouncementForm()">+ Yeni Duyuru</button>
+      <div id="adm-announcements-list"><div class="load"><div class="spin"></div><span>Duyurular yükleniyor…</span></div></div>
     </div>
 
     <div id="admin-dashboard-view" style="display:none">
@@ -1618,7 +1642,8 @@ async function loadComplaints(reset) {
     rComplaintsList();
   } catch (e) {
     console.error('Şikayetler yüklenemedi:', e);
-    list.innerHTML = '<div class="no">Şikayetler yüklenemedi (bir Firestore index\'i gerekebilir, konsolu kontrol edin).</div>';
+    const urlMatch = e.message?.match(/https:\/\/console\.firebase\.google\.com[^\s)]+/);
+    list.innerHTML = `<div class="no">Şikayetler yüklenemedi.<br><span style="font-size:11px;color:var(--text3)">${e.message||''}</span>${urlMatch?`<br><a href="${urlMatch[0]}" target="_blank" style="color:var(--cyan);font-size:12px">→ Eksik index'i buradan oluştur</a>`:''}</div>`;
   }
 }
 
@@ -1999,12 +2024,324 @@ function renderDashboard(stats, pending, recentLogs, recentUsers, recentListings
 
     <div class="psec-title">⚡ Hızlı İşlemler</div>
     <div style="display:flex;flex-direction:column;gap:8px">
-      <button class="apbtn" onclick="showToast('ℹ️','rgba(0,212,255,.15)','Yeni Duyuru','Bu özellik Aşama 9 — Duyuru Sistemi\\'nde eklenecek.')">📢 Yeni Duyuru</button>
+      <button class="apbtn" onclick="switchAdminTab('announcements');openAnnouncementForm()">📢 Yeni Duyuru</button>
       <button class="apbtn" style="background:var(--surf2);color:var(--text)" onclick="switchAdminTab('users')">🔍 Kullanıcı Ara</button>
       <button class="apbtn" style="background:var(--surf2);color:var(--text)" onclick="switchAdminTab('complaints')">🚩 Şikayetler</button>
       <button class="apbtn" style="background:var(--surf2);color:var(--text)" onclick="switchAdminTab('users')">🚫 Banlı Kullanıcılar</button>
       <button class="apbtn" style="background:var(--surf2);color:var(--text)" onclick="switchAdminTab('logs')">📋 Admin Log</button>
     </div>`;
+}
+
+// ==== DUYURU SİSTEMİ — ADMİN TARAFI (Aşama 9) ====
+const AUDIENCE_LABELS = {
+  all: 'Tüm Kullanıcılar', admins: 'Sadece Adminler', moderators: 'Moderatörler', editors: 'Editörler',
+  specific_uids: "Belirli UID'ler", specific_usernames: 'Belirli Kullanıcı Adları',
+  not_banned: 'Banlı Olmayan Kullanıcılar', active_30d: 'Son 30 Gün Aktif Kullanıcılar',
+};
+// Push bildirimi büyük kitlelerde (tüm kullanıcılar / son 30 gün aktif / banlı olmayanlar) henüz
+// desteklenmiyor — gerçek toplu push için FCM Topics/Cloud Functions gerekiyor (ayrı görev).
+// Küçük, kesin listelerde (belirli UID/kullanıcı adı/rol) push GERÇEKTEN çalışıyor.
+const LARGE_AUDIENCE_TYPES = ['all', 'active_30d', 'not_banned'];
+
+let adminAnnouncementsCache = [];
+
+async function loadAdminAnnouncements() {
+  const list = document.getElementById('adm-announcements-list');
+  if (!list || !hasPermission('sendNotifications')) return;
+  list.innerHTML = `<div class="load"><div class="spin"></div></div>`;
+  try {
+    const snap = await db.collection('teknohane_announcements').orderBy('createdAt', 'desc').limit(50).get();
+    adminAnnouncementsCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderAdminAnnouncementsList();
+  } catch(e) {
+    console.error('Duyurular yüklenemedi:', e);
+    list.innerHTML = '<div class="no">Duyurular yüklenemedi.</div>';
+  }
+}
+
+function renderAdminAnnouncementsList() {
+  const list = document.getElementById('adm-announcements-list');
+  if (!list) return;
+  if (!adminAnnouncementsCache.length) { list.innerHTML = '<div class="no">Henüz duyuru oluşturulmadı.</div>'; return; }
+  const STATUS_LABELS = { draft:'Taslak', scheduled:'Zamanlanmış', published:'Yayında', expired:'Süresi Doldu', inactive:'Pasif' };
+  const STATUS_COLORS = { draft:'var(--text3)', scheduled:'#FF9500', published:'#3DDC97', expired:'var(--text3)', inactive:'var(--red)' };
+  list.innerHTML = adminAnnouncementsCache.map(a => {
+    const st = getAnnouncementEffectiveStatus(a);
+    const pm = ANNOUNCEMENT_PRIORITY_META[a.priority] || ANNOUNCEMENT_PRIORITY_META.normal;
+    return `<div class="ud-item" onclick="openAnnouncementStats('${a.id}')" style="flex-direction:column;align-items:stretch;gap:4px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span class="ud-item-name">${a.emoji||pm.icon} ${a.title||''}${a.pinned?' 📌':''}</span>
+        <span style="font-size:10px;font-weight:700;color:${STATUS_COLORS[st]}">${STATUS_LABELS[st]}</span>
+      </div>
+      <div class="ud-item-meta">${AUDIENCE_LABELS[a.audienceType]||a.audienceType} · ${a.createdAt?.toDate?timeAgo(a.createdAt.toDate()):''}</div>
+    </div>`;
+  }).join('');
+}
+
+function openAnnouncementForm(id) {
+  const a = id ? adminAnnouncementsCache.find(x => x.id === id) : null;
+  document.getElementById('ann-form-title').textContent = a ? 'Duyuruyu Düzenle' : 'Yeni Duyuru';
+  renderAnnouncementForm(a, id);
+  document.getElementById('announcement-form-mo').classList.add('on');
+}
+
+function renderAnnouncementForm(a, editId) {
+  const body = document.getElementById('announcement-form-body');
+  a = a || {};
+  const audienceOptions = Object.entries(AUDIENCE_LABELS).map(([v,l]) => `<option value="${v}" ${a.audienceType===v?'selected':''}>${l}</option>`).join('');
+  const priorityLabelMap = {normal:'Normal',info:'Bilgilendirme',update:'Güncelleme',maintenance:'Bakım',critical:'Kritik Uyarı'};
+  const priorityOptions = Object.keys(ANNOUNCEMENT_PRIORITY_META).map(p => `<option value="${p}" ${(a.priority||'normal')===p?'selected':''}>${priorityLabelMap[p]}</option>`).join('');
+
+  body.innerHTML = `
+    <input type="hidden" id="ann-edit-id" value="${editId||''}">
+    <div class="fg"><label class="fl">Başlık</label><input class="fi" id="ann-title" value="${a.title||''}"></div>
+    <div class="fg"><label class="fl">Emoji (isteğe bağlı)</label><input class="fi" id="ann-emoji" value="${a.emoji||''}" placeholder="🎉" maxlength="4"></div>
+    <div class="fg"><label class="fl">Açıklama</label><textarea class="fi" id="ann-description" rows="3" style="resize:none;font-family:inherit">${a.description||''}</textarea></div>
+    <div class="fg"><label class="fl">Görsel URL (isteğe bağlı)</label><input class="fi" id="ann-image" value="${a.imageUrl||''}"></div>
+    <div class="fg"><label class="fl">Bağlantı URL (isteğe bağlı)</label><input class="fi" id="ann-link" value="${a.linkUrl||''}"></div>
+    <div class="fg"><label class="fl">Buton Yazısı</label><input class="fi" id="ann-button-text" value="${a.buttonText||'Detay'}"></div>
+    <div class="fg"><label class="fl">Öncelik</label><select class="fi" id="ann-priority">${priorityOptions}</select></div>
+    <div class="fg"><label class="fl" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="ann-pinned" ${a.pinned?'checked':''}> Sabitlensin (üstte kalsın)</label></div>
+
+    <div class="fg"><label class="fl">Hedef Kitle</label><select class="fi" id="ann-audience" onchange="onAnnounceAudienceChange()">${audienceOptions}</select></div>
+    <div class="fg" id="ann-uids-wrap" style="display:${a.audienceType==='specific_uids'?'block':'none'}">
+      <label class="fl">UID'ler (virgülle ayırın)</label><textarea class="fi" id="ann-uids" rows="2" style="resize:none">${(a.audienceUids||[]).join(', ')}</textarea>
+    </div>
+    <div class="fg" id="ann-usernames-wrap" style="display:${a.audienceType==='specific_usernames'?'block':'none'}">
+      <label class="fl">Kullanıcı Adları (virgülle ayırın, @ olmadan)</label><textarea class="fi" id="ann-usernames" rows="2" style="resize:none">${(a.audienceUsernames||[]).join(', ')}</textarea>
+    </div>
+    <div class="fg"><label class="fl" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="ann-exclude-banned" ${a.excludeBanned!==false?'checked':''}> Banlı kullanıcılar hariç tutulsun</label></div>
+
+    <div class="fg"><label class="fl">Yayın Zamanı</label>
+      <select class="fi" id="ann-publish-mode" onchange="document.getElementById('ann-publish-date-wrap').style.display=this.value==='scheduled'?'block':'none'">
+        <option value="now" ${!a.publishAt?'selected':''}>Hemen Yayınla</option>
+        <option value="scheduled" ${a.publishAt?'selected':''}>Zamanlanmış Yayın</option>
+      </select>
+    </div>
+    <div class="fg" id="ann-publish-date-wrap" style="display:${a.publishAt?'block':'none'}">
+      <label class="fl">Yayın Tarihi</label><input class="fi" type="datetime-local" id="ann-publish-date" value="${a.publishAt?.toDate ? toLocalDatetimeValue(a.publishAt.toDate()) : ''}">
+    </div>
+    <div class="fg"><label class="fl">Bitiş</label>
+      <select class="fi" id="ann-expiry-mode" onchange="document.getElementById('ann-expiry-date-wrap').style.display=this.value==='date'?'block':'none'">
+        <option value="never" ${!a.expiresAt?'selected':''}>Süresiz</option>
+        <option value="date" ${a.expiresAt?'selected':''}>Tarih Belirle</option>
+      </select>
+    </div>
+    <div class="fg" id="ann-expiry-date-wrap" style="display:${a.expiresAt?'block':'none'}">
+      <label class="fl">Bitiş Tarihi</label><input class="fi" type="datetime-local" id="ann-expiry-date" value="${a.expiresAt?.toDate ? toLocalDatetimeValue(a.expiresAt.toDate()) : ''}">
+    </div>
+
+    <div class="fg"><label class="fl" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="ann-send-push" ${a.sendPush?'checked':''} onchange="document.getElementById('ann-push-wrap').style.display=this.checked?'block':'none'"> Push bildirimi de gönderilsin</label></div>
+    <div class="fg" id="ann-push-wrap" style="display:${a.sendPush?'block':'none'}">
+      <div id="ann-push-large-warning" style="display:none;font-size:12px;color:#FF9500;margin-bottom:8px">⚠️ Bu hedef kitle için toplu push henüz desteklenmiyor (küçük listelerde çalışır) — duyuru yine de uygulama içinde herkese görünecek.</div>
+      <label class="fl">Push Başlığı</label><input class="fi" id="ann-push-title" value="${a.pushTitle||''}">
+      <label class="fl" style="margin-top:8px">Push Mesajı</label><input class="fi" id="ann-push-message" value="${a.pushMessage||''}">
+    </div>
+
+    <div class="aerr" id="ann-err"></div>
+    <button class="sbtn2" onclick="saveAnnouncement('active')" style="margin-top:6px">Yayınla</button>
+    <button class="apbtn" style="margin-top:8px;background:var(--surf2);color:var(--text)" onclick="saveAnnouncement('draft')">Taslak Olarak Kaydet</button>`;
+
+  onAnnounceAudienceChange();
+}
+
+function onAnnounceAudienceChange() {
+  const type = document.getElementById('ann-audience')?.value;
+  document.getElementById('ann-uids-wrap').style.display = type === 'specific_uids' ? 'block' : 'none';
+  document.getElementById('ann-usernames-wrap').style.display = type === 'specific_usernames' ? 'block' : 'none';
+  const warn = document.getElementById('ann-push-large-warning');
+  if (warn) warn.style.display = LARGE_AUDIENCE_TYPES.includes(type) ? 'block' : 'none';
+}
+
+function toLocalDatetimeValue(d) {
+  const pad = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+async function saveAnnouncement(targetStatus) {
+  const err = document.getElementById('ann-err'); err.textContent=''; err.classList.remove('on');
+  const title = document.getElementById('ann-title').value.trim();
+  if (!title) { err.textContent = 'Başlık zorunlu'; err.classList.add('on'); return; }
+  const editId = document.getElementById('ann-edit-id').value;
+  const audienceType = document.getElementById('ann-audience').value;
+  const publishMode = document.getElementById('ann-publish-mode').value;
+  const expiryMode = document.getElementById('ann-expiry-mode').value;
+  let publishAt = null, expiresAt = null;
+  if (publishMode === 'scheduled') {
+    const v = document.getElementById('ann-publish-date').value;
+    if (!v) { err.textContent = 'Yayın tarihi seçilmeli'; err.classList.add('on'); return; }
+    publishAt = firebase.firestore.Timestamp.fromDate(new Date(v));
+  }
+  if (expiryMode === 'date') {
+    const v = document.getElementById('ann-expiry-date').value;
+    if (!v) { err.textContent = 'Bitiş tarihi seçilmeli'; err.classList.add('on'); return; }
+    expiresAt = firebase.firestore.Timestamp.fromDate(new Date(v));
+  }
+  const sendPushFlag = document.getElementById('ann-send-push').checked;
+
+  const data = {
+    title,
+    emoji: document.getElementById('ann-emoji').value.trim(),
+    description: document.getElementById('ann-description').value.trim(),
+    imageUrl: document.getElementById('ann-image').value.trim() || null,
+    linkUrl: document.getElementById('ann-link').value.trim() || null,
+    buttonText: document.getElementById('ann-button-text').value.trim() || 'Detay',
+    priority: document.getElementById('ann-priority').value,
+    pinned: document.getElementById('ann-pinned').checked,
+    audienceType,
+    audienceUids: document.getElementById('ann-uids').value.split(',').map(s=>s.trim()).filter(Boolean),
+    audienceUsernames: document.getElementById('ann-usernames').value.split(',').map(s=>s.trim().replace(/^@/,'')).filter(Boolean),
+    excludeBanned: document.getElementById('ann-exclude-banned').checked,
+    status: targetStatus,
+    publishAt, expiresAt,
+    sendPush: sendPushFlag,
+    pushTitle: document.getElementById('ann-push-title').value.trim(),
+    pushMessage: document.getElementById('ann-push-message').value.trim(),
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+  };
+
+  try {
+    let id = editId;
+    if (editId) {
+      await db.collection('teknohane_announcements').doc(editId).set(data, { merge: true });
+      adminLog('update_announcement', 'announcement', editId, title, null, { status: targetStatus }, 'success');
+    } else {
+      data.createdBy = user.uid;
+      data.createdByName = myAdminRole?.displayName || user.displayName || user.email;
+      data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      const ref = await db.collection('teknohane_announcements').add(data);
+      id = ref.id;
+      adminLog('create_announcement', 'announcement', id, title, null, { status: targetStatus }, 'success');
+    }
+    if (targetStatus === 'active' && sendPushFlag && (!publishAt || publishAt.toDate() <= new Date())) {
+      dispatchAnnouncementPush({ id, ...data });
+    }
+    closemo('announcement-form-mo');
+    loadAdminAnnouncements();
+    showToast('✓', 'rgba(48,209,88,.15)', targetStatus==='draft'?'Taslak Kaydedildi':'Yayınlandı', title);
+  } catch(e) {
+    err.textContent = 'Hata: ' + e.message; err.classList.add('on');
+  }
+}
+
+// Hedef kitledeki gerçek push gönderimi — MODÜLER TASARIM: İleride toplu push (FCM Topics/Cloud
+// Functions) eklendiğinde, yalnızca bu fonksiyonun İÇİ değiştirilecek, hiçbir çağıran yer
+// (saveAnnouncement) değişmeyecek. Şu an yalnızca küçük, kesin listelerde (belirli UID/kullanıcı
+// adı/rol) gerçekten push gönderiyor — büyük kitlelerde (Tümü/Son 30 gün aktif/Banlı olmayan) atlıyor.
+async function dispatchAnnouncementPush(a) {
+  if (LARGE_AUDIENCE_TYPES.includes(a.audienceType)) {
+    console.info('Duyuru push\'u atlandı: büyük hedef kitle, toplu push altyapısı henüz yok.', a.audienceType);
+    return;
+  }
+  try {
+    let targetUids = [];
+    if (a.audienceType === 'specific_uids') targetUids = a.audienceUids || [];
+    else if (a.audienceType === 'specific_usernames') {
+      const snaps = await Promise.all((a.audienceUsernames||[]).map(un => db.collection('teknohane_usernames').doc(un).get()));
+      targetUids = snaps.filter(s=>s.exists).map(s=>s.data().uid);
+    } else if (['admins','moderators','editors'].includes(a.audienceType)) {
+      const roleMap = { admins:['admin','super_admin'], moderators:['moderator'], editors:['editor'] };
+      const snap = await db.collection('admins').where('role','in',roleMap[a.audienceType]).where('isActive','==',true).get();
+      targetUids = snap.docs.map(d=>d.id);
+    }
+    targetUids.forEach(uid => sendPush(uid, a.pushTitle||a.title, a.pushMessage||a.description, a.linkUrl||'/teknohane/'));
+  } catch(e) { console.error('Duyuru push gönderilemedi:', e); }
+}
+
+async function resolveAudienceCount(a) {
+  try {
+    if (a.audienceType === 'specific_uids') return (a.audienceUids||[]).length;
+    if (a.audienceType === 'specific_usernames') return (a.audienceUsernames||[]).length;
+    if (a.audienceType === 'admins') return (await db.collection('admins').where('role','in',['admin','super_admin']).where('isActive','==',true).count().get()).data().count;
+    if (a.audienceType === 'moderators') return (await db.collection('admins').where('role','==','moderator').where('isActive','==',true).count().get()).data().count;
+    if (a.audienceType === 'editors') return (await db.collection('admins').where('role','==','editor').where('isActive','==',true).count().get()).data().count;
+    // 'all', 'active_30d', 'not_banned' için kesin sayı tüm kullanıcı tabanını taramayı gerektirir —
+    // ekstra pahalı sorgu yapmak yerine toplam kullanıcı sayısını yaklaşık gösterge olarak veriyoruz.
+    return (await db.collection('teknohane_users').count().get()).data().count;
+  } catch(e) { return null; }
+}
+
+async function openAnnouncementStats(id) {
+  const a = adminAnnouncementsCache.find(x => x.id === id);
+  if (!a) return;
+  const body = document.getElementById('announcement-stats-body');
+  body.innerHTML = `<div class="load"><div class="spin"></div></div>`;
+  document.getElementById('announcement-stats-mo').classList.add('on');
+
+  const st = getAnnouncementEffectiveStatus(a);
+  const STATUS_LABELS = { draft:'Taslak', scheduled:'Zamanlanmış', published:'Yayında', expired:'Süresi Doldu', inactive:'Pasif' };
+  const [audienceCount, readsSnap, dismissedSnap] = await Promise.all([
+    resolveAudienceCount(a),
+    db.collection('teknohane_announcements').doc(id).collection('reads').where('read','==',true).count().get().catch(()=>null),
+    db.collection('teknohane_announcements').doc(id).collection('reads').where('dismissed','==',true).count().get().catch(()=>null),
+  ]);
+
+  body.innerHTML = `
+    <div class="mtit">${a.emoji||''} ${a.title}</div>
+    <div class="pacc-card">
+      <div class="pacc-row"><span class="pacc-lbl">Durum</span><span class="pacc-val">${STATUS_LABELS[st]}</span></div>
+      <div class="pacc-row"><span class="pacc-lbl">Oluşturan</span><span class="pacc-val">${a.createdByName||'—'}</span></div>
+      <div class="pacc-row"><span class="pacc-lbl">Oluşturulma</span><span class="pacc-val">${a.createdAt?.toDate?a.createdAt.toDate().toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric'}):'—'}</span></div>
+      <div class="pacc-row"><span class="pacc-lbl">Hedef Kitle</span><span class="pacc-val">${AUDIENCE_LABELS[a.audienceType]||a.audienceType}</span></div>
+      <div class="pacc-row"><span class="pacc-lbl">Tahmini Ulaşılan</span><span class="pacc-val">${audienceCount??'—'}</span></div>
+      <div class="pacc-row"><span class="pacc-lbl">Okuyan</span><span class="pacc-val">${readsSnap?.data().count ?? '—'}</span></div>
+      <div class="pacc-row"><span class="pacc-lbl">Kapatan</span><span class="pacc-val">${dismissedSnap?.data().count ?? '—'}</span></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px">
+      <button class="apbtn" onclick="closemo('announcement-stats-mo');openAnnouncementForm('${id}')">✏️ Düzenle</button>
+      <button class="apbtn" style="background:var(--surf2);color:var(--text)" onclick="duplicateAnnouncement('${id}')">📋 Kopyala</button>
+      ${a.expiresAt?`<button class="apbtn" style="background:var(--surf2);color:var(--text)" onclick="extendAnnouncement('${id}')">⏱️ Süreyi Uzat (+7 Gün)</button>`:''}
+      ${st==='published'?`<button class="apbtn" style="background:rgba(255,149,0,.08);border-color:rgba(255,149,0,.25);color:#FF9500" onclick="deactivateAnnouncement('${id}')">⏸️ Pasife Al</button>`:''}
+      <button class="apbtn" style="background:rgba(255,69,58,.08);border-color:rgba(255,69,58,.25);color:var(--red)" onclick="deleteAnnouncement('${id}')">🗑️ Sil</button>
+    </div>`;
+}
+
+async function duplicateAnnouncement(id) {
+  const a = adminAnnouncementsCache.find(x => x.id === id);
+  if (!a) return;
+  closemo('announcement-stats-mo');
+  const copy = { ...a };
+  delete copy.id; delete copy.createdAt; delete copy.updatedAt;
+  copy.title = copy.title + ' (Kopya)';
+  copy.status = 'draft';
+  openAnnouncementForm();
+  renderAnnouncementForm(copy, null);
+}
+
+async function extendAnnouncement(id) {
+  const a = adminAnnouncementsCache.find(x => x.id === id);
+  if (!a || !a.expiresAt) return;
+  const newExpiry = new Date(a.expiresAt.toDate().getTime() + 7*24*60*60*1000);
+  try {
+    await db.collection('teknohane_announcements').doc(id).set({ expiresAt: firebase.firestore.Timestamp.fromDate(newExpiry) }, { merge: true });
+    adminLog('extend_announcement', 'announcement', id, a.title, { expiresAt: a.expiresAt }, { expiresAt: newExpiry }, 'success');
+    closemo('announcement-stats-mo');
+    loadAdminAnnouncements();
+    showToast('✓', 'rgba(48,209,88,.15)', 'Süre Uzatıldı', '7 gün eklendi.');
+  } catch(e) { showToast('⚠️', 'rgba(255,69,58,.15)', 'Hata', 'Süre uzatılamadı.'); }
+}
+
+async function deactivateAnnouncement(id) {
+  const a = adminAnnouncementsCache.find(x => x.id === id);
+  try {
+    await db.collection('teknohane_announcements').doc(id).set({ status: 'inactive' }, { merge: true });
+    adminLog('deactivate_announcement', 'announcement', id, a?.title||id, { status: 'active' }, { status: 'inactive' }, 'success');
+    closemo('announcement-stats-mo');
+    loadAdminAnnouncements();
+    showToast('✓', 'rgba(48,209,88,.15)', 'Pasife Alındı', '');
+  } catch(e) { showToast('⚠️', 'rgba(255,69,58,.15)', 'Hata', 'İşlem yapılamadı.'); }
+}
+
+async function deleteAnnouncement(id) {
+  if (!confirm('Bu duyuru kalıcı olarak silinsin mi?')) return;
+  const a = adminAnnouncementsCache.find(x => x.id === id);
+  try {
+    await db.collection('teknohane_announcements').doc(id).delete();
+    adminLog('delete_announcement', 'announcement', id, a?.title||id, a, null, 'success');
+    closemo('announcement-stats-mo');
+    loadAdminAnnouncements();
+    showToast('🗑️', 'rgba(255,69,58,.15)', 'Silindi', '');
+  } catch(e) { showToast('⚠️', 'rgba(255,69,58,.15)', 'Hata', 'Silinemedi.'); }
 }
 // Hem profil hem kapak fotoğrafı yüklemesinde ortak kullanılır (kod tekrarını önler).
 function compressImageToWebP(file, maxDim, quality) {
@@ -2135,6 +2472,7 @@ auth.onAuthStateChanged(u => {
     subscribeChatBadge(u.uid);
     startPresenceHeartbeat(u.uid);
     loadMyAdminRole(u.uid);
+    loadActiveAnnouncements();
   } else {
     document.getElementById('hav').style.display = 'none';
     document.getElementById('hlogin').style.display = 'flex';
@@ -3223,20 +3561,146 @@ function dismissToast(t) {
 }
 
 // Kalıcı bildirim oluşturur (Firestore'a yazılır, kullanıcı çevrimdışıyken bile daha sonra görebilir)
-async function notifyUser(toUid, type, message, listingId) {
+async function notifyUser(toUid, type, message, listingId, postId) {
   try {
     await db.collection('teknohane_notifications').add({
-      toUid, type, message, listingId: listingId || null,
+      toUid, type, message, listingId: listingId || null, postId: postId || null,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       read: false
     });
   } catch(e) { /* sessizce geç */ }
-  sendPush(toUid, 'Teknohane', message, listingId ? `/teknohane/?listing=${listingId}` : '/teknohane/');
+  sendPush(toUid, 'Teknohane', message, listingId ? `/teknohane/?listing=${listingId}` : (postId ? `/teknohane/?post=${postId}` : '/teknohane/'));
+}
+
+// ==== DUYURU SİSTEMİ — KULLANICI TARAFI (Aşama 9) ====
+// Mimari: "fan-out-on-read" — kullanıcı sayısı ne olursa olsun TEK sorgu. Duyurular küçük, sabit
+// boyutlu bir koleksiyonda tutulur; her kullanıcı kendi hedef kitle uygunluğunu istemci tarafında
+// hesaplar. Okundu/kapatıldı durumu localStorage'da anında tutulur, Firestore'a yalnızca admin
+// istatistikleri için arka planda (sessizce, kullanıcıyı bekletmeden) yazılır.
+const ANNOUNCEMENT_PRIORITY_META = {
+  normal:      { icon: '📌', color: 'var(--text2)',  bg: 'var(--surf2)' },
+  info:        { icon: 'ℹ️', color: 'var(--cyan)',    bg: 'rgba(0,212,255,.08)' },
+  update:      { icon: '🆕', color: '#3DDC97',        bg: 'rgba(48,209,88,.08)' },
+  maintenance: { icon: '🛠️', color: '#FF9500',        bg: 'rgba(255,149,0,.08)' },
+  critical:    { icon: '🚨', color: 'var(--red)',      bg: 'rgba(255,69,58,.08)' },
+};
+
+function getAnnouncementEffectiveStatus(a) {
+  if (a.status === 'draft') return 'draft';
+  if (a.status === 'inactive') return 'inactive';
+  const now = Date.now();
+  if (a.publishAt?.toDate && a.publishAt.toDate().getTime() > now) return 'scheduled';
+  if (a.expiresAt?.toDate && a.expiresAt.toDate().getTime() < now) return 'expired';
+  return 'published';
+}
+
+// Bir duyurunun BU kullanıcıyı hedefleyip hedeflemediğini tamamen istemci tarafında hesaplar —
+// yeni bir hedef kitle türü eklemek yalnızca buraya bir 'case' eklemek anlamına gelir.
+function matchesAnnouncementAudience(a) {
+  if (!user) return false;
+  if (a.excludeBanned !== false && isCurrentlyBanned(myProfileData)) return false;
+  switch (a.audienceType) {
+    case 'all': return true;
+    case 'admins': return !!(myAdminRole && myAdminRole.role === 'admin' && myAdminRole.isActive !== false) || (myAdminRole?.role === 'super_admin');
+    case 'moderators': return !!(myAdminRole && myAdminRole.role === 'moderator' && myAdminRole.isActive !== false);
+    case 'editors': return !!(myAdminRole && myAdminRole.role === 'editor' && myAdminRole.isActive !== false);
+    case 'specific_uids': return (a.audienceUids || []).includes(user.uid);
+    case 'specific_usernames': return (a.audienceUsernames || []).includes(myProfileData.username);
+    case 'not_banned': return !isCurrentlyBanned(myProfileData);
+    case 'active_30d': {
+      const lastSeen = myProfileData.lastSeen?.toDate ? myProfileData.lastSeen.toDate().getTime() : 0;
+      return (Date.now() - lastSeen) < 30 * 24 * 60 * 60 * 1000;
+    }
+    default: return false;
+  }
+}
+
+function getDismissedAnnouncementIds() {
+  try { return JSON.parse(localStorage.getItem('tk_dismissed_announcements') || '[]'); } catch(e) { return []; }
+}
+
+let activeAnnouncementsCache = [];
+async function loadActiveAnnouncements() {
+  if (!user) return;
+  try {
+    // Küçük, sabit boyutlu koleksiyon — kullanıcı sayısından bağımsız, TEK sorgu. Tüm filtreleme
+    // (durum, hedef kitle, kapatılmış mı) istemci tarafında yapılır — composite index gerekmez.
+    const snap = await db.collection('teknohane_announcements').limit(50).get();
+    const dismissed = getDismissedAnnouncementIds();
+    activeAnnouncementsCache = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter(a => getAnnouncementEffectiveStatus(a) === 'published')
+      .filter(a => matchesAnnouncementAudience(a))
+      .filter(a => !dismissed.includes(a.id))
+      .sort((a,b) => (b.pinned?1:0) - (a.pinned?1:0));
+    renderAnnouncementCards();
+  } catch(e) { console.error('Duyurular yüklenemedi:', e); }
+}
+
+function renderAnnouncementCards() {
+  const wrap = document.getElementById('announcements-wrap');
+  if (!wrap) return;
+  if (!activeAnnouncementsCache.length) { wrap.innerHTML = ''; return; }
+  wrap.innerHTML = activeAnnouncementsCache.map(a => {
+    const pm = ANNOUNCEMENT_PRIORITY_META[a.priority] || ANNOUNCEMENT_PRIORITY_META.normal;
+    return `<div class="pacc-card" style="border-left:3px solid ${pm.color};background:${pm.bg};margin:12px 16px 0;position:relative" id="ann-card-${a.id}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <div style="font-size:14px;font-weight:700">${a.emoji||pm.icon} ${a.title||''}${a.pinned?' 📌':''}</div>
+        <span onclick="dismissAnnouncement('${a.id}')" style="cursor:pointer;color:var(--text3);font-size:16px;line-height:1;padding:2px">✕</span>
+      </div>
+      ${a.imageUrl?`<img src="${a.imageUrl}" style="width:100%;border-radius:10px;margin-top:8px">`:''}
+      <div style="font-size:13px;color:var(--text2);margin-top:6px;line-height:1.5">${a.description||''}</div>
+      ${a.linkUrl?`<button class="apbtn" style="margin-top:10px" onclick="markAnnouncementRead('${a.id}');ol('${a.linkUrl}')">${a.buttonText||'Detay'}</button>`:''}
+    </div>`;
+  }).join('');
+  // Görüntülenme (okundu) kaydı — kullanıcıyı bekletmeden, arka planda, sessizce.
+  activeAnnouncementsCache.forEach(a => markAnnouncementRead(a.id));
+}
+
+function dismissAnnouncement(id) {
+  const dismissed = getDismissedAnnouncementIds();
+  if (!dismissed.includes(id)) { dismissed.push(id); localStorage.setItem('tk_dismissed_announcements', JSON.stringify(dismissed)); }
+  activeAnnouncementsCache = activeAnnouncementsCache.filter(a => a.id !== id);
+  renderAnnouncementCards();
+  if (user) db.collection('teknohane_announcements').doc(id).collection('reads').doc(user.uid)
+    .set({ dismissed: true, dismissedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }).catch(()=>{});
+}
+
+let markedReadAnnouncementIds = new Set();
+function markAnnouncementRead(id) {
+  if (!user || markedReadAnnouncementIds.has(id)) return;
+  markedReadAnnouncementIds.add(id);
+  db.collection('teknohane_announcements').doc(id).collection('reads').doc(user.uid)
+    .set({ read: true, readAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }).catch(()=>{});
 }
 
 // ---- UYGULAMA KAPALIYKEN BİLDİRİM (PUSH / FCM) ----
 // Hedef kullanıcının kayıtlı FCM token'ını bulup Cloudflare Worker üzerinden push gönderir.
 // Kullanıcının bildirim izni yoksa veya token'ı yoksa sessizce hiçbir şey yapmaz.
+// Bir push bildirimi URL'sinden (?listing=/?post=/?profile=) hedefi çözüp doğru ekrana yönlendirir.
+// Uygulama soğuk başlatılmışsa (bildirime dokunularak açıldıysa) veri henüz gelmemiş olabilir —
+// bu durumda sınırlı sayıda (sürekli değil) yeniden dener, sonra vazgeçer.
+function navigateFromNotificationUrl(url, attempt) {
+  attempt = attempt || 0;
+  if (!url) return;
+  try {
+    const u = new URL(url, 'https://teknohane.github.io/teknohane/');
+    const listingId = u.searchParams.get('listing');
+    const postId = u.searchParams.get('post');
+    const profileUid = u.searchParams.get('profile');
+    if (listingId) {
+      if (!listings.length && attempt < 10) { setTimeout(() => navigateFromNotificationUrl(url, attempt+1), 400); return; }
+      gt('market'); openDetail(listingId);
+    } else if (postId) {
+      if (!forumPosts.length && attempt < 10) { setTimeout(() => navigateFromNotificationUrl(url, attempt+1), 400); return; }
+      gt('community'); openPost(postId);
+    } else if (profileUid) {
+      if (!user && attempt < 10) { setTimeout(() => navigateFromNotificationUrl(url, attempt+1), 400); return; }
+      openPublicProfile(profileUid);
+    }
+  } catch(e) { console.error('Bildirim yönlendirme URL\'si çözülemedi:', e); }
+}
+
 async function sendPush(toUid, title, body, url) {
   try {
     const snap = await db.collection('teknohane_users').doc(toUid).get();
@@ -3300,6 +3764,14 @@ async function setupPushNative(silent) {
       PushNotifications.addListener('registrationError', (err) => {
         console.error('Push kayıt hatası:', err);
         if (!silent) alert('Bildirim token\'ı alınamadı: ' + (err?.error || 'bilinmeyen hata'));
+      });
+      // Uygulama kapalı/arka plandayken gelen bir push bildirimine dokunulduğunda tetiklenir —
+      // bildirimin taşıdığı hedefe (ilan/gönderi/profil) yönlendirir.
+      PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+        try {
+          const data = action?.notification?.data || {};
+          navigateFromNotificationUrl(data.url || data.click_action || '');
+        } catch(e) { console.error('Push yönlendirme hatası:', e); }
       });
     }
     await PushNotifications.register();
@@ -3461,7 +3933,7 @@ async function openNotifications() {
       const time = n.createdAt ? fd(n.createdAt.toDate ? n.createdAt.toDate().toISOString() : n.createdAt) : '';
       return `<div class="notif-swipe-wrap" data-id="${d.id}">
         <div class="notif-swipe-del">🗑️</div>
-        <div class="notif-item ${n.read?'':'unread'}" onclick="clickNotif('${d.id}','${n.listingId||''}',${!n.read})">
+        <div class="notif-item ${n.read?'':'unread'}" onclick="clickNotif('${d.id}','${n.listingId||''}',${!n.read},'${n.postId||''}')">
           <div class="notif-ic" style="background:${meta.bg}">${meta.ic}</div>
           <div class="notif-txt" style="flex:1"><div class="notif-msg">${n.message}</div><div class="notif-time">${n.read?'':'<span style="color:var(--cyan);font-weight:700">Yeni · </span>'}${time}</div></div>
           ${n.read?'':'<div class="unread-dot"></div>'}
@@ -3522,7 +3994,7 @@ async function clearAllNotifications() {
   } catch(e) { alert('Hata: ' + e.message); }
 }
 
-async function clickNotif(id, listingId, wasUnread) {
+async function clickNotif(id, listingId, wasUnread, postId) {
   if (wasUnread) {
     db.collection('teknohane_notifications').doc(id).update({ read: true }).catch(()=>{});
   }
@@ -3530,6 +4002,10 @@ async function clickNotif(id, listingId, wasUnread) {
     closemo('notif-mo');
     gt('market');
     setTimeout(() => openDetail(listingId), 100);
+  } else if (postId) {
+    closemo('notif-mo');
+    gt('community');
+    setTimeout(() => openPost(postId), 100);
   }
 }
 
@@ -4291,7 +4767,7 @@ function openDetail(id) {
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
       Uygulama İçinden Mesaj Gönder
     </button>` : ''}
-    ${!mine && user ? `<div style="text-align:center;margin-top:10px"><span onclick="openReportModal('listing','${l.id}','${(l.model||'İlan').replace(/'/g,"\\'")}','${l.uid||''}')" style="font-size:12px;color:var(--text3);cursor:pointer;text-decoration:underline">🚩 İlanı Şikayet Et</span></div>` : ''}
+    ${!mine && user ? `<div style="text-align:center;margin-top:10px"><span onclick="openReportModal('listing','${l.id}','${(l.model||'İlan').replace(/'/g,"\\'").replace(/"/g,'&quot;')}','${l.uid||''}')" style="font-size:12px;color:var(--text3);cursor:pointer;text-decoration:underline">🚩 İlanı Şikayet Et</span></div>` : ''}
     ${pending && isAdmin ? `<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px" onclick="approveListing('${l.id}')">✓ İlanı Onayla ve Yayınla</button>`:''}
     ${mine?`<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px;background:var(--surf2);color:var(--cyan);border:1px solid var(--border2)" onclick="editListing('${l.id}')">✏️ İlanı Düzenle</button>`:''}
     ${mine?`<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px" onclick="toggleSold('${l.id}')">${l.sold?'↺ Satıldı İşaretini Kaldır':'✓ Satıldı Olarak İşaretle'}</button>`:''}`;
@@ -4663,7 +5139,7 @@ function renderPostDetail() {
       </div>
       ${p.bestAnswer?'<span style="color:var(--green);font-size:12px;font-weight:700">✓ Çözüldü</span>':''}
       ${canDelete?`<button class="del-post-btn" onclick="deletePost('${p.id}')"><svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>Sil</button>`:''}
-      ${user && user.uid!==p.uid?`<span onclick="openReportModal('forum_post','${p.id}','${(p.title||'Gönderi').replace(/'/g,"\\'")}','${p.uid||''}')" style="font-size:11px;color:var(--text3);cursor:pointer;text-decoration:underline;margin-left:auto">🚩 Şikayet Et</span>`:''}
+      ${user && user.uid!==p.uid?`<span onclick="openReportModal('forum_post','${p.id}','${(p.title||'Gönderi').replace(/'/g,"\\'").replace(/"/g,'&quot;')}','${p.uid||''}')" style="font-size:11px;color:var(--text3);cursor:pointer;text-decoration:underline;margin-left:auto">🚩 Şikayet Et</span>`:''}
     </div>`;
   document.getElementById('comment-input-area').style.display = user ? 'flex' : 'none';
   document.getElementById('comment-inp').value = '';
@@ -4697,7 +5173,7 @@ function renderComments() {
           ${canBest && !isBest ? `<button class="mark-best-btn" onclick="markBest('${c.id}')">✓ En İyi</button>` : ''}
           ${canBest && isBest ? `<button class="unmark-best-btn" onclick="unmarkBest('${c.id}')">↺ Geri Al</button>` : ''}
           ${canDelComment ? `<button class="del-comment-btn" onclick="deleteComment('${c.id}')">Sil</button>` : ''}
-          ${user && !isCommentOwner ? `<button class="del-comment-btn" onclick="openReportModal('comment','${c.id}','${(c.body||'Yorum').slice(0,40).replace(/'/g,"\\'")}','${c.uid||''}')">🚩</button>` : ''}
+          ${user && !isCommentOwner ? `<button class="del-comment-btn" onclick="openReportModal('comment','${c.id}','${(c.body||'Yorum').slice(0,40).replace(/'/g,"\\'").replace(/"/g,'&quot;').replace(/\n/g,' ')}','${c.uid||''}')">🚩</button>` : ''}
         </div>
         <span style="font-size:11px;color:var(--text3)">${ts}</span>
       </div>
@@ -4720,7 +5196,7 @@ async function likePost(id) {
     renderPostDetail(); renderComments();
     if (!isLiked && p.uid && p.uid !== user.uid) {
       const name = user.displayName || user.email?.split('@')[0] || 'Biri';
-      notifyUser(p.uid, 'post_liked', `${name}, "${p.title}" gönderini beğendi`, null);
+      notifyUser(p.uid, 'post_liked', `${name}, "${p.title}" gönderini beğendi`, null, p.id);
     }
   } catch(e) {}
 }
@@ -4753,7 +5229,7 @@ async function submitComment() {
     rForum();
     if (p.uid && p.uid !== user.uid) {
       const name = user.displayName || user.email?.split('@')[0] || 'Biri';
-      notifyUser(p.uid, 'post_comment', `${name}, "${p.title}" gönderine yorum yaptı`, null);
+      notifyUser(p.uid, 'post_comment', `${name}, "${p.title}" gönderine yorum yaptı`, null, p.id);
     }
   } catch(e) { alert('Hata: '+e.message); }
 }
@@ -4774,7 +5250,7 @@ async function likeComment(cid) {
     renderComments();
     if (!wasLiked && c.uid && c.uid !== user.uid) {
       const name = user.displayName || user.email?.split('@')[0] || 'Biri';
-      notifyUser(c.uid, 'comment_liked', `${name}, yorumunu beğendi`, null);
+      notifyUser(c.uid, 'comment_liked', `${name}, yorumunu beğendi`, null, p.id);
     }
   } catch(e) {}
 }
@@ -4964,7 +5440,7 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
         <button class="sbtn2" id="pub-follow-btn" style="padding:9px 16px;width:auto;background:var(--surf2);color:${isFollowingUser?'var(--cyan)':'var(--text)'}" onclick="toggleFollow('${uid}')">${isFollowingUser?'✓ Takip Ediliyor':'➕ Takip Et'}</button>
         <button class="sbtn2" style="padding:9px 16px;width:auto;background:var(--surf2);color:var(--text)" onclick="shareProfile('${uid}','${displayName.replace(/'/g,"\\'")}')">🔗 Paylaş</button>
       </div>
-      <div style="text-align:center;margin-top:8px"><span onclick="openReportModal('user','${uid}','${displayName.replace(/'/g,"\\'")}','${uid}')" style="font-size:12px;color:var(--text3);cursor:pointer;text-decoration:underline">🚩 Kullanıcıyı Şikayet Et</span></div>` : `
+      <div style="text-align:center;margin-top:8px"><span onclick="openReportModal('user','${uid}','${displayName.replace(/'/g,"\\'").replace(/"/g,'&quot;')}','${uid}')" style="font-size:12px;color:var(--text3);cursor:pointer;text-decoration:underline">🚩 Kullanıcıyı Şikayet Et</span></div>` : `
       <div style="display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap">
         <button class="sbtn2" style="width:auto;padding:9px 16px" onclick="shareProfile('${uid}','${displayName.replace(/'/g,"\\'")}')">🔗 Profilimi Paylaş</button>
         <button class="sbtn2" style="width:auto;padding:9px 16px;background:var(--surf2);color:var(--text)" onclick="document.getElementById('pub-qr-wrap').style.display=document.getElementById('pub-qr-wrap').style.display==='none'?'block':'none'">📱 QR Kod</button>
@@ -5215,7 +5691,7 @@ function openAdmin() {
 }
 
 function switchAdminTab(tab) {
-  ['listings','users','forum','logs','complaints','dashboard'].forEach(t => {
+  ['listings','users','forum','logs','complaints','dashboard','announcements'].forEach(t => {
     document.getElementById(`adm-tab-${t}`).className = tab===t ? 'mtab on' : 'mtab off';
     document.getElementById(`admin-${t}-view`).style.display = tab===t ? 'block' : 'none';
   });
@@ -5242,6 +5718,13 @@ function switchAdminTab(tab) {
     loadComplaints(true);
   }
   if (tab === 'dashboard') loadDashboard();
+  if (tab === 'announcements') {
+    if (!hasPermission('sendNotifications')) {
+      document.getElementById('adm-announcements-list').innerHTML = '<div class="no">Bu bölümü görüntüleme yetkin yok.</div>';
+      return;
+    }
+    loadAdminAnnouncements();
+  }
 }
 
 function radmin() {
