@@ -1496,6 +1496,31 @@ const VAPID_KEY = 'BPt5vY5P3Dr9DG2zHOQwhQKnH6V5UruqGisQRTlGWxkNaAYtYKAEG9xiTHn78
 let user = null;
 let myProfileData = {};
 
+// ==== GENEL VERİ HAZIRLIK YÖNETİMİ (yeniden kullanılabilir) ====
+// "Bu veri, bu oturumda sunucudan gerçekten doğrulanmış mı" sorusunu, verinin kendisinin dolu/boş
+// olmasından TAMAMEN BAĞIMSIZ cevaplayan genel bir mekanizma. İlk kez profil verisi için kuruldu
+// (bellekte eski/kalıntı veri olsa bile ilk render'da asla gösterilmemesi gerektiği için), ama anahtar
+// (key) tabanlı olduğu için ileride başka state'ler (örn. admin rolü, ilan listesi) için de aynı üç
+// fonksiyonla (markDataStale/markDataFresh/isDataFresh) genişletilebilir — yeni bir bayrak icat etmeye
+// gerek kalmaz.
+const dataReadyFlags = {};
+function markDataStale(key) { dataReadyFlags[key] = false; }
+function markDataFresh(key) { dataReadyFlags[key] = true; }
+function isDataFresh(key) { return !!dataReadyFlags[key]; }
+
+// Header'daki küçük profil avatarını render eden TEK, merkezi fonksiyon — önceden 3 ayrı yerde
+// (giriş anı, syncUserProfile, profil düzenleme kaydı) birbirinden bağımsız kopya kod vardı.
+function renderHeaderAvatar() {
+  const img = document.getElementById('hav-img');
+  if (!img || !user) return;
+  if (!isDataFresh('profile')) {
+    // Gerçek veri henüz doğrulanmadı — ne eski Auth fotoğrafı ne bellekte kalmış eski veri gösterilir.
+    img.removeAttribute('src');
+    return;
+  }
+  img.src = myProfileData.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(myProfileData.displayName||user.displayName||user.email)}&background=0D1526&color=00D4FF&size=64`;
+}
+
 // ==== YÖNETİCİ ROL/YETKİ SİSTEMİ ====
 // Sabit e-posta listesi tamamen kaldırıldı. Artık tek doğruluk kaynağı Firestore'daki
 // admins/{uid} dokümanıdır. Giriş yapıldığında bir kez okunup myAdminRole'e önbelleklenir.
@@ -2481,12 +2506,16 @@ auth.onAuthStateChanged(u => {
     // önceki oturumdan kalmış olabilecek TÜM dinleyicileri kapat — asla iki kez açık kalmasınlar.
     clearAllListeners();
 
+    // Yeni bir oturum (veya aynı kullanıcının yeniden doğrulanması) — eski oturumdan kalmış olabilecek
+    // "veri hazır" durumunu kesin olarak sıfırla. Bu, myProfileData bellekte dolu kalmış olsa bile
+    // (örn. Android uygulamayı tam kapatmadan arka planda tuttuysa) eski verinin gösterilmesini engeller.
+    markDataStale('profile');
+
     document.getElementById('hav').style.display = 'flex';
     document.getElementById('hlogin').style.display = 'none';
     document.getElementById('hbell').style.display = 'flex';
     document.getElementById('hchat').style.display = 'flex';
-    const img = document.getElementById('hav-img');
-    img.src = u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.displayName||u.email)}&background=0D1526&color=00D4FF&size=64`;
+    renderHeaderAvatar(); // 'profile' henüz stale — nötr durumda kalır, eski Auth fotoğrafı gösterilmez
 
     // UI'ı hemen güncelle, Firestore işlemlerini bekleme
     rprof();
@@ -2508,6 +2537,7 @@ auth.onAuthStateChanged(u => {
     document.getElementById('hchat').style.display = 'none';
     favs = new Set();
     myProfileData = {};
+    markDataStale('profile'); // sonraki girişte (farklı bir hesap dahil) eski durumun sızmaması için
     rprof();
     if (listingsReady) rlistings();
     unsubNotifBadge?.();
@@ -2525,17 +2555,18 @@ async function syncUserProfile(u) {
   try {
     const snap = await db.collection('teknohane_users').doc(u.uid).get();
     const existingData = snap.exists ? snap.data() : {};
-    if (snap.exists) {
-      favs = new Set(existingData.favorites || []);
-      startFavoritesListener(); // Favoriler bilindiği anda dar kapsamlı dinleyici kurulur
-      myProfileData = existingData;
-      checkBanStatus(); // ban kontrolü mümkün olan en erken noktada, diğer her şeyden önce
-      rlistings(); // favoriler geldi, listeyi güncelle (kalp ikonları doğru görünsün)
-      requestProfileRerender();
-      // Özel yüklenmiş bir profil fotoğrafı varsa header'ı ona göre güncelle
-      const havImg = document.getElementById('hav-img');
-      if (havImg && existingData.photoURL) havImg.src = existingData.photoURL;
-    }
+
+    // KOŞULSUZ çalışır (snap.exists olsun olmasın) — böylece hesap değişiminde (örn. Android süreci
+    // tam kapanmadan farklı bir hesapla giriş yapılması gibi nadir bir durumda) önceki hesabın
+    // myProfileData'sı asla yeni hesaba sızmaz; yeni kullanıcı için veri yoksa {} olarak netleşir.
+    favs = new Set(existingData.favorites || []);
+    startFavoritesListener(); // Favoriler bilindiği anda dar kapsamlı dinleyici kurulur
+    myProfileData = existingData;
+    markDataFresh('profile'); // Firestore'dan doğrulanmış veri geldi (var ya da yok fark etmez) — artık gösterilebilir
+    checkBanStatus(); // ban kontrolü mümkün olan en erken noktada, diğer her şeyden önce
+    rlistings(); // favoriler geldi, listeyi güncelle (kalp ikonları doğru görünsün)
+    renderHeaderAvatar(); // eski Auth fotoğrafı değil, artık gerçek Firestore verisiyle
+    requestProfileRerender();
 
     // Son görülme ve bu cihazın oturum kaydı: throttle'a tabi DEĞİL, her girişte güncellenir
     // (Güvenlik Kartı'ndaki "Son Görülme"nin gerçek zamanlı ve senkron kalması için).
@@ -2574,7 +2605,13 @@ async function syncUserProfile(u) {
       await db.collection('teknohane_users').doc(u.uid).set(updateData, { merge: true });
       localStorage.setItem('tk_last_profile_sync', String(now));
     }
-  } catch(e) { /* sessizce geç, offline olabilir */ }
+  } catch(e) {
+    // Çevrimdışı olabilir — gerçek veri gelmedi ama kullanıcıyı sonsuza kadar yükleniyor durumunda
+    // bırakmamak için, bellekte ne varsa (muhtemelen {} — yeni oturumda başka veri yok) onunla devam et.
+    markDataFresh('profile');
+    renderHeaderAvatar();
+    requestProfileRerender();
+  }
 }
 
 // PROFILE
@@ -2708,9 +2745,16 @@ function animateProfileStats() {
 function rprof() {
   const c = document.getElementById('profile-c');
   if (!c) return;
+  if (user && !isDataFresh('profile')) {
+    // Firestore'dan doğrulanmış veri henüz gelmedi — ne eski bellek verisi ne varsayılan bir şey
+    // gösterilir, yalnızca nötr bir yükleniyor durumu. Veri gelince requestProfileRerender() bunu
+    // gerçek veriyle tek seferde değiştirecek.
+    c.innerHTML = `<div class="load" style="padding-top:100px"><div class="spin"></div><span>Profil yükleniyor…</span></div>`;
+    return;
+  }
   const isAdmin = isAdminNow();
   if (user) {
-    const av = myProfileData.photoURL || user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName||user.email)}&background=0D1526&color=00D4FF&size=256`;
+    const av = myProfileData.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(myProfileData.displayName||user.displayName||user.email)}&background=0D1526&color=00D4FF&size=256`;
     const hasVerifiedPhoneNumber = !!myProfileData.phoneNumber;
     const hasCurrentPhone = !!myProfileData.currentPhone;
     // Kendi skorum için, Firestore'daki (günde 1 senkronize olan) emailVerified yerine her zaman
@@ -2989,7 +3033,7 @@ function renderProfileListings() {
 function openEditProfile() {
   if (!user) return;
   epNewPhotoDataUrl = null;
-  document.getElementById('ep-avatar-preview').src = myProfileData.photoURL || user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName||user.email)}&background=0D1526&color=00D4FF&size=256`;
+  document.getElementById('ep-avatar-preview').src = myProfileData.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(myProfileData.displayName||user.displayName||user.email)}&background=0D1526&color=00D4FF&size=256`;
   document.getElementById('ep-name').value = user.displayName || '';
   document.getElementById('ep-username').value = myProfileData.username || '';
   document.getElementById('ep-bio').value = myProfileData.bio || '';
@@ -3306,8 +3350,7 @@ async function saveProfileInfo() {
     if (epNewPhotoDataUrl) { myProfileData.photoURL = epNewPhotoDataUrl; myProfileData.customPhoto = true; }
     epNewPhotoDataUrl = null;
 
-    const havImg = document.getElementById('hav-img');
-    if (havImg) havImg.src = myProfileData.photoURL || user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName||user.email)}&background=0D1526&color=00D4FF&size=64`;
+    renderHeaderAvatar(); // 'profile' zaten fresh (kullanıcı zaten profildeydi) — anında güncel gösterir
 
     closemo('edit-profile-mo');
     rprof();
@@ -4073,7 +4116,7 @@ async function openChatWith(otherUid, otherName, listingCtx) {
       await ref.set({
         participants: [user.uid, otherUid],
         names: { [user.uid]: myName, [otherUid]: otherName || 'Kullanıcı' },
-        avatars: { [user.uid]: user.photoURL || null },
+        avatars: { [user.uid]: myProfileData.photoURL || null },
         lastMessage: '', lastSenderUid: null,
         lastAt: firebase.firestore.FieldValue.serverTimestamp(),
         unreadBy: [], lastRead: { [user.uid]: firebase.firestore.FieldValue.serverTimestamp() }
@@ -4081,7 +4124,7 @@ async function openChatWith(otherUid, otherName, listingCtx) {
     } else {
       await ref.set({
         names: { [user.uid]: myName, [otherUid]: otherName || snap.data().names?.[otherUid] || 'Kullanıcı' },
-        avatars: { [user.uid]: user.photoURL || null }
+        avatars: { [user.uid]: myProfileData.photoURL || null }
       }, { merge: true });
     }
   } catch(e) { alert('Hata: ' + e.message); return; }
@@ -4108,7 +4151,7 @@ function openChatThread(otherUid, otherName, prefill) {
   ref.update({
     unreadBy: firebase.firestore.FieldValue.arrayRemove(user.uid),
     [`lastRead.${user.uid}`]: firebase.firestore.FieldValue.serverTimestamp(),
-    [`avatars.${user.uid}`]: user.photoURL || null
+    [`avatars.${user.uid}`]: myProfileData.photoURL || null
   }).catch(()=>{});
 
   unsubChatDoc?.();
