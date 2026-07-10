@@ -2412,14 +2412,35 @@ function startPresenceHeartbeat(uid) {
   presenceHeartbeatTimer = setInterval(() => {
     if (document.visibilityState === 'visible' && user) writePresenceHeartbeat(uid);
   }, 60 * 1000);
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && user) writePresenceHeartbeat(uid);
-  });
 }
 
 function stopPresenceHeartbeat() {
   if (presenceHeartbeatTimer) { clearInterval(presenceHeartbeatTimer); presenceHeartbeatTimer = null; }
 }
+
+// ==== UYGULAMA ARKA PLANDAN ÖNE GELİNCE VERİYİ TAZELEME ====
+// Kök neden: uygulama tamamen kapatılmadan (yalnızca arka plana atılıp geri getirildiğinde),
+// Firebase Auth'un onAuthStateChanged'i TEKRAR TETİKLENMEZ — bu yüzden syncUserProfile/loadMyAdminRole
+// bir daha hiç çalışmıyordu, ekranda WebView hafızasında ne varsa o (bazen çok eski) gösteriliyordu.
+// Çözüm: uygulama en az 60 saniye arka planda kaldıysa, öne gelince ilgili verileri sessizce tazele.
+let appBackgroundedAt = null;
+function handleAppForeground() {
+  if (!user) { appBackgroundedAt = null; return; }
+  writePresenceHeartbeat(user.uid);
+  const wasBackgroundedLongEnough = appBackgroundedAt && (Date.now() - appBackgroundedAt) > 60000;
+  appBackgroundedAt = null;
+  if (!wasBackgroundedLongEnough) return;
+  syncUserProfile(user);
+  loadMyAdminRole(user.uid);
+  loadActiveAnnouncements();
+  // Ana ekran (İçerik) açıksa, "Failed to fetch" gibi eski bir hata durumunda takılı kalmasın diye yenile
+  if (document.getElementById('s-home')?.classList.contains('on') && typeof retry === 'function') retry();
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') appBackgroundedAt = Date.now();
+  else if (document.visibilityState === 'visible') handleAppForeground();
+});
 
 function writePresenceHeartbeat(uid) {
   db.collection('teknohane_presence').doc(uid).set({
@@ -7401,6 +7422,12 @@ history.pushState(null, '', location.href);
 if (isNativeApp()) {
   if (Capacitor.Plugins.App) {
     Capacitor.Plugins.App.addListener('backButton', () => history.back());
+    // visibilitychange'e ek olarak: bazı Android WebView sürümlerinde bu olay güvenilir tetiklenmeyebiliyor,
+    // Capacitor'ın kendi native appStateChange olayı daha güvenilir bir yedek sağlıyor.
+    Capacitor.Plugins.App.addListener('appStateChange', (state) => {
+      if (state.isActive) handleAppForeground();
+      else appBackgroundedAt = Date.now();
+    });
   } else {
     console.warn('Capacitor App plugin bulunamadı, donanım geri tuşu köprülenemedi.');
   }
