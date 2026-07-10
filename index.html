@@ -1280,6 +1280,11 @@ body.tk-banned #ban-gate{
       <button class="mtab off" id="adm-tab-forum" onclick="switchAdminTab('forum')">Forum</button>
       <button class="mtab off" id="adm-tab-logs" onclick="switchAdminTab('logs')">Loglar</button>
       <button class="mtab off" id="adm-tab-complaints" onclick="switchAdminTab('complaints')">Şikayetler</button>
+      <button class="mtab off" id="adm-tab-dashboard" onclick="switchAdminTab('dashboard')">Dashboard</button>
+    </div>
+
+    <div id="admin-dashboard-view" style="display:none">
+      <div id="adm-dashboard-content"><div class="load"><div class="spin"></div><span>Dashboard yükleniyor…</span></div></div>
     </div>
 
     <div id="admin-listings-view">
@@ -1490,10 +1495,21 @@ async function loadMyAdminRole(uid) {
   } catch (e) {
     myAdminRole = null; // Doküman yoksa veya okuma reddedildiyse (admin değilsin) sessizce normal kullanıcı gibi devam et
   }
-  if (document.getElementById('s-profile')?.classList.contains('on')) rprof();
+  requestProfileRerender();
 }
 
 // Giriş yapmış kullanıcının aktif bir admin rolü olup olmadığını söyler (panel giriş kontrolü için).
+// Profil verisi birden fazla bağımsız kaynaktan (syncUserProfile, loadMyAdminRole) neredeyse aynı anda
+// gelebiliyor — her biri ayrı ayrı rprof() çağırırsa ekran art arda gereksiz yere yeniden çizilip
+// "geç kendine geliyor" hissi yaratıyordu. Bu fonksiyon, kısa bir süre içindeki tüm istekleri tek bir
+// render'da birleştirir.
+let profileRerenderTimer = null;
+function requestProfileRerender() {
+  if (!document.getElementById('s-profile')?.classList.contains('on')) return;
+  if (profileRerenderTimer) clearTimeout(profileRerenderTimer);
+  profileRerenderTimer = setTimeout(() => { profileRerenderTimer = null; rprof(); }, 50);
+}
+
 function isAdminNow() {
   return !!(user && myAdminRole && myAdminRole.isActive !== false);
 }
@@ -1816,7 +1832,180 @@ async function complaintDeletePost(complaintId, postId) {
   renderComplaintDetail(complaintId, c);
 }
 
-// Bir görsel dosyasını (File) belirtilen maksimum kenar uzunluğuna göre yeniden boyutlandırıp WebP Blob'a dönüştürür.
+// ==== DASHBOARD (Aşama 7) ====
+// Bir zaman damgası dizisini son 7 güne göre günlük sayılara ayırır (istemci tarafında — günde ayrı sorgu yok).
+function bucketByDay(timestamps) {
+  const days = [];
+  const now = new Date();
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+    days.push({ date: d, count: 0 });
+  }
+  timestamps.forEach(ts => {
+    const d = ts?.toDate ? ts.toDate() : null;
+    if (!d) return;
+    const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    const bucket = days.find(b => b.date.getTime() === dayStart);
+    if (bucket) bucket.count++;
+  });
+  return days;
+}
+
+// Hafif, saf SVG çubuk grafik — hiçbir kütüphane eklenmedi, 3 grafik de bu tek fonksiyonu kullanıyor.
+function renderWeeklyChart(dailyData, color) {
+  const max = Math.max(1, ...dailyData.map(d => d.count));
+  const w = 300, h = 54, slot = w / 7, barW = slot - 8;
+  const bars = dailyData.map((d, i) => {
+    const barH = Math.max(2, (d.count / max) * h);
+    return `<rect x="${i*slot+4}" y="${h-barH}" width="${barW}" height="${barH}" rx="3" fill="${color}"/>
+      <text x="${i*slot+slot/2}" y="${h+13}" font-size="9" fill="var(--text3)" text-anchor="middle">${d.count}</text>`;
+  }).join('');
+  return `<svg viewBox="0 0 ${w} ${h+16}" style="width:100%;height:auto;display:block">${bars}</svg>`;
+}
+
+async function loadDashboard() {
+  const el = document.getElementById('adm-dashboard-content');
+  if (!el || !isAdminNow()) return;
+  el.innerHTML = `<div class="load"><div class="spin"></div><span>Dashboard yükleniyor…</span></div>`;
+
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const sevenDaysAgo = new Date(now.getTime() - 7*24*60*60*1000);
+  const onlineThreshold = new Date(Date.now() - PRESENCE_ONLINE_WINDOW_MS);
+  // Her sorgu kendi başına güvenli — biri başarısız olsa bile (örn. eksik index) dashboard'un geri kalanı çalışmaya devam eder.
+  const safeCount = q => q.count().get().then(s => s.data().count).catch(() => null);
+  const safeGet = q => q.get().catch(() => ({ docs: [] }));
+
+  try {
+    const [
+      totalUsers, todayUsers, online, totalPosts, totalComments,
+      totalComplaints, pendingComplaints, banned, activeToday, bannedToday,
+      recentLogsSnap, recentUsersSnap, weeklyUsersSnap, weeklyComplaintsSnap
+    ] = await Promise.all([
+      safeCount(db.collection('teknohane_users')),
+      safeCount(db.collection('teknohane_users').where('createdAt', '>=', todayStart)),
+      safeCount(db.collection('teknohane_presence').where('lastActive', '>=', onlineThreshold)),
+      safeCount(db.collection('teknohane_posts')),
+      safeCount(db.collectionGroup('comments')),
+      safeCount(db.collection('teknohane_complaints')),
+      safeCount(db.collection('teknohane_complaints').where('status', '==', 'pending')),
+      safeCount(db.collection('teknohane_users').where('banned', '==', true)),
+      safeCount(db.collection('teknohane_users').where('lastSeen', '>=', todayStart)),
+      safeCount(db.collection('teknohane_users').where('bannedAt', '>=', todayStart)),
+      safeGet(db.collection('admin_logs').orderBy('createdAt', 'desc').limit(20)),
+      safeGet(db.collection('teknohane_users').orderBy('createdAt', 'desc').limit(10)),
+      safeGet(db.collection('teknohane_users').where('createdAt', '>=', sevenDaysAgo)),
+      safeGet(db.collection('teknohane_complaints').where('createdAt', '>=', sevenDaysAgo)),
+    ]);
+
+    const stats = { totalUsers, todayUsers, online, totalListings: listings.length, totalPosts, totalComments, totalComplaints, pendingComplaints, banned, activeToday };
+    const pendingListings = listings.filter(l => l.approved === false).length;
+    const todayListings = listings.filter(l => l.createdAt?.toDate && l.createdAt.toDate() >= todayStart).length;
+    const recentUsers = recentUsersSnap.docs.map(d => ({ uid: d.id, ...d.data() }));
+    const recentLogs = recentLogsSnap.docs.map(d => d.data());
+    const recentListings = [...listings].sort((a,b) => (b.createdAt?.toMillis?.()||0) - (a.createdAt?.toMillis?.()||0)).slice(0,10);
+    const recentPosts = [...forumPosts].sort((a,b) => (b.createdAt?.toMillis?.()||0) - (a.createdAt?.toMillis?.()||0)).slice(0,10);
+    const charts = {
+      userDaily: bucketByDay(weeklyUsersSnap.docs.map(d => d.data().createdAt)),
+      complaintDaily: bucketByDay(weeklyComplaintsSnap.docs.map(d => d.data().createdAt)),
+      listingDaily: bucketByDay(listings.filter(l => l.createdAt?.toDate && l.createdAt.toDate() >= sevenDaysAgo).map(l => l.createdAt)),
+    };
+
+    renderDashboard(stats, { pendingListings, todayListings, bannedToday }, recentLogs, recentUsers, recentListings, recentPosts, charts);
+  } catch (e) {
+    console.error('Dashboard yüklenemedi:', e);
+    el.innerHTML = '<div class="no">Dashboard yüklenemedi. Bir Firestore index\'i gerekebilir — konsolu kontrol edin.</div>';
+  }
+}
+
+function renderDashboard(stats, pending, recentLogs, recentUsers, recentListings, recentPosts, charts) {
+  const el = document.getElementById('adm-dashboard-content');
+  if (!el) return;
+  const fmt = v => (v === null || v === undefined) ? '—' : v;
+
+  el.innerHTML = `
+    <div class="psec-title">📊 Genel İstatistikler</div>
+    <div class="pstats-card" style="flex-wrap:wrap">
+      ${[
+        ['Toplam Kullanıcı', stats.totalUsers], ['Bugün Kayıt', stats.todayUsers], ['Online', stats.online],
+        ['Toplam İlan', stats.totalListings], ['Forum Gönderisi', stats.totalPosts], ['Toplam Yorum', stats.totalComments],
+        ['Toplam Şikayet', stats.totalComplaints], ['Bekleyen Şikayet', stats.pendingComplaints],
+        ['Banlı Kullanıcı', stats.banned], ['Bugün Aktif', stats.activeToday],
+      ].map(([label,val]) => `<div class="pstat-item" style="flex:1 1 28%;min-width:85px;margin-bottom:12px"><div class="pstat-num">${fmt(val)}</div><div class="pstat-lbl">${label}</div></div>`).join('')}
+    </div>
+
+    <div class="psec-title">⏳ Bekleyen İşler</div>
+    <div class="pstats-card">
+      <div class="pstat-item"><div class="pstat-num">${fmt(stats.pendingComplaints)}</div><div class="pstat-lbl">Bekleyen Şikayet</div></div>
+      <div class="pstat-item"><div class="pstat-num">${pending.pendingListings}</div><div class="pstat-lbl">Onay Bekleyen İlan</div></div>
+      <div class="pstat-item"><div class="pstat-num">${fmt(pending.bannedToday)}</div><div class="pstat-lbl">Bugün Banlanan</div></div>
+      <div class="pstat-item"><div class="pstat-num">${pending.todayListings}</div><div class="pstat-lbl">Bugün Açılan İlan</div></div>
+    </div>
+
+    <div class="psec-title">🖥️ Sistem Durumu</div>
+    <div class="pacc-card">
+      <div class="pacc-row"><span class="pacc-lbl">Bağlantı</span><span class="pacc-val" style="color:${navigator.onLine?'#3DDC97':'var(--red)'}">${navigator.onLine?'● Online':'● Offline'}</span></div>
+      <div class="pacc-row"><span class="pacc-lbl">Firestore</span><span class="pacc-val" style="color:#3DDC97">● Bağlı</span></div>
+      <div class="pacc-row"><span class="pacc-lbl">Storage</span><span class="pacc-val" style="color:var(--text2)">Yapılandırıldı</span></div>
+      <div class="pacc-row"><span class="pacc-lbl">Push Notification</span><span class="pacc-val" style="color:var(--text2)">Yapılandırıldı</span></div>
+    </div>
+
+    <div class="psec-title">📈 Son 7 Gün</div>
+    <div class="pacc-card">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:2px">Yeni Kullanıcı</div>
+      ${renderWeeklyChart(charts.userDaily, 'var(--cyan)')}
+      <div style="font-size:12px;color:var(--text2);margin:14px 0 2px">Yeni İlan</div>
+      ${renderWeeklyChart(charts.listingDaily, '#3DDC97')}
+      <div style="font-size:12px;color:var(--text2);margin:14px 0 2px">Şikayet</div>
+      ${renderWeeklyChart(charts.complaintDaily, 'var(--red)')}
+    </div>
+
+    <div class="psec-title">🛡️ Son Hareketler</div>
+    <div class="pact-card">
+      ${recentLogs.length ? recentLogs.map(l => `
+        <div class="pact-row">
+          <div class="pact-ic">🛡️</div>
+          <div class="pact-body"><div class="pact-txt"><b>${l.adminName||'Admin'}</b> — ${l.action} ${l.targetLabel?`(${l.targetLabel})`:''}</div><div class="pact-time">${l.createdAt?.toDate?timeAgo(l.createdAt.toDate()):''}</div></div>
+        </div>`).join('') : '<div class="ud-empty">Henüz hareket yok</div>'}
+    </div>
+
+    <div class="psec-title">👤 Son Kayıt Olan Kullanıcılar</div>
+    <div class="pacc-card">
+      ${recentUsers.length ? recentUsers.map(u => `
+        <div class="adm-user-row" style="cursor:default">
+          ${u.photoURL?`<img class="adm-user-av" src="${u.photoURL}" alt="">`:`<div class="adm-user-av">${(u.displayName||'?')[0].toUpperCase()}</div>`}
+          <div class="adm-user-info"><div class="adm-user-name">${u.displayName||'İsimsiz'}</div><div class="adm-user-email">${u.username?'@'+u.username:(u.email||'')}</div></div>
+          <div style="font-size:11px;color:var(--text3);flex-shrink:0">${u.createdAt?.toDate?timeAgo(u.createdAt.toDate()):''}</div>
+        </div>`).join('') : '<div class="ud-empty">Kayıt yok</div>'}
+    </div>
+
+    <div class="psec-title">🛍️ Son Açılan İlanlar</div>
+    <div class="pacc-card">
+      ${recentListings.length ? recentListings.map(l => `
+        <div class="ud-item" onclick="closemo('admin-mo');openDetail('${l.id}')">
+          <span class="ud-item-name">${l.model}</span>
+          <span class="ud-item-meta">₺${parseInt(l.price||0).toLocaleString('tr-TR')} · ${l.ownerName||'—'}</span>
+        </div>`).join('') : '<div class="ud-empty">İlan yok</div>'}
+    </div>
+
+    <div class="psec-title">💬 Son Forum Gönderileri</div>
+    <div class="pacc-card">
+      ${recentPosts.length ? recentPosts.map(p => `
+        <div class="ud-item" onclick="closemo('admin-mo');openPost('${p.id}')">
+          <span class="ud-item-name">${p.title||'Gönderi'}</span>
+          <span class="ud-item-meta">${p.authorName||'—'} · ${p.createdAt?.toDate?timeAgo(p.createdAt.toDate()):''}</span>
+        </div>`).join('') : '<div class="ud-empty">Gönderi yok</div>'}
+    </div>
+
+    <div class="psec-title">⚡ Hızlı İşlemler</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="apbtn" onclick="showToast('ℹ️','rgba(0,212,255,.15)','Yeni Duyuru','Bu özellik Aşama 9 — Duyuru Sistemi\\'nde eklenecek.')">📢 Yeni Duyuru</button>
+      <button class="apbtn" style="background:var(--surf2);color:var(--text)" onclick="switchAdminTab('users')">🔍 Kullanıcı Ara</button>
+      <button class="apbtn" style="background:var(--surf2);color:var(--text)" onclick="switchAdminTab('complaints')">🚩 Şikayetler</button>
+      <button class="apbtn" style="background:var(--surf2);color:var(--text)" onclick="switchAdminTab('users')">🚫 Banlı Kullanıcılar</button>
+      <button class="apbtn" style="background:var(--surf2);color:var(--text)" onclick="switchAdminTab('logs')">📋 Admin Log</button>
+    </div>`;
+}
 // Hem profil hem kapak fotoğrafı yüklemesinde ortak kullanılır (kod tekrarını önler).
 function compressImageToWebP(file, maxDim, quality) {
   return new Promise((resolve, reject) => {
@@ -1972,7 +2161,7 @@ async function syncUserProfile(u) {
       myProfileData = existingData;
       checkBanStatus(); // ban kontrolü mümkün olan en erken noktada, diğer her şeyden önce
       rlistings(); // favoriler geldi, listeyi güncelle (kalp ikonları doğru görünsün)
-      if (document.getElementById('s-profile')?.classList.contains('on')) rprof();
+      requestProfileRerender();
       // Özel yüklenmiş bir profil fotoğrafı varsa header'ı ona göre güncelle
       const havImg = document.getElementById('hav-img');
       if (havImg && existingData.photoURL) havImg.src = existingData.photoURL;
@@ -2512,8 +2701,10 @@ async function processProfilePhoto(file) {
     const newPath = `profile-photos/${user.uid}/avatar.${ext}`;
     const url = await uploadToStorage(newPath, blob, mimeType, pct => { if (pctEl) pctEl.textContent = pct + '%'; });
     // Farklı bir cihazdan farklı formatta (webp/jpg) yüklendiyse, eski dosya Storage'da birikmesin diye silinir.
-    if (oldUrl && oldUrl.startsWith('https://') && !oldUrl.includes(encodeURIComponent(newPath))) {
-      storage.refFromURL(oldUrl).delete().catch(()=>{});
+    // Not: eski fotoğraf Google hesabından veya ui-avatars.com yedeğinden geliyor olabilir — bunlar gerçek
+    // Storage URL'i değildir, refFromURL() bu tür URL'lerde senkron hata fırlatır, bu yüzden hem içerik hem try/catch ile korunuyor.
+    if (oldUrl && oldUrl.includes('firebasestorage') && !oldUrl.includes(encodeURIComponent(newPath))) {
+      try { storage.refFromURL(oldUrl).delete().catch(()=>{}); } catch(e) { console.warn('Eski profil fotoğrafı silinemedi:', e); }
     }
     epNewPhotoDataUrl = url;
     showToast('✓', 'rgba(48,209,88,.15)', 'Hazır', 'Fotoğraf yüklendi — kaydetmek için "Kaydet"e bas.');
@@ -2545,8 +2736,8 @@ async function processCoverPhoto(file) {
     const oldUrl = myProfileData.coverPhotoURL;
     const newPath = `cover-photos/${user.uid}/cover.${ext}`;
     const url = await uploadToStorage(newPath, blob, mimeType, pct => { if (pctEl) pctEl.textContent = pct + '%'; });
-    if (oldUrl && oldUrl.startsWith('https://') && !oldUrl.includes(encodeURIComponent(newPath))) {
-      storage.refFromURL(oldUrl).delete().catch(()=>{});
+    if (oldUrl && oldUrl.includes('firebasestorage') && !oldUrl.includes(encodeURIComponent(newPath))) {
+      try { storage.refFromURL(oldUrl).delete().catch(()=>{}); } catch(e) { console.warn('Eski kapak fotoğrafı silinemedi:', e); }
     }
     await db.collection('teknohane_users').doc(user.uid).set({ coverPhotoURL: url }, { merge: true });
     myProfileData.coverPhotoURL = url;
@@ -2564,7 +2755,10 @@ async function processCoverPhoto(file) {
 async function removeCoverPhoto() {
   if (!user || !myProfileData.coverPhotoURL) return;
   try {
-    await storage.refFromURL(myProfileData.coverPhotoURL).delete().catch(()=>{});
+    const oldUrl = myProfileData.coverPhotoURL;
+    if (oldUrl.includes('firebasestorage')) {
+      try { await storage.refFromURL(oldUrl).delete(); } catch(e) { console.warn('Eski kapak fotoğrafı Storage\'dan silinemedi:', e); }
+    }
     await db.collection('teknohane_users').doc(user.uid).set({ coverPhotoURL: firebase.firestore.FieldValue.delete() }, { merge: true });
     myProfileData.coverPhotoURL = null;
     rprof();
@@ -5021,7 +5215,7 @@ function openAdmin() {
 }
 
 function switchAdminTab(tab) {
-  ['listings','users','forum','logs','complaints'].forEach(t => {
+  ['listings','users','forum','logs','complaints','dashboard'].forEach(t => {
     document.getElementById(`adm-tab-${t}`).className = tab===t ? 'mtab on' : 'mtab off';
     document.getElementById(`admin-${t}-view`).style.display = tab===t ? 'block' : 'none';
   });
@@ -5047,6 +5241,7 @@ function switchAdminTab(tab) {
     }
     loadComplaints(true);
   }
+  if (tab === 'dashboard') loadDashboard();
 }
 
 function radmin() {
