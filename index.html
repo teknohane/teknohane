@@ -787,7 +787,7 @@ body.tk-banned #ban-gate{
         <div class="notif-badge" id="chat-badge" style="display:none">0</div>
       </div>
       <div class="hbtn" id="hav" style="display:none" onclick="gt('profile')">
-        <img id="hav-img" src="" alt="">
+        <img id="hav-img" style="display:none" alt="">
       </div>
       <div class="hbtn" id="hlogin" onclick="gt('profile')">
         <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -1175,7 +1175,7 @@ body.tk-banned #ban-gate{
     <div class="mtit">Profili Düzenle</div>
 
     <div class="pav-edit-wrap" onclick="pickProfilePhoto()">
-      <img id="ep-avatar-preview" src="" alt="">
+      <img id="ep-avatar-preview" style="display:none" alt="">
       <div class="pav-edit-badge">
         <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
       </div>
@@ -1393,7 +1393,7 @@ body.tk-banned #ban-gate{
 <!-- TAM EKRAN GÖRSEL -->
 <div id="img-fullscreen" onclick="closemo('img-fullscreen');this.classList.remove('on')">
   <div id="img-fullscreen-close">×</div>
-  <img id="img-fullscreen-img" src="" alt="">
+  <img id="img-fullscreen-img" style="display:none" alt="">
 </div>
 
 <!-- YENİ KONU MODAL -->
@@ -1536,19 +1536,41 @@ function isDataFresh(key) { return !!dataReadyFlags[key]; }
 
 // Header'daki küçük profil avatarını render eden TEK, merkezi fonksiyon — önceden 3 ayrı yerde
 // (giriş anı, syncUserProfile, profil düzenleme kaydı) birbirinden bağımsız kopya kod vardı.
+// ==== ORTAK AVATAR YARDIMCI FONKSİYONLARI (tüm uygulamada TEK kaynak) ====
+// Kural: hiçbir yerde img.src="" veya img.removeAttribute('src') kullanılmaz. Bir <img> ya asla
+// görünür olmadan önce (display:none ile) beklemede tutulur, ya da her zaman GEÇERLİ bir URL ile
+// (gerçek fotoğraf ya da üretilen avatar) gösterilir — arada "geçersiz src" durumu hiç oluşmaz.
+
+// Her zaman geçerli bir avatar URL'i döndürür — photoURL yoksa isim bazlı üretilen bir avatar.
+function avatarUrl(photoURL, displayName, size) {
+  if (photoURL) return photoURL;
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName||'Kullanıcı')}&background=0D1526&color=00D4FF&size=${size||256}`;
+}
+
+// Bir <img> elemanına GÜVENLİ şekilde avatar atar — gerçek fotoğraf yüklenemezse (silinmiş dosya,
+// geçici erişim sorunu) otomatik olarak üretilen avatara döner. src her zaman geçerli bir URL'dir,
+// hiçbir aşamada boş/kaldırılmış olmaz.
+function setAvatarImg(imgEl, photoURL, displayName, size) {
+  if (!imgEl) return;
+  const fallback = avatarUrl(null, displayName, size);
+  imgEl.onerror = () => { imgEl.onerror = null; imgEl.src = fallback; };
+  imgEl.src = avatarUrl(photoURL, displayName, size);
+  imgEl.style.display = '';
+}
+
+// Veri henüz hazır değilken bir avatarı GİZLER (src'ye hiç dokunmadan) — "kırık" bir img durumu
+// oluşmasının tek doğru yolu budur; src'yi boşaltmak veya kaldırmak DEĞİL.
+function hideAvatarUntilReady(imgEl) { if (imgEl) imgEl.style.display = 'none'; }
+
 function renderHeaderAvatar() {
   const img = document.getElementById('hav-img');
   if (!img || !user) return;
   if (!isDataFresh('profile')) {
-    // Gerçek veri henüz doğrulanmadı — ne eski Auth fotoğrafı ne bellekte kalmış eski veri gösterilir.
-    img.removeAttribute('src');
+    // Gerçek veri henüz doğrulanmadı — img tamamen gizli kalır, src'ye HİÇ dokunulmaz.
+    hideAvatarUntilReady(img);
     return;
   }
-  const fallback = `https://ui-avatars.com/api/?name=${encodeURIComponent(myProfileData.displayName||user.displayName||user.email)}&background=0D1526&color=00D4FF&size=64`;
-  // Fotoğraf URL'i geçersiz/silinmiş olsa veya yükleme başarısız olsa bile kırık resim ikonu asla
-  // görünmesin diye — başarısız olursa otomatik olarak üretilen avatara düşer.
-  img.onerror = () => { img.onerror = null; img.src = fallback; };
-  img.src = myProfileData.photoURL || fallback;
+  setAvatarImg(img, myProfileData.photoURL, myProfileData.displayName||user.displayName||user.email, 64);
 }
 
 // ==== YÖNETİCİ ROL/YETKİ SİSTEMİ ====
@@ -1749,7 +1771,7 @@ async function loadComplaintUserPreview(uid) {
     if (!snap.exists) { el.innerHTML = '<div class="ud-empty">Kullanıcı bulunamadı</div>'; return; }
     const u = snap.data();
     const scoreInfo = computeTeknohaneScore(uid, u);
-    const av = u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.displayName||'Kullanıcı')}&background=0D1526&color=00D4FF&size=128`;
+    const av = avatarUrl(u.photoURL, u.displayName, 128);
     el.innerHTML = `<div class="pcol-current">
       <img src="${av}" style="width:40px;height:40px;border-radius:50%;object-fit:cover">
       <div><div class="pcol-current-name">${u.displayName||'Kullanıcı'}</div><div class="pcol-current-tag">Teknohane Skoru: ${scoreInfo.score}</div></div>
@@ -2794,8 +2816,8 @@ function rprof() {
   }
   const isAdmin = isAdminNow();
   if (user) {
-    const avFallback = `https://ui-avatars.com/api/?name=${encodeURIComponent(myProfileData.displayName||user.displayName||user.email)}&background=0D1526&color=00D4FF&size=256`;
-    const av = myProfileData.photoURL || avFallback;
+    const avFallback = avatarUrl(null, myProfileData.displayName||user.displayName||user.email, 256);
+    const av = avatarUrl(myProfileData.photoURL, myProfileData.displayName||user.displayName||user.email, 256);
     const hasVerifiedPhoneNumber = !!myProfileData.phoneNumber;
     const hasCurrentPhone = !!myProfileData.currentPhone;
     // Kendi skorum için, Firestore'daki (günde 1 senkronize olan) emailVerified yerine her zaman
@@ -3074,7 +3096,7 @@ function renderProfileListings() {
 function openEditProfile() {
   if (!user) return;
   epNewPhotoDataUrl = null;
-  document.getElementById('ep-avatar-preview').src = myProfileData.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(myProfileData.displayName||user.displayName||user.email)}&background=0D1526&color=00D4FF&size=256`;
+  setAvatarImg(document.getElementById('ep-avatar-preview'), myProfileData.photoURL, myProfileData.displayName||user.displayName||user.email, 256);
   document.getElementById('ep-name').value = user.displayName || '';
   document.getElementById('ep-username').value = myProfileData.username || '';
   document.getElementById('ep-bio').value = myProfileData.bio || '';
@@ -5577,7 +5599,9 @@ async function deleteComment(cid) {
 
 // Tam ekran görsel
 function openFullscreen(url) {
-  document.getElementById('img-fullscreen-img').src = url;
+  const img = document.getElementById('img-fullscreen-img');
+  img.src = url;
+  img.style.display = '';
   document.getElementById('img-fullscreen').classList.add('on');
 }
 
@@ -5659,8 +5683,8 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
     displayName = l?.ownerName;
   }
   displayName = displayName || 'Kullanıcı';
-  const avFallback = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=0D1526&color=00D4FF&size=256`;
-  const av = data.photoURL || avFallback;
+  const avFallback = avatarUrl(null, displayName, 256);
+  const av = avatarUrl(data.photoURL, displayName, 256);
 
   const scoreInfo = computeTeknohaneScore(uid, data);
   const teknohaneScore = scoreInfo.score;
@@ -5874,7 +5898,7 @@ async function openFollowList(uid, type, name) {
     }
     if (!users.length) { body.innerHTML = `<div class="no" style="padding:40px 0">${type==='followers'?'Henüz takipçi yok':'Henüz kimseyi takip etmiyor'}</div>`; return; }
     body.innerHTML = users.map(u => {
-      const uav = u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.displayName||'Kullanıcı')}&background=0D1526&color=00D4FF&size=64`;
+      const uav = avatarUrl(u.photoURL, u.displayName, 64);
       const uFollowing = (myProfileData.followingUids||[]).includes(u.uid);
       const safeName = (u.displayName||'Kullanıcı').replace(/'/g,"\\'");
       return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
@@ -6137,8 +6161,8 @@ function openUserDetail(uid) {
   const roleInfo = adminRolesCache[uid];
   const role = (roleInfo && roleInfo.isActive !== false) ? roleInfo.role : null;
   const isBanned = isCurrentlyBanned(u);
-  const avFallback = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=0D1526&color=00D4FF&size=256`;
-  const av = u.photoURL || avFallback;
+  const avFallback = avatarUrl(null, displayName, 256);
+  const av = avatarUrl(u.photoURL, displayName, 256);
 
   // Skor/rozet hesaplaması: profil sisteminde kullanılan aynı ortak fonksiyonlar (kod tekrarı yok)
   const scoreInfo = computeTeknohaneScore(uid, u);
