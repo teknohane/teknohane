@@ -73,7 +73,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .notif-msg{font-size:13px;color:var(--text);line-height:1.4;}
 .notif-time{font-size:11px;color:var(--text3);margin-top:3px;}
 .hbtn svg{width:18px;height:18px;stroke:var(--text2);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
-.hbtn img{width:36px;height:36px;border-radius:50%;object-fit:cover;}
+.hbtn img{width:36px;height:36px;border-radius:50%;object-fit:cover;background:var(--surf2);}
 
 /* TABS */
 #tabs{position:fixed;bottom:0;left:0;right:0;z-index:100;background:rgba(0,4,15,.9);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid var(--border);padding-bottom:var(--sb);height:calc(var(--tab) + var(--sb));display:flex;align-items:flex-start;padding-top:10px;}
@@ -642,6 +642,16 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .fg{margin-bottom:14px;}
 .fl{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px;display:block;text-transform:uppercase;letter-spacing:.5px;}
 .fi{width:100%;background:var(--surf);border:1px solid var(--border2);border-radius:12px;padding:12px 14px;color:var(--text);font-size:15px;font-family:inherit;outline:none;}
+
+/* Özel seçim bileşeni (custom picker) — native <select>'in Android WebView'de bazı cihazlarda
+   bozuk/beyaz render olması sorununu ortadan kaldırmak için, .fi ile birebir aynı görünümde ama
+   tamamen uygulama içi bir tetikleyici. Gerçek <select> gizli kalır, yalnızca değer deposu olarak kullanılır. */
+.csel{width:100%;background:var(--surf);border:1px solid var(--border2);border-radius:12px;padding:12px 14px;color:var(--text);font-size:15px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;gap:8px;}
+.csel-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.csel-arrow{flex-shrink:0;color:var(--text3);}
+.picker-opt{padding:14px 16px;font-size:15px;border-radius:12px;cursor:pointer;}
+.picker-opt:active{background:var(--surf2);}
+.picker-opt.active{color:var(--cyan);font-weight:700;background:rgba(0,212,255,.08);}
 .fi:focus{border-color:var(--cyan);}
 .sbtn{width:100%;background:var(--cyan);color:#000;font-size:16px;font-weight:700;padding:14px;border-radius:14px;border:none;cursor:pointer;font-family:inherit;margin-top:4px;}
 .divider{display:flex;align-items:center;gap:12px;margin:16px 0;}
@@ -1118,8 +1128,14 @@ body.tk-banned #ban-gate{
     </div>
     <div class="fg"><label class="fl">Telefon Modeli</label><input class="fi" type="text" id="l-model" placeholder="Örn: Samsung Galaxy S24"></div>
     <div class="fg"><label class="fl">Fiyat (₺)</label><input class="fi" type="number" id="l-price" placeholder="25000"></div>
-    <div class="fg"><label class="fl">Durum</label><select class="fsel" id="l-cond"><option>Sıfır</option><option>Az Kullanılmış</option><option>İkinci El</option></select></div>
-    <div class="fg"><label class="fl">Menşei</label><select class="fsel" id="l-origin"><option>Yurtiçi</option><option>Yurtdışı</option></select></div>
+    <div class="fg"><label class="fl">Durum</label>
+      <div class="csel" data-for="l-cond" data-title="Durum" onclick="openPicker(this)"><span class="csel-label">Sıfır</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+      <select id="l-cond" style="display:none"><option>Sıfır</option><option>Az Kullanılmış</option><option>İkinci El</option></select>
+    </div>
+    <div class="fg"><label class="fl">Menşei</label>
+      <div class="csel" data-for="l-origin" data-title="Menşei" onclick="openPicker(this)"><span class="csel-label">Yurtiçi</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+      <select id="l-origin" style="display:none"><option>Yurtiçi</option><option>Yurtdışı</option></select>
+    </div>
     <div class="fg"><label class="fl">Konum</label><input class="fi" type="text" id="l-loc" placeholder="Şehir / İlçe"></div>
 
     <div class="detail-toggle" onclick="toggleDetailFields()">
@@ -1231,6 +1247,15 @@ body.tk-banned #ban-gate{
   </div>
 </div>
 
+<!-- ÖZEL SEÇİM MODALI (tüm <select> alanları için paylaşılan, native picker yerine) -->
+<div class="mo" id="custom-picker-mo" onclick="closemo('custom-picker-mo')">
+  <div class="ms" onclick="event.stopPropagation()" style="max-height:70vh">
+    <div class="mh"></div>
+    <div class="mtit" id="picker-mo-title">Seç</div>
+    <div id="picker-options"></div>
+  </div>
+</div>
+
 <!-- ŞİKAYET DETAY MODAL (admin) -->
 <div class="mo" id="complaint-detail-mo" onclick="closemo('complaint-detail-mo')">
   <div class="ms" onclick="event.stopPropagation()" style="max-height:88vh">
@@ -1246,7 +1271,8 @@ body.tk-banned #ban-gate{
     <div class="mtit">Şikayet Et</div>
     <div id="report-target-label" style="font-size:12px;color:var(--text2);margin-bottom:14px"></div>
     <div class="fg"><label class="fl">Sebep</label>
-      <select class="fi" id="report-reason-select" onchange="document.getElementById('report-other-wrap').style.display=this.value==='diger'?'block':'none'"></select>
+      <div class="csel" data-for="report-reason-select" data-title="Şikayet Sebebi" onclick="openPicker(this)"><span class="csel-label">Seç</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+      <select id="report-reason-select" style="display:none" onchange="document.getElementById('report-other-wrap').style.display=this.value==='diger'?'block':'none'"></select>
     </div>
     <div class="fg" id="report-other-wrap" style="display:none">
       <label class="fl">Açıklama (Diğer)</label>
@@ -1518,7 +1544,11 @@ function renderHeaderAvatar() {
     img.removeAttribute('src');
     return;
   }
-  img.src = myProfileData.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(myProfileData.displayName||user.displayName||user.email)}&background=0D1526&color=00D4FF&size=64`;
+  const fallback = `https://ui-avatars.com/api/?name=${encodeURIComponent(myProfileData.displayName||user.displayName||user.email)}&background=0D1526&color=00D4FF&size=64`;
+  // Fotoğraf URL'i geçersiz/silinmiş olsa veya yükleme başarısız olsa bile kırık resim ikonu asla
+  // görünmesin diye — başarısız olursa otomatik olarak üretilen avatara düşer.
+  img.onerror = () => { img.onerror = null; img.src = fallback; };
+  img.src = myProfileData.photoURL || fallback;
 }
 
 // ==== YÖNETİCİ ROL/YETKİ SİSTEMİ ====
@@ -1765,7 +1795,8 @@ function renderComplaintDetail(id, c) {
       ${c.description?`<div class="pacc-row"><span class="pacc-lbl">Açıklama</span><span class="pacc-val" style="text-align:right;max-width:60%">${c.description}</span></div>`:''}
       <div class="pacc-row"><span class="pacc-lbl">Tarih</span><span class="pacc-val">${when}</span></div>
       <div class="pacc-row"><span class="pacc-lbl">Öncelik</span><span class="pacc-val">
-        <select id="cmp-priority-select" onchange="updateComplaintPriority('${id}', this.value)" style="background:var(--surf2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:2px 6px;font-size:12px">
+        <div class="csel" data-for="cmp-priority-select" data-title="Öncelik" onclick="openPicker(this)" style="width:auto;padding:4px 8px;font-size:12px;display:inline-flex"><span class="csel-label">${{low:'Düşük',normal:'Normal',high:'Yüksek',critical:'Kritik'}[c.priority||'normal']}</span><svg class="csel-arrow" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:4px"><polyline points="6 9 12 15 18 9"/></svg></div>
+        <select id="cmp-priority-select" onchange="updateComplaintPriority('${id}', this.value)" style="display:none">
           ${['low','normal','high','critical'].map(p=>`<option value="${p}" ${(c.priority||'normal')===p?'selected':''}>${{low:'Düşük',normal:'Normal',high:'Yüksek',critical:'Kritik'}[p]}</option>`).join('')}
         </select>
       </span></div>
@@ -2126,10 +2157,16 @@ function renderAnnouncementForm(a, editId) {
     <div class="fg"><label class="fl">Görsel URL (isteğe bağlı)</label><input class="fi" id="ann-image" value="${a.imageUrl||''}"></div>
     <div class="fg"><label class="fl">Bağlantı URL (isteğe bağlı)</label><input class="fi" id="ann-link" value="${a.linkUrl||''}"></div>
     <div class="fg"><label class="fl">Buton Yazısı</label><input class="fi" id="ann-button-text" value="${a.buttonText||'Detay'}"></div>
-    <div class="fg"><label class="fl">Öncelik</label><select class="fi" id="ann-priority">${priorityOptions}</select></div>
+    <div class="fg"><label class="fl">Öncelik</label>
+      <div class="csel" data-for="ann-priority" data-title="Öncelik" onclick="openPicker(this)"><span class="csel-label"></span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+      <select id="ann-priority" style="display:none">${priorityOptions}</select>
+    </div>
     <div class="fg"><label class="fl" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="ann-pinned" ${a.pinned?'checked':''}> Sabitlensin (üstte kalsın)</label></div>
 
-    <div class="fg"><label class="fl">Hedef Kitle</label><select class="fi" id="ann-audience" onchange="onAnnounceAudienceChange()">${audienceOptions}</select></div>
+    <div class="fg"><label class="fl">Hedef Kitle</label>
+      <div class="csel" data-for="ann-audience" data-title="Hedef Kitle" onclick="openPicker(this)"><span class="csel-label"></span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+      <select id="ann-audience" style="display:none" onchange="onAnnounceAudienceChange()">${audienceOptions}</select>
+    </div>
     <div class="fg" id="ann-uids-wrap" style="display:${a.audienceType==='specific_uids'?'block':'none'}">
       <label class="fl">UID'ler (virgülle ayırın)</label><textarea class="fi" id="ann-uids" rows="2" style="resize:none">${(a.audienceUids||[]).join(', ')}</textarea>
     </div>
@@ -2139,7 +2176,8 @@ function renderAnnouncementForm(a, editId) {
     <div class="fg"><label class="fl" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="ann-exclude-banned" ${a.excludeBanned!==false?'checked':''}> Banlı kullanıcılar hariç tutulsun</label></div>
 
     <div class="fg"><label class="fl">Yayın Zamanı</label>
-      <select class="fi" id="ann-publish-mode" onchange="document.getElementById('ann-publish-date-wrap').style.display=this.value==='scheduled'?'block':'none'">
+      <div class="csel" data-for="ann-publish-mode" data-title="Yayın Zamanı" onclick="openPicker(this)"><span class="csel-label"></span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+      <select id="ann-publish-mode" style="display:none" onchange="document.getElementById('ann-publish-date-wrap').style.display=this.value==='scheduled'?'block':'none'">
         <option value="now" ${!a.publishAt?'selected':''}>Hemen Yayınla</option>
         <option value="scheduled" ${a.publishAt?'selected':''}>Zamanlanmış Yayın</option>
       </select>
@@ -2148,7 +2186,8 @@ function renderAnnouncementForm(a, editId) {
       <label class="fl">Yayın Tarihi</label><input class="fi" type="datetime-local" id="ann-publish-date" value="${a.publishAt?.toDate ? toLocalDatetimeValue(a.publishAt.toDate()) : ''}">
     </div>
     <div class="fg"><label class="fl">Bitiş</label>
-      <select class="fi" id="ann-expiry-mode" onchange="document.getElementById('ann-expiry-date-wrap').style.display=this.value==='date'?'block':'none'">
+      <div class="csel" data-for="ann-expiry-mode" data-title="Bitiş" onclick="openPicker(this)"><span class="csel-label"></span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+      <select id="ann-expiry-mode" style="display:none" onchange="document.getElementById('ann-expiry-date-wrap').style.display=this.value==='date'?'block':'none'">
         <option value="never" ${!a.expiresAt?'selected':''}>Süresiz</option>
         <option value="date" ${a.expiresAt?'selected':''}>Tarih Belirle</option>
       </select>
@@ -2169,6 +2208,7 @@ function renderAnnouncementForm(a, editId) {
     <button class="apbtn" style="margin-top:8px;background:var(--surf2);color:var(--text)" onclick="saveAnnouncement('draft')">Taslak Olarak Kaydet</button>`;
 
   onAnnounceAudienceChange();
+  syncAllPickerLabels(body);
 }
 
 function onAnnounceAudienceChange() {
@@ -2754,7 +2794,8 @@ function rprof() {
   }
   const isAdmin = isAdminNow();
   if (user) {
-    const av = myProfileData.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(myProfileData.displayName||user.displayName||user.email)}&background=0D1526&color=00D4FF&size=256`;
+    const avFallback = `https://ui-avatars.com/api/?name=${encodeURIComponent(myProfileData.displayName||user.displayName||user.email)}&background=0D1526&color=00D4FF&size=256`;
+    const av = myProfileData.photoURL || avFallback;
     const hasVerifiedPhoneNumber = !!myProfileData.phoneNumber;
     const hasCurrentPhone = !!myProfileData.currentPhone;
     // Kendi skorum için, Firestore'daki (günde 1 senkronize olan) emailVerified yerine her zaman
@@ -2820,7 +2861,7 @@ function rprof() {
           </div>
         </div>
         <input type="file" id="cover-photo-input" accept="image/*" style="display:none" onchange="handleCoverPhoto(this)">
-        <img class="pav" src="${av}" alt="">
+        <img class="pav" src="${av}" onerror="this.onerror=null;this.src='${avFallback}'" alt="">
         <div style="display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap">
           <span class="pname">${user.displayName||'Kullanıcı'}</span>
           ${isAdmin?'<span class="admin-badge">ADMIN</span>':''}
@@ -4795,6 +4836,7 @@ function editListing(id) {
   document.getElementById('l-price').value = l.price || '';
   document.getElementById('l-cond').value = l.condition || 'Sıfır';
   document.getElementById('l-origin').value = l.origin || 'Yurtiçi';
+  syncAllPickerLabels(document.getElementById('listing-mo'));
   document.getElementById('l-loc').value = l.location || '';
   document.getElementById('l-desc').value = l.desc || '';
   document.getElementById('l-phone').value = l.phone || '';
@@ -5617,7 +5659,8 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
     displayName = l?.ownerName;
   }
   displayName = displayName || 'Kullanıcı';
-  const av = data.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=0D1526&color=00D4FF&size=256`;
+  const avFallback = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=0D1526&color=00D4FF&size=256`;
+  const av = data.photoURL || avFallback;
 
   const scoreInfo = computeTeknohaneScore(uid, data);
   const teknohaneScore = scoreInfo.score;
@@ -5634,7 +5677,7 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
   body.innerHTML = `
     <div class="phero">
       <div class="pcover" style="${data.coverPhotoURL?`background-image:url('${data.coverPhotoURL}');background-size:cover;background-position:center;`:''}"></div>
-      <img class="pav" src="${av}" alt="">
+      <img class="pav" src="${av}" onerror="this.onerror=null;this.src='${avFallback}'" alt="">
       <div class="pname">${displayName}${isMe?' (Sen)':''} ${isOnlineNow?'<span style="color:#3DDC97;font-size:12px;vertical-align:middle">●</span>':''}</div>
       ${data.username?`<div class="puname">@${data.username}</div>`:''}
       ${data.bio?`<div class="pbio">${data.bio}</div>`:''}
@@ -6094,7 +6137,8 @@ function openUserDetail(uid) {
   const roleInfo = adminRolesCache[uid];
   const role = (roleInfo && roleInfo.isActive !== false) ? roleInfo.role : null;
   const isBanned = isCurrentlyBanned(u);
-  const av = u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=0D1526&color=00D4FF&size=256`;
+  const avFallback = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=0D1526&color=00D4FF&size=256`;
+  const av = u.photoURL || avFallback;
 
   // Skor/rozet hesaplaması: profil sisteminde kullanılan aynı ortak fonksiyonlar (kod tekrarı yok)
   const scoreInfo = computeTeknohaneScore(uid, u);
@@ -6108,7 +6152,7 @@ function openUserDetail(uid) {
   document.getElementById('user-detail-body').innerHTML = `
     <div class="phero" style="padding-bottom:20px">
       <div class="pcover" style="${u.coverPhotoURL?`background-image:url('${u.coverPhotoURL}');background-size:cover;background-position:center;`:''}"></div>
-      <img class="pav" src="${av}" alt="">
+      <img class="pav" src="${av}" onerror="this.onerror=null;this.src='${avFallback}'" alt="">
       <div class="pname">${displayName}</div>
       ${u.username?`<div class="puname">@${u.username}</div>`:''}
       <div class="pemail">${u.email||'—'}</div>
@@ -6269,6 +6313,7 @@ function openReportModal(type, targetId, targetLabel, targetOwnerUid) {
   document.getElementById('report-target-label').textContent = `${COMPLAINT_TYPE_LABELS[type]||type}: ${targetLabel}`;
   const sel = document.getElementById('report-reason-select');
   sel.innerHTML = COMPLAINT_REASONS.map(r => `<option value="${r.code}">${r.label}</option>`).join('');
+  syncPickerTriggerLabel('report-reason-select');
   document.getElementById('report-other-wrap').style.display = 'none';
   document.getElementById('report-other-text').value = '';
   document.getElementById('report-description').value = '';
@@ -6350,7 +6395,8 @@ function renderBanModal(uid) {
 
   body.innerHTML = `
     <div class="fg"><label class="fl">Ban Süresi</label>
-      <select class="fi" id="ban-duration" onchange="document.getElementById('ban-custom-date-wrap').style.display=this.value==='custom'?'block':'none'">
+      <div class="csel" data-for="ban-duration" data-title="Ban Süresi" onclick="openPicker(this)"><span class="csel-label">Süresiz</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+      <select id="ban-duration" style="display:none" onchange="document.getElementById('ban-custom-date-wrap').style.display=this.value==='custom'?'block':'none'">
         <option value="permanent">Süresiz</option>
         <option value="1">1 Gün</option>
         <option value="3">3 Gün</option>
@@ -6365,7 +6411,8 @@ function renderBanModal(uid) {
       <input class="fi" type="datetime-local" id="ban-custom-date">
     </div>
     <div class="fg"><label class="fl">Sebep</label>
-      <select class="fi" id="ban-reason-select" onchange="document.getElementById('ban-other-wrap').style.display=this.value==='diger'?'block':'none'">
+      <div class="csel" data-for="ban-reason-select" data-title="Ban Sebebi" onclick="openPicker(this)"><span class="csel-label">${BAN_REASONS[0].label}</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+      <select id="ban-reason-select" style="display:none" onchange="document.getElementById('ban-other-wrap').style.display=this.value==='diger'?'block':'none'">
         ${BAN_REASONS.map(r=>`<option value="${r.code}">${r.label}</option>`).join('')}
       </select>
     </div>
@@ -7515,6 +7562,53 @@ function waListingLink(model, phone) {
   return `https://wa.me/90${phone}?text=${encodeURIComponent(msg)}`;
 }
 function closemo(id) { document.getElementById(id)?.classList.remove('on'); }
+
+// ==== ÖZEL SEÇİM BİLEŞENİ (Custom Picker) ====
+// Native <select>'in Android WebView'de bazı cihazlarda sistemin kendi (uygulama temasından habersiz,
+// beyaz/bozuk) seçicisini açması sorununu ortadan kaldırır — fotoğraf seçicide daha önce çözdüğümüz
+// aynı sınıf sorun. Gerçek <select> elemanı GİZLİ kalır, yalnızca değer deposu olarak kullanılmaya
+// devam eder — bu sayede TÜM mevcut onchange mantığı ve .value okumaları hiç değişmeden çalışır,
+// yalnızca GÖRSEL/etkileşim katmanı değişiyor. Yeni bir <select> ekleneceğinde de aynı desen
+// (gizli <select> + .csel tetikleyici) kullanılırsa otomatik olarak bu sorundan etkilenmez.
+function openPicker(triggerEl) {
+  const selectId = triggerEl.dataset.for;
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  const body = document.getElementById('picker-options');
+  body.innerHTML = Array.from(sel.options).map(o => `
+    <div class="picker-opt${o.value===sel.value?' active':''}" onclick="choosePickerOption('${selectId}',${JSON.stringify(o.value)})">${o.textContent}</div>
+  `).join('');
+  document.getElementById('picker-mo-title').textContent = triggerEl.dataset.title || 'Seç';
+  document.getElementById('custom-picker-mo').classList.add('on');
+}
+
+function choosePickerOption(selectId, value) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  sel.value = value;
+  sel.dispatchEvent(new Event('change', { bubbles: true }));
+  syncPickerTriggerLabel(selectId);
+  closemo('custom-picker-mo');
+}
+
+// Bir <select>'in mevcut değerine göre eşleşen tetikleyicinin görünen etiketini günceller.
+function syncPickerTriggerLabel(selectId) {
+  const sel = document.getElementById(selectId);
+  const trigger = document.querySelector(`.csel[data-for="${selectId}"]`);
+  if (sel && trigger) {
+    const opt = sel.options[sel.selectedIndex];
+    const labelEl = trigger.querySelector('.csel-label');
+    if (labelEl) labelEl.textContent = opt ? opt.textContent : '';
+  }
+}
+
+// Belirtilen kapsam içindeki (veya tüm sayfadaki) tüm .csel tetikleyicilerinin etiketlerini,
+// eşleştikleri gizli <select>'in O ANKİ değerine göre topluca senkronize eder.
+function syncAllPickerLabels(scope) {
+  (scope || document).querySelectorAll('.csel[data-for]').forEach(trigger => {
+    syncPickerTriggerLabel(trigger.dataset.for);
+  });
+}
 
 // ==== MODAL KATMANLAMA SİSTEMİ (kalıcı) ====
 // Sorun: tüm .mo modalleri aynı sabit z-index'i (300) paylaşıyordu — iki modal aynı anda açıkken
