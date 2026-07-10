@@ -1519,6 +1519,7 @@ async function loadMyAdminRole(uid) {
   } catch (e) {
     myAdminRole = null; // Doküman yoksa veya okuma reddedildiyse (admin değilsin) sessizce normal kullanıcı gibi devam et
   }
+  startAdminPendingListener(); // yalnızca admin ise gerçekten kurulur, değilse mevcut dinleyici kapatılır
   requestProfileRerender();
 }
 
@@ -2476,6 +2477,10 @@ let listingsReady = false;
 auth.onAuthStateChanged(u => {
   user = u;
   if (u) {
+    // Defansif: aynı kullanıcı tekrar giriş yapsa bile (token yenileme, vb.) önce her ihtimale karşı
+    // önceki oturumdan kalmış olabilecek TÜM dinleyicileri kapat — asla iki kez açık kalmasınlar.
+    clearAllListeners();
+
     document.getElementById('hav').style.display = 'flex';
     document.getElementById('hlogin').style.display = 'none';
     document.getElementById('hbell').style.display = 'flex';
@@ -2494,6 +2499,8 @@ auth.onAuthStateChanged(u => {
     startPresenceHeartbeat(u.uid);
     loadMyAdminRole(u.uid);
     loadActiveAnnouncements();
+    startMyListingsListener(u.uid); // Kendi ilanlarım — dar kapsamlı dinleyici
+    // Favoriler dinleyicisi, favs Set'i syncUserProfile'dan gelince (aşağıda) kurulacak.
   } else {
     document.getElementById('hav').style.display = 'none';
     document.getElementById('hlogin').style.display = 'flex';
@@ -2507,6 +2514,9 @@ auth.onAuthStateChanged(u => {
     unsubChatBadge?.();
     stopPresenceHeartbeat();
     myAdminRole = null;
+    // Çıkışta TÜM gerçek zamanlı dinleyiciler (kendi ilanlarım, favorilerim, admin onay bekleyen)
+    // eksiksiz kapatılır — bellek sızıntısı veya arka planda çalışmaya devam eden dinleyici kalmaz.
+    clearAllListeners();
   }
 });
 
@@ -2517,6 +2527,7 @@ async function syncUserProfile(u) {
     const existingData = snap.exists ? snap.data() : {};
     if (snap.exists) {
       favs = new Set(existingData.favorites || []);
+      startFavoritesListener(); // Favoriler bilindiği anda dar kapsamlı dinleyici kurulur
       myProfileData = existingData;
       checkBanStatus(); // ban kontrolü mümkün olan en erken noktada, diğer her şeyden önce
       rlistings(); // favoriler geldi, listeyi güncelle (kalp ikonları doğru görünsün)
@@ -4289,93 +4300,151 @@ function openChatList() {
 }
 
 // ---- ÇEVRİMİÇİ / TOPLAM KULLANICI SAYACI ----
-let unsubListings = null;
+// ==== MERKEZİ DİNLEYİCİ YÖNETİMİ ====
+// Tüm gerçek zamanlı (onSnapshot) dinleyiciler TEK bir merkezden, isim (key) bazlı yönetilir.
+// Bu, "aynı dinleyici iki kez açık kalmasın" ve "kapatma her zaman garanti edilsin" kurallarının
+// tek bir yerde, tutarlı şekilde uygulanmasını sağlar — her yeni dinleyici türü için ayrı ayrı
+// unsubscribe mantığı yazmaya gerek kalmaz.
+const activeListeners = {}; // key -> unsubscribe fonksiyonu
+
+// Aynı key ile daha önce bir dinleyici açıksa ÖNCE onu kapatır, SONRA yenisini kaydeder.
+// Bu sayede "eski kapatılmadan yenisi açılmaz" kuralı, çağıran kodun bunu hatırlamasına
+// gerek kalmadan, merkezi olarak garanti edilir.
+function setListener(key, unsubscribeFn) {
+  if (activeListeners[key]) { try { activeListeners[key](); } catch(e) {} }
+  activeListeners[key] = unsubscribeFn;
+}
+function clearListener(key) {
+  if (activeListeners[key]) { try { activeListeners[key](); } catch(e) {} delete activeListeners[key]; }
+}
+// Çıkışta (logout) veya yeniden girişte (defansif olarak) TÜM dinleyicileri eksiksiz kapatır.
+function clearAllListeners() {
+  Object.keys(activeListeners).forEach(k => clearListener(k));
+}
+
 let prevRefCounts = {};
 let prevPrices = {};
 let editingListingId = null;
-let listingsFirstLoad = true;
 
-function loadListings() {
-  if (unsubListings) return; // zaten dinleniyor, tekrar kurma
+// Pazar ekranı ve Profil/Admin/Dashboard/Şikayet (eski mimari) için TEK SEFERLİK okuma.
+// Artık gerçek zamanlı DEĞİL — bildirim üretimi aşağıdaki 3 dar kapsamlı dinleyiciye taşındı.
+async function loadListings() {
   listingsReady = false;
-  unsubListings = db.collection('teknohane_listings')
-    .orderBy('createdAt', 'desc')
-    .onSnapshot(snap => {
-      listings = snap.docs.map(d => ({id:d.id,...d.data()}));
-      listingsReady = true;
-      rlistings();
-      if (isAdminNow()) updateAdminStats();
-      if (document.getElementById('s-profile')?.classList.contains('on')) renderProfileListings();
+  try {
+    const snap = await db.collection('teknohane_listings').orderBy('createdAt', 'desc').get();
+    listings = snap.docs.map(d => ({id:d.id,...d.data()}));
+    listingsReady = true;
+    rlistings();
+    if (isAdminNow()) updateAdminStats();
+    if (document.getElementById('s-profile')?.classList.contains('on')) renderProfileListings();
 
-      // İlk yüklemede bildirim tetikleme, sadece referans sayaçlarını başlat
-      if (listingsFirstLoad) {
-        listings.forEach(l => { prevRefCounts[l.id] = (l.referrers||[]).length; prevPrices[l.id] = parseInt(l.price||0); });
-        listingsFirstLoad = false;
-        // Paylaşılan bir ilan linkiyle açıldıysa (?listing=ID), doğrudan o ilanı göster
-        const sharedId = new URLSearchParams(location.search).get('listing');
-        if (sharedId) {
-          const found = listings.find(l => l.id === sharedId);
-          if (found) {
-            gt('market');
-            setTimeout(() => openDetail(sharedId), 50);
-          } else {
-            showToast('❗','rgba(255,69,58,.12)','İlan Bulunamadı','Bu ilan kaldırılmış olabilir.');
-            history.replaceState(null, '', location.pathname);
-          }
-        }
-        return;
+    // Paylaşılan bir ilan linkiyle açıldıysa (?listing=ID), doğrudan o ilanı göster
+    const sharedId = new URLSearchParams(location.search).get('listing');
+    if (sharedId) {
+      const found = listings.find(l => l.id === sharedId);
+      if (found) {
+        gt('market');
+        setTimeout(() => openDetail(sharedId), 50);
+      } else {
+        showToast('❗','rgba(255,69,58,.12)','İlan Bulunamadı','Bu ilan kaldırılmış olabilir.');
+        history.replaceState(null, '', location.pathname);
       }
+    }
+  } catch(e) {
+    listingsReady = true;
+    console.error('İlanlar yüklenemedi:', e);
+    const g = document.getElementById('lgrid');
+    if (g) g.innerHTML = `<div class="load"><div style="font-size:32px">📡</div><div>Bağlantı hatası</div></div>`;
+  }
+}
 
-      // Sonraki değişikliklerde bildirim kontrolü
-      const isAdminUser = isAdminNow();
+// ==== DAR KAPSAMLI GERÇEK ZAMANLI DİNLEYİCİLER (yalnızca 3 tane, ihtiyaç kadar) ====
+
+// 1) KENDİ İLANLARIM — yalnızca giriş yapan kullanıcının kendi ilanlarını izler.
+// Amaç: "ilanınıza biri referans oldu" bildirimini anlık gösterebilmek.
+// Maliyet: kullanıcı başına O(kendi ilan sayısı) — tipik olarak tek haneli, kullanıcı sayısından bağımsız.
+let myListingsListenerReady = false;
+function startMyListingsListener(uid) {
+  myListingsListenerReady = false;
+  const unsub = db.collection('teknohane_listings').where('uid', '==', uid)
+    .onSnapshot(snap => {
       snap.docChanges().forEach(change => {
         const l = { id: change.doc.id, ...change.doc.data() };
-
         if (change.type === 'added') {
-          if (user && l.uid === user.uid) { prevRefCounts[l.id] = (l.referrers||[]).length; return; } // kendi ilanı
-          if (l.approved === false) {
-            // Onay bekleyen ilan — sadece adminlere bildirim
-            if (isAdminUser) {
-              showToast('⏳', 'rgba(255,149,0,.15)', 'Onay Bekleyen İlan', `${l.model} - ₺${parseInt(l.price||0).toLocaleString('tr-TR')}`, () => openDetail(l.id));
-            }
-          } else {
-            document.getElementById('market-dot')?.classList.add('on');
-            showToast('📱', 'var(--cdim)', 'Yeni İlan', `${l.model} - ₺${parseInt(l.price||0).toLocaleString('tr-TR')}`, () => {
-              gt('market');
-              document.getElementById('market-dot')?.classList.remove('on');
-            });
-          }
           prevRefCounts[l.id] = (l.referrers||[]).length;
         }
-
-        if (change.type === 'modified') {
+        if (change.type === 'modified' && myListingsListenerReady) {
           const newCount = (l.referrers||[]).length;
           const oldCount = prevRefCounts[l.id] || 0;
-          if (user && l.uid === user.uid && newCount > oldCount) {
+          if (newCount > oldCount) {
             const newRef = l.referrers[l.referrers.length - 1];
             const msg = `${newRef?.name||'Biri'} "${l.model}" ilanına referans oldu`;
             showToast('🤝', 'rgba(255,149,0,.15)', 'Yeni Referans', msg, () => openDetail(l.id));
             osNotify('Yeni Referans', msg);
           }
           prevRefCounts[l.id] = newCount;
-
-          // Fiyat indirimi bildirimi: bu ilanı favorileyen (kendi hesabındaki favs listesi) kullanıcıya haber ver
-          const newPrice = parseInt(l.price || 0);
-          const oldPrice = prevPrices[l.id];
-          if (oldPrice !== undefined && newPrice < oldPrice && favs.has(l.id) && (!user || l.uid !== user.uid)) {
-            const fark = oldPrice - newPrice;
-            const msg = `${l.model}: ₺${oldPrice.toLocaleString('tr-TR')} → ₺${newPrice.toLocaleString('tr-TR')} (-₺${fark.toLocaleString('tr-TR')})`;
-            showToast('💰', 'rgba(48,209,88,.15)', 'Favorindeki İlanda İndirim!', msg, () => openDetail(l.id));
-            osNotify('Favorindeki İlanda İndirim!', msg);
-          }
-          prevPrices[l.id] = newPrice;
         }
       });
-    }, () => {
-      listingsReady = true;
-      const g = document.getElementById('lgrid');
-      if (g) g.innerHTML = `<div class="load"><div style="font-size:32px">📡</div><div>Bağlantı hatası</div></div>`;
-    });
+      myListingsListenerReady = true;
+    }, err => console.error('Kendi ilanlarım dinleyicisi hatası:', err));
+  setListener('myListings', unsub);
+}
+
+// 2) FAVORİLERİM — yalnızca giriş yapan kullanıcının favorilediği ilanları izler.
+// Amaç: "favorindeki ilanda indirim" bildirimini anlık gösterebilmek.
+// Maliyet: kullanıcı başına O(favori sayısı) — favorisi olmayan kullanıcı için hiç açılmaz.
+// 30'dan fazla favori varsa (Firestore 'in' sorgusu sınırı), birden fazla alt-dinleyici açılır,
+// ama hepsi TEK bir 'favorites' anahtarı altında toplu olarak kapatılabilir.
+function startFavoritesListener() {
+  const ids = Array.from(favs);
+  if (!ids.length) { clearListener('favorites'); return; }
+  const chunks = [];
+  for (let i = 0; i < ids.length; i += 30) chunks.push(ids.slice(i, i + 30));
+  let favListenerReady = false;
+  const unsubs = chunks.map(chunk =>
+    db.collection('teknohane_listings').where(firebase.firestore.FieldPath.documentId(), 'in', chunk)
+      .onSnapshot(snap => {
+        snap.docChanges().forEach(change => {
+          const l = { id: change.doc.id, ...change.doc.data() };
+          if (change.type === 'added') {
+            prevPrices[l.id] = parseInt(l.price || 0);
+          }
+          if (change.type === 'modified' && favListenerReady) {
+            const newPrice = parseInt(l.price || 0);
+            const oldPrice = prevPrices[l.id];
+            if (oldPrice !== undefined && newPrice < oldPrice && (!user || l.uid !== user.uid)) {
+              const fark = oldPrice - newPrice;
+              const msg = `${l.model}: ₺${oldPrice.toLocaleString('tr-TR')} → ₺${newPrice.toLocaleString('tr-TR')} (-₺${fark.toLocaleString('tr-TR')})`;
+              showToast('💰', 'rgba(48,209,88,.15)', 'Favorindeki İlanda İndirim!', msg, () => openDetail(l.id));
+              osNotify('Favorindeki İlanda İndirim!', msg);
+            }
+            prevPrices[l.id] = newPrice;
+          }
+        });
+      }, err => console.error('Favoriler dinleyicisi hatası:', err))
+  );
+  setTimeout(() => { favListenerReady = true; }, 0); // ilk anlık görüntüler işlendikten sonra "hazır" say
+  setListener('favorites', () => unsubs.forEach(u => u()));
+}
+
+// 3) ADMIN — ONAY BEKLEYEN İLANLAR — yalnızca aktif admin rolü olan hesaplarda açılır.
+// Amaç: yeni bir ilan onay beklediğinde admine anlık haber vermek.
+// Maliyet: yalnızca admin hesapları öder, normal kullanıcıları hiç etkilemez.
+let adminPendingListenerReady = false;
+function startAdminPendingListener() {
+  if (!isAdminNow()) { clearListener('adminPending'); return; }
+  adminPendingListenerReady = false;
+  const unsub = db.collection('teknohane_listings').where('approved', '==', false)
+    .onSnapshot(snap => {
+      snap.docChanges().forEach(change => {
+        if (change.type === 'added' && adminPendingListenerReady) {
+          const l = { id: change.doc.id, ...change.doc.data() };
+          showToast('⏳', 'rgba(255,149,0,.15)', 'Onay Bekleyen İlan', `${l.model} - ₺${parseInt(l.price||0).toLocaleString('tr-TR')}`, () => openDetail(l.id));
+        }
+      });
+      adminPendingListenerReady = true;
+    }, err => console.error('Admin onay bekleyen dinleyicisi hatası:', err));
+  setListener('adminPending', unsub);
 }
 
 let filterMin = '', filterMax = '', filterBrand = 'Tümü';
@@ -4427,30 +4496,101 @@ function isSoldExpired(l) {
   return (Date.now() - soldTime) > 24 * 60 * 60 * 1000;
 }
 
+// ==== PAZAR EKRANI SAYFALAMA (100.000+ ilan ölçeği için) ====
+// "Tümü" sekmesi artık tüm koleksiyonu değil, 20'lik sayfalar halinde yalnızca onaylı ilanları çeker.
+// "Favorilerim" ve "İlanlarım" kendi dar kapsamlı sorgularıyla, sekmeye girildiğinde bir kez yüklenir.
+const MARKET_PAGE_SIZE = 20;
+let marketAllListings = [];
+let marketLastDoc = null;
+let marketHasMore = true;
+let marketLoading = false;
+let marketAllLoadedOnce = false;
+let marketFavListings = [];
+let marketFavLoaded = false;
+let marketMineListings = [];
+let marketMineLoaded = false;
+
+async function loadMarketPage(reset) {
+  if (marketLoading) return;
+  if (reset) { marketAllListings = []; marketLastDoc = null; marketHasMore = true; }
+  if (!marketHasMore) { rlistings(); return; }
+  marketLoading = true;
+  rlistings(); // "yükleniyor" durumunu anında yansıt
+  try {
+    let q = db.collection('teknohane_listings').where('approved', '==', true).orderBy('createdAt', 'desc').limit(MARKET_PAGE_SIZE);
+    if (marketLastDoc) q = q.startAfter(marketLastDoc);
+    const snap = await q.get();
+    const newItems = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    marketLastDoc = snap.docs[snap.docs.length - 1] || marketLastDoc;
+    marketHasMore = snap.docs.length === MARKET_PAGE_SIZE;
+    marketAllListings = reset ? newItems : [...marketAllListings, ...newItems];
+    marketAllLoadedOnce = true;
+  } catch (e) {
+    console.error('İlanlar yüklenemedi:', e);
+    showToast('⚠️', 'rgba(255,69,58,.15)', 'Hata', 'İlanlar yüklenemedi.');
+  } finally {
+    marketLoading = false;
+    rlistings();
+  }
+}
+
+async function loadMarketFavorites() {
+  marketFavLoaded = false;
+  rlistings();
+  marketFavListings = [];
+  const ids = Array.from(favs);
+  if (!user || !ids.length) { marketFavLoaded = true; rlistings(); return; }
+  try {
+    const chunks = [];
+    for (let i = 0; i < ids.length; i += 30) chunks.push(ids.slice(i, i + 30));
+    const results = await Promise.all(chunks.map(c => db.collection('teknohane_listings').where(firebase.firestore.FieldPath.documentId(), 'in', c).get()));
+    results.forEach(snap => snap.docs.forEach(d => marketFavListings.push({ id: d.id, ...d.data() })));
+  } catch (e) { console.error('Favoriler yüklenemedi:', e); }
+  marketFavLoaded = true;
+  rlistings();
+}
+
+async function loadMarketMine() {
+  marketMineLoaded = false;
+  rlistings();
+  marketMineListings = [];
+  if (!user) { marketMineLoaded = true; rlistings(); return; }
+  try {
+    const snap = await db.collection('teknohane_listings').where('uid', '==', user.uid).orderBy('createdAt', 'desc').get();
+    marketMineListings = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (e) { console.error('İlanlarım yüklenemedi:', e); }
+  marketMineLoaded = true;
+  rlistings();
+}
+
 function rlistings() {
   const grid = document.getElementById('lgrid');
   if (!grid) return;
-  if (!listingsReady) return;
   const raw = (document.getElementById('msrch')?.value||'').trim();
   const q = raw.toLowerCase();
 
-  // ID araması: #XXXXXX veya sadece 6 büyük harf/rakam
+  // Kaynak veri, aktif sekmeye göre değişir — artık tek bir global diziye değil, ihtiyaca göre
+  // ayrı yüklenen 3 ayrı kaynağa bağlı.
+  let source, sourceReady;
+  if (mktab === 'mine') { source = marketMineListings; sourceReady = marketMineLoaded; }
+  else if (mktab === 'fav') { source = marketFavListings; sourceReady = marketFavLoaded; }
+  else { source = marketAllListings; sourceReady = marketAllLoadedOnce; }
+
+  if (!sourceReady) {
+    grid.innerHTML = `<div class="load"><div class="spin"></div><span>Yükleniyor…</span></div>`;
+    return;
+  }
+
+  // ID araması: #XXXXXX veya sadece 6 büyük harf/rakam — yalnızca o an yüklenmiş sayfa içinde arar
+  // (tam koleksiyon araması bu aşamanın kapsamı dışında, karar verildiği gibi).
   const idMatch = raw.match(/^#?([A-Za-z0-9]{6})$/);
   if (idMatch) {
     const suffix = idMatch[1].toUpperCase();
-    const found = listings.find(l => l.id.slice(-6).toUpperCase() === suffix);
+    const found = source.find(l => l.id.slice(-6).toUpperCase() === suffix);
     if (found) { openDetail(found.id); return; }
   }
 
-  let items = listings.filter(l => !q || l.model?.toLowerCase().includes(q));
-  // Onaylanmamış ilanlar: sadece "İlanlarım" sekmesinde sahibi görsün, diğer yerlerde gizli
-  // (approved alanı olmayan eski ilanlar onaylı sayılır - geriye dönük uyumluluk)
-  if (mktab === 'mine') {
-    items = user ? items.filter(l => l.uid === user.uid) : [];
-  } else {
-    items = items.filter(l => l.approved !== false);
-  }
-  if (mktab === 'fav') items = items.filter(l => favs.has(l.id));
+  let items = source.filter(l => !q || l.model?.toLowerCase().includes(q));
   if (mktab !== 'mine') items = items.filter(l => !isSoldExpired(l));
   if (filterMin) items = items.filter(l => parseInt(l.price||0) >= parseInt(filterMin));
   if (filterMax) items = items.filter(l => parseInt(l.price||0) <= parseInt(filterMax));
@@ -4494,12 +4634,27 @@ function rlistings() {
       ${l.ownerName?`<div class="lown" onclick="event.stopPropagation();openPublicProfile('${l.uid}','${l.ownerName.replace(/'/g,"\\'")}')"><div class="low-av">${(l.ownerName||'?')[0].toUpperCase()}</div><span class="low-n" style="text-decoration:underline;text-decoration-style:dotted;cursor:pointer">${l.ownerName}</span>${mine?'<span class="mbdg">Benim</span>':''}</div>`:''}
     </div>`;
   }).join('');
+
+  // "Tümü" sekmesinde, arama/filtre aktif değilse ve daha fazla sayfa varsa "Daha Fazla Yükle" göster.
+  if (mktab === 'all' && !q && !filterMin && !filterMax && filterBrand === 'Tümü') {
+    const btnWrap = document.createElement('div');
+    btnWrap.style.cssText = 'padding:16px;text-align:center';
+    if (marketLoading) {
+      btnWrap.innerHTML = `<div class="spin" style="margin:0 auto"></div>`;
+    } else if (marketHasMore) {
+      btnWrap.innerHTML = `<button class="apbtn" style="width:auto;padding:10px 24px;display:inline-block" onclick="loadMarketPage(false)">Daha Fazla Yükle</button>`;
+    }
+    grid.appendChild(btnWrap);
+  }
 }
 
 function smtab(t, el) {
   mktab = t;
   document.querySelectorAll('.mtab').forEach(b => {b.className='mtab off';});
   el.className = 'mtab on';
+  if (t === 'all' && !marketAllLoadedOnce) { loadMarketPage(true); return; }
+  if (t === 'fav') { loadMarketFavorites(); return; }
+  if (t === 'mine') { loadMarketMine(); return; }
   rlistings();
 }
 
@@ -4581,7 +4736,9 @@ async function submitListing() {
     document.getElementById('detail-fields').style.display = 'none';
     document.getElementById('dt-chevron')?.parentElement?.classList.remove('open');
     rmPhoto(0); rmPhoto(1);
-    // onSnapshot otomatik güncelleyecek, ekstra okuma gerekmiyor
+    // "İlanlarım" sekmesi artık ayrı yüklendiği için, bir sonraki girişte güncel veriyi çeksin diye işaretlenir.
+    marketMineLoaded = false;
+    if (mktab === 'mine') loadMarketMine();
   } catch(e) { alert('Hata: ' + e.message); }
 }
 
@@ -4912,6 +5069,7 @@ async function detFav() {
   else { favs.delete(id); btn.classList.remove('on'); btn.querySelector('.abtn-lbl').textContent='Favorile'; }
   try { await db.collection('teknohane_users').doc(user.uid).set({favorites:[...favs]},{merge:true}); } catch(e) {}
   notifyListingOwnerOnFav(currentListing, adding);
+  startFavoritesListener(); // liste değişti — eski dinleyici kapatılıp güncel ID'lerle yeniden kurulur
   rlistings();
 }
 
@@ -4922,6 +5080,7 @@ async function toggleFav(id, btn) {
   if (adding) { favs.add(id); btn.classList.add('on'); }
   else { favs.delete(id); btn.classList.remove('on'); }
   try { await db.collection('teknohane_users').doc(user.uid).set({favorites:[...favs]},{merge:true}); } catch(e) {}
+  startFavoritesListener(); // liste değişti — eski dinleyici kapatılıp güncel ID'lerle yeniden kurulur
   if (l) notifyListingOwnerOnFav(l, adding);
 }
 
@@ -4950,6 +5109,10 @@ async function delListing(id) {
   try {
     await db.collection('teknohane_listings').doc(id).delete();
     listings = listings.filter(x => x.id !== id);
+    // Pazar ekranının kendi sayfalamalı dizilerinden de kaldır (görsel anında güncellensin diye)
+    marketAllListings = marketAllListings.filter(x => x.id !== id);
+    marketFavListings = marketFavListings.filter(x => x.id !== id);
+    marketMineListings = marketMineListings.filter(x => x.id !== id);
     if (isAdminModeration) adminLog('delete_listing', 'listing', id, l?.model || id, l, null);
     rlistings();
     if (document.getElementById('admin-mo')?.classList.contains('on')) radmin();
@@ -7215,7 +7378,10 @@ function gt(name) {
   const scr=document.getElementById('s-'+name);
   if(scr)scr.classList.add('on');
   if(name==='market') {
-    rlistings();
+    if (mktab === 'all' && !marketAllLoadedOnce) loadMarketPage(true);
+    else if (mktab === 'fav' && !marketFavLoaded) loadMarketFavorites();
+    else if (mktab === 'mine' && !marketMineLoaded) loadMarketMine();
+    else rlistings();
     document.getElementById('market-dot')?.classList.remove('on');
   }
   if(name==='community') loadForum();
@@ -7358,8 +7524,10 @@ setTimeout(() => {
   });
   // Pazar
   setupPTR('s-market', async () => {
-    forumLoaded = false;
-    showToast('🔄','var(--cdim)','Yenileniyor','Pazar güncelleniyor…');
+    if (mktab === 'all') await loadMarketPage(true);
+    else if (mktab === 'fav') await loadMarketFavorites();
+    else if (mktab === 'mine') await loadMarketMine();
+    showToast('✓','var(--cdim)','Yenilendi','Pazar güncellendi.');
   });
   // Topluluk
   setupPTR('s-community', async () => {
