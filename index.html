@@ -1285,6 +1285,31 @@ body.tk-maintenance #maintenance-gate{
 </div>
 
 <!-- ÖZEL SEÇİM MODALI (tüm <select> alanları için paylaşılan, native picker yerine) -->
+<!-- GENEL ONAY/GİRİŞ DİYALOGU — tarayıcının sistem confirm()/prompt()'unun (Android'de beyaz "T"
+     simgeli pencerelere sebep olan) yerini alan, uygulamanın kendi tasarım diline uygun tek bileşen. -->
+<div class="mo" id="confirm-mo">
+  <div class="ms" onclick="event.stopPropagation()" style="max-height:70vh">
+    <div class="mh"></div>
+    <div class="mtit" id="confirm-mo-title">Emin misiniz?</div>
+    <div id="confirm-mo-msg" style="font-size:14px;color:var(--text2);margin-bottom:18px;line-height:1.5;white-space:pre-line"></div>
+    <div id="confirm-mo-input-wrap" style="display:none;margin-bottom:16px">
+      <input type="text" id="confirm-mo-input" style="width:100%;background:var(--surf);border:1px solid var(--border2);border-radius:12px;padding:12px 14px;color:var(--text);font-size:15px;font-family:inherit;box-sizing:border-box">
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="apbtn" id="confirm-mo-cancel" style="margin-top:0;flex:1">İptal</button>
+      <button class="sbtn2" id="confirm-mo-ok" style="flex:1">Onayla</button>
+    </div>
+  </div>
+</div>
+
+<select id="reject-reason-select" style="display:none" onchange="onRejectReasonChosen(this.value)">
+  <option value="sahte">Sahte İlan</option>
+  <option value="yaniltici">Yanıltıcı Bilgi</option>
+  <option value="uygunsuz">Uygunsuz İçerik</option>
+  <option value="kurallara_aykiri">Kurallara Aykırı Fiyat/İçerik</option>
+  <option value="diger">Diğer</option>
+</select>
+
 <div class="mo" id="custom-picker-mo" onclick="closemo('custom-picker-mo')">
   <div class="ms" onclick="event.stopPropagation()" style="max-height:70vh">
     <div class="mh"></div>
@@ -2539,7 +2564,7 @@ async function deactivateAnnouncement(id) {
 }
 
 async function deleteAnnouncement(id) {
-  if (!confirm('Bu duyuru kalıcı olarak silinsin mi?')) return;
+  if (!(await confirmDialog('Bu duyuru kalıcı olarak silinsin mi?'))) return;
   const a = adminAnnouncementsCache.find(x => x.id === id);
   try {
     await db.collection('teknohane_announcements').doc(id).delete();
@@ -3877,6 +3902,60 @@ async function forgotPassword() {
 // Tüm ilan verisi, yeni ilan bildirimi ve referans bildirimi
 // AYNI onSnapshot'tan besleniyor — gereksiz tekrar okuma yok.
 
+// ==== GENEL ONAY/GİRİŞ DİYALOGU (confirm()/prompt() yerine) ====
+// Promise tabanlı: await confirmDialog('Silinsin mi?') → true/false
+// await promptDialog('Başlık gir:', 'varsayılan') → string veya null (iptal)
+function confirmDialog(message, opts) {
+  opts = opts || {};
+  return new Promise(resolve => {
+    const mo = document.getElementById('confirm-mo');
+    document.getElementById('confirm-mo-title').textContent = opts.title || 'Emin misin?';
+    document.getElementById('confirm-mo-msg').textContent = message || '';
+    document.getElementById('confirm-mo-input-wrap').style.display = 'none';
+    const okBtn = document.getElementById('confirm-mo-ok');
+    const cancelBtn = document.getElementById('confirm-mo-cancel');
+    okBtn.textContent = opts.okLabel || 'Onayla';
+    cancelBtn.textContent = opts.cancelLabel || 'İptal';
+    okBtn.style.background = opts.danger === false ? 'var(--cyan)' : 'var(--red)';
+    okBtn.style.color = opts.danger === false ? '#000' : '#fff';
+    const cleanup = result => { mo.classList.remove('on'); okBtn.onclick = null; cancelBtn.onclick = null; mo.onclick = null; resolve(result); };
+    okBtn.onclick = () => cleanup(true);
+    cancelBtn.onclick = () => cleanup(false);
+    mo.onclick = e => { if (e.target === mo) cleanup(false); };
+    mo.classList.add('on');
+  });
+}
+
+function promptDialog(message, defaultValue, opts) {
+  opts = opts || {};
+  return new Promise(resolve => {
+    const mo = document.getElementById('confirm-mo');
+    document.getElementById('confirm-mo-title').textContent = opts.title || 'Bilgi Gir';
+    document.getElementById('confirm-mo-msg').textContent = message || '';
+    const inputWrap = document.getElementById('confirm-mo-input-wrap');
+    const input = document.getElementById('confirm-mo-input');
+    inputWrap.style.display = 'block';
+    input.value = defaultValue || '';
+    input.placeholder = opts.placeholder || '';
+    const okBtn = document.getElementById('confirm-mo-ok');
+    const cancelBtn = document.getElementById('confirm-mo-cancel');
+    okBtn.textContent = opts.okLabel || 'Tamam';
+    cancelBtn.textContent = 'İptal';
+    okBtn.style.background = 'var(--cyan)'; okBtn.style.color = '#000';
+    const cleanup = result => { mo.classList.remove('on'); okBtn.onclick = null; cancelBtn.onclick = null; mo.onclick = null; resolve(result); };
+    okBtn.onclick = () => cleanup(input.value);
+    cancelBtn.onclick = () => cleanup(null);
+    mo.onclick = e => { if (e.target === mo) cleanup(null); };
+    mo.classList.add('on');
+    setTimeout(() => input.focus(), 150);
+  });
+}
+
+// alert('Hata: ...') deseninin standart, tutarlı toast karşılığı
+function showErrorToast(message) {
+  showToast('⚠️', 'rgba(255,69,58,.15)', 'Hata', message || 'Bir şeyler ters gitti.');
+}
+
 function showToast(icon, iconBg, title, desc, onClick, duration) {
   const wrap = document.getElementById('toast-wrap');
   if (!wrap) return;
@@ -4094,7 +4173,7 @@ async function setupPushNative(silent) {
     if (perm.receive !== 'granted') {
       nativePushStatus = 'denied';
       updatePushToggleUI();
-      if (!silent) alert('Bildirim izni verilmedi. Telefon ayarlarından Teknohane için bildirimlere izin vermen gerekiyor.');
+      if (!silent) showToast('🔕','rgba(255,69,58,.15)','İzin Verilmedi','Telefon ayarlarından Teknohane için bildirimlere izin vermen gerekiyor.');
       return;
     }
     nativePushStatus = 'granted';
@@ -4111,20 +4190,20 @@ async function setupPushNative(silent) {
       });
       PushNotifications.addListener('registrationError', (err) => {
         console.error('Push kayıt hatası:', err);
-        if (!silent) alert('Bildirim token\'ı alınamadı: ' + (err?.error || 'bilinmeyen hata'));
+        if (!silent) showErrorToast('Bildirim token\'ı alınamadı: ' + (err?.error || 'bilinmeyen hata'));
       });
     }
     await PushNotifications.register();
   } catch(e) {
     console.error('Native push kurulum hatası:', e);
-    if (!silent) alert('Bildirimler açılamadı:\n' + e.message);
+    if (!silent) showErrorToast('Bildirimler açılamadı: ' + e.message);
   }
 }
 
 // ---- WEB (normal tarayıcı) push kurulumu — test/geliştirme için geriye dönük uyumluluk ----
 async function setupPushWeb(silent) {
   if (typeof Notification === 'undefined' || !('serviceWorker' in navigator)) {
-    if (!silent) alert('Bu tarayıcı bildirimleri desteklemiyor.');
+    if (!silent) showToast('⚠️','rgba(255,69,58,.15)','Desteklenmiyor','Bu tarayıcı bildirimleri desteklemiyor.');
     return;
   }
   if (!silent) showToast('⏳', 'rgba(0,212,255,.15)', 'Bildirimler Ayarlanıyor', 'Bir dakika sürebilir, lütfen bekle...');
@@ -4140,8 +4219,8 @@ async function setupPushWeb(silent) {
     if (perm !== 'granted') {
       if (!silent) {
         updatePushToggleUI();
-        if (perm === 'denied') alert('Bildirim izni engellendi. Tarayıcı/telefon ayarlarından Teknohane için bildirimlere izin vermen gerekiyor.');
-        else alert('Bildirim izni verilmedi (durum: ' + perm + ').');
+        if (perm === 'denied') showToast('🔕','rgba(255,69,58,.15)','İzin Engellendi','Tarayıcı/telefon ayarlarından Teknohane için bildirimlere izin vermen gerekiyor.');
+        else showToast('🔕','rgba(255,69,58,.15)','İzin Verilmedi','Durum: ' + perm);
       }
       return;
     }
@@ -4154,7 +4233,7 @@ async function setupPushWeb(silent) {
       messaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: swReg }),
       15000, 'FCM token alma'
     );
-    if (!token) { if (!silent) alert('Bildirim token\'ı alınamadı, tekrar dener misin?'); return; }
+    if (!token) { if (!silent) showErrorToast('Bildirim token\'ı alınamadı, tekrar dener misin?'); return; }
     await withTimeout(db.collection('teknohane_users').doc(user.uid).set({ fcmToken: token }, { merge: true }), 10000, 'Token kaydetme');
     myProfileData.fcmToken = token;
     updatePushToggleUI();
@@ -4162,7 +4241,7 @@ async function setupPushWeb(silent) {
     else console.log('Push token sessizce senkronize edildi.');
   } catch(e) {
     console.error('Push kurulum hatası:', e);
-    if (!silent) alert('Bildirimler açılamadı:\n' + e.message);
+    if (!silent) showErrorToast('Bildirimler açılamadı: ' + e.message);
   }
 }
 
@@ -4449,7 +4528,7 @@ function attachSwipeDelete(wrap) {
 // Tümünü Sil — 450'lik güvenli gruplar halinde (Firestore'un 500 operasyon/batch sınırına uygun).
 async function clearAllNotifications() {
   if (!user) return;
-  if (!confirm('Tüm bildirimlerin silinmesini onaylıyor musun?')) return;
+  if (!(await confirmDialog('Tüm bildirimlerin silinmesini onaylıyor musun?'))) return;
   showToast('🗑️', 'rgba(255,69,58,.15)', 'Siliniyor…', '');
   try {
     while (true) {
@@ -4564,7 +4643,7 @@ async function openChatWith(otherUid, otherName, listingCtx) {
         avatars: { [user.uid]: myProfileData.photoURL || null }
       }, { merge: true });
     }
-  } catch(e) { alert('Hata: ' + e.message); return; }
+  } catch(e) { showErrorToast(e.message); return; }
   openChatThread(otherUid, otherName, listingCtx ? `${listingCtx} ilanınız hakkında yazıyorum, ` : '');
 }
 
@@ -4668,7 +4747,7 @@ async function sendChatMessage() {
     }, { merge: true });
     const myName = user.displayName || user.email?.split('@')[0] || 'Biri';
     sendPush(currentChatOtherUid, myName, text, '/teknohane/');
-  } catch(e) { alert('Hata: ' + e.message); }
+  } catch(e) { showErrorToast(e.message); }
 }
 
 async function sendChatImage(input) {
@@ -4676,7 +4755,7 @@ async function sendChatImage(input) {
   const file = input.files[0];
   input.value = '';
   if (!file) return;
-  if (file.size > 10 * 1024 * 1024) { alert('Fotoğraf çok büyük (max 10MB)'); return; }
+  if (file.size > 10 * 1024 * 1024) { showToast('⚠️','rgba(255,69,58,.15)','Dosya Çok Büyük','Fotoğraf en fazla 10MB olabilir.'); return; }
   const id = chatIdFor(user.uid, currentChatOtherUid);
   const ref = db.collection('teknohane_chats').doc(id);
   try {
@@ -4694,7 +4773,7 @@ async function sendChatImage(input) {
     }, { merge: true });
     const myName = user.displayName || user.email?.split('@')[0] || 'Biri';
     sendPush(currentChatOtherUid, myName, '📷 Fotoğraf gönderdi', '/teknohane/');
-  } catch(e) { alert('Hata: ' + e.message); }
+  } catch(e) { showErrorToast(e.message); }
 }
 
 // Bir sohbeti (tüm mesajlarıyla birlikte) güvenli şekilde siler.
@@ -5176,8 +5255,8 @@ async function submitListing() {
   if (systemSettings.listingsDisabled && !editingListingId) { showToast('⚠️','rgba(255,69,58,.15)','Kapalı','Yeni ilan ekleme şu anda geçici olarak kapalı.'); return; }
   const model = document.getElementById('l-model').value.trim();
   const price = document.getElementById('l-price').value.trim();
-  if (!model || !price) { alert('Model ve fiyat zorunlu!'); return; }
-  if (!editingListingId && !document.getElementById('l-agree').checked) { alert('Devam etmek için onay kutusunu işaretlemelisiniz.'); return; }
+  if (!model || !price) { showToast('⚠️','rgba(255,69,58,.15)','Eksik Bilgi','Model ve fiyat zorunlu!'); return; }
+  if (!editingListingId && !document.getElementById('l-agree').checked) { showToast('⚠️','rgba(255,69,58,.15)','Onay Gerekli','Devam etmek için onay kutusunu işaretlemelisiniz.'); return; }
   try {
     const data = {
       model, price,
@@ -5247,7 +5326,7 @@ async function submitListing() {
     // "İlanlarım" sekmesi artık ayrı yüklendiği için, bir sonraki girişte güncel veriyi çeksin diye işaretlenir.
     marketMineLoaded = false;
     if (mktab === 'mine') loadMarketMine();
-  } catch(e) { alert('Hata: ' + e.message); }
+  } catch(e) { showErrorToast(e.message); }
 }
 
 function editListing(id) {
@@ -5304,7 +5383,7 @@ const photos = [null, null, null, null];
 function addPhoto(idx, input) {
   const file = input.files[0];
   if (!file) return;
-  if (file.size > 10 * 1024 * 1024) { alert('Fotoğraf çok büyük (max 10MB)'); input.value=''; return; }
+  if (file.size > 10 * 1024 * 1024) { showToast('⚠️','rgba(255,69,58,.15)','Dosya Çok Büyük','Fotoğraf en fazla 10MB olabilir.'); input.value=''; return; }
 
   const img = new Image();
   const reader = new FileReader();
@@ -5497,7 +5576,7 @@ async function toggleSold(id) {
     l.soldAt = newSold ? new Date() : null;
     openDetail(id);
     rlistings();
-  } catch(e) { alert('Hata: ' + e.message); }
+  } catch(e) { showErrorToast(e.message); }
 }
 
 async function approveListing(id) {
@@ -5513,7 +5592,7 @@ async function approveListing(id) {
     showToast('✓', 'rgba(48,209,88,.15)', 'İlan Onaylandı', `${l?.model||'İlan'} artık Pazar'da görünüyor.`);
   } catch(e) {
     adminLog('approve_listing', 'listing', id, id, null, null, 'error: ' + e.message);
-    alert('Hata: ' + e.message);
+    showErrorToast(e.message);
   }
 }
 
@@ -5523,20 +5602,26 @@ const LISTING_REJECT_REASONS = [
   { code: 'diger', label: 'Diğer' },
 ];
 
+let pendingRejectListingId = null;
+
 function rejectListingPrompt(id) {
   if (!hasPermission('manageListings')) { showToast('⚠️','rgba(255,69,58,.15)','Yetkin Yok',''); return; }
-  const options = LISTING_REJECT_REASONS.map((r,i) => `${i+1}) ${r.label}`).join('\n');
-  const choice = prompt(`Red sebebi seç (1-${LISTING_REJECT_REASONS.length}):\n${options}`);
-  if (choice === null) return;
-  const idx = parseInt(choice) - 1;
-  const reason = LISTING_REJECT_REASONS[idx];
-  if (!reason) { showToast('⚠️','rgba(255,69,58,.15)','Geçersiz','Geçerli bir numara seçmelisin.'); return; }
+  pendingRejectListingId = id;
+  openPicker({ dataset: { for: 'reject-reason-select', title: 'Red Sebebi Seç' } });
+}
+
+async function onRejectReasonChosen(code) {
+  const reason = LISTING_REJECT_REASONS.find(r => r.code === code);
+  if (!reason || !pendingRejectListingId) return;
   let note = '';
   if (reason.code === 'diger') {
-    note = prompt('Red açıklaması yaz:') || '';
-    if (!note.trim()) { showToast('⚠️','rgba(255,69,58,.15)','Eksik','Açıklama yazmalısın.'); return; }
+    const entered = await promptDialog('Red açıklaması yaz:', '', { title: 'Açıklama' });
+    if (entered === null) return;
+    if (!entered.trim()) { showToast('⚠️','rgba(255,69,58,.15)','Eksik','Açıklama yazmalısın.'); return; }
+    note = entered.trim();
   }
-  rejectListing(id, reason.code, reason.label, note.trim());
+  rejectListing(pendingRejectListingId, reason.code, reason.label, note);
+  pendingRejectListingId = null;
 }
 
 async function rejectListing(id, reasonCode, reasonLabel, note) {
@@ -5607,7 +5692,7 @@ async function toggleRef() {
     const idx = listings.findIndex(x => x.id === l.id);
     if (idx > -1) listings[idx] = l;
     openDetail(l.id);
-  } catch(e) { alert('Hata: ' + e.message); }
+  } catch(e) { showErrorToast(e.message); }
 }
 
 async function detFav() {
@@ -5653,7 +5738,7 @@ async function notifyListingOwnerOnFav(l, adding) {
 }
 
 async function delListing(id) {
-  if (!confirm('İlan silinsin mi?')) return;
+  if (!(await confirmDialog('İlan silinsin mi?'))) return;
   const l = listings.find(x => x.id === id);
   const isAdminModeration = isAdminNow() && l && user.uid !== l.uid;
   try {
@@ -5669,7 +5754,7 @@ async function delListing(id) {
     if (isAdminNow()) updateAdminStats();
   } catch(e) {
     if (isAdminModeration) adminLog('delete_listing', 'listing', id, l?.model || id, null, null, 'error: ' + e.message);
-    alert('Silinemedi');
+    showErrorToast('Silinemedi.');
   }
 }
 
@@ -5908,7 +5993,7 @@ async function submitPost() {
   if (systemSettings.forumDisabled) { showToast('⚠️','rgba(255,69,58,.15)','Kapalı','Forum şu anda geçici olarak kapalı.'); return; }
   const title = document.getElementById('np-title').value.trim();
   const body = document.getElementById('np-body').value.trim();
-  if (!title) { alert('Başlık zorunlu'); return; }
+  if (!title) { showToast('⚠️','rgba(255,69,58,.15)','Eksik Bilgi','Başlık zorunlu.'); return; }
   try {
     const data = {
       type: currentPostType,
@@ -5946,7 +6031,7 @@ async function submitPost() {
     rForum();
 
     showToast('✅','rgba(48,209,88,.15)','Konu Yayınlandı','Konunuz foruma eklendi.');
-  } catch(e) { alert('Hata: '+e.message); }
+  } catch(e) { showErrorToast(e.message); }
 }
 
 async function openPost(id) {
@@ -6096,7 +6181,7 @@ async function submitComment() {
       const name = user.displayName || user.email?.split('@')[0] || 'Biri';
       notifyUser(p.uid, 'post_comment', `${name}, "${p.title}" gönderine yorum yaptı`, null, p.id);
     }
-  } catch(e) { alert('Hata: '+e.message); }
+  } catch(e) { showErrorToast(e.message); }
 }
 
 // Beğeni toggle (yorum)
@@ -6149,7 +6234,7 @@ async function unmarkBest(cid) {
 
 // Konu sil (admin veya sahip)
 async function deletePost(id) {
-  if (!confirm('Konu silinsin mi?')) return;
+  if (!(await confirmDialog('Konu silinsin mi?'))) return;
   const p = forumPosts.find(x => x.id === id) || adminForumPosts.find(x => x.id === id) || currentPost;
   try {
     await db.collection('teknohane_posts').doc(id).delete();
@@ -6158,12 +6243,12 @@ async function deletePost(id) {
     closemo('post-detail-mo');
     rForum();
     showToast('🗑️','rgba(255,69,58,.15)','Konu Silindi','');
-  } catch(e) { alert('Silinemedi'); }
+  } catch(e) { showErrorToast('Silinemedi.'); }
 }
 
 // Yorum sil (admin veya yorum sahibi)
 async function deleteComment(cid) {
-  if (!confirm('Yorum silinsin mi?')) return;
+  if (!(await confirmDialog('Yorum silinsin mi?'))) return;
   const p = currentPost;
   const c = (p._comments||[]).find(x => x.id === cid);
   try {
@@ -6179,7 +6264,7 @@ async function deleteComment(cid) {
     const pi = forumPosts.findIndex(x=>x.id===p.id);
     if (pi>-1) { forumPosts[pi].answerCount = p.answerCount; forumPosts[pi].bestAnswer = p.bestAnswer; }
     renderPostDetail(); renderComments(); rForum();
-  } catch(e) { alert('Silinemedi'); }
+  } catch(e) { showErrorToast('Silinemedi.'); }
 }
 
 // Tam ekran görsel
@@ -6851,13 +6936,13 @@ function setForumModTab(tab) {
   if (tab === 'comments' && !adminCommentsLoadedOnce) loadAdminComments(true);
 }
 
-function openForumPostEdit(id) {
+async function openForumPostEdit(id) {
   if (!hasPermission('manageListings')) { showToast('⚠️','rgba(255,69,58,.15)','Yetkin Yok',''); return; }
   const p = adminForumPosts.find(x => x.id === id);
   if (!p) return;
-  const newTitle = prompt('Gönderi başlığı:', p.title || '');
+  const newTitle = await promptDialog('Gönderi başlığı:', p.title || '', { title: 'Başlığı Düzenle' });
   if (newTitle === null) return;
-  const newBody = prompt('Gönderi metni:', p.body || '');
+  const newBody = await promptDialog('Gönderi metni:', p.body || '', { title: 'Metni Düzenle' });
   if (newBody === null) return;
   saveForumPostEdit(id, newTitle.trim(), newBody.trim());
 }
@@ -6928,7 +7013,7 @@ function renderAdminCommentsList() {
 
 async function deleteAdminComment(postId, commentId) {
   if (!hasPermission('manageComplaints')) return;
-  if (!confirm('Bu yorum silinsin mi?')) return;
+  if (!(await confirmDialog('Bu yorum silinsin mi?'))) return;
   const c = adminCommentsCache.find(x => x.id === commentId);
   try {
     await db.collection('teknohane_posts').doc(postId).collection('comments').doc(commentId).delete();
@@ -6953,11 +7038,11 @@ async function toggleCommentHidden(postId, commentId) {
   } catch(e) { showToast('⚠️','rgba(255,69,58,.15)','Hata','İşlem yapılamadı: ' + e.message); }
 }
 
-function editAdminComment(postId, commentId) {
+async function editAdminComment(postId, commentId) {
   if (!hasPermission('manageComplaints')) return;
   const c = adminCommentsCache.find(x => x.id === commentId);
   if (!c) return;
-  const newBody = prompt('Yorum metni:', c.body || '');
+  const newBody = await promptDialog('Yorum metni:', c.body || '', { title: 'Yorumu Düzenle' });
   if (newBody === null) return;
   saveAdminCommentEdit(postId, commentId, newBody.trim());
 }
@@ -6974,7 +7059,7 @@ async function saveAdminCommentEdit(postId, commentId, body) {
 }
 
 async function adminDeletePost(id) {
-  if (!confirm('Bu konu silinsin mi?')) return;
+  if (!(await confirmDialog('Bu konu silinsin mi?'))) return;
   const p = adminForumPosts.find(x => x.id === id) || forumPosts.find(x => x.id === id);
   try {
     await db.collection('teknohane_posts').doc(id).delete();
@@ -6983,7 +7068,7 @@ async function adminDeletePost(id) {
     if (isAdminNow()) adminLog('delete_forum_post', 'forum_post', id, p?.title || id, p, null, 'success');
     rAdminForum(); rForum();
     showToast('🗑️','rgba(255,69,58,.15)','Konu Silindi','');
-  } catch(e) { alert('Silinemedi'); }
+  } catch(e) { showErrorToast('Silinemedi.'); }
 }
 let adminUsersCache = null;
 let adminRolesCache = {}; // uid -> admins/{uid} dokümanı (role, permissions, isActive)
@@ -8336,7 +8421,7 @@ async function submitPhoneReview(side) {
   const textEl = document.getElementById(`pr-text-${side}`);
   const text = textEl.value.trim();
   const rating = prRating[side];
-  if (!text) { alert('Lütfen bir yorum yaz.'); return; }
+  if (!text) { showToast('⚠️','rgba(255,69,58,.15)','Eksik Bilgi','Lütfen bir yorum yaz.'); return; }
   try {
     await db.collection('teknohane_comments').add({
       targetType: 'phone',
@@ -8351,15 +8436,15 @@ async function submitPhoneReview(side) {
     prRating[side] = 0;
     document.querySelectorAll(`#pr-stars-${side} span`).forEach(el => el.textContent = '☆');
     loadPhoneReviews(phone.id, `pr-list-${side}`);
-  } catch(e) { alert('Hata: ' + e.message); }
+  } catch(e) { showErrorToast(e.message); }
 }
 
 async function deletePhoneReview(commentId, phoneId, containerId) {
-  if (!confirm('Yorum silinsin mi?')) return;
+  if (!(await confirmDialog('Yorum silinsin mi?'))) return;
   try {
     await db.collection('teknohane_comments').doc(commentId).delete();
     loadPhoneReviews(phoneId, containerId);
-  } catch(e) { alert('Hata: ' + e.message); }
+  } catch(e) { showErrorToast(e.message); }
 }
 
 // ---- SATICI PUANLAMA SİSTEMİ ----
@@ -8457,7 +8542,7 @@ async function loadSellerReviews(sellerUid, containerId) {
 async function submitSellerReview(sellerUid) {
   if (!user) { gt('profile'); return; }
   if (user.uid === sellerUid) return;
-  if (!srRating) { alert('Lütfen yıldız seçerek bir puan ver.'); return; }
+  if (!srRating) { showToast('⚠️','rgba(255,69,58,.15)','Eksik Bilgi','Lütfen yıldız seçerek bir puan ver.'); return; }
   const textEl = document.getElementById('sr-text');
   const text = (textEl?.value || '').trim();
   try {
@@ -8477,15 +8562,15 @@ async function submitSellerReview(sellerUid) {
     loadSellerReviews(sellerUid, 'sr-list');
     notifyUser(sellerUid, 'seller_review', `Birisi seni ${submittedRating}★ ile değerlendirdi`, null);
     showToast('⭐', 'rgba(255,204,0,.15)', 'Puanın Kaydedildi', 'Satıcı değerlendirmen için teşekkürler.');
-  } catch(e) { alert('Hata: ' + e.message); }
+  } catch(e) { showErrorToast(e.message); }
 }
 
 async function deleteSellerReview(commentId, sellerUid, containerId) {
-  if (!confirm('Değerlendirmen silinsin mi?')) return;
+  if (!(await confirmDialog('Değerlendirmen silinsin mi?'))) return;
   try {
     await db.collection('teknohane_comments').doc(commentId).delete();
     loadSellerReviews(sellerUid, containerId);
-  } catch(e) { alert('Hata: ' + e.message); }
+  } catch(e) { showErrorToast(e.message); }
 }
 
 // PULL TO REFRESH
