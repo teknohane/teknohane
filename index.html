@@ -2552,11 +2552,29 @@ async function deleteAnnouncement(id) {
 }
 // Hem profil hem kapak fotoğrafı yüklemesinde ortak kullanılır (kod tekrarını önler).
 function compressImageToWebP(file, maxDim, quality) {
+  console.log('[TRACE-UPLOAD] compressImageToWebP() BAŞLADI, file=', file?.name, file?.size, file?.type, 'maxDim=', maxDim, 'quality=', quality);
   return new Promise((resolve, reject) => {
+    // GÜVENLİK AĞI: bazı Android WebView sürümlerinde canvas.toBlob() sessizce HİÇ geri dönmüyor
+    // (ne resolve ne reject) — bu durumda üst fonksiyonlar sonsuza kadar "yükleniyor" durumunda
+    // takılı kalır, hiçbir hata da görünmez. 15 saniye içinde hiçbir callback tetiklenmezse, açık
+    // bir hatayla reddedilir.
+    let settled = false;
+    const hangGuard = setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        console.error('[TRACE-UPLOAD] compressImageToWebP(): ZAMAN AŞIMI — canvas.toBlob() 15 saniyede hiç geri dönmedi (bilinen bir WebView sorunu)');
+        reject(new Error('Görsel sıkıştırma zaman aşımına uğradı (canvas.toBlob yanıt vermedi)'));
+      }
+    }, 15000);
+    const safeResolve = v => { if (!settled) { settled = true; clearTimeout(hangGuard); resolve(v); } };
+    const safeReject = e => { if (!settled) { settled = true; clearTimeout(hangGuard); reject(e); } };
+
     const img = new Image();
     const reader = new FileReader();
     reader.onload = e => {
+      console.log('[TRACE-UPLOAD] compressImageToWebP(): FileReader.onload tetiklendi, dataUrl uzunluğu=', e.target.result?.length);
       img.onload = () => {
+        console.log('[TRACE-UPLOAD] compressImageToWebP(): Image.onload tetiklendi, boyut=', img.width, 'x', img.height);
         let w = img.width, h = img.height;
         if (w > maxDim || h > maxDim) {
           if (w > h) { h = Math.round(h * (maxDim / w)); w = maxDim; }
@@ -2565,20 +2583,24 @@ function compressImageToWebP(file, maxDim, quality) {
         const canvas = document.createElement('canvas');
         canvas.width = w; canvas.height = h;
         canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        console.log('[TRACE-UPLOAD] compressImageToWebP(): canvas hazır (', w, 'x', h, '), canvas.toBlob(webp) ÇAĞRILIYOR...');
         // Bazı Android WebView sürümleri canvas.toBlob ile WebP çıktısı vermiyor (sessizce PNG/JPEG'e
         // düşüyor ya da başarısız oluyor) — WebP denenir, olmazsa JPEG'e güvenli şekilde geri dönülür.
         canvas.toBlob(blob => {
-          if (blob && blob.type === 'image/webp') { resolve({ blob, mimeType: 'image/webp', ext: 'webp' }); return; }
+          console.log('[TRACE-UPLOAD] compressImageToWebP(): canvas.toBlob(webp) CALLBACK tetiklendi, blob=', !!blob, blob?.type, blob?.size);
+          if (blob && blob.type === 'image/webp') { safeResolve({ blob, mimeType: 'image/webp', ext: 'webp' }); return; }
+          console.log('[TRACE-UPLOAD] compressImageToWebP(): WebP başarısız/desteklenmiyor, JPEG\'e düşülüyor, canvas.toBlob(jpeg) ÇAĞRILIYOR...');
           canvas.toBlob(jblob => {
-            if (jblob) resolve({ blob: jblob, mimeType: 'image/jpeg', ext: 'jpg' });
-            else reject(new Error('Görsel sıkıştırılamadı (tarayıcı desteklemiyor)'));
+            console.log('[TRACE-UPLOAD] compressImageToWebP(): canvas.toBlob(jpeg) CALLBACK tetiklendi, blob=', !!jblob, jblob?.type, jblob?.size);
+            if (jblob) safeResolve({ blob: jblob, mimeType: 'image/jpeg', ext: 'jpg' });
+            else { console.error('[TRACE-UPLOAD] compressImageToWebP(): JPEG de başarısız, blob null döndü'); safeReject(new Error('Görsel sıkıştırılamadı (tarayıcı desteklemiyor)')); }
           }, 'image/jpeg', quality);
         }, 'image/webp', quality);
       };
-      img.onerror = () => reject(new Error('Görsel okunamadı — dosya bozuk olabilir'));
+      img.onerror = (err) => { console.error('[TRACE-UPLOAD] compressImageToWebP(): Image.onerror ->', err); safeReject(new Error('Görsel okunamadı — dosya bozuk olabilir')); };
       img.src = e.target.result;
     };
-    reader.onerror = () => reject(new Error('Dosya okunamadı'));
+    reader.onerror = (err) => { console.error('[TRACE-UPLOAD] compressImageToWebP(): FileReader.onerror ->', err); safeReject(new Error('Dosya okunamadı')); };
     reader.readAsDataURL(file);
   });
 }
@@ -2628,27 +2650,48 @@ function generateUUID() {
 }
 
 function uploadToStorage(path, blob, mimeType, onProgress) {
-  console.log('[TRACE] uploadToStorage() BAŞLADI, path=', path, 'blobSize=', blob?.size, 'mimeType=', mimeType);
+  console.log('[TRACE-UPLOAD] uploadToStorage() BAŞLADI, path=', path, 'blobSize=', blob?.size, 'blobType=', blob?.type, 'mimeType=', mimeType);
   return new Promise((resolve, reject) => {
-    const ref = storage.ref(path);
-    console.log('[TRACE] uploadToStorage(): storage.ref() oluşturuldu, .put() ÇAĞRILIYOR...');
-    const task = ref.put(blob, { contentType: mimeType || blob.type || 'application/octet-stream' });
-    console.log('[TRACE] uploadToStorage(): .put() çağrıldı, task döndü ->', typeof task, !!task?.on);
+    let task;
+    try {
+      const ref = storage.ref(path);
+      console.log('[TRACE-UPLOAD] uploadToStorage(): storage.ref() oluşturuldu ->', ref?.fullPath || ref?.toString?.() || ref);
+      task = ref.put(blob, { contentType: mimeType || blob.type || 'application/octet-stream' });
+      console.log('[TRACE-UPLOAD] uploadToStorage(): ref.put() ÇAĞRILDI, task döndü, task.on var mı=', !!task?.on);
+    } catch (syncErr) {
+      // storage.ref()/ref.put() SENKRON olarak da hata fırlatabilir (örn. storage yanlış yapılandırılmışsa) —
+      // bu durum önceden hiç yakalanmıyordu, sessizce zincir kırılıyordu.
+      console.error('[TRACE-UPLOAD] uploadToStorage(): storage.ref()/put() SENKRON HATA FIRLATTI ->', syncErr?.code, syncErr?.message, syncErr);
+      reject(syncErr);
+      return;
+    }
     // Yükleme 25 saniye içinde hiç ilerleme kaydetmezse (CORS/ağ sorunu ihtimali), sonsuza kadar
     // beklemek yerine anlamlı bir hatayla sonlandırılır.
     let lastProgressAt = Date.now();
     const watchdog = setInterval(() => {
       if (Date.now() - lastProgressAt > 25000) {
         clearInterval(watchdog);
-        console.error('[TRACE] uploadToStorage(): WATCHDOG ZAMAN AŞIMI, path=', path);
+        console.error('[TRACE-UPLOAD] uploadToStorage(): WATCHDOG ZAMAN AŞIMI (25sn ilerleme yok), path=', path);
         task.cancel();
         reject(new Error('Yükleme zaman aşımına uğradı — Storage CORS ayarı eksik olabilir'));
       }
     }, 3000);
     task.on('state_changed',
-      snap => { lastProgressAt = Date.now(); console.log('[TRACE] uploadToStorage(): state_changed ilerleme ->', snap.bytesTransferred, '/', snap.totalBytes); if (onProgress && snap.totalBytes) onProgress(Math.round(snap.bytesTransferred / snap.totalBytes * 100)); },
-      err => { clearInterval(watchdog); console.error('[TRACE] uploadToStorage(): task.on ERROR callback ->', err.code, err.message); reject(err); },
-      () => { clearInterval(watchdog); console.log('[TRACE] uploadToStorage(): task.on COMPLETE callback, getDownloadURL çağrılıyor...'); task.snapshot.ref.getDownloadURL().then(url => { console.log('[TRACE] uploadToStorage(): getDownloadURL BAŞARILI ->', url); resolve(url); }).catch(err => { console.error('[TRACE] uploadToStorage(): getDownloadURL HATASI ->', err.message); reject(err); }); }
+      snap => { lastProgressAt = Date.now(); console.log('[TRACE-UPLOAD] uploadToStorage(): ilerleme ->', snap.bytesTransferred, '/', snap.totalBytes, 'state=', snap.state); if (onProgress && snap.totalBytes) onProgress(Math.round(snap.bytesTransferred / snap.totalBytes * 100)); },
+      err => {
+        clearInterval(watchdog);
+        // TAM hata nesnesi: Firebase Storage hatalarında en kritik bilgi err.code'dur
+        // (örn. 'storage/unauthorized', 'storage/canceled', 'storage/unknown').
+        console.error('[TRACE-UPLOAD] uploadToStorage(): task.on ERROR callback -> code=', err.code, 'message=', err.message, 'serverResponse=', err.serverResponse, 'TAM NESNE:', err);
+        reject(err);
+      },
+      () => {
+        clearInterval(watchdog);
+        console.log('[TRACE-UPLOAD] uploadToStorage(): task.on COMPLETE callback tetiklendi, getDownloadURL() ÇAĞRILIYOR...');
+        task.snapshot.ref.getDownloadURL()
+          .then(url => { console.log('[TRACE-UPLOAD] uploadToStorage(): getDownloadURL BAŞARILI ->', url); resolve(url); })
+          .catch(err => { console.error('[TRACE-UPLOAD] uploadToStorage(): getDownloadURL HATASI -> code=', err.code, 'message=', err.message, 'TAM NESNE:', err); reject(err); });
+      }
     );
   });
 }
@@ -5420,7 +5463,7 @@ async function uploadListingPhotoFile(idx, file) {
     slot.innerHTML = `<img src="${thumbUrl}" loading="lazy" decoding="async"><div class="pslot-x" onclick="rmPhoto(${idx});event.stopPropagation()">×</div><input type="file" id="pf${idx}" accept="image/*" style="display:none" onchange="addPhoto(${idx},this)">`;
     console.log('[TRACE] uploadListingPhotoFile(): photos[idx] ve DOM güncellendi, idx=', idx, 'photos[idx]=', photos[idx]);
   } catch(e) {
-    console.error('[TRACE] uploadListingPhotoFile(): HATA YAKALANDI ->', e.message, e.stack);
+    console.error('[TRACE-UPLOAD] uploadListingPhotoFile(): HATA YAKALANDI -> code=', e.code, 'message=', e.message, 'stack=', e.stack, 'TAM NESNE:', e);
     console.error('İlan fotoğrafı yüklenemedi:', e);
     showToast('⚠️','rgba(255,69,58,.15)','Yükleme Başarısız', e.message || 'Fotoğraf yüklenemedi.');
     slot.innerHTML = `<svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>Ekle</span><input type="file" id="pf${idx}" accept="image/*" style="display:none" onchange="addPhoto(${idx},this)">`;

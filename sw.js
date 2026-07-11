@@ -4,7 +4,7 @@
 // Not: Cloudflare Worker (telefon/fiyat/haber/push API) ve Firebase istekleri KESİNLİKLE
 // önbelleğe alınmıyor — bunlar her zaman canlı veri olarak ağdan çekilir.
 
-const CACHE_NAME = 'teknohane-shell-v2';
+const CACHE_NAME = 'teknohane-shell-v3';
 const APP_SHELL = [
   '/teknohane/',
   '/teknohane/index.html',
