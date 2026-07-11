@@ -5717,24 +5717,31 @@ async function loadForumPage(reset) {
   forumLoading = true;
   rForum(); // "yükleniyor" durumunu anında yansıt
   try {
-    let q = db.collection('teknohane_posts').where('archived', '==', false);
-    if (forumCurrentTab === 'popular') {
-      q = q.orderBy('likeCount', 'desc').orderBy('createdAt', 'desc');
-    } else if (forumCurrentTab === 'resolved') {
-      q = q.where('resolved', '==', true).orderBy('createdAt', 'desc');
-    } else if (forumCurrentTab === 'following') {
-      const uids = (myProfileData.followingUids || []).slice(0, 30); // Firestore 'in' sınırı: 30
-      if (!uids.length) { forumHasMore = false; forumPosts = []; forumLoading = false; rForum(); return; }
-      q = q.where('uid', 'in', uids).orderBy('createdAt', 'desc');
-    } else {
-      q = q.orderBy('createdAt', 'desc'); // 'new' (varsayılan)
-    }
-    q = q.limit(20);
+    // KÖK NEDEN DÜZELTMESİ (Firebase Console'daki Indexes ekranından kanıtlandı): teknohane_posts
+    // koleksiyonu için HİÇBİR composite index yok. where(eşitlik)+orderBy(farklı alan) veya
+    // birden fazla orderBy() kombinasyonu Firestore'da her zaman composite index gerektirir —
+    // bu index olmadığı sürece sorgu ya hata verir ya da (index "building" durumundaysa) sessizce
+    // boş/eksik sonuç döner. Bunu tamamen ortadan kaldırmak için sunucu sorgusu, index GEREKTİRMEYEN
+    // tek-alanlı orderBy('createdAt') haline indirgendi; sekmeye özgü filtreler (archived/resolved/
+    // following/popular sıralaması) istemci tarafında uygulanıyor.
+    let q = db.collection('teknohane_posts').orderBy('createdAt', 'desc').limit(50);
     if (forumLastDoc) q = q.startAfter(forumLastDoc);
     const snap = await q.get();
-    const newItems = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    let newItems = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     forumLastDoc = snap.docs[snap.docs.length - 1] || forumLastDoc;
-    forumHasMore = snap.docs.length === 20;
+    forumHasMore = snap.docs.length === 50;
+
+    // Sekmeye özgü filtreleme — hepsi istemci tarafında, index gerektirmeden.
+    newItems = newItems.filter(p => p.archived !== true);
+    if (forumCurrentTab === 'resolved') {
+      newItems = newItems.filter(p => p.resolved === true);
+    } else if (forumCurrentTab === 'following') {
+      const uids = new Set(myProfileData.followingUids || []);
+      newItems = newItems.filter(p => uids.has(p.uid));
+    } else if (forumCurrentTab === 'popular') {
+      newItems = [...newItems].sort((a,b) => (b.likeCount ?? (b.likes||[]).length) - (a.likeCount ?? (a.likes||[]).length));
+    }
+
     forumPosts = reset ? newItems : [...forumPosts, ...newItems];
   } catch (e) {
     console.error('Forum yüklenemedi:', e);
@@ -5763,11 +5770,13 @@ async function runForumSearch(query) {
   const list = document.getElementById('forum-list');
   list.innerHTML = `<div class="load"><div class="spin"></div></div>`;
   try {
+    // titleLower üzerinde TEK bir aralık filtresi — index gerektirmez. archived filtresi burada
+    // sunucu tarafında UYGULANMIYOR çünkü archived+titleLower birlikte composite index isterdi
+    // (ki teknohane_posts için hiç yok) — bunun yerine sonuç istemci tarafında süzülüyor.
     const snap = await db.collection('teknohane_posts')
-      .where('archived', '==', false)
       .where('titleLower', '>=', query).where('titleLower', '<=', query + '\uf8ff')
       .limit(20).get();
-    forumPosts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    forumPosts = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.archived !== true);
     rForum();
   } catch (e) {
     console.error('Forum araması başarısız:', e);
