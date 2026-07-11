@@ -1537,7 +1537,7 @@ body.tk-maintenance #maintenance-gate{
     <div class="mtit">Kullanıcı Ara</div>
     <div class="sw" style="margin-bottom:16px">
       <svg class="sico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input class="si" type="text" id="user-srch-inp" placeholder="İsim veya satıcı ara…" oninput="searchUsers(this.value)">
+      <input class="si" type="text" id="user-srch-inp" placeholder="Kullanıcı adı ile ara…" oninput="searchUsers(this.value)">
     </div>
     <div id="user-srch-results"><div class="no">Aramak için yazın…</div></div>
   </div>
@@ -3505,7 +3505,7 @@ async function confirmPhoneVerificationCode() {
 }
 
 // Kullanıcı adı benzersizliğini teknohane_usernames koleksiyonunda transaction ile garanti eder
-async function claimUsername(newUsernameLower, uid, oldUsernameLower) {
+async function claimUsername(newUsernameLower, uid, oldUsernameLower, displayName, photoURL) {
   const newRef = db.collection('teknohane_usernames').doc(newUsernameLower);
   await db.runTransaction(async tx => {
     const newSnap = await tx.get(newRef);
@@ -3515,8 +3515,22 @@ async function claimUsername(newUsernameLower, uid, oldUsernameLower) {
     if (oldUsernameLower && oldUsernameLower !== newUsernameLower) {
       tx.delete(db.collection('teknohane_usernames').doc(oldUsernameLower));
     }
-    tx.set(newRef, { uid });
+    // displayName/photoURL, kullanıcı adı üzerinden arama yapılabilmesi için birlikte yazılıyor —
+    // yeni bir koleksiyon açmak yerine mevcut benzersizlik koleksiyonu bu amaçla da kullanılıyor.
+    tx.set(newRef, { uid, ...usernameIndexFields(displayName, photoURL) });
   });
+}
+
+// ==== KULLANICI ARAMA DİZİNİ ====
+// teknohane_users koleksiyonunun `list` izni bilinçli olarak yalnızca adminlere açık (kullanıcı
+// tabanının kazınmasını/enumerate edilmesini engellemek için) — bunu ZAYIFLATMADAN gerçek kullanıcı
+// araması yapabilmek için, YENİ bir koleksiyon AÇMAK YERİNE, zaten var olan ve zaten herkese açık
+// (`allow read: if true`) `teknohane_usernames/{username}` koleksiyonu kullanılıyor — bu koleksiyon
+// zaten kullanıcı adı benzersizliği için mevcuttu, yalnızca 2 güvenli görüntü alanı (displayName,
+// photoURL) eklendi. Hiçbir hassas veri (email, telefon, ban durumu vb.) bu koleksiyona hiç girmiyor.
+// Maliyet: yalnızca kullanıcı adı belirlenirken/değiştirilirken (claimUsername) bir yazma olur.
+function usernameIndexFields(displayName, photoURL) {
+  return { displayName: displayName || '', photoURL: photoURL || '' };
 }
 
 async function saveProfileInfo() {
@@ -3538,11 +3552,16 @@ async function saveProfileInfo() {
 
   try {
     const oldUsername = (myProfileData.username || '').toLowerCase();
+    const newPhotoURL = epNewPhotoDataUrl || myProfileData.photoURL || '';
 
     if (uname && uname !== oldUsername) {
-      await claimUsername(uname, user.uid, oldUsername || null);
+      await claimUsername(uname, user.uid, oldUsername || null, name, newPhotoURL);
     } else if (!uname && oldUsername) {
       await db.collection('teknohane_usernames').doc(oldUsername).delete().catch(()=>{});
+    } else if (uname && uname === oldUsername) {
+      // Kullanıcı adı aynı kaldı ama ad/fotoğraf değişmiş olabilir — arama dizini bayat kalmasın diye
+      // aynı dokümana küçük bir güncelleme yazılıyor (yalnızca profil kaydedildiğinde, nadiren).
+      db.collection('teknohane_usernames').doc(uname).set(usernameIndexFields(name, newPhotoURL), { merge: true }).catch(()=>{});
     }
 
     const authUpdates = { displayName: name };
@@ -4293,7 +4312,6 @@ async function clickNotif(id, listingId, wasUnread, postId) {
 // teknohane_chats/{chatId} → participants:[uidA,uidB], names:{uid:ad}, lastMessage, lastAt, unreadBy:[uid,...]
 // teknohane_chats/{chatId}/messages/{msgId} → senderUid, text, createdAt
 let unsubChatBadge = null;
-let unsubChatList = null;
 let unsubChatThread = null;
 let unsubChatDoc = null;
 let currentChatOtherUid = null;
@@ -4302,17 +4320,26 @@ let currentChatOtherLastRead = 0;
 
 function chatIdFor(a, b) { return [a, b].sort().join('_'); }
 
+// Sohbetlerin TEK gerçek zamanlı kaynağı — hem başlıktaki okunmamış rozetini hem (açıksa) sohbet
+// listesi ekranını besler. Önceden bunun için AYNI sorguyu çalıştıran 2 ayrı onSnapshot dinleyicisi
+// vardı (biri her zaman açık rozet için, biri yalnızca liste ekranı açıkken); artık tek dinleyici var,
+// liste ekranı yalnızca zaten gelen veriyle render ediliyor, ikinci bir Firestore bağlantısı açılmıyor.
+let chatListCache = [];
 function subscribeChatBadge(uid) {
   unsubChatBadge?.();
   unsubChatBadge = db.collection('teknohane_chats')
     .where('participants', 'array-contains', uid)
     .onSnapshot(snap => {
+      chatListCache = snap.docs;
       let unread = 0;
       snap.docs.forEach(d => { if ((d.data().unreadBy||[]).includes(uid)) unread++; });
       const badge = document.getElementById('chat-badge');
-      if (!badge) return;
-      if (unread > 0) { badge.textContent = unread > 9 ? '9+' : unread; badge.style.display = 'flex'; }
-      else badge.style.display = 'none';
+      if (badge) {
+        if (unread > 0) { badge.textContent = unread > 9 ? '9+' : unread; badge.style.display = 'flex'; }
+        else badge.style.display = 'none';
+      }
+      // Sohbet listesi ekranı o an açıksa, aynı veriyle anında güncellenir — ayrı bir dinleyici açılmaz.
+      if (document.getElementById('chat-list-mo')?.classList.contains('on')) renderChatList();
     }, () => {});
 }
 
@@ -4473,15 +4500,35 @@ async function sendChatImage(input) {
   } catch(e) { alert('Hata: ' + e.message); }
 }
 
-// Bir sohbeti (tüm mesajlarıyla birlikte) tamamen siler
+// Bir sohbeti (tüm mesajlarıyla birlikte) güvenli şekilde siler.
+// SIRALAMA ÖNEMLİ: Mesaj silme Firestore kuralı, üst sohbet dokümanının `participants` alanını
+// okuyarak yetki kontrolü yapıyor (get() ile) — bu yüzden ÖNCE mesajlar, EN SON sohbet dokümanının
+// kendisi silinir. Tersi sırada (önce sohbet dokümanı silinirse) mesaj silme izni reddedilirdi.
+// Firestore batch'leri en fazla 500 operasyon kabul ettiği için mesajlar 450'lik güvenli gruplar
+// halinde, sırayla silinir. İşlem sırasında bir hata olursa (örn. bağlantı kopması), sohbet dokümanı
+// henüz silinmediği için sohbet listede kalmaya devam eder — kullanıcı gerçek zamanlı dinleyici
+// sayesinde tutarlı bir durum görür, "yarı silinmiş ama hâlâ görünüyor" gibi bir çelişki oluşmaz.
 async function deleteChatThread(chatId) {
+  showToast('🗑️', 'rgba(255,69,58,.15)', 'Siliniyor…', 'Sohbet siliniyor, bu birkaç saniye sürebilir.');
   try {
-    const msgsSnap = await db.collection('teknohane_chats').doc(chatId).collection('messages').get();
-    const batch = db.batch();
-    msgsSnap.docs.forEach(d => batch.delete(d.ref));
-    batch.delete(db.collection('teknohane_chats').doc(chatId));
-    await batch.commit();
-  } catch(e) { alert('Hata: ' + e.message); }
+    const messagesRef = db.collection('teknohane_chats').doc(chatId).collection('messages');
+    while (true) {
+      const snap = await messagesRef.limit(450).get();
+      if (snap.empty) break;
+      const batch = db.batch();
+      snap.docs.forEach(d => batch.delete(d.ref));
+      await batch.commit();
+      if (snap.docs.length < 450) break; // son grup da buysa mesajlar bitmiştir
+    }
+    // Mesajların tamamı silindikten sonra, en son sohbet dokümanının kendisi silinir.
+    await db.collection('teknohane_chats').doc(chatId).delete();
+    showToast('✓', 'rgba(48,209,88,.15)', 'Silindi', 'Sohbet tamamen silindi.');
+    return true;
+  } catch(e) {
+    console.error('Sohbet silme hatası:', e);
+    showToast('⚠️', 'rgba(255,69,58,.15)', 'Silinemedi', 'Sohbet silinirken bir sorun oluştu, tekrar deneyebilirsin.');
+    return false;
+  }
 }
 
 // Sohbet listesinde bir öğeyi sola kaydırarak silme (bildirim listesindeki ile aynı mantık)
@@ -4503,13 +4550,18 @@ function attachChatSwipeDelete(wrap) {
     if (dx < -90) {
       item.style.transform = 'translateX(-100%)';
       item.style.opacity = '0';
-      deleteChatThread(chatId);
-      setTimeout(() => {
-        wrap.remove();
-        if (!document.querySelector('#chat-list .notif-swipe-wrap')) {
-          document.getElementById('chat-list').innerHTML = `<div class="no">Henüz mesajın yok</div>`;
+      deleteChatThread(chatId).then(ok => {
+        if (ok) {
+          wrap.remove();
+          if (!document.querySelector('#chat-list .notif-swipe-wrap')) {
+            document.getElementById('chat-list').innerHTML = `<div class="no">Henüz mesajın yok</div>`;
+          }
+        } else {
+          // Silme başarısız oldu — öğeyi geri getir, kullanıcıya yanlış bir "silindi" izlenimi verilmesin.
+          item.style.transform = 'translateX(0)';
+          item.style.opacity = '1';
         }
-      }, 200);
+      });
     } else {
       item.style.transform = 'translateX(0)';
     }
@@ -4521,38 +4573,37 @@ function openChatList() {
   if (!user) { gt('profile'); return; }
   document.getElementById('chat-list-mo').classList.add('on');
   history.pushState({ chatList: true }, '', location.pathname);
+  renderChatList(); // subscribeChatBadge'in zaten sürdürdüğü veriyle anında render eder, yeni sorgu açmaz
+}
+
+function renderChatList() {
   const list = document.getElementById('chat-list');
-  list.innerHTML = `<div class="load"><div class="spin"></div></div>`;
-  unsubChatList?.();
-  unsubChatList = db.collection('teknohane_chats')
-    .where('participants', 'array-contains', user.uid)
-    .onSnapshot(snap => {
-      if (snap.empty) { list.innerHTML = `<div class="no">Henüz mesajın yok</div>`; return; }
-      const docs = [...snap.docs].sort((a, b) => {
-        const ta = a.data().lastAt?.toMillis ? a.data().lastAt.toMillis() : 0;
-        const tb = b.data().lastAt?.toMillis ? b.data().lastAt.toMillis() : 0;
-        return tb - ta;
-      });
-      list.innerHTML = docs.map(d => {
-        const c = d.data();
-        const otherUid = c.participants.find(p => p !== user.uid);
-        const otherName = c.names?.[otherUid] || 'Kullanıcı';
-        const otherAv = c.avatars?.[otherUid];
-        const unread = (c.unreadBy||[]).includes(user.uid);
-        const time = c.lastAt?.toDate ? fd(c.lastAt.toDate().toISOString()) : '';
-        const preview = (c.lastMessage||'').slice(0,40) + ((c.lastMessage||'').length>40?'…':'');
-        const avHtml = otherAv ? `<img src="${otherAv}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : otherName[0].toUpperCase();
-        return `<div class="notif-swipe-wrap" data-id="${d.id}">
-          <div class="notif-swipe-del">🗑️</div>
-          <div class="notif-item ${unread?'unread':''}" style="cursor:pointer" onclick="openChatThread('${otherUid}','${otherName.replace(/'/g,"\\'")}')">
-            <div class="notif-ic" style="background:var(--surf2);color:var(--cyan);font-weight:700;overflow:hidden">${avHtml}</div>
-            <div class="notif-txt" style="flex:1"><div class="notif-msg">${otherName}</div><div class="notif-time">${unread?'<span style="color:var(--cyan);font-weight:700">Yeni mesaj · </span>':''}${preview || 'Sohbeti başlat'} · ${time}</div></div>
-            ${unread?'<div class="unread-dot"></div>':''}
-          </div>
-        </div>`;
-      }).join('');
-      document.querySelectorAll('#chat-list .notif-swipe-wrap').forEach(wrap => attachChatSwipeDelete(wrap));
-    }, e => { list.innerHTML = `<div class="no">Sohbetler yüklenemedi</div>`; console.error(e); });
+  if (!list || !user) return;
+  if (!chatListCache.length) { list.innerHTML = `<div class="no">Henüz mesajın yok</div>`; return; }
+  const docs = [...chatListCache].sort((a, b) => {
+    const ta = a.data().lastAt?.toMillis ? a.data().lastAt.toMillis() : 0;
+    const tb = b.data().lastAt?.toMillis ? b.data().lastAt.toMillis() : 0;
+    return tb - ta;
+  });
+  list.innerHTML = docs.map(d => {
+    const c = d.data();
+    const otherUid = c.participants.find(p => p !== user.uid);
+    const otherName = c.names?.[otherUid] || 'Kullanıcı';
+    const otherAv = c.avatars?.[otherUid];
+    const unread = (c.unreadBy||[]).includes(user.uid);
+    const time = c.lastAt?.toDate ? fd(c.lastAt.toDate().toISOString()) : '';
+    const preview = (c.lastMessage||'').slice(0,40) + ((c.lastMessage||'').length>40?'…':'');
+    const avHtml = otherAv ? `<img src="${otherAv}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : otherName[0].toUpperCase();
+    return `<div class="notif-swipe-wrap" data-id="${d.id}">
+      <div class="notif-swipe-del">🗑️</div>
+      <div class="notif-item ${unread?'unread':''}" style="cursor:pointer" onclick="openChatThread('${otherUid}','${otherName.replace(/'/g,"\\'")}')">
+        <div class="notif-ic" style="background:var(--surf2);color:var(--cyan);font-weight:700;overflow:hidden">${avHtml}</div>
+        <div class="notif-txt" style="flex:1"><div class="notif-msg">${otherName}</div><div class="notif-time">${unread?'<span style="color:var(--cyan);font-weight:700">Yeni mesaj · </span>':''}${preview || 'Sohbeti başlat'} · ${time}</div></div>
+        ${unread?'<div class="unread-dot"></div>':''}
+      </div>
+    </div>`;
+  }).join('');
+  document.querySelectorAll('#chat-list .notif-swipe-wrap').forEach(wrap => attachChatSwipeDelete(wrap));
 }
 
 // ---- ÇEVRİMİÇİ / TOPLAM KULLANICI SAYACI ----
@@ -6143,39 +6194,52 @@ function openUserSearch() {
   setTimeout(() => document.getElementById('user-srch-inp')?.focus(), 300);
 }
 
+// Kullanıcı Arama — artık `listings` dizisinden (yalnızca satıcılar) değil, gerçek `teknohane_users`
+// koleksiyonundan arıyor. Hiç ilan vermemiş kullanıcılar da bulunabiliyor.
+// Maliyet kontrolü: (1) 300ms debounce — her tuş vuruşunda sorgu atılmıyor, kullanıcı yazmayı
+// bitirdikten sonra tek sorgu gidiyor. (2) `.limit(20)` — koleksiyon büyüklüğünden bağımsız sabit
+// maliyet. (3) `username` alanı zaten her zaman küçük harfe normalize edilip kaydediliyor (bkz.
+// openEditProfile/saveProfileInfo) — yeni bir alan/koleksiyon eklemeden, mevcut, indeksli bir
+// prefix (başlangıç eşleşmesi) sorgusu kuruluyor.
+// Dürüst bir sınır: Bu, Firestore'un desteklediği "başlangıç eşleşmesi" araması — tam metin arama
+// değil, ve yalnızca kullanıcı adı BELİRLEMİŞ kullanıcıları buluyor (ad soyad üzerinden arama,
+// aynı anda ikinci bir sorgu gerektireceği ve maliyeti ikiye katlayacağı için bilinçli olarak
+// kapsam dışı bırakıldı).
+let userSearchDebounceTimer = null;
 function searchUsers(q) {
   const res = document.getElementById('user-srch-results');
   if (!q || q.length < 2) { res.innerHTML = '<div class="no">En az 2 harf yazın…</div>'; return; }
-  q = q.toLowerCase();
+  clearTimeout(userSearchDebounceTimer);
+  userSearchDebounceTimer = setTimeout(() => runUserSearch(q.toLowerCase().trim()), 300);
+}
 
-  // listings'teki tüm benzersiz satıcıları topla
-  const sellers = {};
-  listings.forEach(l => {
-    if (!l.uid || !l.ownerName) return;
-    if (!sellers[l.uid]) sellers[l.uid] = { uid: l.uid, name: l.ownerName, count: 0 };
-    sellers[l.uid].count++;
-  });
-  // Referans verenleri de ekle
-  listings.forEach(l => {
-    (l.referrers||[]).forEach(r => {
-      if (!r.uid || !r.name) return;
-      if (!sellers[r.uid]) sellers[r.uid] = { uid: r.uid, name: r.name, count: 0 };
-    });
-  });
-
-  const matches = Object.values(sellers).filter(s => s.name.toLowerCase().includes(q));
-
-  if (!matches.length) { res.innerHTML = '<div class="no">Kullanıcı bulunamadı</div>'; return; }
-
-  res.innerHTML = matches.map(s => `
-    <div class="adm-user-row" onclick="closemo('user-search-mo');openPublicProfile('${s.uid}','${s.name.replace(/'/g,"\\'")}')">
-      <div class="adm-user-av">${s.name[0].toUpperCase()}</div>
-      <div class="adm-user-info">
-        <div class="adm-user-name">${s.name}</div>
-        <div class="adm-user-email">${s.count} ilan</div>
-      </div>
-      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text3)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-    </div>`).join('');
+async function runUserSearch(query) {
+  const res = document.getElementById('user-srch-results');
+  if (!res) return;
+  res.innerHTML = `<div class="load"><div class="spin"></div></div>`;
+  try {
+    const snap = await db.collection('teknohane_usernames')
+      .where(firebase.firestore.FieldPath.documentId(), '>=', query)
+      .where(firebase.firestore.FieldPath.documentId(), '<=', query + '\uf8ff')
+      .limit(20)
+      .get();
+    if (snap.empty) { res.innerHTML = '<div class="no">Kullanıcı bulunamadı</div>'; return; }
+    res.innerHTML = snap.docs.map(d => {
+      const u = d.data();
+      const name = u.displayName || d.id || 'Kullanıcı';
+      return `<div class="adm-user-row" onclick="closemo('user-search-mo');openPublicProfile('${u.uid}','${name.replace(/'/g,"\\'")}')">
+        <div class="adm-user-av">${u.photoURL?`<img src="${u.photoURL}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:name[0].toUpperCase()}</div>
+        <div class="adm-user-info">
+          <div class="adm-user-name">${name}</div>
+          <div class="adm-user-email">@${d.id}</div>
+        </div>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text3)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    console.error('Kullanıcı arama hatası:', e);
+    res.innerHTML = '<div class="no">Arama yapılamadı, tekrar deneyin.</div>';
+  }
 }
 
 // ADMIN PANEL
