@@ -347,7 +347,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .pslot svg{width:24px;height:24px;stroke:var(--text3);fill:none;stroke-width:1.8;}
 .pslot span{font-size:11px;color:var(--text3);}
 .pslot-x{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;cursor:pointer;z-index:2;}
-.pslot-progress{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;width:100%;height:100%;font-size:12px;font-weight:700;color:var(--cyan);}
 
 /* TOAST BİLDİRİM */
 #offline-bar{display:none;position:fixed;top:var(--st);left:0;right:0;z-index:550;background:rgba(255,149,0,.95);backdrop-filter:blur(8px);color:#000;font-size:12px;font-weight:700;text-align:center;padding:7px;letter-spacing:.2px;}
@@ -1142,22 +1141,22 @@ body.tk-maintenance #maintenance-gate{
     <div class="fg">
       <label class="fl">Fotoğraflar (max 4)</label>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px">
-        <div class="pslot" id="ps0" onclick="pickListingPhoto(0)">
+        <div class="pslot" id="ps0" onclick="document.getElementById('pf0').click()">
           <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
           <span>Ekle</span>
           <input type="file" id="pf0" accept="image/*" style="display:none" onchange="addPhoto(0,this)">
         </div>
-        <div class="pslot" id="ps1" onclick="pickListingPhoto(1)">
+        <div class="pslot" id="ps1" onclick="document.getElementById('pf1').click()">
           <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
           <span>Ekle</span>
           <input type="file" id="pf1" accept="image/*" style="display:none" onchange="addPhoto(1,this)">
         </div>
-        <div class="pslot" id="ps2" onclick="pickListingPhoto(2)">
+        <div class="pslot" id="ps2" onclick="document.getElementById('pf2').click()">
           <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
           <span>Ekle</span>
           <input type="file" id="pf2" accept="image/*" style="display:none" onchange="addPhoto(2,this)">
         </div>
-        <div class="pslot" id="ps3" onclick="pickListingPhoto(3)">
+        <div class="pslot" id="ps3" onclick="document.getElementById('pf3').click()">
           <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
           <span>Ekle</span>
           <input type="file" id="pf3" accept="image/*" style="display:none" onchange="addPhoto(3,this)">
@@ -1859,7 +1858,7 @@ function renderComplaintPreviewSkeleton(c) {
   if (c.type === 'listing') {
     const l = listings.find(x => x.id === c.targetId);
     if (l) return `<div class="pcol-current">
-      <div class="pcol-current-ic">${l.photo1?`<img src="${l.photo1Thumb||l.photo1}" style="width:100%;height:100%;object-fit:cover;border-radius:12px" loading="lazy" decoding="async">`:'📱'}</div>
+      <div class="pcol-current-ic">${l.photo1?`<img src="${l.photo1}" style="width:100%;height:100%;object-fit:cover;border-radius:12px" loading="lazy" decoding="async">`:'📱'}</div>
       <div><div class="pcol-current-name">${l.model}</div><div class="pcol-current-tag">₺${parseInt(l.price||0).toLocaleString('tr-TR')}</div></div>
     </div>`;
     return `<div class="ud-empty">${c.targetLabel} (ilan bulunamadı — silinmiş olabilir)</div>`;
@@ -2594,45 +2593,6 @@ function compressImageToWebP(file, maxDim, quality) {
   });
 }
 
-// Bir Blob'u belirtilen Storage yoluna yükler, ilerleme yüzdesini onProgress ile bildirir, indirme URL'sini döner.
-// ==== GENEL GÖRSEL YÜKLEME (ilan/forum — profil fotoğrafıyla AYNI temel mimari, thumb+original ikili) ====
-// TEK, paylaşılan fonksiyon: liste ekranları için küçük bir "thumb", detay ekranları için daha büyük
-// bir "original" üretir — ikisi de WebP (JPEG'e güvenli düşüşle), Storage'a PARALEL yüklenir.
-// onProgress'e bildirilen yüzde, iki yüklemenin ORTALAMASI — Firebase'in kendi gerçek
-// bytesTransferred/totalBytes ilerlemesinden geliyor, sahte/simüle bir spinner değil.
-// Artık hiçbir görsel Firestore'a base64 olarak yazılmıyor — yalnızca bu fonksiyonun döndürdüğü URL'ler yazılıyor.
-async function uploadImageWithThumb(file, storagePathPrefix, onProgress) {
-  if (file.size > 10 * 1024 * 1024) throw new Error('Fotoğraf en fazla 10MB olabilir.');
-  const [thumbSrc, origSrc] = await Promise.all([
-    compressImageToWebP(file, 400, 0.75),   // Liste ekranları için küçük, hafif thumbnail
-    compressImageToWebP(file, 1280, 0.85),  // Detay ekranı için yüksek kaliteli orijinal
-  ]);
-  const progress = { thumb: 0, original: 0 };
-  const report = () => onProgress && onProgress(Math.round((progress.thumb + progress.original) / 2));
-  const [thumbUrl, originalUrl] = await Promise.all([
-    uploadToStorage(`${storagePathPrefix}/thumb.${thumbSrc.ext}`, thumbSrc.blob, thumbSrc.mimeType, pct => { progress.thumb = pct; report(); }),
-    uploadToStorage(`${storagePathPrefix}/original.${origSrc.ext}`, origSrc.blob, origSrc.mimeType, pct => { progress.original = pct; report(); }),
-  ]);
-  return { thumbUrl, originalUrl };
-}
-
-// Yalnızca sohbet fotoğrafları için — liste ekranı yok, tek boyut yeterli (thumb+original ikilisi
-// burada gereksiz karmaşıklık olurdu, her gönderimde çalışmayı ikiye katlardı).
-async function uploadSingleImage(file, storagePathPrefix, onProgress) {
-  if (file.size > 10 * 1024 * 1024) throw new Error('Fotoğraf en fazla 10MB olabilir.');
-  const { blob, mimeType, ext } = await compressImageToWebP(file, 1000, 0.8);
-  return uploadToStorage(`${storagePathPrefix}.${ext}`, blob, mimeType, onProgress);
-}
-
-// crypto.randomUUID() modern WebView'lerde var, eski sürümler için basit bir yedek sağlanıyor.
-function generateUUID() {
-  if (crypto?.randomUUID) return crypto.randomUUID();
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-    const r = Math.random() * 16 | 0;
-    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
-  });
-}
-
 // Bir Blob'u Storage'a yükler ve indirme URL'sini döner. UploadTask'ın kendisi thenable olduğu için
 // (await task ile tamamlanmasını beklemek mümkün), önceki sürümdeki state_changed callback'lerine
 // bağımlı manuel Promise sarmalaması kaldırıldı — daha az hareketli parça, daha az hata yüzeyi.
@@ -3290,7 +3250,7 @@ function renderProfileListings() {
   }
   c.innerHTML = items.map(l => `
     <div class="mini-lcard" onclick="gt('market');setTimeout(()=>openDetail('${l.id}'),50)">
-      <div class="mini-lcard-thumb">${l.photo1?`<img src="${l.photo1Thumb||l.photo1}" alt="" loading="lazy" decoding="async">`:'📱'}</div>
+      <div class="mini-lcard-thumb">${l.photo1?`<img src="${l.photo1}" alt="" loading="lazy" decoding="async">`:'📱'}</div>
       <div class="mini-lcard-info">
         <div class="mini-lcard-title"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.model||''}</span>${l.sold?'<span class="mini-lcard-sold">SATILDI</span>':''}</div>
         <div class="mini-lcard-meta">₺${parseInt(l.price||0).toLocaleString('tr-TR')}${l.approved===false?' · İnceleniyor':''}</div>
@@ -3321,8 +3281,7 @@ function openEditProfile() {
 // Native uygulamada Capacitor Camera plugin'i (kamera/galeri seçici) kullanılır — HTML <input type=file>
 // Android WebView'lerde bazı cihazlarda 'change' olayını hiç tetiklemeyebiliyor, bu yüzden native
 // ortamda buna güvenmek yerine gerçek native picker'a geçiyoruz. Web'de dosya seçici olduğu gibi kalır.
-let photoPickTarget = null; // 'profile' | 'cover' | 'listing' — uygulama içi kaynak seçim ekranı hangi hedefe yükleyecek
-let photoPickListingIdx = null; // 'listing' hedefinde hangi slot (0-3)
+let photoPickTarget = null; // 'profile' | 'cover' — uygulama içi kaynak seçim ekranı hangi hedefe yükleyecek
 
 function pickProfilePhoto() {
   if (isNativeApp() && window.Capacitor?.Plugins?.Camera) {
@@ -3342,26 +3301,10 @@ function pickCoverPhoto() {
   }
 }
 
-// İLAN FOTOĞRAFI — KÖK NEDEN DÜZELTMESİ: bu, profil/kapak fotoğrafının çoktan aldığı native Kamera
-// eklentisi geçişini hiç almamıştı, hâlâ ham <input type=file>+.click() deseninde kalmıştı. Bu desen,
-// Android WebView'in bazı sürümlerinde 'change' olayını güvenilir tetiklemiyor — bu yüzden addPhoto()
-// hiç çalışmıyor, Storage'a hiçbir şey yüklenmiyordu (ama fotoğraf zorunlu olmadığı için ilan yine de
-// oluşturuluyordu). Artık profille birebir aynı, kanıtlanmış yola bağlandı.
-function pickListingPhoto(idx) {
-  if (isNativeApp() && window.Capacitor?.Plugins?.Camera) {
-    photoPickTarget = 'listing';
-    photoPickListingIdx = idx;
-    document.getElementById('photo-source-mo').classList.add('on');
-  } else {
-    document.getElementById('pf' + idx).click();
-  }
-}
-
 // Android'in kendi sistem "PROMPT" seçim ekranı bazı cihazlarda ikonları düzgün çizemiyor (kırık/boş görünüm).
 // Bunun yerine kaynağı (Kamera/Galeri) doğrudan, kendi tasarımımızdaki bir seçim ekranından belirliyoruz.
 async function executePhotoPick(source) {
   const target = photoPickTarget;
-  const listingIdx = photoPickListingIdx;
   try {
     const photo = await Capacitor.Plugins.Camera.getPhoto({
       quality: 90, allowEditing: false, resultType: 'dataUrl',
@@ -3369,8 +3312,7 @@ async function executePhotoPick(source) {
     });
     const blob = await (await fetch(photo.dataUrl)).blob();
     if (target === 'profile') await processProfilePhoto(blob);
-    else if (target === 'cover') await processCoverPhoto(blob);
-    else if (target === 'listing') await uploadListingPhotoFile(listingIdx, blob);
+    else await processCoverPhoto(blob);
   } catch (e) {
     if (e?.message !== 'User cancelled photos app') {
       console.error('Kamera/galeri açılamadı:', e);
@@ -4734,19 +4676,14 @@ async function sendChatImage(input) {
   const file = input.files[0];
   input.value = '';
   if (!file) return;
-  if (file.size > 10 * 1024 * 1024) { showToast('⚠️','rgba(255,69,58,.15)','Dosya Çok Büyük','Fotoğraf en fazla 10MB olabilir.'); return; }
+  if (file.size > 10 * 1024 * 1024) { alert('Fotoğraf çok büyük (max 10MB)'); return; }
   const id = chatIdFor(user.uid, currentChatOtherUid);
   const ref = db.collection('teknohane_chats').doc(id);
-  showToast('📤','var(--cdim)','Gönderiliyor…','%0');
   try {
-    const msgId = ref.collection('messages').doc().id; // Firestore mesaj dokümanı ID'si
-    const storageId = generateUUID(); // Storage dosya adı — mesaj ID'sinden bağımsız, gerçek UUID
-    const url = await uploadSingleImage(file, `chat-images/${id}/${user.uid}/${storageId}`, pct => {
-      showToast('📤','var(--cdim)','Gönderiliyor…', `%${pct}`);
-    });
-    await ref.collection('messages').doc(msgId).set({
+    const dataUrl = await compressImg(file, 800, 0.7);
+    await ref.collection('messages').add({
       senderUid: user.uid,
-      imageUrl: url,
+      imageUrl: dataUrl,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     await ref.set({
@@ -4757,10 +4694,7 @@ async function sendChatImage(input) {
     }, { merge: true });
     const myName = user.displayName || user.email?.split('@')[0] || 'Biri';
     sendPush(currentChatOtherUid, myName, '📷 Fotoğraf gönderdi', '/teknohane/');
-  } catch(e) {
-    console.error('Sohbet fotoğrafı gönderilemedi:', e);
-    showToast('⚠️','rgba(255,69,58,.15)','Gönderilemedi', e.message || 'Fotoğraf gönderilemedi.');
-  }
+  } catch(e) { alert('Hata: ' + e.message); }
 }
 
 // Bir sohbeti (tüm mesajlarıyla birlikte) güvenli şekilde siler.
@@ -4785,7 +4719,6 @@ async function deleteChatThread(chatId) {
     }
     // Mesajların tamamı silindikten sonra, en son sohbet dokümanının kendisi silinir.
     await db.collection('teknohane_chats').doc(chatId).delete();
-    deleteStorageFolder(`chat-images/${chatId}`); // Storage'da yetim dosya kalmasın
     showToast('✓', 'rgba(48,209,88,.15)', 'Silindi', 'Sohbet tamamen silindi.');
     return true;
   } catch(e) {
@@ -5180,7 +5113,7 @@ function rlistings() {
       ${l.sold?'<div class="sold-badge">SATILDI</div>':''}
       ${pending && !l.sold?'<div class="sold-badge" style="background:rgba(255,149,0,.92)">İNCELENİYOR</div>':''}
       <div class="lcard-top">
-        <div class="lcard-thumb">${l.photo1?`<img src="${l.photo1Thumb||l.photo1}" loading="lazy" decoding="async">`:'📱'}</div>
+        <div class="lcard-thumb">${l.photo1?`<img src="${l.photo1}" loading="lazy" decoding="async">`:'📱'}</div>
         <div class="lcard-top-info">
           <div class="ltit">${l.model||''}</div>
           <div class="lrow">
@@ -5229,12 +5162,9 @@ function smtab(t, el) {
   rlistings();
 }
 
-let pendingListingId = null; // Fotoğrafların Storage'a yükleneceği yol için — yeni ilanda önceden üretilir
-
 function newListing() {
   if (!user) { gt('profile'); return; }
   editingListingId = null;
-  pendingListingId = db.collection('teknohane_listings').doc().id; // Firestore ID'si, doküman yazılmadan önce üretiliyor
   document.querySelector('#listing-mo .mtit').textContent = 'İlan Ver';
   document.querySelector('#listing-mo .sbtn2').textContent = 'İlanı Yayınla';
   document.getElementById('l-agree-wrap').style.display = '';
@@ -5268,10 +5198,10 @@ async function submitListing() {
     if (editingListingId) {
       const old = listings.find(x => x.id === editingListingId);
       if (!old || old.uid !== user.uid) { editingListingId = null; return; }
-      if (photos[0]) { data.photo1 = photos[0]; data.photo1Thumb = photosThumb[0]; } else { data.photo1 = firebase.firestore.FieldValue.delete(); data.photo1Thumb = firebase.firestore.FieldValue.delete(); }
-      if (photos[1]) { data.photo2 = photos[1]; data.photo2Thumb = photosThumb[1]; } else { data.photo2 = firebase.firestore.FieldValue.delete(); data.photo2Thumb = firebase.firestore.FieldValue.delete(); }
-      if (photos[2]) { data.photo3 = photos[2]; data.photo3Thumb = photosThumb[2]; } else { data.photo3 = firebase.firestore.FieldValue.delete(); data.photo3Thumb = firebase.firestore.FieldValue.delete(); }
-      if (photos[3]) { data.photo4 = photos[3]; data.photo4Thumb = photosThumb[3]; } else { data.photo4 = firebase.firestore.FieldValue.delete(); data.photo4Thumb = firebase.firestore.FieldValue.delete(); }
+      if (photos[0]) data.photo1 = photos[0]; else data.photo1 = firebase.firestore.FieldValue.delete();
+      if (photos[1]) data.photo2 = photos[1]; else data.photo2 = firebase.firestore.FieldValue.delete();
+      if (photos[2]) data.photo3 = photos[2]; else data.photo3 = firebase.firestore.FieldValue.delete();
+      if (photos[3]) data.photo4 = photos[3]; else data.photo4 = firebase.firestore.FieldValue.delete();
       await db.collection('teknohane_listings').doc(editingListingId).update(data);
 
       // Fiyat düştüyse, bu ilanı favorileyen HERKESE kalıcı bildirim gönder (çevrimdışı olsalar bile)
@@ -5287,32 +5217,26 @@ async function submitListing() {
 
       showToast('✓', 'rgba(48,209,88,.15)', 'İlan Güncellendi', `${model} güncellendi.`);
     } else {
-      if (photos[0]) { data.photo1 = photos[0]; data.photo1Thumb = photosThumb[0]; }
-      if (photos[1]) { data.photo2 = photos[1]; data.photo2Thumb = photosThumb[1]; }
-      if (photos[2]) { data.photo3 = photos[2]; data.photo3Thumb = photosThumb[2]; }
-      if (photos[3]) { data.photo4 = photos[3]; data.photo4Thumb = photosThumb[3]; }
+      if (photos[0]) data.photo1 = photos[0];
+      if (photos[1]) data.photo2 = photos[1];
+      if (photos[2]) data.photo3 = photos[2];
+      if (photos[3]) data.photo4 = photos[3];
       data.sold = false;
       data.approved = false;
       data.uid = user.uid;
       data.ownerName = user.displayName || user.email?.split('@')[0] || 'Anonim';
       data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-      // .add() yerine önceden üretilmiş ID ile .set() — bu ID, fotoğrafların Storage yolunda zaten kullanıldı.
-      await db.collection('teknohane_listings').doc(pendingListingId).set(data);
+      await db.collection('teknohane_listings').add(data);
       showToast('⏳', 'rgba(255,149,0,.15)', 'İlanınız Gönderildi', 'İncelendikten sonra Pazar\'da yayınlanacaktır.');
     }
 
     closemo('listing-mo');
-    // ÖNEMLİ: rmPhoto() burada KULLANILMAZ — o, Storage'dan gerçek dosya siler. Az önce başarıyla
-    // kaydedilen ilan tam olarak bu dosyalara işaret ediyor; onları silmek ilanı görselsiz bırakırdı.
-    // Yalnızca yerel form durumu (dizi + görünen slot'lar) sıfırlanır.
     photos[0] = null; photos[1] = null; photos[2] = null; photos[3] = null;
-    photosThumb[0] = null; photosThumb[1] = null; photosThumb[2] = null; photosThumb[3] = null;
     [0,1,2,3].forEach(i => {
       const slot = document.getElementById('ps' + i);
       if (slot) slot.innerHTML = `<svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>Ekle</span><input type="file" id="pf${i}" accept="image/*" style="display:none" onchange="addPhoto(${i},this)">`;
     });
     editingListingId = null;
-    pendingListingId = null;
     document.querySelector('#listing-mo .mtit').textContent = 'İlan Ver';
     document.querySelector('#listing-mo .sbtn2').textContent = 'İlanı Yayınla';
     document.getElementById('l-agree-wrap').style.display = '';
@@ -5330,7 +5254,6 @@ function editListing(id) {
   const l = listings.find(x => x.id === id);
   if (!l || !user || l.uid !== user.uid) return;
   editingListingId = id;
-  pendingListingId = id;
   document.querySelector('#listing-mo .mtit').textContent = 'İlanı Düzenle';
   document.querySelector('#listing-mo .sbtn2').textContent = 'Değişiklikleri Kaydet';
   document.getElementById('l-model').value = l.model || '';
@@ -5354,14 +5277,14 @@ function editListing(id) {
     document.getElementById('detail-fields').style.display = 'block';
     document.getElementById('dt-chevron')?.parentElement?.classList.add('open');
   }
-  photos[0] = l.photo1 || null;       photosThumb[0] = l.photo1Thumb || l.photo1 || null;
-  photos[1] = l.photo2 || null;       photosThumb[1] = l.photo2Thumb || l.photo2 || null;
-  photos[2] = l.photo3 || null;       photosThumb[2] = l.photo3Thumb || l.photo3 || null;
-  photos[3] = l.photo4 || null;       photosThumb[3] = l.photo4Thumb || l.photo4 || null;
+  photos[0] = l.photo1 || null;
+  photos[1] = l.photo2 || null;
+  photos[2] = l.photo3 || null;
+  photos[3] = l.photo4 || null;
   [0,1,2,3].forEach(i => {
     const slot = document.getElementById('ps' + i);
-    const p = photosThumb[i];
-    if (p) slot.innerHTML = `<img src="${p}" loading="lazy" decoding="async"><div class="pslot-x" onclick="rmPhoto(${i});event.stopPropagation()">×</div><input type="file" id="pf${i}" accept="image/*" style="display:none" onchange="addPhoto(${i},this)">`;
+    const p = photos[i];
+    if (p) slot.innerHTML = `<img src="${p}"><div class="pslot-x" onclick="rmPhoto(${i});event.stopPropagation()">×</div><input type="file" id="pf${i}" accept="image/*" style="display:none" onchange="addPhoto(${i},this)">`;
     else slot.innerHTML = `<svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>Ekle</span><input type="file" id="pf${i}" accept="image/*" style="display:none" onchange="addPhoto(${i},this)">`;
   });
   exitDetailPage(false);
@@ -5376,53 +5299,43 @@ function toggleDetailFields() {
   toggle.classList.toggle('open', !isOpen);
 }
 
-const photos = [null, null, null, null];      // orijinal görsel URL'leri
-const photosThumb = [null, null, null, null]; // thumbnail URL'leri (liste ekranları için)
+const photos = [null, null, null, null];
 
-// Web'de <input type=file> hâlâ kullanılıyor (masaüstü/mobil tarayıcıda güvenilir çalışır) — seçilince buraya düşer.
-async function addPhoto(idx, input) {
+function addPhoto(idx, input) {
   const file = input.files[0];
-  input.value = '';
   if (!file) return;
-  await uploadListingPhotoFile(idx, file);
-}
+  if (file.size > 10 * 1024 * 1024) { alert('Fotoğraf çok büyük (max 10MB)'); input.value=''; return; }
 
-// Gerçek yükleme mantığı — hem native Kamera akışından (pickListingPhoto → executePhotoPick) hem
-// web <input type=file> akışından (addPhoto) çağrılan TEK, paylaşılan fonksiyon.
-async function uploadListingPhotoFile(idx, file) {
-  if (file.size > 10 * 1024 * 1024) { showToast('⚠️','rgba(255,69,58,.15)','Dosya Çok Büyük','Fotoğraf en fazla 10MB olabilir.'); return; }
-  const slot = document.getElementById('ps' + idx);
-  // Yükleme sırasında ekran donmasın diye anında bir ilerleme göstergesi konuyor, GERÇEK Storage
-  // ilerlemesiyle (%12, %46, %81 gibi) güncelleniyor — sahte bir spinner değil.
-  const setProgress = pct => { slot.innerHTML = `<div class="pslot-progress"><div class="spin" style="width:20px;height:20px"></div><span>%${pct}</span></div>`; };
-  setProgress(0);
-  try {
-    const path = `listing-photos/${user.uid}/${pendingListingId}/slot${idx}`;
-    const { thumbUrl, originalUrl } = await uploadImageWithThumb(file, path, setProgress);
-    photos[idx] = originalUrl;
-    photosThumb[idx] = thumbUrl;
-    slot.innerHTML = `<img src="${thumbUrl}" loading="lazy" decoding="async"><div class="pslot-x" onclick="rmPhoto(${idx});event.stopPropagation()">×</div><input type="file" id="pf${idx}" accept="image/*" style="display:none" onchange="addPhoto(${idx},this)">`;
-  } catch(e) {
-    console.error('İlan fotoğrafı yüklenemedi:', e);
-    showToast('⚠️','rgba(255,69,58,.15)','Yükleme Başarısız', e.message || 'Fotoğraf yüklenemedi.');
-    slot.innerHTML = `<svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>Ekle</span><input type="file" id="pf${idx}" accept="image/*" style="display:none" onchange="addPhoto(${idx},this)">`;
-  }
+  const img = new Image();
+  const reader = new FileReader();
+  reader.onload = e => {
+    img.onload = () => {
+      const maxW = 1000;
+      let w = img.width, h = img.height;
+      if (w > maxW) { h = h * (maxW / w); w = maxW; }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      let quality = 0.75;
+      let dataUrl = canvas.toDataURL('image/jpeg', quality);
+      while (dataUrl.length > 600 * 1024 * 1.37 && quality > 0.2) {
+        quality -= 0.1;
+        dataUrl = canvas.toDataURL('image/jpeg', quality);
+      }
+      photos[idx] = dataUrl;
+      const slot = document.getElementById('ps' + idx);
+      slot.innerHTML = `<img src="${dataUrl}"><div class="pslot-x" onclick="rmPhoto(${idx});event.stopPropagation()">×</div><input type="file" id="pf${idx}" accept="image/*" style="display:none" onchange="addPhoto(${idx},this)">`;
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
 }
-
-// Forum fotoğrafları için genel sıkıştırma yardımcısı
-// (Eski base64 sıkıştırma fonksiyonu compressImg() kaldırıldı — tüm görsel yükleme akışları artık
-// tek bir mimarideki compressImageToWebP() + uploadToStorage() ikilisini kullanıyor.)
 
 function rmPhoto(idx) {
-  const hadPhoto = !!photos[idx];
   photos[idx] = null;
-  photosThumb[idx] = null;
   const slot = document.getElementById('ps' + idx);
-  if (slot) slot.innerHTML = `<svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>Ekle</span><input type="file" id="pf${idx}" accept="image/*" style="display:none" onchange="addPhoto(${idx},this)">`;
-  // Slot artık bir klasör (thumb.webp + original.webp) — ikisi birden siliniyor.
-  if (hadPhoto && user && pendingListingId) {
-    deleteStorageFolder(`listing-photos/${user.uid}/${pendingListingId}/slot${idx}`);
-  }
+  if (!slot) return;
+  slot.innerHTML = `<svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>Ekle</span><input type="file" id="pf${idx}" accept="image/*" style="display:none" onchange="addPhoto(${idx},this)">`;
 }
 
 let currentListing = null;
@@ -5739,27 +5652,12 @@ async function notifyListingOwnerOnFav(l, adding) {
   }
 }
 
-// Bir Storage klasöründeki TÜM dosyaları (ve varsa alt klasörleri) siler (Storage'ın kendisi
-// "klasör silme" desteklemediği için listAll() + tek tek silme deseni kullanılır, alt klasörler
-// için özyinelemeli). Dört farklı silme akışında (ilan/forum gönderisi/forum yorumu/sohbet)
-// tekrar tekrar kullanılan TEK, paylaşılan fonksiyon.
-async function deleteStorageFolder(path) {
-  try {
-    const res = await storage.ref(path).listAll();
-    await Promise.all([
-      ...res.items.map(item => item.delete().catch(()=>{})),
-      ...res.prefixes.map(prefix => deleteStorageFolder(prefix.fullPath)),
-    ]);
-  } catch(e) { /* klasör hiç yoksa (fotoğrafsız ilan/gönderi) sessizce geç */ }
-}
-
 async function delListing(id) {
   if (!confirm('İlan silinsin mi?')) return;
   const l = listings.find(x => x.id === id);
   const isAdminModeration = isAdminNow() && l && user.uid !== l.uid;
   try {
     await db.collection('teknohane_listings').doc(id).delete();
-    if (l?.uid) deleteStorageFolder(`listing-photos/${l.uid}/${id}`); // Storage'da yetim dosya kalmasın
     listings = listings.filter(x => x.id !== id);
     // Pazar ekranının kendi sayfalamalı dizilerinden de kaldır (görsel anında güncellensin diye)
     marketAllListings = marketAllListings.filter(x => x.id !== id);
@@ -5780,7 +5678,6 @@ let forumPosts = [];
 let currentPost = null;
 let currentPostType = 'soru';
 let currentPostCat = 'genel';
-let pendingCommentId = null;
 
 const POST_TYPES = {
   soru:      {label:'❓ Soru',      cls:'post-type-soru'},
@@ -5891,7 +5788,7 @@ function rForum() {
     const catLabel = POST_CATS[p.category] || '';
     const isPopular = likeCount >= 10; // basit, sabit eşik — Popüler rozeti
     return `<div class="post-card" onclick="openPost('${p.id}')">
-      ${p.imageUrl ? `<img class="post-card-img" src="${p.imageUrlThumb||p.imageUrl}" loading="lazy" decoding="async" onclick="event.stopPropagation();openFullscreen('${p.imageUrl}')">` : ''}
+      ${p.imageUrl ? `<img class="post-card-img" src="${p.imageUrl}" loading="lazy" decoding="async" onclick="event.stopPropagation();openFullscreen('${p.imageUrl}')">` : ''}
       <div class="post-card-body">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap">
           ${p.pinned?'<div class="post-type-badge" style="background:rgba(0,212,255,.12);color:var(--cyan)">📌 Sabit</div>':''}
@@ -5927,11 +5824,8 @@ function rForum() {
   }
 }
 
-let pendingPostId = null; // Gönderi fotoğrafının Storage yolu için — form açılışında önceden üretilir
-let npPhotoUrl = null;
-let npPhotoThumbUrl = null;
-let cmtPhotoUrl = null;
-let cmtPhotoThumbUrl = null;
+let npPhotoB64 = null;
+let cmtPhotoB64 = null;
 
 function openNewPost() {
   if (!user) { showToast('🔒','var(--cdim)','Giriş Gerekli','Konu açmak için giriş yapın.', ()=>gt('profile')); return; }
@@ -5939,8 +5833,7 @@ function openNewPost() {
   document.getElementById('np-body').value = '';
   document.getElementById('np-photo-preview').innerHTML = '';
   document.getElementById('np-photo-label').textContent = 'Fotoğraf ekle';
-  npPhotoUrl = null;
-  pendingPostId = db.collection('teknohane_posts').doc().id;
+  npPhotoB64 = null;
   selPostType('soru', document.querySelector('[data-ptype="soru"]'));
   selPostCat('genel', document.querySelector('[data-pcat="genel"]'));
   document.getElementById('new-post-mo').classList.add('on');
@@ -5957,48 +5850,48 @@ function selPostCat(cat, el) {
   el?.classList.add('on');
 }
 
+// Görsel sıkıştırma yardımcısı (base64) — ilan/forum/sohbet fotoğrafları için ortak.
+function compressImg(file, maxW=900, quality=0.75) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = e => {
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        let q = quality;
+        let url = canvas.toDataURL('image/jpeg', q);
+        while (url.length > 700 * 1024 * 1.37 && q > 0.2) { q -= 0.1; url = canvas.toDataURL('image/jpeg', q); }
+        resolve(url);
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 async function handlePostPhoto(input) {
   const file = input.files[0];
-  input.value = '';
   if (!file) return;
-  const preview = document.getElementById('np-photo-preview');
-  const label = document.getElementById('np-photo-label');
-  const setProgress = pct => { preview.innerHTML = `<div class="pslot-progress" style="width:auto;flex-direction:row;gap:6px"><div class="spin" style="width:16px;height:16px"></div><span>%${pct}</span></div>`; };
-  setProgress(0);
-  label.textContent = 'Yükleniyor…';
-  try {
-    const { thumbUrl, originalUrl } = await uploadImageWithThumb(file, `forum-post-images/${user.uid}/${pendingPostId}`, setProgress);
-    npPhotoUrl = originalUrl;
-    npPhotoThumbUrl = thumbUrl;
-    label.textContent = '1 fotoğraf seçildi';
-    preview.innerHTML = `<img src="${thumbUrl}" class="photo-preview-thumb" loading="lazy" decoding="async">`;
-  } catch(e) {
-    console.error('Gönderi fotoğrafı yüklenemedi:', e);
-    showToast('⚠️','rgba(255,69,58,.15)','Yükleme Başarısız', e.message || 'Fotoğraf yüklenemedi.');
-    label.textContent = 'Fotoğraf ekle';
-    preview.innerHTML = '';
-  }
+  npPhotoB64 = await compressImg(file, 900, 0.75);
+  document.getElementById('np-photo-label').textContent = '1 fotoğraf seçildi';
+  document.getElementById('np-photo-preview').innerHTML = `<img src="${npPhotoB64}" class="photo-preview-thumb">`;
+  input.value = '';
 }
 
 async function handleCmtPhoto(input) {
   const file = input.files[0];
-  input.value = '';
   if (!file) return;
+  cmtPhotoB64 = await compressImg(file, 800, 0.7);
   const prev = document.getElementById('cmt-photo-preview');
   prev.style.display = 'block';
-  const setProgress = pct => { prev.innerHTML = `<div class="pslot-progress" style="width:64px;height:64px;flex-direction:row;gap:4px;font-size:10px"><div class="spin" style="width:14px;height:14px"></div><span>%${pct}</span></div>`; };
-  setProgress(0);
-  try {
-    if (!pendingCommentId) pendingCommentId = db.collection('teknohane_posts').doc(currentPost.id).collection('comments').doc().id;
-    const { thumbUrl, originalUrl } = await uploadImageWithThumb(file, `forum-comment-images/${user.uid}/${pendingCommentId}`, setProgress);
-    cmtPhotoUrl = originalUrl;
-    cmtPhotoThumbUrl = thumbUrl;
-    prev.innerHTML = `<img src="${thumbUrl}" style="width:64px;height:64px;border-radius:8px;object-fit:cover" loading="lazy" decoding="async">`;
-  } catch(e) {
-    console.error('Yorum fotoğrafı yüklenemedi:', e);
-    showToast('⚠️','rgba(255,69,58,.15)','Yükleme Başarısız', e.message || 'Fotoğraf yüklenemedi.');
-    prev.style.display = 'none'; prev.innerHTML = '';
-  }
+  prev.innerHTML = `<img src="${cmtPhotoB64}" style="width:64px;height:64px;border-radius:8px;object-fit:cover">`;
+  input.value = '';
 }
 
 async function submitPost() {
@@ -6023,14 +5916,12 @@ async function submitPost() {
       pinned: false, featured: false, locked: false, archived: false,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
-    if (npPhotoUrl) { data.imageUrl = npPhotoUrl; data.imageUrlThumb = npPhotoThumbUrl; }
-    // .add() yerine önceden üretilmiş ID ile .set() — bu ID, fotoğrafın Storage yolunda zaten kullanıldı.
-    const savedPostId = pendingPostId;
-    await db.collection('teknohane_posts').doc(savedPostId).set(data);
+    if (npPhotoB64) data.imageUrl = npPhotoB64;
+    const ref = await db.collection('teknohane_posts').add(data);
+    const savedPostId = ref.id;
 
     closemo('new-post-mo');
-    npPhotoUrl = null; npPhotoThumbUrl = null;
-    pendingPostId = null;
+    npPhotoB64 = null;
 
     // GÜVENİLİRLİK DÜZELTMESİ: yeni gönderiyi göstermek için tekrar sorgu atıp (loadForumPage) onun
     // sonuç döndürmesine güvenmek yerine — ki bu, ağ/senkronizasyon zamanlamasına bağımlı kalıyordu —
@@ -6063,8 +5954,7 @@ async function openPost(id) {
   if (!currentPost) { showToast('❗','rgba(255,69,58,.12)','Bulunamadı','Bu konu kaldırılmış olabilir.'); return; }
   renderPostDetail();
   document.getElementById('post-detail-mo').classList.add('on');
-  cmtPhotoUrl = null;
-  pendingCommentId = null;
+  cmtPhotoB64 = null;
   const prev = document.getElementById('cmt-photo-preview');
   if (prev) { prev.style.display='none'; prev.innerHTML=''; }
   try {
@@ -6130,7 +6020,7 @@ function renderComments() {
       ${isBest?'<div class="best-badge">✓ En İyi Cevap</div>':''}
       <div class="comment-author" onclick="openPublicProfile('${c.uid}','${(c.authorName||'').replace(/'/g,"\\'")}')" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;display:inline-block">${c.authorName||'—'}</div>
       <div class="comment-text">${c.body||''}</div>
-      ${c.imageUrl?`<img class="comment-img" src="${c.imageUrlThumb||c.imageUrl}" loading="lazy" decoding="async" onclick="openFullscreen('${c.imageUrl}')">` : ''}
+      ${c.imageUrl?`<img class="comment-img" src="${c.imageUrl}" loading="lazy" decoding="async" onclick="openFullscreen('${c.imageUrl}')">` : ''}
       <div class="comment-meta">
         <div class="comment-actions">
           <button class="comment-like-btn ${likedC?'liked':''}" onclick="likeComment('${c.id}')">
@@ -6171,7 +6061,7 @@ async function submitComment() {
   if (!user) return;
   const inp = document.getElementById('comment-inp');
   const body = inp.value.trim();
-  if (!body && !cmtPhotoUrl) return;
+  if (!body && !cmtPhotoB64) return;
   const p = currentPost;
   try {
     const cdata = {
@@ -6180,17 +6070,13 @@ async function submitComment() {
       body: body||'', likes: [],
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
-    if (cmtPhotoUrl) { cdata.imageUrl = cmtPhotoUrl; cdata.imageUrlThumb = cmtPhotoThumbUrl; }
-    // Fotoğraf yüklenirken zaten üretilmiş bir ID varsa onu kullan (Storage yolu bununla eşleşiyor);
-    // fotoğrafsız bir yorumsa yeni bir ID üretilir.
-    const commentId = pendingCommentId || db.collection('teknohane_posts').doc(p.id).collection('comments').doc().id;
-    await db.collection('teknohane_posts').doc(p.id).collection('comments').doc(commentId).set(cdata);
+    if (cmtPhotoB64) cdata.imageUrl = cmtPhotoB64;
+    const ref = await db.collection('teknohane_posts').doc(p.id).collection('comments').add(cdata);
     await db.collection('teknohane_posts').doc(p.id).update({ answerCount: firebase.firestore.FieldValue.increment(1) });
     p.answerCount = (p.answerCount||0) + 1;
-    p._comments = [...(p._comments||[]), { id:commentId, ...cdata, imageUrl:cmtPhotoUrl||null, imageUrlThumb:cmtPhotoThumbUrl||null, createdAt:{toDate:()=>new Date()} }];
+    p._comments = [...(p._comments||[]), { id:ref.id, ...cdata, imageUrl:cmtPhotoB64||null, createdAt:{toDate:()=>new Date()} }];
     inp.value = ''; inp.style.height = 'auto';
-    cmtPhotoUrl = null; cmtPhotoThumbUrl = null;
-    pendingCommentId = null;
+    cmtPhotoB64 = null;
     const prev = document.getElementById('cmt-photo-preview');
     if (prev) { prev.style.display='none'; prev.innerHTML=''; }
     renderPostDetail(); renderComments();
@@ -6258,7 +6144,6 @@ async function deletePost(id) {
   const p = forumPosts.find(x => x.id === id) || adminForumPosts.find(x => x.id === id) || currentPost;
   try {
     await db.collection('teknohane_posts').doc(id).delete();
-    if (p?.uid) deleteStorageFolder(`forum-post-images/${p.uid}/${id}`); // Storage'da yetim dosya kalmasın
     forumPosts = forumPosts.filter(p => p.id !== id);
     adminForumPosts = adminForumPosts.filter(p => p.id !== id);
     closemo('post-detail-mo');
@@ -6274,7 +6159,6 @@ async function deleteComment(cid) {
   const c = (p._comments||[]).find(x => x.id === cid);
   try {
     await db.collection('teknohane_posts').doc(p.id).collection('comments').doc(cid).delete();
-    if (c?.imageUrl && c.uid) deleteStorageFolder(`forum-comment-images/${c.uid}/${cid}`);
     await db.collection('teknohane_posts').doc(p.id).update({ answerCount: firebase.firestore.FieldValue.increment(-1) });
     p._comments = (p._comments||[]).filter(c => c.id !== cid);
     p.answerCount = Math.max(0, (p.answerCount||1) - 1);
@@ -6493,7 +6377,7 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
       <div class="ud-section-title">Aktif İlanlar</div>
       ${userListings.length ? userListings.map(l => `
         <div class="pub-listing-card" onclick="closemo('pub-profile-mo');openDetail('${l.id}')">
-          <div class="pub-listing-img">${l.photo1 ? `<img src="${l.photo1Thumb||l.photo1}" style="width:100%;height:100%;border-radius:8px;object-fit:cover" loading="lazy" decoding="async">` : '📱'}</div>
+          <div class="pub-listing-img">${l.photo1 ? `<img src="${l.photo1}" style="width:100%;height:100%;border-radius:8px;object-fit:cover" loading="lazy" decoding="async">` : '📱'}</div>
           <div class="pub-listing-info">
             <div class="pub-listing-model">${l.model}</div>
             <div class="pub-listing-price">₺${parseInt(l.price||0).toLocaleString('tr-TR')} · ${l.condition}</div>
@@ -6506,7 +6390,7 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
       <div class="ud-section-title">Satılan İlanlar</div>
       ${soldListings.map(l => `
         <div class="pub-listing-card" onclick="closemo('pub-profile-mo');openDetail('${l.id}')" style="opacity:.6">
-          <div class="pub-listing-img">${l.photo1 ? `<img src="${l.photo1Thumb||l.photo1}" style="width:100%;height:100%;border-radius:8px;object-fit:cover" loading="lazy" decoding="async">` : '📱'}</div>
+          <div class="pub-listing-img">${l.photo1 ? `<img src="${l.photo1}" style="width:100%;height:100%;border-radius:8px;object-fit:cover" loading="lazy" decoding="async">` : '📱'}</div>
           <div class="pub-listing-info">
             <div class="pub-listing-model">${l.model} ✓</div>
             <div class="pub-listing-price">₺${parseInt(l.price||0).toLocaleString('tr-TR')}</div>
@@ -6829,7 +6713,7 @@ function radmin() {
     const pending = l.approved === false;
     return `
     <div class="adm-row" style="${pending?'border:1px solid rgba(255,149,0,.35);background:rgba(255,149,0,.05)':''}" onclick="openDetail('${l.id}')">
-      ${l.photo1 ? `<img src="${l.photo1Thumb||l.photo1}" loading="lazy" decoding="async">` : `<div style="width:44px;height:44px;border-radius:8px;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">📱</div>`}
+      ${l.photo1 ? `<img src="${l.photo1}" loading="lazy" decoding="async">` : `<div style="width:44px;height:44px;border-radius:8px;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">📱</div>`}
       <div class="adm-info">
         <div class="adm-model">${l.featured?'⭐ ':''}${l.sold?'✅ ':''}${l.paused?'⏸️ ':''}${l.model||'—'}${pending?' <span style="color:#FF9500;font-size:10px;font-weight:700">⏳ ONAY BEKLİYOR</span>':''}${l.rejected?' <span style="color:var(--red);font-size:10px;font-weight:700">✕ REDDEDİLDİ</span>':''}</div>
         <div class="adm-meta">₺${parseInt(l.price||0).toLocaleString('tr-TR')} · ${l.ownerName||'Anonim'}</div>
@@ -7039,7 +6923,6 @@ async function deleteAdminComment(postId, commentId) {
   const c = adminCommentsCache.find(x => x.id === commentId);
   try {
     await db.collection('teknohane_posts').doc(postId).collection('comments').doc(commentId).delete();
-    if (c?.imageUrl && c.uid) deleteStorageFolder(`forum-comment-images/${c.uid}/${commentId}`);
     adminCommentsCache = adminCommentsCache.filter(x => x.id !== commentId);
     adminLog('delete_comment', 'comment', commentId, (c?.body||'').slice(0,40), c, null, 'success');
     renderAdminCommentsList();
@@ -7086,7 +6969,6 @@ async function adminDeletePost(id) {
   const p = adminForumPosts.find(x => x.id === id) || forumPosts.find(x => x.id === id);
   try {
     await db.collection('teknohane_posts').doc(id).delete();
-    if (p?.uid) deleteStorageFolder(`forum-post-images/${p.uid}/${id}`);
     adminForumPosts = adminForumPosts.filter(x => x.id !== id);
     forumPosts = forumPosts.filter(x => x.id !== id);
     if (isAdminNow()) adminLog('delete_forum_post', 'forum_post', id, p?.title || id, p, null, 'success');
