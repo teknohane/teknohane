@@ -515,6 +515,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .pcompl-fill{height:100%;background:linear-gradient(90deg,var(--cyan),#0080ff);border-radius:20px;transition:width .5s ease;}
 .pcompl-missing{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
 .pcompl-pill{font-size:11px;color:var(--cyan);background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.25);padding:4px 10px;border-radius:20px;cursor:pointer;}
+.notif-cat-dot{display:none;width:6px;height:6px;border-radius:50%;background:var(--red);margin-left:5px;vertical-align:middle;}
+.notif-cat-dot.on{display:inline-block;}
+.notif-date-hdr{font-size:12px;font-weight:700;color:var(--text3);margin:16px 0 8px;text-transform:uppercase;letter-spacing:.5px;}
+.notif-date-hdr:first-child{margin-top:0;}
 .psec-title{font-size:14px;font-weight:700;margin-bottom:14px;}
 .pcol-card{background:var(--surf);border:1px solid var(--border);border-radius:18px;padding:18px;margin-bottom:16px;}
 .pcol-current{display:flex;align-items:center;gap:12px;background:rgba(0,212,255,.06);border:1px solid rgba(0,212,255,.2);border-radius:14px;padding:12px 14px;margin-bottom:16px;}
@@ -1060,13 +1064,26 @@ body.tk-maintenance #maintenance-gate{
 <!-- HABER DETAY MODAL -->
 <!-- BİLDİRİMLER MODAL -->
 <div class="mo" id="notif-mo" onclick="closemo('notif-mo')">
-  <div class="ms" onclick="event.stopPropagation()">
+  <div class="ms" onclick="event.stopPropagation()" style="max-height:85vh">
     <div class="mh"></div>
     <div class="mtit" style="display:flex;align-items:center;justify-content:space-between">
       <span>Bildirimler</span>
-      <span id="notif-clear-all" style="font-size:12px;color:var(--red);cursor:pointer;font-weight:600;display:none" onclick="clearAllNotifications()">Tümünü Sil</span>
+      <span id="notif-actions" style="font-size:12px;display:none">
+        <span style="color:var(--cyan);cursor:pointer;font-weight:600" onclick="markAllNotifsRead()">Tümünü Okundu Yap</span>
+        <span style="color:var(--text3)"> · </span>
+        <span style="color:var(--red);cursor:pointer;font-weight:600" onclick="clearAllNotifications()">Tümünü Sil</span>
+      </span>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px" id="notif-category-filters">
+      <span class="pcompl-pill notif-cat-pill" data-cat="all" onclick="setNotifCategory('all')" style="background:var(--cyan);color:#000">Tümü</span>
+      <span class="pcompl-pill notif-cat-pill" data-cat="followers" onclick="setNotifCategory('followers')">Takipçiler<span class="notif-cat-dot" data-cat-dot="followers"></span></span>
+      <span class="pcompl-pill notif-cat-pill" data-cat="referrals" onclick="setNotifCategory('referrals')">Referanslar<span class="notif-cat-dot" data-cat-dot="referrals"></span></span>
+      <span class="pcompl-pill notif-cat-pill" data-cat="market" onclick="setNotifCategory('market')">Pazar<span class="notif-cat-dot" data-cat-dot="market"></span></span>
+      <span class="pcompl-pill notif-cat-pill" data-cat="forum" onclick="setNotifCategory('forum')">Forum<span class="notif-cat-dot" data-cat-dot="forum"></span></span>
+      <span class="pcompl-pill notif-cat-pill" data-cat="system" onclick="setNotifCategory('system')">Sistem<span class="notif-cat-dot" data-cat-dot="system"></span></span>
     </div>
     <div id="notif-list"></div>
+    <button class="apbtn" id="notif-load-more" style="margin-top:12px;background:var(--surf2);color:var(--text);display:none" onclick="loadNotifPage(false)">Daha Fazla</button>
   </div>
 </div>
 
@@ -3866,10 +3883,21 @@ function dismissToast(t) {
 }
 
 // Kalıcı bildirim oluşturur (Firestore'a yazılır, kullanıcı çevrimdışıyken bile daha sonra görebilir)
+// Bildirim türünü (type) kategoriye eşler — Bildirim Merkezi 2.0'ın filtreleme ve okunmadı
+// rozetleri için. Yeni bir tür eklenirse buraya bir satır eklemek yeterli.
+const NOTIF_TYPE_CATEGORY = {
+  new_follower: 'followers',
+  new_referrer: 'referrals',
+  price_drop: 'market', listing_favorited: 'market', seller_review: 'market',
+  post_liked: 'forum', post_comment: 'forum', comment_liked: 'forum',
+  admin_notification: 'system', admin_warning: 'system', complaint_update: 'system',
+};
+
 async function notifyUser(toUid, type, message, listingId, postId) {
   try {
     await db.collection('teknohane_notifications').add({
       toUid, type, message, listingId: listingId || null, postId: postId || null,
+      category: NOTIF_TYPE_CATEGORY[type] || 'system',
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       read: false
     });
@@ -4194,7 +4222,11 @@ const NOTIF_ICONS = {
   seller_review: { ic: '⭐', bg: 'rgba(255,204,0,.15)' },
   post_liked: { ic: '❤️', bg: 'rgba(255,69,58,.12)' },
   post_comment: { ic: '💬', bg: 'rgba(0,212,255,.12)' },
-  comment_liked: { ic: '❤️', bg: 'rgba(255,69,58,.12)' }
+  comment_liked: { ic: '❤️', bg: 'rgba(255,69,58,.12)' },
+  new_follower: { ic: '👤', bg: 'rgba(0,212,255,.12)' },
+  admin_notification: { ic: '🔔', bg: 'var(--cdim)' },
+  admin_warning: { ic: '⚠️', bg: 'rgba(255,149,0,.15)' },
+  complaint_update: { ic: '📋', bg: 'rgba(0,212,255,.12)' },
 };
 
 function subscribeNotifBadge(uid) {
@@ -4211,45 +4243,169 @@ function subscribeNotifBadge(uid) {
     }, () => {});
 }
 
-async function openNotifications() {
-  if (!user) { gt('profile'); return; }
-  document.getElementById('notif-mo').classList.add('on');
+// ==== BİLDİRİM MERKEZİ 2.0 ====
+// Kural: yeni global dinleyici YOK. subscribeNotifBadge() (zaten var olan tek listener) header
+// rozetini besliyor; kategori sekmeleri ve liste, yalnızca modal AÇIKKEN, tek seferlik sorgularla
+// çalışıyor. Gruplama ve tarih başlıkları tamamen istemci tarafında, ek okuma olmadan yapılıyor.
+
+const NOTIF_GROUPABLE_TYPES = ['new_follower', 'listing_favorited', 'post_liked', 'comment_liked'];
+const NOTIF_GROUP_LABELS = {
+  new_follower: n => `${n} kişi seni takip etti`,
+  listing_favorited: n => `${n} kişi ilanını favoriledi`,
+  post_liked: n => `${n} kişi gönderini beğendi`,
+  comment_liked: n => `${n} kişi yorumunu beğendi`,
+};
+const NOTIF_CATEGORY_LIST = ['followers', 'referrals', 'market', 'forum', 'system'];
+
+let notifCurrentCategory = 'all';
+let notifAccumulatedDocs = [];
+let notifLastDoc = null;
+let notifHasMore = true;
+let notifLoading = false;
+
+// Ardışık, aynı tür + aynı hedefe (ilan/gönderi) ait, aynı okunma durumuna sahip bildirimleri
+// tek bir karta indirger — "Ahmet/Mehmet/Ayşe seni takip etti" yerine "3 kişi seni takip etti".
+function groupNotifDocs(docs) {
+  const groups = [];
+  docs.forEach(d => {
+    const n = d.data();
+    const groupKey = n.type + '|' + (n.listingId||'') + '|' + (n.postId||'');
+    const last = groups[groups.length - 1];
+    if (NOTIF_GROUPABLE_TYPES.includes(n.type) && last && last.key === groupKey && last.items[0].data().read === n.read) {
+      last.items.push(d);
+    } else {
+      groups.push({ key: groupKey, type: n.type, items: [d] });
+    }
+  });
+  return groups;
+}
+
+function notifDateBucket(date) {
+  const now = new Date();
+  const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startYesterday = new Date(startToday); startYesterday.setDate(startYesterday.getDate()-1);
+  const startWeek = new Date(startToday); startWeek.setDate(startWeek.getDate()-7);
+  const startMonth = new Date(startToday); startMonth.setDate(startMonth.getDate()-30);
+  if (date >= startToday) return 'Bugün';
+  if (date >= startYesterday) return 'Dün';
+  if (date >= startWeek) return 'Bu Hafta';
+  if (date >= startMonth) return 'Bu Ay';
+  return 'Daha Eski';
+}
+
+function renderNotifGroupCard(g) {
+  const first = g.items[0].data();
+  const meta = NOTIF_ICONS[g.type] || { ic: '🔔', bg: 'var(--cdim)' };
+  const anyUnread = g.items.some(d => !d.data().read);
+  const ids = g.items.map(d => d.id).join(',');
+  const time = first.createdAt?.toDate ? fd(first.createdAt.toDate().toISOString()) : '';
+  const label = (g.items.length > 1 && NOTIF_GROUP_LABELS[g.type]) ? NOTIF_GROUP_LABELS[g.type](g.items.length) : first.message;
+  return `<div class="notif-swipe-wrap" data-ids="${ids}">
+    <div class="notif-swipe-del">🗑️</div>
+    <div class="notif-item ${anyUnread?'unread':''}" onclick="clickNotifGroup('${ids}','${first.listingId||''}',${anyUnread},'${first.postId||''}')">
+      <div class="notif-ic" style="background:${meta.bg}">${meta.ic}</div>
+      <div class="notif-txt" style="flex:1"><div class="notif-msg">${label}</div><div class="notif-time">${anyUnread?'<span style="color:var(--cyan);font-weight:700">Yeni · </span>':''}${time}</div></div>
+      ${anyUnread?'<div class="unread-dot"></div>':''}
+    </div>
+  </div>`;
+}
+
+function renderNotifList() {
   const list = document.getElementById('notif-list');
-  const clearBtn = document.getElementById('notif-clear-all');
-  list.innerHTML = `<div class="load"><div class="spin"></div></div>`;
-  clearBtn.style.display = 'none';
+  const actions = document.getElementById('notif-actions');
+  const loadMoreBtn = document.getElementById('notif-load-more');
+  if (!notifAccumulatedDocs.length) {
+    list.innerHTML = `<div class="no">Henüz bildirimin yok</div>`;
+    actions.style.display = 'none';
+    loadMoreBtn.style.display = 'none';
+    return;
+  }
+  actions.style.display = 'inline';
+  loadMoreBtn.style.display = notifHasMore ? 'block' : 'none';
+  const groups = groupNotifDocs(notifAccumulatedDocs);
+  let lastBucket = null;
+  let html = '';
+  groups.forEach(g => {
+    const d = g.items[0].data().createdAt?.toDate ? g.items[0].data().createdAt.toDate() : new Date();
+    const bucket = notifDateBucket(d);
+    if (bucket !== lastBucket) { html += `<div class="notif-date-hdr">${bucket}</div>`; lastBucket = bucket; }
+    html += renderNotifGroupCard(g);
+  });
+  list.innerHTML = html;
+  document.querySelectorAll('#notif-list .notif-swipe-wrap').forEach(wrap => attachSwipeDelete(wrap));
+}
+
+function setNotifCategory(cat) {
+  notifCurrentCategory = cat;
+  document.querySelectorAll('.notif-cat-pill').forEach(el => {
+    const active = el.dataset.cat === cat;
+    el.style.background = active ? 'var(--cyan)' : '';
+    el.style.color = active ? '#000' : '';
+  });
+  loadNotifPage(true);
+}
+
+async function loadNotifPage(reset) {
+  if (!user || notifLoading) return;
+  if (reset) { notifAccumulatedDocs = []; notifLastDoc = null; notifHasMore = true; }
+  if (!notifHasMore) return;
+  notifLoading = true;
+  const list = document.getElementById('notif-list');
+  if (reset) list.innerHTML = `<div class="load"><div class="spin"></div></div>`;
   try {
-    const snap = await db.collection('teknohane_notifications')
-      .where('toUid', '==', user.uid)
-      .orderBy('createdAt', 'desc')
-      .limit(30)
-      .get();
-    if (snap.empty) { list.innerHTML = `<div class="no">Henüz bildirimin yok</div>`; return; }
-    clearBtn.style.display = 'block';
-    list.innerHTML = snap.docs.map(d => {
-      const n = d.data();
-      const meta = NOTIF_ICONS[n.type] || { ic: '🔔', bg: 'var(--cdim)' };
-      const time = n.createdAt ? fd(n.createdAt.toDate ? n.createdAt.toDate().toISOString() : n.createdAt) : '';
-      return `<div class="notif-swipe-wrap" data-id="${d.id}">
-        <div class="notif-swipe-del">🗑️</div>
-        <div class="notif-item ${n.read?'':'unread'}" onclick="clickNotif('${d.id}','${n.listingId||''}',${!n.read},'${n.postId||''}')">
-          <div class="notif-ic" style="background:${meta.bg}">${meta.ic}</div>
-          <div class="notif-txt" style="flex:1"><div class="notif-msg">${n.message}</div><div class="notif-time">${n.read?'':'<span style="color:var(--cyan);font-weight:700">Yeni · </span>'}${time}</div></div>
-          ${n.read?'':'<div class="unread-dot"></div>'}
-        </div>
-      </div>`;
-    }).join('');
-    document.querySelectorAll('.notif-swipe-wrap').forEach(wrap => attachSwipeDelete(wrap));
+    let q = db.collection('teknohane_notifications').where('toUid', '==', user.uid);
+    if (notifCurrentCategory !== 'all') q = q.where('category', '==', notifCurrentCategory);
+    q = q.orderBy('createdAt', 'desc').limit(30);
+    if (notifLastDoc) q = q.startAfter(notifLastDoc);
+    const snap = await q.get();
+    notifLastDoc = snap.docs[snap.docs.length - 1] || notifLastDoc;
+    notifHasMore = snap.docs.length === 30;
+    notifAccumulatedDocs = reset ? snap.docs : [...notifAccumulatedDocs, ...snap.docs];
+    renderNotifList();
   } catch(e) {
-    list.innerHTML = `<div class="no">Bildirimler yüklenemedi<br><span style="font-size:11px;color:var(--text3)">${e.message}</span></div>`;
-    console.error('Bildirim hatası:', e);
+    console.error('Bildirimler yüklenemedi:', e);
+    const urlMatch = e.message?.match(/https:\/\/console\.firebase\.google\.com[^\s)]+/);
+    list.innerHTML = `<div class="no">Bildirimler yüklenemedi.<br><span style="font-size:11px;color:var(--text3)">${e.message||''}</span>${urlMatch?`<br><a href="${urlMatch[0]}" target="_blank" style="color:var(--cyan);font-size:12px">→ Eksik index'i buradan oluştur</a>`:''}</div>`;
+  } finally {
+    notifLoading = false;
   }
 }
 
-// Bildirim öğesini sola kaydırınca silme
+// Kategori sekmelerindeki okunmadı noktalarını doldurur — YENİ bir dinleyici DEĞİL, modal her
+// açıldığında bir kez çalışan, ucuz count() sorguları (5 adet, koleksiyon büyüklüğünden bağımsız
+// sabit maliyetli). Sonuç yalnızca "var/yok" (nokta göster/gösterme) için kullanılıyor, sayı değil.
+async function loadNotifCategoryCounts() {
+  if (!user) return;
+  try {
+    const results = await Promise.all(NOTIF_CATEGORY_LIST.map(cat =>
+      db.collection('teknohane_notifications')
+        .where('toUid', '==', user.uid).where('category', '==', cat).where('read', '==', false)
+        .count().get().then(s => s.data().count).catch(() => 0)
+    ));
+    NOTIF_CATEGORY_LIST.forEach((cat, i) => {
+      const dot = document.querySelector(`[data-cat-dot="${cat}"]`);
+      if (dot) dot.classList.toggle('on', results[i] > 0);
+    });
+  } catch(e) { /* rozetler olmadan da liste çalışmaya devam eder */ }
+}
+
+async function openNotifications() {
+  if (!user) { gt('profile'); return; }
+  document.getElementById('notif-mo').classList.add('on');
+  notifCurrentCategory = 'all';
+  document.querySelectorAll('.notif-cat-pill').forEach(el => {
+    const active = el.dataset.cat === 'all';
+    el.style.background = active ? 'var(--cyan)' : '';
+    el.style.color = active ? '#000' : '';
+  });
+  loadNotifPage(true);
+  loadNotifCategoryCounts();
+}
+
+// Bildirim öğesini sola kaydırınca silme — artık gruplanmış birden fazla ID'yi birden silebiliyor.
 function attachSwipeDelete(wrap) {
   const item = wrap.querySelector('.notif-item');
-  const docId = wrap.dataset.id;
+  const ids = wrap.dataset.ids.split(',');
   let startX = 0, dx = 0, dragging = false;
   item.addEventListener('touchstart', e => {
     startX = e.touches[0].clientX; dragging = true; item.style.transition = 'none';
@@ -4265,14 +4421,11 @@ function attachSwipeDelete(wrap) {
     if (dx < -90) {
       item.style.transform = 'translateX(-100%)';
       item.style.opacity = '0';
-      db.collection('teknohane_notifications').doc(docId).delete().catch(() => {});
-      setTimeout(() => {
-        wrap.remove();
-        if (!document.querySelector('.notif-swipe-wrap')) {
-          document.getElementById('notif-list').innerHTML = `<div class="no">Henüz bildirimin yok</div>`;
-          document.getElementById('notif-clear-all').style.display = 'none';
-        }
-      }, 200);
+      const batch = db.batch();
+      ids.forEach(id => batch.delete(db.collection('teknohane_notifications').doc(id)));
+      batch.commit().catch(() => {});
+      notifAccumulatedDocs = notifAccumulatedDocs.filter(d => !ids.includes(d.id));
+      setTimeout(() => { renderNotifList(); }, 200);
     } else {
       item.style.transform = 'translateX(0)';
     }
@@ -4280,22 +4433,53 @@ function attachSwipeDelete(wrap) {
   });
 }
 
+// Tümünü Sil — 450'lik güvenli gruplar halinde (Firestore'un 500 operasyon/batch sınırına uygun).
 async function clearAllNotifications() {
   if (!user) return;
   if (!confirm('Tüm bildirimlerin silinmesini onaylıyor musun?')) return;
+  showToast('🗑️', 'rgba(255,69,58,.15)', 'Siliniyor…', '');
   try {
-    const snap = await db.collection('teknohane_notifications').where('toUid', '==', user.uid).get();
-    const batch = db.batch();
-    snap.docs.forEach(d => batch.delete(d.ref));
-    await batch.commit();
-    document.getElementById('notif-list').innerHTML = `<div class="no">Henüz bildirimin yok</div>`;
-    document.getElementById('notif-clear-all').style.display = 'none';
-  } catch(e) { alert('Hata: ' + e.message); }
+    while (true) {
+      const snap = await db.collection('teknohane_notifications').where('toUid', '==', user.uid).limit(450).get();
+      if (snap.empty) break;
+      const batch = db.batch();
+      snap.docs.forEach(d => batch.delete(d.ref));
+      await batch.commit();
+      if (snap.docs.length < 450) break;
+    }
+    notifAccumulatedDocs = [];
+    renderNotifList();
+    loadNotifCategoryCounts();
+    showToast('✓', 'rgba(48,209,88,.15)', 'Silindi', 'Tüm bildirimler silindi.');
+  } catch(e) { showToast('⚠️', 'rgba(255,69,58,.15)', 'Hata', 'Bazı bildirimler silinemedi: ' + e.message); }
 }
 
-async function clickNotif(id, listingId, wasUnread, postId) {
+// Tümünü Okundu Yap — yalnızca o an yüklenmiş (görünen) sayfadaki okunmamışları değil,
+// kullanıcının TÜM okunmamış bildirimlerini işaretler (aksi halde rozet yanlış kalırdı).
+async function markAllNotifsRead() {
+  if (!user) return;
+  try {
+    while (true) {
+      const snap = await db.collection('teknohane_notifications')
+        .where('toUid', '==', user.uid).where('read', '==', false).limit(450).get();
+      if (snap.empty) break;
+      const batch = db.batch();
+      snap.docs.forEach(d => batch.update(d.ref, { read: true }));
+      await batch.commit();
+      if (snap.docs.length < 450) break;
+    }
+    loadNotifPage(true);
+    loadNotifCategoryCounts();
+    showToast('✓', 'rgba(48,209,88,.15)', 'Tamamlandı', 'Tüm bildirimler okundu olarak işaretlendi.');
+  } catch(e) { showToast('⚠️', 'rgba(255,69,58,.15)', 'Hata', 'İşlem tamamlanamadı: ' + e.message); }
+}
+
+async function clickNotifGroup(idsCsv, listingId, wasUnread, postId) {
+  const ids = idsCsv.split(',');
   if (wasUnread) {
-    db.collection('teknohane_notifications').doc(id).update({ read: true }).catch(()=>{});
+    const batch = db.batch();
+    ids.forEach(id => batch.update(db.collection('teknohane_notifications').doc(id), { read: true }));
+    batch.commit().catch(()=>{});
   }
   if (listingId) {
     closemo('notif-mo');
@@ -6130,6 +6314,10 @@ async function toggleFollow(uid) {
   try {
     await db.collection('teknohane_users').doc(user.uid).set({ followingUids: updated }, { merge: true });
     myProfileData.followingUids = updated;
+    if (!isFollowing) {
+      const myName = myProfileData.displayName || user.displayName || user.email?.split('@')[0] || 'Biri';
+      notifyUser(uid, 'new_follower', `${myName} seni takip etti`, null);
+    }
     const btn = document.getElementById('pub-follow-btn');
     if (btn) {
       btn.textContent = isFollowing ? '➕ Takip Et' : '✓ Takip Ediliyor';
