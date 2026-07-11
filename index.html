@@ -892,10 +892,15 @@ body.tk-maintenance #maintenance-gate{
           Konu Aç
         </button>
       </div>
+      <div class="sw" style="margin-bottom:10px">
+        <svg class="sico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="si" type="text" id="forum-search-inp" placeholder="Konu başlığında ara…" oninput="onForumSearchInput(this.value)">
+      </div>
       <div class="forum-tabs">
-        <div class="forum-tab on" data-ftab="all" onclick="switchForumTab('all',this)">Tümü</div>
-        <div class="forum-tab" data-ftab="soru" onclick="switchForumTab('soru',this)">❓ Sorular</div>
-        <div class="forum-tab" data-ftab="tartisma" onclick="switchForumTab('tartisma',this)">💬 Tartışmalar</div>
+        <div class="forum-tab on" data-ftab="new" onclick="switchForumTab('new',this)">Yeni</div>
+        <div class="forum-tab" data-ftab="popular" onclick="switchForumTab('popular',this)">🔥 Popüler</div>
+        <div class="forum-tab" data-ftab="resolved" onclick="switchForumTab('resolved',this)">✓ Çözülen</div>
+        <div class="forum-tab" data-ftab="following" onclick="switchForumTab('following',this)">Takip Ettiklerim</div>
       </div>
       <div id="forum-list"><div class="load"><div class="spin"></div><span>Yükleniyor…</span></div></div>
     </div>
@@ -5684,11 +5689,9 @@ async function delListing(id) {
 
 // FORUM
 let forumPosts = [];
-let forumTab = 'all';
 let currentPost = null;
 let currentPostType = 'soru';
 let currentPostCat = 'genel';
-let forumLoaded = false;
 let npPhotoB64 = null;
 let cmtPhotoB64 = null;
 
@@ -5704,45 +5707,113 @@ const POST_CATS = {
   'tablet':'📟 Tablet', 'bilgisayar':'💻 Bilgisayar', 'aksesuar':'🎧 Aksesuar'
 };
 
-async function loadForum(force=false) {
-  if (forumLoaded && !force) return;
-  forumLoaded = true;
+// ==== FORUM 2.0 — SAYFALAMA (Pazar mimarisiyle birebir aynı desen) ====
+// Eski mimari (tek seferlik .limit(60), sayfalama yok) tamamen kaldırıldı.
+let forumCurrentTab = 'new';
+let forumLastDoc = null;
+let forumHasMore = true;
+let forumLoading = false;
+let forumSearchActive = false;
+let forumSearchDebounceTimer = null;
+
+function switchForumTab(tab, el) {
+  forumCurrentTab = tab;
+  forumSearchActive = false;
+  const si = document.getElementById('forum-search-inp');
+  if (si) si.value = '';
+  document.querySelectorAll('.forum-tab').forEach(t => t.classList.remove('on'));
+  el.classList.add('on');
+  loadForumPage(true);
+}
+
+async function loadForumPage(reset) {
+  if (forumLoading) return;
+  if (reset) { forumPosts = []; forumLastDoc = null; forumHasMore = true; }
+  if (!forumHasMore) { rForum(); return; }
+  forumLoading = true;
+  rForum(); // "yükleniyor" durumunu anında yansıt
   try {
-    const snap = await db.collection('teknohane_posts').orderBy('createdAt','desc').limit(60).get();
-    forumPosts = snap.docs.map(d => ({id:d.id,...d.data()}));
+    let q = db.collection('teknohane_posts').where('archived', '==', false);
+    if (forumCurrentTab === 'popular') {
+      q = q.orderBy('likeCount', 'desc').orderBy('createdAt', 'desc');
+    } else if (forumCurrentTab === 'resolved') {
+      q = q.where('resolved', '==', true).orderBy('createdAt', 'desc');
+    } else if (forumCurrentTab === 'following') {
+      const uids = (myProfileData.followingUids || []).slice(0, 30); // Firestore 'in' sınırı: 30
+      if (!uids.length) { forumHasMore = false; forumPosts = []; forumLoading = false; rForum(); return; }
+      q = q.where('uid', 'in', uids).orderBy('createdAt', 'desc');
+    } else {
+      q = q.orderBy('createdAt', 'desc'); // 'new' (varsayılan)
+    }
+    q = q.limit(20);
+    if (forumLastDoc) q = q.startAfter(forumLastDoc);
+    const snap = await q.get();
+    const newItems = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    forumLastDoc = snap.docs[snap.docs.length - 1] || forumLastDoc;
+    forumHasMore = snap.docs.length === 20;
+    forumPosts = reset ? newItems : [...forumPosts, ...newItems];
+  } catch (e) {
+    console.error('Forum yüklenemedi:', e);
+    const list = document.getElementById('forum-list');
+    const urlMatch = e.message?.match(/https:\/\/console\.firebase\.google\.com[^\s)]+/);
+    list.innerHTML = `<div class="no">Konular yüklenemedi.<br><span style="font-size:11px;color:var(--text3)">${e.message||''}</span>${urlMatch?`<br><a href="${urlMatch[0]}" target="_blank" style="color:var(--cyan);font-size:12px">→ Eksik index'i buradan oluştur</a>`:''}</div>`;
+  } finally {
+    forumLoading = false;
     rForum();
-  } catch(e) {
-    document.getElementById('forum-list').innerHTML = '<div class="no">Yüklenemedi</div>';
   }
 }
 
-function switchForumTab(tab, el) {
-  forumTab = tab;
-  document.querySelectorAll('.forum-tab').forEach(t => t.classList.remove('on'));
-  el.classList.add('on');
-  rForum();
+// Forum Arama — Kullanıcı Arama'da kurduğumuz aynı dürüst desen: Firestore'un desteklediği
+// "başlangıç eşleşmesi" (prefix), tam metin arama değil. Yalnızca BAŞLIK üzerinden arar (`titleLower`,
+// gönderi oluşturulurken yazılıyor) — içerik/etiket için gerçek tam metin arama Algolia/Typesense gibi
+// ayrı bir servis gerektirir, bu kapsam dışı. 300ms debounce ile gereksiz sorgu atılmıyor.
+function onForumSearchInput(q) {
+  clearTimeout(forumSearchDebounceTimer);
+  if (!q.trim()) { forumSearchActive = false; loadForumPage(true); return; }
+  forumSearchDebounceTimer = setTimeout(() => runForumSearch(q.trim().toLowerCase()), 300);
+}
+
+async function runForumSearch(query) {
+  forumSearchActive = true;
+  forumHasMore = false; // arama sonuçları basit tutuluyor, sayfalama yok
+  const list = document.getElementById('forum-list');
+  list.innerHTML = `<div class="load"><div class="spin"></div></div>`;
+  try {
+    const snap = await db.collection('teknohane_posts')
+      .where('archived', '==', false)
+      .where('titleLower', '>=', query).where('titleLower', '<=', query + '\uf8ff')
+      .limit(20).get();
+    forumPosts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    rForum();
+  } catch (e) {
+    console.error('Forum araması başarısız:', e);
+    list.innerHTML = `<div class="no">Arama yapılamadı.</div>`;
+  }
 }
 
 function rForum() {
   const list = document.getElementById('forum-list');
   if (!list) return;
-  let items = forumPosts;
-  if (forumTab !== 'all') items = items.filter(p => p.type === forumTab);
-  if (!items.length) { list.innerHTML = '<div class="no">Henüz konu yok — ilk sen aç!</div>'; return; }
-  items = [...items].sort((a,b) => (b.pinned?1:0) - (a.pinned?1:0));
+  if (!forumPosts.length && forumLoading) { list.innerHTML = `<div class="load"><div class="spin"></div><span>Yükleniyor…</span></div>`; return; }
+  if (!forumPosts.length) { list.innerHTML = `<div class="no">${forumSearchActive?'Sonuç bulunamadı':'Henüz konu yok — ilk sen aç!'}</div>`; return; }
+  const items = [...forumPosts].sort((a,b) => (b.pinned?1:0) - (a.pinned?1:0));
   list.innerHTML = items.map(p => {
-    const likeCount = (p.likes||[]).length;
+    const likeCount = p.likeCount ?? (p.likes||[]).length;
     const ts = p.createdAt?.toDate ? timeAgo(p.createdAt.toDate()) : '';
     const pt = POST_TYPES[p.type] || POST_TYPES.tartisma;
     const catLabel = POST_CATS[p.category] || '';
+    const isPopular = likeCount >= 10; // basit, sabit eşik — Popüler rozeti
     return `<div class="post-card" onclick="openPost('${p.id}')">
       ${p.imageUrl ? `<img class="post-card-img" src="${p.imageUrl}" onclick="event.stopPropagation();openFullscreen('${p.imageUrl}')">` : ''}
       <div class="post-card-body">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap">
           ${p.pinned?'<div class="post-type-badge" style="background:rgba(0,212,255,.12);color:var(--cyan)">📌 Sabit</div>':''}
+          ${p.featured?'<div class="post-type-badge" style="background:rgba(255,204,0,.12);color:#FFCC00">⭐ Öne Çıkan</div>':''}
+          ${p.locked?'<div class="post-type-badge" style="background:rgba(255,69,58,.1);color:var(--red)">🔒 Kilitli</div>':''}
           <div class="post-type-badge ${pt.cls}">${pt.label}</div>
           ${catLabel?`<div class="post-cat-badge">${catLabel}</div>`:''}
-          ${p.bestAnswer?'<div class="post-type-badge" style="background:rgba(48,209,88,.12);color:var(--green);margin-left:auto">✓ Çözüldü</div>':''}
+          ${isPopular?'<div class="post-type-badge" style="background:rgba(255,149,0,.12);color:#FF9500">🔥 Popüler</div>':''}
+          ${p.resolved?'<div class="post-type-badge" style="background:rgba(48,209,88,.12);color:var(--green);margin-left:auto">✓ Çözüldü</div>':''}
         </div>
         <div class="post-title">${p.title||''}</div>
         <div class="post-body-preview">${p.body||''}</div>
@@ -5760,6 +5831,13 @@ function rForum() {
       </div>
     </div>`;
   }).join('');
+  if (!forumSearchActive) {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'padding:16px;text-align:center';
+    if (forumLoading) wrap.innerHTML = `<div class="spin" style="margin:0 auto"></div>`;
+    else if (forumHasMore) wrap.innerHTML = `<button class="apbtn" style="width:auto;padding:10px 24px;display:inline-block" onclick="loadForumPage(false)">Daha Fazla Yükle</button>`;
+    list.appendChild(wrap);
+  }
 }
 
 function openNewPost() {
@@ -5815,25 +5893,38 @@ async function submitPost() {
       type: currentPostType,
       category: currentPostCat,
       title, body,
+      titleLower: title.toLowerCase(), // Firestore'da başlangıç eşleşmesi araması için
       uid: user.uid,
       authorName: user.displayName || user.email?.split('@')[0] || 'Anonim',
       likes: [],
+      likeCount: 0,
       answerCount: 0,
       bestAnswer: null,
+      resolved: false,
+      pinned: false, featured: false, locked: false, archived: false,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
     if (npPhotoB64) data.imageUrl = npPhotoB64;
     await db.collection('teknohane_posts').add(data);
     closemo('new-post-mo');
     npPhotoB64 = null;
-    await loadForum(true);
+    loadForumPage(true);
     showToast('✅','rgba(48,209,88,.15)','Konu Yayınlandı','Konunuz foruma eklendi.');
   } catch(e) { alert('Hata: '+e.message); }
 }
 
 async function openPost(id) {
-  currentPost = forumPosts.find(p => p.id === id);
-  if (!currentPost) return;
+  // Sekmeye göre kapsamı değişen forumPosts'ta yoksa (örn. admin panelinden, farklı bir sekmedeki
+  // bir gönderiye tıklanmışsa) adminForumPosts'a, o da yoksa doğrudan Firestore'a (tek doküman,
+  // ucuz) düşerek her zaman doğru gönderiyi bulur.
+  currentPost = forumPosts.find(p => p.id === id) || adminForumPosts.find(p => p.id === id);
+  if (!currentPost) {
+    try {
+      const snap = await db.collection('teknohane_posts').doc(id).get();
+      if (snap.exists) currentPost = { id: snap.id, ...snap.data() };
+    } catch(e) {}
+  }
+  if (!currentPost) { showToast('❗','rgba(255,69,58,.12)','Bulunamadı','Bu konu kaldırılmış olabilir.'); return; }
   renderPostDetail();
   document.getElementById('post-detail-mo').classList.add('on');
   cmtPhotoB64 = null;
@@ -5927,10 +6018,10 @@ async function likePost(id) {
   const isLiked = likes.includes(user.uid);
   const newLikes = isLiked ? likes.filter(x=>x!==user.uid) : [...likes, user.uid];
   try {
-    await db.collection('teknohane_posts').doc(id).update({ likes: newLikes });
-    p.likes = newLikes;
+    await db.collection('teknohane_posts').doc(id).update({ likes: newLikes, likeCount: newLikes.length });
+    p.likes = newLikes; p.likeCount = newLikes.length;
     const pi = forumPosts.findIndex(x=>x.id===id);
-    if (pi>-1) forumPosts[pi].likes = newLikes;
+    if (pi>-1) { forumPosts[pi].likes = newLikes; forumPosts[pi].likeCount = newLikes.length; }
     renderPostDetail(); renderComments();
     if (!isLiked && p.uid && p.uid !== user.uid) {
       const name = user.displayName || user.email?.split('@')[0] || 'Biri';
@@ -5998,10 +6089,10 @@ async function markBest(cid) {
   if (!user) return;
   const p = currentPost;
   try {
-    await db.collection('teknohane_posts').doc(p.id).update({ bestAnswer: cid });
-    p.bestAnswer = cid;
+    await db.collection('teknohane_posts').doc(p.id).update({ bestAnswer: cid, resolved: true });
+    p.bestAnswer = cid; p.resolved = true;
     const pi = forumPosts.findIndex(x=>x.id===p.id);
-    if (pi>-1) forumPosts[pi].bestAnswer = cid;
+    if (pi>-1) { forumPosts[pi].bestAnswer = cid; forumPosts[pi].resolved = true; }
     renderPostDetail(); renderComments(); rForum();
     showToast('✓','rgba(48,209,88,.15)','En İyi Cevap Seçildi','Konu çözümlendi olarak işaretlendi.');
   } catch(e) {}
@@ -6012,10 +6103,10 @@ async function unmarkBest(cid) {
   if (!user) return;
   const p = currentPost;
   try {
-    await db.collection('teknohane_posts').doc(p.id).update({ bestAnswer: null });
-    p.bestAnswer = null;
+    await db.collection('teknohane_posts').doc(p.id).update({ bestAnswer: null, resolved: false });
+    p.bestAnswer = null; p.resolved = false;
     const pi = forumPosts.findIndex(x=>x.id===p.id);
-    if (pi>-1) forumPosts[pi].bestAnswer = null;
+    if (pi>-1) { forumPosts[pi].bestAnswer = null; forumPosts[pi].resolved = false; }
     renderPostDetail(); renderComments(); rForum();
   } catch(e) {}
 }
@@ -6026,6 +6117,7 @@ async function deletePost(id) {
   try {
     await db.collection('teknohane_posts').doc(id).delete();
     forumPosts = forumPosts.filter(p => p.id !== id);
+    adminForumPosts = adminForumPosts.filter(p => p.id !== id);
     closemo('post-detail-mo');
     rForum();
     showToast('🗑️','rgba(255,69,58,.15)','Konu Silindi','');
@@ -6043,8 +6135,8 @@ async function deleteComment(cid) {
     p.answerCount = Math.max(0, (p.answerCount||1) - 1);
     // Eğer silinen en iyi cevapsa, en iyiyi sıfırla
     if (p.bestAnswer === cid) {
-      await db.collection('teknohane_posts').doc(p.id).update({ bestAnswer: null });
-      p.bestAnswer = null;
+      await db.collection('teknohane_posts').doc(p.id).update({ bestAnswer: null, resolved: false });
+      p.bestAnswer = null; p.resolved = false;
     }
     const pi = forumPosts.findIndex(x=>x.id===p.id);
     if (pi>-1) { forumPosts[pi].answerCount = p.answerCount; forumPosts[pi].bestAnswer = p.bestAnswer; }
@@ -6460,7 +6552,7 @@ function switchAdminTab(tab) {
     }
     loadAdminUsers();
   }
-  if (tab === 'forum') rAdminForum();
+  if (tab === 'forum') loadAdminForumPosts();
   if (tab === 'logs') {
     if (!hasPermission('viewLogs')) {
       document.getElementById('adm-logs-list').innerHTML = '<div class="no">Bu bölümü görüntüleme yetkin yok.</div>';
@@ -6508,7 +6600,58 @@ function renderAdminSettings() {
     <div class="pacc-row">
       <span class="pacc-lbl" style="max-width:65%">${s.label}<br><span style="font-size:11px;color:var(--text3);font-weight:400">${s.desc}</span></span>
       <span class="pacc-val" style="cursor:pointer;color:${systemSettings[s.key]?'var(--red)':'var(--cyan)'}" onclick="toggleSystemSetting('${s.key}')">${systemSettings[s.key]?'Açık':'Kapalı'}</span>
-    </div>`).join('') + `</div>`;
+    </div>`).join('') + `</div>
+    <div class="ud-section" style="margin-top:18px">
+      <div class="ud-section-title">Bakım Araçları</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:10px">Forum 2.0 öncesi oluşturulmuş gönderilere eksik alanları (archived, featured, locked, resolved, likeCount, titleLower) ekler. Zaten güncel olan gönderilere dokunmaz, güvenle birden fazla kez çalıştırılabilir.</div>
+      <button class="apbtn" id="forum-migration-btn" onclick="runForumBackfillMigration()">🔧 Eski Forum Gönderilerini Güncelle</button>
+    </div>`;
+}
+
+// ==== FORUM 2.0 GERİ DOLDURMA (TEK SEFERLİK BAKIM ARACI) ====
+// Forum 2.0 öncesi oluşturulmuş gönderilerde archived/featured/locked/resolved/likeCount/titleLower
+// alanları hiç yoktu — bu, "Yeni" sekmesi gibi eşitlik filtreli sorgularda görünmemelerine yol
+// açıyordu (Firestore, eşitlik filtresiyle alanı hiç olmayan dokümanları eşleştirmez).
+// Yalnızca EKSİK alanı olan dokümanlara yazar (zaten güncel olanlara dokunmaz) — bu yüzden güvenle
+// birden fazla kez çalıştırılabilir (idempotent). 450'lik güvenli gruplar halinde işler.
+async function runForumBackfillMigration() {
+  if (!hasPermission('manageListings')) { showToast('⚠️','rgba(255,69,58,.15)','Yetkin Yok',''); return; }
+  const btn = document.getElementById('forum-migration-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '🔧 Güncelleniyor…'; }
+  showToast('🔧', 'rgba(0,212,255,.15)', 'Başladı', 'Eski forum gönderileri taranıyor, bu birkaç saniye sürebilir…');
+  let updated = 0, scanned = 0, lastDoc = null, hasMore = true;
+  try {
+    while (hasMore) {
+      let q = db.collection('teknohane_posts').orderBy('createdAt', 'desc').limit(450);
+      if (lastDoc) q = q.startAfter(lastDoc);
+      const snap = await q.get();
+      if (snap.empty) break;
+      lastDoc = snap.docs[snap.docs.length - 1];
+      hasMore = snap.docs.length === 450;
+      scanned += snap.docs.length;
+      const batch = db.batch();
+      let batchHasWrites = false;
+      snap.docs.forEach(d => {
+        const p = d.data();
+        const patch = {};
+        if (p.archived === undefined) patch.archived = false;
+        if (p.featured === undefined) patch.featured = false;
+        if (p.locked === undefined) patch.locked = false;
+        if (p.likeCount === undefined) patch.likeCount = (p.likes||[]).length;
+        if (p.resolved === undefined) patch.resolved = !!p.bestAnswer;
+        if (p.titleLower === undefined && p.title) patch.titleLower = p.title.toLowerCase();
+        if (Object.keys(patch).length) { batch.update(d.ref, patch); batchHasWrites = true; updated++; }
+      });
+      if (batchHasWrites) await batch.commit();
+    }
+    adminLog('forum_backfill_migration', 'settings', 'forum_backfill', 'Forum Geri Doldurma', null, { scanned, updated }, 'success');
+    showToast('✓', 'rgba(48,209,88,.15)', 'Tamamlandı', `${scanned} gönderi tarandı, ${updated} tanesi güncellendi.`);
+  } catch(e) {
+    console.error('Forum migrasyon hatası:', e);
+    showToast('⚠️', 'rgba(255,69,58,.15)', 'Hata', 'Migrasyon tamamlanamadı: ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🔧 Eski Forum Gönderilerini Güncelle'; }
+  }
 }
 
 async function toggleSystemSetting(key) {
@@ -6574,16 +6717,36 @@ async function toggleListingFeatured(id) {
 }
 
 // KULLANICI YÖNETİMİ
+// Admin forum listesi, herkese açık ekranın sekmeye göre kapsamı değişen forumPosts'undan
+// KASITLI olarak bağımsız — Pazar'da (marketAllListings vb.) kurduğumuz aynı ayrım deseni.
+// Böylece admin, kullanıcının o an hangi sekmede/aramada olduğundan etkilenmeden TÜM konuları görür.
+let adminForumPosts = [];
+async function loadAdminForumPosts() {
+  const list = document.getElementById('adm-forum-list');
+  if (list) list.innerHTML = `<div class="load"><div class="spin"></div></div>`;
+  try {
+    const snap = await db.collection('teknohane_posts').orderBy('createdAt', 'desc').limit(50).get();
+    adminForumPosts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    rAdminForum();
+  } catch(e) {
+    console.error('Admin forum listesi yüklenemedi:', e);
+    if (list) list.innerHTML = '<div class="no">Yüklenemedi.</div>';
+  }
+}
+
 function rAdminForum() {
   const list = document.getElementById('adm-forum-list');
   if (!list) return;
-  if (!forumPosts.length) { list.innerHTML = '<div class="no">Konu yok</div>'; return; }
-  list.innerHTML = forumPosts.map(p => {
+  if (!adminForumPosts.length) { list.innerHTML = '<div class="no">Konu yok</div>'; return; }
+  list.innerHTML = adminForumPosts.map(p => {
     const pt = POST_TYPES[p.type] || POST_TYPES.tartisma;
     return `<div class="adm-row" style="flex-direction:column;align-items:flex-start;gap:6px">
       <div style="display:flex;align-items:center;justify-content:space-between;width:100%" onclick="openPost('${p.id}');closemo('admin-mo')">
-        <div style="display:flex;gap:6px;align-items:center">
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
           ${p.pinned?'<span style="font-size:12px">📌</span>':''}
+          ${p.featured?'<span style="font-size:12px">⭐</span>':''}
+          ${p.locked?'<span style="font-size:12px">🔒</span>':''}
+          ${p.archived?'<span style="font-size:12px">🗄️</span>':''}
           <span class="post-type-badge ${pt.cls}" style="margin:0">${pt.label}</span>
           <span style="font-size:12px;font-weight:600;color:var(--text)">${(p.title||'').substring(0,40)}${p.title?.length>40?'…':''}</span>
         </div>
@@ -6591,24 +6754,49 @@ function rAdminForum() {
           <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M9 6V4h6v2"/></svg>
         </div>
       </div>
-      <div style="font-size:11px;color:var(--text3)">${p.authorName} · ${(p.likes||[]).length} beğeni · ${p.answerCount||0} yorum</div>
-      <div style="display:flex;gap:6px" onclick="event.stopPropagation()">
+      <div style="font-size:11px;color:var(--text3)">${p.authorName} · ${p.likeCount ?? (p.likes||[]).length} beğeni · ${p.answerCount||0} yorum</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap" onclick="event.stopPropagation()">
         <span class="pcompl-pill" onclick="openForumPostEdit('${p.id}')" style="cursor:pointer">✏️ Düzenle</span>
         <span class="pcompl-pill" onclick="toggleForumPin('${p.id}')" style="cursor:pointer">${p.pinned?'Sabitlemeyi Kaldır':'📌 Sabitle'}</span>
+        <span class="pcompl-pill" onclick="toggleForumFeatured('${p.id}')" style="cursor:pointer">${p.featured?'Öne Çıkarmayı Kaldır':'⭐ Öne Çıkar'}</span>
+        <span class="pcompl-pill" onclick="toggleForumLocked('${p.id}')" style="cursor:pointer">${p.locked?'Kilidi Aç':'🔒 Kilitle'}</span>
+        <span class="pcompl-pill" onclick="toggleForumArchived('${p.id}')" style="cursor:pointer">${p.archived?'Arşivden Çıkar':'🗄️ Arşivle'}</span>
         ${p.uid?`<span class="pcompl-pill" onclick="closemo('admin-mo');openUserEdit('${p.uid}')" style="cursor:pointer">⚠️ Yazarı Uyar</span>`:''}
       </div>
     </div>`;
   }).join('');
 }
 
+// Sabitle/Öne Çıkar/Kilitle/Arşivle — dördü de aynı desen, tek bir yardımcı fonksiyonla.
+async function toggleForumModerationField(id, field, actionLog, onLabel, offLabel) {
+  if (!hasPermission('manageListings')) { showToast('⚠️','rgba(255,69,58,.15)','Yetkin Yok',''); return; }
+  const p = adminForumPosts.find(x => x.id === id);
+  if (!p) return;
+  const newVal = !p[field];
+  try {
+    await db.collection('teknohane_posts').doc(id).set({ [field]: newVal }, { merge: true });
+    p[field] = newVal;
+    const pubP = forumPosts.find(x => x.id === id);
+    if (pubP) pubP[field] = newVal;
+    adminLog(newVal ? actionLog+'_on' : actionLog+'_off', 'forum_post', id, p.title||id, { [field]: !newVal }, { [field]: newVal }, 'success');
+    rAdminForum(); rForum();
+    showToast('✓', 'rgba(48,209,88,.15)', newVal?onLabel:offLabel, '');
+  } catch(e) { showToast('⚠️','rgba(255,69,58,.15)','Hata','İşlem yapılamadı: ' + e.message); }
+}
+function toggleForumFeatured(id) { toggleForumModerationField(id, 'featured', 'feature_forum_post', 'Öne Çıkarıldı', 'Öne Çıkarma Kaldırıldı'); }
+function toggleForumLocked(id) { toggleForumModerationField(id, 'locked', 'lock_forum_post', 'Kilitlendi', 'Kilit Kaldırıldı'); }
+function toggleForumArchived(id) { toggleForumModerationField(id, 'archived', 'archive_forum_post', 'Arşivlendi', 'Arşivden Çıkarıldı'); }
+
 async function toggleForumPin(id) {
   if (!hasPermission('manageListings')) { showToast('⚠️','rgba(255,69,58,.15)','Yetkin Yok',''); return; }
-  const p = forumPosts.find(x => x.id === id);
+  const p = adminForumPosts.find(x => x.id === id);
   if (!p) return;
   const newVal = !p.pinned;
   try {
     await db.collection('teknohane_posts').doc(id).set({ pinned: newVal }, { merge: true });
     p.pinned = newVal;
+    const pubP = forumPosts.find(x => x.id === id);
+    if (pubP) pubP.pinned = newVal;
     adminLog(newVal ? 'pin_forum_post' : 'unpin_forum_post', 'forum_post', id, p.title||id, { pinned: !newVal }, { pinned: newVal }, 'success');
     rAdminForum(); rForum();
     showToast('✓','rgba(48,209,88,.15)', newVal?'Sabitlendi':'Sabitleme Kaldırıldı', '');
@@ -6627,7 +6815,7 @@ function setForumModTab(tab) {
 
 function openForumPostEdit(id) {
   if (!hasPermission('manageListings')) { showToast('⚠️','rgba(255,69,58,.15)','Yetkin Yok',''); return; }
-  const p = forumPosts.find(x => x.id === id);
+  const p = adminForumPosts.find(x => x.id === id);
   if (!p) return;
   const newTitle = prompt('Gönderi başlığı:', p.title || '');
   if (newTitle === null) return;
@@ -6637,10 +6825,12 @@ function openForumPostEdit(id) {
 }
 
 async function saveForumPostEdit(id, title, body) {
-  const p = forumPosts.find(x => x.id === id);
+  const p = adminForumPosts.find(x => x.id === id);
   try {
-    await db.collection('teknohane_posts').doc(id).set({ title, body }, { merge: true });
+    await db.collection('teknohane_posts').doc(id).set({ title, body, titleLower: title.toLowerCase() }, { merge: true });
     if (p) { p.title = title; p.body = body; }
+    const pubP = forumPosts.find(x => x.id === id);
+    if (pubP) { pubP.title = title; pubP.body = body; }
     adminLog('edit_forum_post', 'forum_post', id, title||id, null, { title, body }, 'success');
     rAdminForum(); rForum();
     showToast('✓','rgba(48,209,88,.15)','Kaydedildi','');
@@ -6747,10 +6937,11 @@ async function saveAdminCommentEdit(postId, commentId, body) {
 
 async function adminDeletePost(id) {
   if (!confirm('Bu konu silinsin mi?')) return;
-  const p = forumPosts.find(x => x.id === id);
+  const p = adminForumPosts.find(x => x.id === id) || forumPosts.find(x => x.id === id);
   try {
     await db.collection('teknohane_posts').doc(id).delete();
-    forumPosts = forumPosts.filter(p => p.id !== id);
+    adminForumPosts = adminForumPosts.filter(x => x.id !== id);
+    forumPosts = forumPosts.filter(x => x.id !== id);
     if (isAdminNow()) adminLog('delete_forum_post', 'forum_post', id, p?.title || id, p, null, 'success');
     rAdminForum(); rForum();
     showToast('🗑️','rgba(255,69,58,.15)','Konu Silindi','');
@@ -8350,7 +8541,7 @@ function gt(name) {
     else rlistings();
     document.getElementById('market-dot')?.classList.remove('on');
   }
-  if(name==='community') loadForum();
+  if(name==='community' && !forumPosts.length && !forumLoading) loadForumPage(true);
   if(name==='compare') loadExtraPhones();
   if(name==='profile') rprof();
   showTabTip(name);
@@ -8545,8 +8736,7 @@ setTimeout(() => {
   });
   // Topluluk
   setupPTR('s-community', async () => {
-    forumLoaded = false;
-    await loadForum(true);
+    await loadForumPage(true);
   });
   // Destek
   setupPTR('s-support', async () => {
