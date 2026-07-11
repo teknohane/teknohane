@@ -230,6 +230,24 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 #img-fullscreen.on{display:flex;}
 #img-fullscreen img{max-width:100%;max-height:100%;object-fit:contain;}
 #img-fullscreen-close{position:absolute;top:calc(var(--st)+16px);right:16px;color:#fff;font-size:28px;cursor:pointer;z-index:1001;width:40px;height:40px;display:flex;align-items:center;justify-content:center;}
+/* ==== İLAN DETAYI FOTOĞRAF GALERİSİ — img-fullscreen'den TAMAMEN AYRI, yeni bir bileşen.
+   img-fullscreen Sohbet ve Forum'da da kullanıldığı için ona hiç dokunulmadı. ==== */
+#listing-gallery-mo{display:none;position:fixed;inset:0;z-index:1000;background:#000;flex-direction:column;animation:lgfade .18s ease;}
+#listing-gallery-mo.on{display:flex;}
+@keyframes lgfade{from{opacity:0}to{opacity:1}}
+#lg-header{display:flex;align-items:center;justify-content:space-between;padding:calc(var(--st)+14px) 16px 12px;flex-shrink:0;}
+#lg-counter{color:#fff;font-size:13px;font-weight:700;background:rgba(255,255,255,.12);padding:6px 14px;border-radius:20px;letter-spacing:.2px;}
+#lg-close{color:#fff;font-size:22px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;background:rgba(255,255,255,.12);border-radius:50%;}
+#lg-track-wrap{flex:1;overflow:hidden;position:relative;min-height:0;}
+#lg-track{display:flex;height:100%;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+#lg-track::-webkit-scrollbar{display:none;}
+.lg-slide{flex:0 0 100%;height:100%;scroll-snap-align:center;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:pan-y;}
+.lg-slide img{max-width:100%;max-height:100%;object-fit:contain;transition:transform .2s ease;will-change:transform;user-select:none;-webkit-user-drag:none;}
+#lg-thumbs{display:flex;gap:8px;padding:12px 16px calc(12px + var(--sb));overflow-x:auto;flex-shrink:0;scrollbar-width:none;}
+#lg-thumbs::-webkit-scrollbar{display:none;}
+.lg-thumb{width:48px;height:48px;border-radius:10px;overflow:hidden;flex-shrink:0;opacity:.45;border:2px solid transparent;cursor:pointer;transition:opacity .2s,border-color .2s;}
+.lg-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.lg-thumb.active{opacity:1;border-color:var(--cyan);}
 .wc{background:var(--surf);border:1px solid var(--border2);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:8px;cursor:pointer;}
 .wc:active{background:var(--surf2);}
 
@@ -400,49 +418,49 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .mtab{flex:none;padding:8px 16px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;}
 .mtab.on{background:var(--cdim);border:1px solid rgba(0,212,255,.2);color:var(--cyan);}
 .mtab.off{background:var(--surf);border:1px solid var(--border2);color:var(--text2);}
-.lgrid{display:flex;flex-direction:column;gap:16px;}
+.lgrid{display:flex;flex-direction:column;gap:12px;}
 /* ==== PAZAR LİSTE KARTI — PROFESYONELLEŞTİRME ====
    Tamamen yeni, "mcard-" önekli sınıflar kullanılıyor; eski .lcard/.lcnd/.chatbtn2 gibi sınıflar
    İlan Detayı ve Sohbet ekranlarıyla paylaşıldığı için (dokunulması yasak) hiç değiştirilmedi,
    yalnızca bu dosyada artık kullanılmıyorlar (zararsız, silinmeleri de gerekmiyor). */
-.mcard{background:var(--surf);border:1px solid var(--border2);border-radius:20px;overflow:hidden;cursor:pointer;position:relative;box-shadow:0 4px 20px rgba(0,0,0,.25),0 0 0 1px rgba(0,212,255,.04);transition:transform .15s ease;}
+.mcard{background:var(--surf);border:1px solid var(--border2);border-radius:18px;overflow:hidden;cursor:pointer;position:relative;box-shadow:0 4px 20px rgba(0,0,0,.25),0 0 0 1px rgba(0,212,255,.04);transition:transform .15s ease;}
 .mcard:active{transform:scale(.985);}
 .mcard.sold{opacity:.55;}
-.mcard-photo{position:relative;width:100%;aspect-ratio:4/3;background:linear-gradient(145deg,var(--surf2),var(--surf3));overflow:hidden;}
+.mcard-photo{position:relative;width:100%;aspect-ratio:16/10;background:linear-gradient(145deg,var(--surf2),var(--surf3));overflow:hidden;}
 .mcard-photo img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s cubic-bezier(.22,.61,.36,1);}
 .mcard:hover .mcard-photo img{transform:scale(1.03);}
-.mcard-photo-empty{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;}
-.mcard-photo-empty img{width:36px;height:36px;object-fit:contain;opacity:.3;filter:grayscale(1) brightness(1.6);}
-.mcard-photo-empty span{font-size:11px;color:var(--text3);font-weight:600;letter-spacing:.2px;}
-.mcard-photo::after{content:'';position:absolute;left:0;right:0;bottom:0;height:44%;background:linear-gradient(to top,rgba(0,4,10,.55),transparent);pointer-events:none;}
-.mcard-cnd{position:absolute;top:12px;left:12px;font-size:11px;font-weight:700;padding:5px 12px;border-radius:20px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);letter-spacing:.2px;z-index:2;}
+.mcard-photo-empty{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;}
+.mcard-photo-empty img{width:30px;height:30px;object-fit:contain;opacity:.3;filter:grayscale(1) brightness(1.6);}
+.mcard-photo-empty span{font-size:10.5px;color:var(--text3);font-weight:600;letter-spacing:.2px;}
+.mcard-photo::after{content:'';position:absolute;left:0;right:0;bottom:0;height:40%;background:linear-gradient(to top,rgba(0,4,10,.55),transparent);pointer-events:none;}
+.mcard-cnd{position:absolute;top:9px;left:9px;font-size:10.5px;font-weight:700;padding:4px 10px;border-radius:20px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);letter-spacing:.2px;z-index:2;}
 .mcard-cnd.new{background:rgba(0,212,255,.92);color:#001018;}
 .mcard-cnd.used{background:rgba(8,14,26,.68);color:#fff;border:1px solid rgba(255,255,255,.14);}
-.mcard-origin{position:absolute;bottom:10px;left:12px;font-size:10.5px;font-weight:600;color:rgba(255,255,255,.95);z-index:2;display:flex;align-items:center;gap:5px;letter-spacing:.1px;}
-.mcard-origin-dot{width:6px;height:6px;border-radius:50%;background:var(--cyan);box-shadow:0 0 6px var(--cyan);flex-shrink:0;}
+.mcard-origin{position:absolute;bottom:8px;left:9px;font-size:10px;font-weight:600;color:rgba(255,255,255,.95);z-index:2;display:flex;align-items:center;gap:5px;letter-spacing:.1px;}
+.mcard-origin-dot{width:5px;height:5px;border-radius:50%;background:var(--cyan);box-shadow:0 0 6px var(--cyan);flex-shrink:0;}
 .mcard-origin.global .mcard-origin-dot{background:#fff;box-shadow:0 0 6px rgba(255,255,255,.6);}
-.mcard-fav{position:absolute;top:12px;right:12px;width:36px;height:36px;border-radius:50%;background:rgba(8,14,26,.55);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:3;transition:transform .15s ease,background .15s ease;}
+.mcard-fav{position:absolute;top:9px;right:9px;width:32px;height:32px;border-radius:50%;background:rgba(8,14,26,.55);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:3;transition:transform .15s ease,background .15s ease;}
 .mcard-fav:active{transform:scale(.88);}
-.mcard-fav svg{width:17px;height:17px;stroke:#fff;fill:none;stroke-width:2;transition:all .15s ease;}
+.mcard-fav svg{width:15px;height:15px;stroke:#fff;fill:none;stroke-width:2;transition:all .15s ease;}
 .mcard-fav.on{background:rgba(255,69,58,.22);border-color:rgba(255,69,58,.45);}
 .mcard-fav.on svg{stroke:var(--red);fill:var(--red);}
 .mcard-status-overlay{position:absolute;inset:0;background:rgba(3,6,14,.55);backdrop-filter:blur(1.5px);display:flex;align-items:center;justify-content:center;z-index:4;}
 .mcard-status-pill{background:rgba(255,69,58,.95);color:#fff;font-size:12px;font-weight:800;letter-spacing:.5px;padding:8px 20px;border-radius:30px;}
 .mcard-status-pill.pending{background:rgba(255,149,0,.95);}
-.mcard-body{padding:14px 16px 14px;}
-.mcard-title{font-size:13.5px;font-weight:600;color:var(--text2);margin-bottom:5px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.mcard-price{font-size:24px;font-weight:800;color:var(--text);letter-spacing:-.4px;margin-bottom:2px;}
-.mcard-price .cur{font-size:16px;font-weight:700;color:var(--cyan);}
-.mcard-desc{font-size:12px;color:var(--text3);margin-bottom:10px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-.mcard-meta{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px;}
-.mcard-loc{font-size:11.5px;color:var(--text3);display:flex;align-items:center;gap:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mcard-body{padding:10px 13px 11px;}
+.mcard-title{font-size:12.5px;font-weight:600;color:var(--text2);margin-bottom:2px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mcard-price{font-size:19px;font-weight:800;color:var(--text);letter-spacing:-.3px;margin-bottom:5px;}
+.mcard-price .cur{font-size:14px;font-weight:700;color:var(--cyan);}
+.mcard-desc{font-size:11.5px;color:var(--text3);margin-bottom:7px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mcard-meta{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:8px;}
+.mcard-loc{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .mcard-date{color:var(--text3);opacity:.75;}
 .mcard-seller{display:flex;align-items:center;gap:6px;cursor:pointer;flex-shrink:0;}
-.mcard-seller-av{width:20px;height:20px;border-radius:50%;background:var(--cdim);display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:700;color:var(--cyan);border:1px solid rgba(0,212,255,.25);flex-shrink:0;}
-.mcard-seller-name{font-size:11.5px;color:var(--text2);font-weight:500;text-decoration:underline;text-decoration-style:dotted;text-decoration-color:var(--text3);white-space:nowrap;}
+.mcard-seller-av{width:18px;height:18px;border-radius:50%;background:var(--cdim);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--cyan);border:1px solid rgba(0,212,255,.25);flex-shrink:0;}
+.mcard-seller-name{font-size:11px;color:var(--text2);font-weight:500;text-decoration:underline;text-decoration-style:dotted;text-decoration-color:var(--text3);white-space:nowrap;}
 .mcard-seller-me{font-size:9px;color:var(--cyan);font-weight:700;background:var(--cdim);padding:2px 6px;border-radius:6px;border:1px solid rgba(0,212,255,.2);margin-left:2px;}
-.mcard-actions{display:flex;gap:8px;padding-top:12px;border-top:1px solid var(--border2);}
-.mcard-actbtn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px;border-radius:12px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid transparent;font-family:inherit;}
+.mcard-actions{display:flex;gap:6px;padding-top:9px;border-top:1px solid var(--border2);}
+.mcard-actbtn{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:7px;border-radius:10px;font-size:11.5px;font-weight:600;cursor:pointer;border:1px solid transparent;font-family:inherit;}
 .mcard-actbtn.wa{background:rgba(37,211,102,.1);border-color:rgba(37,211,102,.22);color:#25D366;}
 .mcard-actbtn.msg{background:var(--cdim);border-color:rgba(0,212,255,.2);color:var(--cyan);}
 .mcard-actbtn.edit{background:var(--surf2);border-color:var(--border2);color:var(--text2);}
@@ -1185,7 +1203,8 @@ body.tk-maintenance #maintenance-gate{
     <div class="mh"></div>
     <div class="mtit">İlan Ver</div>
     <div class="fg">
-      <label class="fl">Fotoğraflar <span style="color:var(--text3);font-weight:400">(en az 3, en fazla 4)</span></label>
+      <label class="fl">Fotoğraflar <span id="l-photo-counter" style="color:var(--text3);font-weight:400">(0 / 4)</span></label>
+      <div id="l-photo-hint" style="font-size:11.5px;color:#FF9500;margin-top:4px">En az 3 fotoğraf eklemelisiniz.</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px">
         <div class="pslot" id="ps0" onclick="document.getElementById('pf0').click()">
           <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
@@ -1209,9 +1228,9 @@ body.tk-maintenance #maintenance-gate{
         </div>
       </div>
     </div>
-    <div class="fg"><label class="fl">Marka</label><input class="fi" type="text" id="l-brand" placeholder="Örn: Samsung, Apple"></div>
-    <div class="fg"><label class="fl">Model</label><input class="fi" type="text" id="l-model" placeholder="Örn: Galaxy S24"></div>
-    <div class="fg"><label class="fl">Fiyat (₺)</label><input class="fi" type="number" id="l-price" placeholder="25000"></div>
+    <div class="fg"><label class="fl">Marka</label><input class="fi" type="text" id="l-brand" placeholder="Örn: Samsung, Apple" oninput="listingFormOnChange()" onblur="titleCaseListingField('l-brand')"></div>
+    <div class="fg"><label class="fl">Model</label><input class="fi" type="text" id="l-model" placeholder="Örn: Galaxy S24" oninput="listingFormOnChange()" onblur="titleCaseListingField('l-model')"></div>
+    <div class="fg"><label class="fl">Fiyat (₺)</label><input class="fi" type="number" id="l-price" placeholder="25000" oninput="listingFormOnChange()"></div>
     <div class="fg"><label class="fl">Durum</label>
       <div class="csel" data-for="l-cond" data-title="Durum" onclick="openPicker(this)"><span class="csel-label">Sıfır</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
       <select id="l-cond" style="display:none"><option>Sıfır</option><option>Az Kullanılmış</option><option>İkinci El</option></select>
@@ -1251,13 +1270,13 @@ body.tk-maintenance #maintenance-gate{
       </div>
     </div>
 
-    <div class="fg"><label class="fl">Açıklama <span style="color:var(--text3);font-weight:400">(en az 30 karakter)</span></label><textarea class="fi" id="l-desc" placeholder="Ürün hakkında detaylı bilgi verin…" style="min-height:70px;resize:vertical;font-family:inherit"></textarea></div>
+    <div class="fg"><label class="fl">Açıklama <span id="l-desc-counter" style="color:var(--text3);font-weight:400">(0 / 30)</span></label><textarea class="fi" id="l-desc" placeholder="Ürün hakkında detaylı bilgi verin…" style="min-height:70px;resize:vertical;font-family:inherit" oninput="listingFormOnChange()"></textarea></div>
     <div class="fg"><label class="fl">WhatsApp Numaranız</label><input class="fi" type="tel" id="l-phone" placeholder="5XXXXXXXXX"></div>
     <label id="l-agree-wrap" style="display:flex;align-items:flex-start;gap:10px;margin-bottom:16px;cursor:pointer">
-      <input type="checkbox" id="l-agree" style="width:18px;height:18px;margin-top:1px;accent-color:var(--cyan);flex-shrink:0">
+      <input type="checkbox" id="l-agree" style="width:18px;height:18px;margin-top:1px;accent-color:var(--cyan);flex-shrink:0" onchange="listingFormOnChange()">
       <span style="font-size:12px;color:var(--text2);line-height:1.5">Bu ürünün bana ait olduğunu, bilgilerin doğru olduğunu beyan ederim ve <a href="sartlar.html" target="_blank" style="color:var(--cyan)">Kullanım Şartları</a>'nı kabul ediyorum.</span>
     </label>
-    <button class="sbtn2" onclick="submitListing()">İlanı Yayınla</button>
+    <button class="sbtn2" id="l-submit-btn" onclick="submitListing()" disabled style="opacity:.4;cursor:not-allowed">İlanı Yayınla</button>
   </div>
 </div>
 
@@ -1556,6 +1575,18 @@ body.tk-maintenance #maintenance-gate{
 <div id="img-fullscreen" onclick="closemo('img-fullscreen');this.classList.remove('on')">
   <div id="img-fullscreen-close">×</div>
   <img id="img-fullscreen-img" style="display:none" alt="">
+</div>
+
+<!-- İLAN DETAYI FOTOĞRAF GALERİSİ (img-fullscreen'den ayrı, yeni bileşen) -->
+<div id="listing-gallery-mo">
+  <div id="lg-header">
+    <span id="lg-counter">1 / 1</span>
+    <div id="lg-close" onclick="closeListingGallery()">×</div>
+  </div>
+  <div id="lg-track-wrap">
+    <div id="lg-track"></div>
+  </div>
+  <div id="lg-thumbs"></div>
 </div>
 
 <!-- YENİ KONU MODAL -->
@@ -5402,6 +5433,44 @@ function onListingIlChanged(ilName) {
   const ilceTrigger = document.querySelector('.csel[data-for="l-ilce"] .csel-label');
   if (ilceTrigger) ilceTrigger.textContent = districts.length ? 'İlçe Seçin (isteğe bağlı)' : 'Önce il seçin';
   syncPickerTriggerLabel('l-il');
+  listingFormOnChange();
+}
+
+// Marka/Model alanlarına yazım tamamlanınca (blur) düzgün başlık biçimi uygulanır — "samsung" → "Samsung".
+function titleCaseListingField(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.value = el.value.replace(/\s+/g, ' ').trim().split(' ').map(w => w ? w.charAt(0).toLocaleUpperCase('tr-TR') + w.slice(1) : w).join(' ');
+  listingFormOnChange();
+}
+
+// İlan formundaki herhangi bir zorunlu alan değiştiğinde çağrılır: fotoğraf sayacı, "en az 3 fotoğraf"
+// uyarısı, açıklama karakter sayacı ve "İlanı Yayınla" butonunun aktif/pasif durumunu günceller.
+function listingFormOnChange() {
+  const photoCount = photos.filter(Boolean).length;
+  const counterEl = document.getElementById('l-photo-counter');
+  if (counterEl) counterEl.textContent = `(${photoCount} / 4)`;
+  const hintEl = document.getElementById('l-photo-hint');
+  if (hintEl) hintEl.style.display = photoCount >= 3 ? 'none' : 'block';
+
+  const descLen = (document.getElementById('l-desc')?.value || '').trim().length;
+  const descCounterEl = document.getElementById('l-desc-counter');
+  if (descCounterEl) { descCounterEl.textContent = `(${descLen} / 30)`; descCounterEl.style.color = descLen >= 30 ? 'var(--green)' : 'var(--text3)'; }
+
+  const brand = document.getElementById('l-brand')?.value.trim();
+  const modelOnly = document.getElementById('l-model')?.value.trim();
+  const price = document.getElementById('l-price')?.value.trim();
+  const il = document.getElementById('l-il')?.value;
+  const agreeOk = editingListingId || document.getElementById('l-agree')?.checked;
+  const allValid = brand && modelOnly && (brand+' '+modelOnly).trim().length >= 4
+    && price && parseInt(price) > 0 && il && photoCount >= 3 && descLen >= 30 && agreeOk;
+
+  const btn = document.getElementById('l-submit-btn');
+  if (btn) {
+    btn.disabled = !allValid;
+    btn.style.opacity = allValid ? '1' : '.4';
+    btn.style.cursor = allValid ? 'pointer' : 'not-allowed';
+  }
 }
 
 function newListing() {
@@ -5409,6 +5478,9 @@ function newListing() {
   editingListingId = null;
   ensureListingIlOptionsPopulated();
   document.getElementById('l-brand').value = '';
+  document.getElementById('l-model').value = '';
+  document.getElementById('l-price').value = '';
+  document.getElementById('l-desc').value = '';
   document.getElementById('l-il').value = '';
   document.getElementById('l-ilce').innerHTML = '<option value=""></option>';
   document.querySelector('.csel[data-for="l-il"] .csel-label').textContent = 'İl Seçin';
@@ -5416,7 +5488,14 @@ function newListing() {
   document.querySelector('#listing-mo .mtit').textContent = 'İlan Ver';
   document.querySelector('#listing-mo .sbtn2').textContent = 'İlanı Yayınla';
   document.getElementById('l-agree-wrap').style.display = '';
+  document.getElementById('l-agree').checked = false;
+  photos[0] = null; photos[1] = null; photos[2] = null; photos[3] = null;
+  [0,1,2,3].forEach(i => {
+    const slot = document.getElementById('ps' + i);
+    if (slot) slot.innerHTML = `<svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>Ekle</span><input type="file" id="pf${i}" accept="image/*" style="display:none" onchange="addPhoto(${i},this)">`;
+  });
   document.getElementById('listing-mo').classList.add('on');
+  listingFormOnChange();
 }
 
 async function submitListing() {
@@ -5445,6 +5524,12 @@ async function submitListing() {
   try {
     const data = {
       model, price,
+      // YENİ, KATKISAL ALANLAR: brand/modelName/city/district — gelecekteki yapısal arama/filtreleme
+      // için ayrı Firestore alanları olarak da kaydediliyor. Mevcut "model" (Marka+Model birleşik) ve
+      // "location" ("İl, İlçe" birleşik) alanları DEĞİŞMEDİ — Pazar kartı, Detay, Forum, Sohbet, Admin
+      // panelindeki her yer bu iki alanı olduğu gibi okumaya devam ediyor. Bu yüzden eski ilanlarda
+      // hiç var olmayan brand/modelName/city/district alanları hiçbir mevcut ekranı bozmuyor.
+      brand, modelName: modelOnly, city: il, district: ilce || '',
       condition: document.getElementById('l-cond').value,
       origin: document.getElementById('l-origin').value,
       location,
@@ -5512,6 +5597,7 @@ async function submitListing() {
     document.getElementById('l-agree').checked = false;
     document.getElementById('detail-fields').style.display = 'none';
     document.getElementById('dt-chevron')?.parentElement?.classList.remove('open');
+    listingFormOnChange();
     // "İlanlarım" sekmesi artık ayrı yüklendiği için, bir sonraki girişte güncel veriyi çeksin diye işaretlenir.
     marketMineLoaded = false;
     if (mktab === 'mine') loadMarketMine();
@@ -5571,6 +5657,7 @@ function editListing(id) {
   });
   exitDetailPage(false);
   document.getElementById('listing-mo').classList.add('on');
+  listingFormOnChange();
 }
 
 function toggleDetailFields() {
@@ -5607,6 +5694,7 @@ function addPhoto(idx, input) {
       photos[idx] = dataUrl;
       const slot = document.getElementById('ps' + idx);
       slot.innerHTML = `<img src="${dataUrl}"><div class="pslot-x" onclick="rmPhoto(${idx});event.stopPropagation()">×</div><input type="file" id="pf${idx}" accept="image/*" style="display:none" onchange="addPhoto(${idx},this)">`;
+      listingFormOnChange();
     };
     img.src = e.target.result;
   };
@@ -5618,9 +5706,11 @@ function rmPhoto(idx) {
   const slot = document.getElementById('ps' + idx);
   if (!slot) return;
   slot.innerHTML = `<svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>Ekle</span><input type="file" id="pf${idx}" accept="image/*" style="display:none" onchange="addPhoto(${idx},this)">`;
+  listingFormOnChange();
 }
 
 let currentListing = null;
+let currentDetailPhotos = [];
 let openListingId = null;
 
 function openDetail(id) {
@@ -5633,6 +5723,7 @@ function openDetail(id) {
   const pending = l.approved === false;
   const fav = favs.has(l.id);
   const ps = [l.photo1, l.photo2, l.photo3, l.photo4].filter(Boolean);
+  currentDetailPhotos = ps; // onclick niteliği içinde ("ps" yerel kapsamda olduğu için) erişilebilmesi için global bir aynası tutulur
   const refs = l.referrers || [];
   const alreadyRef = user && refs.some(r => r.uid === user.uid);
   const specs = [
@@ -5649,7 +5740,7 @@ function openDetail(id) {
   // Tarih
   const dateStr = l.createdAt?.toDate ? l.createdAt.toDate().toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric'}) : null;
   document.getElementById('det-body').innerHTML = `
-    ${ps.length ? `<div class="det-photos">${ps.map(p=>`<img class="det-photo" src="${p}" onclick="openFullscreen('${p}')">`).join('')}</div>` : ''}
+    ${ps.length ? `<div class="det-photos">${ps.map((p,i)=>`<img class="det-photo" src="${p}" onclick="openListingGallery(currentDetailPhotos, ${i})">`).join('')}</div>` : ''}
     ${l.sold ? `<div style="background:rgba(255,69,58,.12);border:1px solid rgba(255,69,58,.3);color:var(--red);font-size:13px;font-weight:700;padding:8px 14px;border-radius:10px;margin-bottom:12px;text-align:center">✓ Bu ilan satıldı</div>` : ''}
     ${pending && mine && !isAdmin ? `<div style="background:rgba(255,149,0,.12);border:1px solid rgba(255,149,0,.3);color:#FF9500;font-size:13px;font-weight:700;padding:8px 14px;border-radius:10px;margin-bottom:12px;text-align:center">⏳ İlanınız inceleniyor, onaylandığında Pazar'da görünecek</div>` : ''}
     ${pending && isAdmin ? `<div style="background:rgba(255,149,0,.12);border:1px solid rgba(255,149,0,.3);color:#FF9500;font-size:13px;font-weight:700;padding:8px 14px;border-radius:10px;margin-bottom:12px;text-align:center">⏳ Onay bekliyor</div>` : ''}
@@ -6471,6 +6562,112 @@ async function deleteComment(cid) {
 }
 
 // Tam ekran görsel
+// ==== İLAN DETAYI FOTOĞRAF GALERİSİ ====
+// openFullscreen()'den TAMAMEN BAĞIMSIZ — o fonksiyon Sohbet ve Forum'da da kullanıldığı için ona
+// hiç dokunulmadı. Kaydırma (swipe) native CSS scroll-snap ile yapılıyor (performanslı, ek kütüphane
+// yok). Pinch-zoom, hafif bir dokunma mesafesi hesaplamasıyla yalnızca galeri açıkken devreye giriyor.
+let lgPhotos = [];
+let lgCurrentIndex = 0;
+let lgScale = 1;
+let lgHandlersAttached = false;
+
+function openListingGallery(photosArr, startIndex) {
+  if (!photosArr || !photosArr.length) return;
+  lgPhotos = photosArr;
+  lgCurrentIndex = startIndex || 0;
+  const track = document.getElementById('lg-track');
+  track.innerHTML = photosArr.map((p,i) => `<div class="lg-slide" data-idx="${i}"><img src="${p}" alt="" draggable="false"></div>`).join('');
+  const thumbs = document.getElementById('lg-thumbs');
+  if (photosArr.length > 1) {
+    thumbs.style.display = 'flex';
+    thumbs.innerHTML = photosArr.map((p,i) => `<div class="lg-thumb${i===lgCurrentIndex?' active':''}" onclick="lgGoTo(${i})"><img src="${p}" alt="" draggable="false"></div>`).join('');
+  } else {
+    thumbs.style.display = 'none';
+    thumbs.innerHTML = '';
+  }
+  updateLgCounter();
+  document.getElementById('listing-gallery-mo').classList.add('on');
+  track.onscroll = onLgTrackScroll;
+  requestAnimationFrame(() => {
+    track.scrollTo({ left: track.clientWidth * lgCurrentIndex, behavior: 'instant' });
+    if (!lgHandlersAttached) { attachLgPinchHandlers(track); lgHandlersAttached = true; }
+  });
+}
+
+function updateLgCounter() {
+  const counterEl = document.getElementById('lg-counter');
+  if (counterEl) counterEl.textContent = `${lgCurrentIndex + 1} / ${lgPhotos.length}`;
+  document.querySelectorAll('.lg-thumb').forEach((t,i) => t.classList.toggle('active', i === lgCurrentIndex));
+}
+
+let lgScrollDebounce = null;
+function onLgTrackScroll() {
+  clearTimeout(lgScrollDebounce);
+  lgScrollDebounce = setTimeout(() => {
+    const track = document.getElementById('lg-track');
+    if (!track.clientWidth) return;
+    const idx = Math.round(track.scrollLeft / track.clientWidth);
+    if (idx !== lgCurrentIndex && idx >= 0 && idx < lgPhotos.length) {
+      lgCurrentIndex = idx;
+      updateLgCounter();
+      resetLgZoom();
+    }
+  }, 90);
+}
+
+function lgGoTo(i) {
+  lgCurrentIndex = i;
+  const track = document.getElementById('lg-track');
+  track.scrollTo({ left: track.clientWidth * i, behavior: 'smooth' });
+  updateLgCounter();
+}
+
+function closeListingGallery() {
+  document.getElementById('listing-gallery-mo').classList.remove('on');
+  document.getElementById('lg-track').innerHTML = '';
+  resetLgZoom();
+}
+
+function resetLgZoom() {
+  lgScale = 1;
+  document.querySelectorAll('.lg-slide img').forEach(img => { img.style.transform = ''; });
+}
+
+// Basit iki-parmak pinch-zoom + çift dokunmayla yakınlaştırma. Yalnızca galeri modalı içinde
+// çalışır, uygulamanın başka hiçbir yerini etkilemez, sürekli çalışan bir dinleyici değildir
+// (galeri her açıldığında yalnızca bir kez, o track elementine bağlanır).
+function attachLgPinchHandlers(track) {
+  let startDist = 0, activeImg = null, lastTap = 0;
+  track.addEventListener('touchstart', e => {
+    if (e.touches.length === 2) {
+      const slide = e.target.closest('.lg-slide');
+      activeImg = slide?.querySelector('img') || null;
+      startDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+    } else if (e.touches.length === 1) {
+      const now = Date.now();
+      if (now - lastTap < 300) {
+        const slide = e.target.closest('.lg-slide');
+        const img = slide?.querySelector('img');
+        if (img) {
+          lgScale = lgScale > 1 ? 1 : 2.2;
+          img.style.transform = lgScale > 1 ? `scale(${lgScale})` : '';
+        }
+      }
+      lastTap = now;
+    }
+  }, { passive: true });
+  track.addEventListener('touchmove', e => {
+    if (e.touches.length === 2 && activeImg && startDist) {
+      const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      lgScale = Math.min(Math.max(dist / startDist, 1), 3.5);
+      activeImg.style.transform = lgScale > 1 ? `scale(${lgScale})` : '';
+    }
+  }, { passive: true });
+  track.addEventListener('touchend', e => {
+    if (e.touches.length < 2) activeImg = null;
+  }, { passive: true });
+}
+
 function openFullscreen(url) {
   const img = document.getElementById('img-fullscreen-img');
   img.src = url;
