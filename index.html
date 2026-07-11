@@ -1142,22 +1142,22 @@ body.tk-maintenance #maintenance-gate{
     <div class="fg">
       <label class="fl">Fotoğraflar (max 4)</label>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px">
-        <div class="pslot" id="ps0" onclick="document.getElementById('pf0').click()">
+        <div class="pslot" id="ps0" onclick="pickListingPhoto(0)">
           <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
           <span>Ekle</span>
           <input type="file" id="pf0" accept="image/*" style="display:none" onchange="addPhoto(0,this)">
         </div>
-        <div class="pslot" id="ps1" onclick="document.getElementById('pf1').click()">
+        <div class="pslot" id="ps1" onclick="pickListingPhoto(1)">
           <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
           <span>Ekle</span>
           <input type="file" id="pf1" accept="image/*" style="display:none" onchange="addPhoto(1,this)">
         </div>
-        <div class="pslot" id="ps2" onclick="document.getElementById('pf2').click()">
+        <div class="pslot" id="ps2" onclick="pickListingPhoto(2)">
           <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
           <span>Ekle</span>
           <input type="file" id="pf2" accept="image/*" style="display:none" onchange="addPhoto(2,this)">
         </div>
-        <div class="pslot" id="ps3" onclick="document.getElementById('pf3').click()">
+        <div class="pslot" id="ps3" onclick="pickListingPhoto(3)">
           <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
           <span>Ekle</span>
           <input type="file" id="pf3" accept="image/*" style="display:none" onchange="addPhoto(3,this)">
@@ -2591,17 +2591,22 @@ function compressImageToWebP(file, maxDim, quality) {
 // bytesTransferred/totalBytes ilerlemesinden geliyor, sahte/simüle bir spinner değil.
 // Artık hiçbir görsel Firestore'a base64 olarak yazılmıyor — yalnızca bu fonksiyonun döndürdüğü URL'ler yazılıyor.
 async function uploadImageWithThumb(file, storagePathPrefix, onProgress) {
+  console.log('[TRACE] uploadImageWithThumb() BAŞLADI, prefix=', storagePathPrefix);
   if (file.size > 10 * 1024 * 1024) throw new Error('Fotoğraf en fazla 10MB olabilir.');
+  console.log('[TRACE] uploadImageWithThumb(): compressImageToWebP x2 (paralel) ÇAĞRILIYOR...');
   const [thumbSrc, origSrc] = await Promise.all([
     compressImageToWebP(file, 400, 0.75),   // Liste ekranları için küçük, hafif thumbnail
     compressImageToWebP(file, 1280, 0.85),  // Detay ekranı için yüksek kaliteli orijinal
   ]);
+  console.log('[TRACE] uploadImageWithThumb(): sıkıştırma TAMAMLANDI ->', {thumbSize: thumbSrc.blob.size, thumbExt: thumbSrc.ext, origSize: origSrc.blob.size, origExt: origSrc.ext});
   const progress = { thumb: 0, original: 0 };
   const report = () => onProgress && onProgress(Math.round((progress.thumb + progress.original) / 2));
+  console.log('[TRACE] uploadImageWithThumb(): uploadToStorage x2 (paralel) ÇAĞRILIYOR...');
   const [thumbUrl, originalUrl] = await Promise.all([
     uploadToStorage(`${storagePathPrefix}/thumb.${thumbSrc.ext}`, thumbSrc.blob, thumbSrc.mimeType, pct => { progress.thumb = pct; report(); }),
     uploadToStorage(`${storagePathPrefix}/original.${origSrc.ext}`, origSrc.blob, origSrc.mimeType, pct => { progress.original = pct; report(); }),
   ]);
+  console.log('[TRACE] uploadImageWithThumb(): iki yükleme de TAMAMLANDI ->', {thumbUrl, originalUrl});
   return { thumbUrl, originalUrl };
 }
 
@@ -2623,23 +2628,27 @@ function generateUUID() {
 }
 
 function uploadToStorage(path, blob, mimeType, onProgress) {
+  console.log('[TRACE] uploadToStorage() BAŞLADI, path=', path, 'blobSize=', blob?.size, 'mimeType=', mimeType);
   return new Promise((resolve, reject) => {
     const ref = storage.ref(path);
+    console.log('[TRACE] uploadToStorage(): storage.ref() oluşturuldu, .put() ÇAĞRILIYOR...');
     const task = ref.put(blob, { contentType: mimeType || blob.type || 'application/octet-stream' });
+    console.log('[TRACE] uploadToStorage(): .put() çağrıldı, task döndü ->', typeof task, !!task?.on);
     // Yükleme 25 saniye içinde hiç ilerleme kaydetmezse (CORS/ağ sorunu ihtimali), sonsuza kadar
     // beklemek yerine anlamlı bir hatayla sonlandırılır.
     let lastProgressAt = Date.now();
     const watchdog = setInterval(() => {
       if (Date.now() - lastProgressAt > 25000) {
         clearInterval(watchdog);
+        console.error('[TRACE] uploadToStorage(): WATCHDOG ZAMAN AŞIMI, path=', path);
         task.cancel();
         reject(new Error('Yükleme zaman aşımına uğradı — Storage CORS ayarı eksik olabilir'));
       }
     }, 3000);
     task.on('state_changed',
-      snap => { lastProgressAt = Date.now(); if (onProgress && snap.totalBytes) onProgress(Math.round(snap.bytesTransferred / snap.totalBytes * 100)); },
-      err => { clearInterval(watchdog); reject(err); },
-      () => { clearInterval(watchdog); task.snapshot.ref.getDownloadURL().then(resolve).catch(reject); }
+      snap => { lastProgressAt = Date.now(); console.log('[TRACE] uploadToStorage(): state_changed ilerleme ->', snap.bytesTransferred, '/', snap.totalBytes); if (onProgress && snap.totalBytes) onProgress(Math.round(snap.bytesTransferred / snap.totalBytes * 100)); },
+      err => { clearInterval(watchdog); console.error('[TRACE] uploadToStorage(): task.on ERROR callback ->', err.code, err.message); reject(err); },
+      () => { clearInterval(watchdog); console.log('[TRACE] uploadToStorage(): task.on COMPLETE callback, getDownloadURL çağrılıyor...'); task.snapshot.ref.getDownloadURL().then(url => { console.log('[TRACE] uploadToStorage(): getDownloadURL BAŞARILI ->', url); resolve(url); }).catch(err => { console.error('[TRACE] uploadToStorage(): getDownloadURL HATASI ->', err.message); reject(err); }); }
     );
   });
 }
@@ -3311,7 +3320,8 @@ function openEditProfile() {
 // Native uygulamada Capacitor Camera plugin'i (kamera/galeri seçici) kullanılır — HTML <input type=file>
 // Android WebView'lerde bazı cihazlarda 'change' olayını hiç tetiklemeyebiliyor, bu yüzden native
 // ortamda buna güvenmek yerine gerçek native picker'a geçiyoruz. Web'de dosya seçici olduğu gibi kalır.
-let photoPickTarget = null; // 'profile' | 'cover' — uygulama içi kaynak seçim ekranı hangi hedefe yükleyecek
+let photoPickTarget = null; // 'profile' | 'cover' | 'listing' — uygulama içi kaynak seçim ekranı hangi hedefe yükleyecek
+let photoPickListingIdx = null; // 'listing' hedefinde hangi slot (0-3)
 
 function pickProfilePhoto() {
   if (isNativeApp() && window.Capacitor?.Plugins?.Camera) {
@@ -3331,19 +3341,45 @@ function pickCoverPhoto() {
   }
 }
 
+// İLAN FOTOĞRAFI — KÖK NEDEN DÜZELTMESİ: bu, profil/kapak fotoğrafının çoktan aldığı native Kamera
+// eklentisi geçişini hiç almamıştı, hâlâ ham <input type=file>+.click() deseninde kalmıştı. Bu desen,
+// Android WebView'in bazı sürümlerinde 'change' olayını güvenilir tetiklemiyor — bu yüzden addPhoto()
+// hiç çalışmıyor, Storage'a hiçbir şey yüklenmiyordu (ama fotoğraf zorunlu olmadığı için ilan yine de
+// oluşturuluyordu). Artık profille birebir aynı, kanıtlanmış yola bağlandı.
+function pickListingPhoto(idx) {
+  console.log('[TRACE] pickListingPhoto() çağrıldı, idx=', idx, 'isNativeApp()=', isNativeApp(), 'Camera plugin var mı=', !!window.Capacitor?.Plugins?.Camera);
+  if (isNativeApp() && window.Capacitor?.Plugins?.Camera) {
+    photoPickTarget = 'listing';
+    photoPickListingIdx = idx;
+    console.log('[TRACE] pickListingPhoto(): native yol seçildi, photo-source-mo açılıyor');
+    document.getElementById('photo-source-mo').classList.add('on');
+  } else {
+    console.log('[TRACE] pickListingPhoto(): web yol seçildi, pf' + idx + ' inputuna .click() yapılıyor');
+    document.getElementById('pf' + idx).click();
+  }
+}
+
 // Android'in kendi sistem "PROMPT" seçim ekranı bazı cihazlarda ikonları düzgün çizemiyor (kırık/boş görünüm).
 // Bunun yerine kaynağı (Kamera/Galeri) doğrudan, kendi tasarımımızdaki bir seçim ekranından belirliyoruz.
 async function executePhotoPick(source) {
+  console.log('[TRACE] executePhotoPick() çağrıldı, source=', source, 'photoPickTarget=', photoPickTarget, 'photoPickListingIdx=', photoPickListingIdx);
   const target = photoPickTarget;
+  const listingIdx = photoPickListingIdx;
   try {
+    console.log('[TRACE] executePhotoPick(): Capacitor.Plugins.Camera.getPhoto() ÇAĞRILIYOR...');
     const photo = await Capacitor.Plugins.Camera.getPhoto({
       quality: 90, allowEditing: false, resultType: 'dataUrl',
       source: source === 'camera' ? 'CAMERA' : 'PHOTOS'
     });
+    console.log('[TRACE] executePhotoPick(): getPhoto() TAMAMLANDI, dataUrl uzunluğu=', photo.dataUrl?.length);
     const blob = await (await fetch(photo.dataUrl)).blob();
+    console.log('[TRACE] executePhotoPick(): blob oluşturuldu, boyut=', blob.size, 'tip=', blob.type);
     if (target === 'profile') await processProfilePhoto(blob);
-    else await processCoverPhoto(blob);
+    else if (target === 'cover') await processCoverPhoto(blob);
+    else if (target === 'listing') { console.log('[TRACE] executePhotoPick(): uploadListingPhotoFile ÇAĞRILIYOR, idx=', listingIdx); await uploadListingPhotoFile(listingIdx, blob); }
+    else console.warn('[TRACE] executePhotoPick(): BİLİNMEYEN target ->', target);
   } catch (e) {
+    console.error('[TRACE] executePhotoPick(): HATA ->', e.message, e.stack);
     if (e?.message !== 'User cancelled photos app') {
       console.error('Kamera/galeri açılamadı:', e);
       showToast('⚠️','rgba(255,69,58,.15)','Hata','Fotoğraf seçilemedi: ' + (e.message||''));
@@ -5351,23 +5387,40 @@ function toggleDetailFields() {
 const photos = [null, null, null, null];      // orijinal görsel URL'leri
 const photosThumb = [null, null, null, null]; // thumbnail URL'leri (liste ekranları için)
 
+// Web'de <input type=file> hâlâ kullanılıyor (masaüstü/mobil tarayıcıda güvenilir çalışır) — seçilince buraya düşer.
 async function addPhoto(idx, input) {
+  console.log('[TRACE] addPhoto() çağrıldı, idx=', idx, 'input.files.length=', input.files.length);
   const file = input.files[0];
   input.value = '';
-  if (!file) return;
-  if (file.size > 10 * 1024 * 1024) { showToast('⚠️','rgba(255,69,58,.15)','Dosya Çok Büyük','Fotoğraf en fazla 10MB olabilir.'); return; }
+  if (!file) { console.log('[TRACE] addPhoto(): file YOK, çıkılıyor'); return; }
+  console.log('[TRACE] addPhoto(): file bulundu, uploadListingPhotoFile çağrılıyor', file.name, file.size);
+  await uploadListingPhotoFile(idx, file);
+  console.log('[TRACE] addPhoto(): uploadListingPhotoFile tamamlandı (await sonrası)');
+}
+
+// Gerçek yükleme mantığı — hem native Kamera akışından (pickListingPhoto → executePhotoPick) hem
+// web <input type=file> akışından (addPhoto) çağrılan TEK, paylaşılan fonksiyon.
+async function uploadListingPhotoFile(idx, file) {
+  console.log('[TRACE] uploadListingPhotoFile() BAŞLADI, idx=', idx, 'file=', file?.name, file?.size, 'user=', typeof user, user?.uid, 'pendingListingId=', pendingListingId);
+  if (file.size > 10 * 1024 * 1024) { console.log('[TRACE] uploadListingPhotoFile(): dosya 10MB üstü, iptal'); showToast('⚠️','rgba(255,69,58,.15)','Dosya Çok Büyük','Fotoğraf en fazla 10MB olabilir.'); return; }
   const slot = document.getElementById('ps' + idx);
+  console.log('[TRACE] uploadListingPhotoFile(): slot elementi bulundu mu?', !!slot);
   // Yükleme sırasında ekran donmasın diye anında bir ilerleme göstergesi konuyor, GERÇEK Storage
   // ilerlemesiyle (%12, %46, %81 gibi) güncelleniyor — sahte bir spinner değil.
   const setProgress = pct => { slot.innerHTML = `<div class="pslot-progress"><div class="spin" style="width:20px;height:20px"></div><span>%${pct}</span></div>`; };
   setProgress(0);
   try {
     const path = `listing-photos/${user.uid}/${pendingListingId}/slot${idx}`;
+    console.log('[TRACE] uploadListingPhotoFile(): Storage path oluşturuldu ->', path);
+    console.log('[TRACE] uploadListingPhotoFile(): uploadImageWithThumb ÇAĞRILIYOR...');
     const { thumbUrl, originalUrl } = await uploadImageWithThumb(file, path, setProgress);
+    console.log('[TRACE] uploadListingPhotoFile(): uploadImageWithThumb TAMAMLANDI ->', {thumbUrl, originalUrl});
     photos[idx] = originalUrl;
     photosThumb[idx] = thumbUrl;
     slot.innerHTML = `<img src="${thumbUrl}" loading="lazy" decoding="async"><div class="pslot-x" onclick="rmPhoto(${idx});event.stopPropagation()">×</div><input type="file" id="pf${idx}" accept="image/*" style="display:none" onchange="addPhoto(${idx},this)">`;
+    console.log('[TRACE] uploadListingPhotoFile(): photos[idx] ve DOM güncellendi, idx=', idx, 'photos[idx]=', photos[idx]);
   } catch(e) {
+    console.error('[TRACE] uploadListingPhotoFile(): HATA YAKALANDI ->', e.message, e.stack);
     console.error('İlan fotoğrafı yüklenemedi:', e);
     showToast('⚠️','rgba(255,69,58,.15)','Yükleme Başarısız', e.message || 'Fotoğraf yüklenemedi.');
     slot.innerHTML = `<svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>Ekle</span><input type="file" id="pf${idx}" accept="image/*" style="display:none" onchange="addPhoto(${idx},this)">`;
@@ -5779,32 +5832,42 @@ function switchForumTab(tab, el) {
 }
 
 async function loadForumPage(reset) {
-  if (forumLoading) return;
+  console.log('[TRACE-FORUM] loadForumPage() çağrıldı, reset=', reset, 'forumLoading=', forumLoading, 'forumCurrentTab=', forumCurrentTab);
+  if (forumLoading) { console.log('[TRACE-FORUM] loadForumPage(): zaten yükleniyor, çıkılıyor'); return; }
   if (reset) { forumPosts = []; forumLastDoc = null; forumHasMore = true; }
-  if (!forumHasMore) { rForum(); return; }
+  if (!forumHasMore) { console.log('[TRACE-FORUM] loadForumPage(): forumHasMore=false, çıkılıyor'); rForum(); return; }
   forumLoading = true;
   rForum(); // "yükleniyor" durumunu anında yansıt
   try {
     let q = db.collection('teknohane_posts').where('archived', '==', false);
+    console.log('[TRACE-FORUM] loadForumPage(): temel sorgu -> where(archived==false)');
     if (forumCurrentTab === 'popular') {
       q = q.orderBy('likeCount', 'desc').orderBy('createdAt', 'desc');
+      console.log('[TRACE-FORUM] loadForumPage(): +orderBy(likeCount desc, createdAt desc) [popular]');
     } else if (forumCurrentTab === 'resolved') {
       q = q.where('resolved', '==', true).orderBy('createdAt', 'desc');
+      console.log('[TRACE-FORUM] loadForumPage(): +where(resolved==true)+orderBy(createdAt desc) [resolved]');
     } else if (forumCurrentTab === 'following') {
       const uids = (myProfileData.followingUids || []).slice(0, 30); // Firestore 'in' sınırı: 30
+      console.log('[TRACE-FORUM] loadForumPage(): following sekmesi, uids=', uids);
       if (!uids.length) { forumHasMore = false; forumPosts = []; forumLoading = false; rForum(); return; }
       q = q.where('uid', 'in', uids).orderBy('createdAt', 'desc');
     } else {
       q = q.orderBy('createdAt', 'desc'); // 'new' (varsayılan)
+      console.log('[TRACE-FORUM] loadForumPage(): +orderBy(createdAt desc) [new/varsayılan]');
     }
     q = q.limit(20);
     if (forumLastDoc) q = q.startAfter(forumLastDoc);
+    console.log('[TRACE-FORUM] loadForumPage(): sorgu ÇALIŞTIRILIYOR (q.get())...');
     const snap = await q.get();
+    console.log('[TRACE-FORUM] loadForumPage(): sorgu TAMAMLANDI, doküman sayısı=', snap.docs.length, 'başlıklar=', snap.docs.map(d=>d.data().title));
     const newItems = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     forumLastDoc = snap.docs[snap.docs.length - 1] || forumLastDoc;
     forumHasMore = snap.docs.length === 20;
     forumPosts = reset ? newItems : [...forumPosts, ...newItems];
+    console.log('[TRACE-FORUM] loadForumPage(): forumPosts güncellendi, toplam=', forumPosts.length);
   } catch (e) {
+    console.error('[TRACE-FORUM] loadForumPage(): HATA ->', e.code, e.message);
     console.error('Forum yüklenemedi:', e);
     const list = document.getElementById('forum-list');
     const urlMatch = e.message?.match(/https:\/\/console\.firebase\.google\.com[^\s)]+/);
@@ -5989,14 +6052,24 @@ async function submitPost() {
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
     if (npPhotoUrl) { data.imageUrl = npPhotoUrl; data.imageUrlThumb = npPhotoThumbUrl; }
+    console.log('[TRACE-FORUM] submitPost(): Firestore\'a YAZILAN veri ->', JSON.stringify(data));
     // .add() yerine önceden üretilmiş ID ile .set() — bu ID, fotoğrafın Storage yolunda zaten kullanıldı.
     await db.collection('teknohane_posts').doc(pendingPostId).set(data);
+    console.log('[TRACE-FORUM] submitPost(): Firestore yazma TAMAMLANDI, id=', pendingPostId);
     closemo('new-post-mo');
     npPhotoUrl = null; npPhotoThumbUrl = null;
     pendingPostId = null;
-    loadForumPage(true);
+    // KÖK NEDEN DÜZELTMESİ: kullanıcı "Çözülen" veya "Takip Ettiklerim" gibi bir sekmedeyken gönderi
+    // oluşturduysa, o sekmenin sorgusu yeni gönderiyi TANIM GEREĞİ dışlar (henüz çözülmedi / kendinizi
+    // takip etmiyorsunuz) — admin panelinde bu filtreler olmadığı için orada her zaman görünüyordu.
+    // Artık gönderi sonrası her zaman "Yeni" sekmesine dönülüyor, yeni gönderi garanti görünür.
+    forumCurrentTab = 'new';
+    const newTabEl = document.querySelector('.forum-tab[data-ftab="new"]');
+    if (newTabEl) { document.querySelectorAll('.forum-tab').forEach(t => t.classList.remove('on')); newTabEl.classList.add('on'); }
+    await loadForumPage(true);
+    console.log('[TRACE-FORUM] submitPost(): loadForumPage(true) TAMAMLANDI, forumPosts.length=', forumPosts.length, 'yeni gönderi listede mi=', forumPosts.some(p=>p.id===pendingPostId || p.title===title));
     showToast('✅','rgba(48,209,88,.15)','Konu Yayınlandı','Konunuz foruma eklendi.');
-  } catch(e) { alert('Hata: '+e.message); }
+  } catch(e) { console.error('[TRACE-FORUM] submitPost(): HATA ->', e.message); alert('Hata: '+e.message); }
 }
 
 async function openPost(id) {
