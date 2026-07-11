@@ -8739,8 +8739,13 @@ function openPicker(triggerEl) {
   const sel = document.getElementById(selectId);
   if (!sel) return;
   const body = document.getElementById('picker-options');
+  // KANITLANMIŞ KÖK NEDEN DÜZELTMESİ: JSON.stringify(o.value) çift tırnaklı bir metin üretiyordu,
+  // bu da zaten çift tırnakla sınırlanmış onclick="..." özniteliğini erken kapatıp HTML'i bozuyordu
+  // (gerçek tarayıcıda "Unexpected end of input" hatasıyla doğrulandı). Artık değer, tek tırnaklı bir
+  // JS string literali olarak güvenle kaçışlanıyor (tek tırnak, çift tırnak, ters eğik çizgi dahil).
+  const esc = v => String(v).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
   body.innerHTML = Array.from(sel.options).map(o => `
-    <div class="picker-opt${o.value===sel.value?' active':''}" onclick="choosePickerOption('${selectId}',${JSON.stringify(o.value)})">${o.textContent}</div>
+    <div class="picker-opt${o.value===sel.value?' active':''}" onclick="choosePickerOption('${selectId}','${esc(o.value)}')">${o.textContent}</div>
   `).join('');
   document.getElementById('picker-mo-title').textContent = triggerEl.dataset.title || 'Seç';
   document.getElementById('custom-picker-mo').classList.add('on');
