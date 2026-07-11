@@ -361,6 +361,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .ref-av{width:22px;height:22px;border-radius:50%;background:rgba(255,149,0,.15);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#FF9500;flex-shrink:0;}
 .ref-empty{font-size:13px;color:var(--text3);text-align:center;padding:8px 0;}
 .pslot{aspect-ratio:4/3;border-radius:12px;border:2px dashed var(--border2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;overflow:hidden;position:relative;background:var(--surf);}
+.pslot.reorder-src{border:2px solid var(--cyan);box-shadow:0 0 0 2px var(--cglow);}
+.pslot-cover{position:absolute;bottom:4px;left:4px;background:rgba(0,212,255,.92);color:#001018;font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:6px;letter-spacing:.2px;z-index:2;}
+.pslot-processing{display:flex;align-items:center;justify-content:center;width:100%;height:100%;}
 .pslot img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;}
 .pslot svg{width:24px;height:24px;stroke:var(--text3);fill:none;stroke-width:1.8;}
 .pslot span{font-size:11px;color:var(--text3);}
@@ -497,6 +500,19 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .fg2-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
 .fg2{margin-bottom:0;}
 .spec-pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+.seller-card{background:var(--surf);border:1px solid var(--border2);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:12px 0;cursor:pointer;}
+.seller-card-av{width:40px;height:40px;border-radius:50%;background:var(--cdim);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:var(--cyan);border:1px solid rgba(0,212,255,.25);flex-shrink:0;}
+.seller-card-name{font-size:14px;font-weight:700;color:var(--text);margin-bottom:2px;}
+.seller-card-stats{font-size:12px;color:var(--text3);}
+.seller-card-badges{display:flex;flex-wrap:wrap;gap:6px;width:100%;margin-top:2px;}
+.seller-badge{font-size:10.5px;font-weight:700;color:var(--cyan);background:var(--cdim);border:1px solid rgba(0,212,255,.2);padding:3px 9px;border-radius:20px;}
+.similar-row{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;}
+.similar-row::-webkit-scrollbar{display:none;}
+.similar-card{flex:0 0 120px;cursor:pointer;}
+.similar-card-photo{width:120px;height:90px;border-radius:12px;overflow:hidden;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:6px;}
+.similar-card-photo img{width:100%;height:100%;object-fit:cover;}
+.similar-card-title{font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;}
+.similar-card-price{font-size:12.5px;font-weight:700;color:var(--cyan);}
 .spec-pill{background:var(--surf2);border:1px solid var(--border2);border-radius:8px;padding:4px 10px;font-size:11px;color:var(--text2);}
 .spec-pill b{color:var(--text);font-weight:600;}
 /* FİLTRE */
@@ -1206,22 +1222,22 @@ body.tk-maintenance #maintenance-gate{
       <label class="fl">Fotoğraflar <span id="l-photo-counter" style="color:var(--text3);font-weight:400">(0 / 4)</span></label>
       <div id="l-photo-hint" style="font-size:11.5px;color:#FF9500;margin-top:4px">En az 3 fotoğraf eklemelisiniz.</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px">
-        <div class="pslot" id="ps0" onclick="document.getElementById('pf0').click()">
+        <div class="pslot" id="ps0" onclick="onPslotTap(0)" onpointerdown="onPslotPointerDown(0)" onpointerup="onPslotPointerUp()" onpointerleave="onPslotPointerUp()">
           <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
           <span>Ekle</span>
           <input type="file" id="pf0" accept="image/*" style="display:none" onchange="addPhoto(0,this)">
         </div>
-        <div class="pslot" id="ps1" onclick="document.getElementById('pf1').click()">
+        <div class="pslot" id="ps1" onclick="onPslotTap(1)" onpointerdown="onPslotPointerDown(1)" onpointerup="onPslotPointerUp()" onpointerleave="onPslotPointerUp()">
           <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
           <span>Ekle</span>
           <input type="file" id="pf1" accept="image/*" style="display:none" onchange="addPhoto(1,this)">
         </div>
-        <div class="pslot" id="ps2" onclick="document.getElementById('pf2').click()">
+        <div class="pslot" id="ps2" onclick="onPslotTap(2)" onpointerdown="onPslotPointerDown(2)" onpointerup="onPslotPointerUp()" onpointerleave="onPslotPointerUp()">
           <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
           <span>Ekle</span>
           <input type="file" id="pf2" accept="image/*" style="display:none" onchange="addPhoto(2,this)">
         </div>
-        <div class="pslot" id="ps3" onclick="document.getElementById('pf3').click()">
+        <div class="pslot" id="ps3" onclick="onPslotTap(3)" onpointerdown="onPslotPointerDown(3)" onpointerup="onPslotPointerUp()" onpointerleave="onPslotPointerUp()">
           <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
           <span>Ekle</span>
           <input type="file" id="pf3" accept="image/*" style="display:none" onchange="addPhoto(3,this)">
@@ -5226,9 +5242,13 @@ async function loadMarketMine() {
   marketMineListings = [];
   if (!user) { marketMineLoaded = true; rlistings(); return; }
   try {
-    const snap = await db.collection('teknohane_listings').where('uid', '==', user.uid).orderBy('createdAt', 'desc').get();
-    marketMineListings = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  } catch (e) { console.error('İlanlarım yüklenemedi:', e); }
+    // KÖK NEDEN DÜZELTMESİ: where('uid','==')+orderBy('createdAt') composite index gerektiriyordu
+    // (teknohane_listings için yalnızca approved+createdAt index'i vardı, uid+createdAt hiç yoktu —
+    // Forum'da kanıtladığımız aynı sınıf sorun). orderBy kaldırıldı, sıralama istemci tarafında yapılıyor.
+    const snap = await db.collection('teknohane_listings').where('uid', '==', user.uid).get();
+    marketMineListings = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a,b) => (b.createdAt?.toDate?.()?.getTime()||0) - (a.createdAt?.toDate?.()?.getTime()||0));
+  } catch (e) { console.error('İlanlarım yüklenemedi:', e); showErrorToast('İlanların yüklenemedi: ' + e.message); }
   marketMineLoaded = true;
   rlistings();
 }
@@ -5490,10 +5510,7 @@ function newListing() {
   document.getElementById('l-agree-wrap').style.display = '';
   document.getElementById('l-agree').checked = false;
   photos[0] = null; photos[1] = null; photos[2] = null; photos[3] = null;
-  [0,1,2,3].forEach(i => {
-    const slot = document.getElementById('ps' + i);
-    if (slot) slot.innerHTML = `<svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>Ekle</span><input type="file" id="pf${i}" accept="image/*" style="display:none" onchange="addPhoto(${i},this)">`;
-  });
+  [0,1,2,3].forEach(i => { const slot = document.getElementById('ps' + i); if (slot) slot.innerHTML = renderPhotoSlotHTML(i); });
   document.getElementById('listing-mo').classList.add('on');
   listingFormOnChange();
 }
@@ -5530,6 +5547,9 @@ async function submitListing() {
       // panelindeki her yer bu iki alanı olduğu gibi okumaya devam ediyor. Bu yüzden eski ilanlarda
       // hiç var olmayan brand/modelName/city/district alanları hiçbir mevcut ekranı bozmuyor.
       brand, modelName: modelOnly, city: il, district: ilce || '',
+      // Normalize edilmiş, küçük harfli arama alanları — gelecekte prefix/eşleşme araması için,
+      // hiçbir mevcut sorguyu/render'ı etkilemiyor, yalnızca ek yazma.
+      brandLower: brand.toLocaleLowerCase('tr-TR'), cityLower: il.toLocaleLowerCase('tr-TR'), districtLower: (ilce||'').toLocaleLowerCase('tr-TR'),
       condition: document.getElementById('l-cond').value,
       origin: document.getElementById('l-origin').value,
       location,
@@ -5581,10 +5601,7 @@ async function submitListing() {
 
     closemo('listing-mo');
     photos[0] = null; photos[1] = null; photos[2] = null; photos[3] = null;
-    [0,1,2,3].forEach(i => {
-      const slot = document.getElementById('ps' + i);
-      if (slot) slot.innerHTML = `<svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>Ekle</span><input type="file" id="pf${i}" accept="image/*" style="display:none" onchange="addPhoto(${i},this)">`;
-    });
+    [0,1,2,3].forEach(i => { const slot = document.getElementById('ps' + i); if (slot) slot.innerHTML = renderPhotoSlotHTML(i); });
     editingListingId = null;
     document.querySelector('#listing-mo .mtit').textContent = 'İlan Ver';
     document.querySelector('#listing-mo .sbtn2').textContent = 'İlanı Yayınla';
@@ -5649,12 +5666,7 @@ function editListing(id) {
   photos[1] = l.photo2 || null;
   photos[2] = l.photo3 || null;
   photos[3] = l.photo4 || null;
-  [0,1,2,3].forEach(i => {
-    const slot = document.getElementById('ps' + i);
-    const p = photos[i];
-    if (p) slot.innerHTML = `<img src="${p}"><div class="pslot-x" onclick="rmPhoto(${i});event.stopPropagation()">×</div><input type="file" id="pf${i}" accept="image/*" style="display:none" onchange="addPhoto(${i},this)">`;
-    else slot.innerHTML = `<svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>Ekle</span><input type="file" id="pf${i}" accept="image/*" style="display:none" onchange="addPhoto(${i},this)">`;
-  });
+  [0,1,2,3].forEach(i => { const slot = document.getElementById('ps' + i); if (slot) slot.innerHTML = renderPhotoSlotHTML(i); });
   exitDetailPage(false);
   document.getElementById('listing-mo').classList.add('on');
   listingFormOnChange();
@@ -5670,10 +5682,52 @@ function toggleDetailFields() {
 
 const photos = [null, null, null, null];
 
+// Bir slot'un (dolu/boş) HTML içeriğini üretir — addPhoto/rmPhoto/takas arasında tekrar kullanılır.
+function renderPhotoSlotHTML(idx) {
+  const p = photos[idx];
+  if (!p) return `<svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>Ekle</span><input type="file" id="pf${idx}" accept="image/*" style="display:none" onchange="addPhoto(${idx},this)">`;
+  return `<img src="${p}">${idx===0?'<div class="pslot-cover">Kapak</div>':''}<div class="pslot-x" onclick="rmPhoto(${idx});event.stopPropagation()">×</div><input type="file" id="pf${idx}" accept="image/*" style="display:none" onchange="addPhoto(${idx},this)">`;
+}
+function refreshPhotoSlot(idx) {
+  const slot = document.getElementById('ps' + idx);
+  if (slot) slot.innerHTML = renderPhotoSlotHTML(idx);
+}
+
+// Uzun basarak iki fotoğrafın yerini değiştirme ("taşıma modu"): bir slota ~500ms basılı tutulunca
+// o slot "kaynak" olarak işaretlenir, ardından dokunulan ikinci slotla yer değiştirir.
+let photoReorderSrc = null;
+let photoPressTimer = null;
+function onPslotPointerDown(idx) {
+  if (!photos[idx]) return;
+  clearTimeout(photoPressTimer);
+  photoPressTimer = setTimeout(() => {
+    photoReorderSrc = idx;
+    document.querySelectorAll('.pslot').forEach((el,i) => el.classList.toggle('reorder-src', i===idx));
+    showToast('↔️','var(--cdim)','Taşıma Modu','Değiştirmek istediğiniz fotoğrafa dokunun.');
+  }, 500);
+}
+function onPslotPointerUp() { clearTimeout(photoPressTimer); }
+function onPslotTap(idx) {
+  if (photoReorderSrc !== null) {
+    if (photoReorderSrc !== idx) {
+      const tmp = photos[idx]; photos[idx] = photos[photoReorderSrc]; photos[photoReorderSrc] = tmp;
+      refreshPhotoSlot(idx); refreshPhotoSlot(photoReorderSrc);
+      listingFormOnChange();
+    }
+    photoReorderSrc = null;
+    document.querySelectorAll('.pslot').forEach(el => el.classList.remove('reorder-src'));
+    return;
+  }
+  if (!photos[idx]) document.getElementById('pf' + idx).click();
+}
+
 function addPhoto(idx, input) {
   const file = input.files[0];
   if (!file) return;
   if (file.size > 10 * 1024 * 1024) { showToast('⚠️','rgba(255,69,58,.15)','Dosya Çok Büyük','Fotoğraf en fazla 10MB olabilir.'); input.value=''; return; }
+  // Fotoğraf işlenirken (sıkıştırma tamamlanana kadar) görsel bir ilerleme göstergesi.
+  const slot = document.getElementById('ps' + idx);
+  slot.innerHTML = `<div class="pslot-processing"><div class="spin" style="width:20px;height:20px"></div></div>`;
 
   const img = new Image();
   const reader = new FileReader();
@@ -5692,20 +5746,19 @@ function addPhoto(idx, input) {
         dataUrl = canvas.toDataURL('image/jpeg', quality);
       }
       photos[idx] = dataUrl;
-      const slot = document.getElementById('ps' + idx);
-      slot.innerHTML = `<img src="${dataUrl}"><div class="pslot-x" onclick="rmPhoto(${idx});event.stopPropagation()">×</div><input type="file" id="pf${idx}" accept="image/*" style="display:none" onchange="addPhoto(${idx},this)">`;
+      refreshPhotoSlot(idx);
       listingFormOnChange();
     };
+    img.onerror = () => { refreshPhotoSlot(idx); showErrorToast('Fotoğraf işlenemedi.'); };
     img.src = e.target.result;
   };
+  reader.onerror = () => { refreshPhotoSlot(idx); showErrorToast('Fotoğraf okunamadı.'); };
   reader.readAsDataURL(file);
 }
 
 function rmPhoto(idx) {
   photos[idx] = null;
-  const slot = document.getElementById('ps' + idx);
-  if (!slot) return;
-  slot.innerHTML = `<svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>Ekle</span><input type="file" id="pf${idx}" accept="image/*" style="display:none" onchange="addPhoto(${idx},this)">`;
+  refreshPhotoSlot(idx);
   listingFormOnChange();
 }
 
@@ -5745,7 +5798,11 @@ function openDetail(id) {
     ${pending && mine && !isAdmin ? `<div style="background:rgba(255,149,0,.12);border:1px solid rgba(255,149,0,.3);color:#FF9500;font-size:13px;font-weight:700;padding:8px 14px;border-radius:10px;margin-bottom:12px;text-align:center">⏳ İlanınız inceleniyor, onaylandığında Pazar'da görünecek</div>` : ''}
     ${pending && isAdmin ? `<div style="background:rgba(255,149,0,.12);border:1px solid rgba(255,149,0,.3);color:#FF9500;font-size:13px;font-weight:700;padding:8px 14px;border-radius:10px;margin-bottom:12px;text-align:center">⏳ Onay bekliyor</div>` : ''}
     <div style="font-size:22px;font-weight:700;margin-bottom:4px">${l.model||''}</div>
-    <div style="font-size:28px;font-weight:700;color:var(--cyan);margin-bottom:10px">₺${parseInt(l.price||0).toLocaleString('tr-TR')}</div>
+    <div style="font-size:28px;font-weight:700;color:var(--cyan);margin-bottom:6px">₺${parseInt(l.price||0).toLocaleString('tr-TR')}</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:10px;display:flex;gap:12px">
+      <span>❤️ ${(l.favoritedByUids||[]).length} favori</span>
+      <span>👁 ${l.viewCount||0} görüntülenme</span>
+    </div>
     ${dateStr?`<div class="listing-date">📅 ${dateStr}</div>`:''}
     <div class="listing-id-bar">
       <div><div class="listing-id-label">İlan No</div><div class="listing-id-val">#${shortId}</div></div>
@@ -5760,8 +5817,8 @@ function openDetail(id) {
     </div>
     <div class="det-info">
       ${l.location?`<div class="det-row"><span class="det-lbl">Konum</span><span>📍 ${l.location}</span></div>`:''}
-      ${l.ownerName?`<div class="det-row"><span class="det-lbl">Satıcı</span><span ${!mine?`onclick="openPublicProfile('${l.uid}','${l.ownerName.replace(/'/g,"\\'")}');exitDetailPage(false)" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;color:var(--cyan)"`:''} >${l.ownerName}${mine?' (Ben)':''}</span><span id="det-seller-rating"></span></div>`:''}
     </div>
+    <div id="det-seller-card"></div>
     ${specs.length ? `<div class="spec-pills">${specs.map(s=>`<div class="spec-pill"><b>${s.l}:</b> ${s.v}</div>`).join('')}</div>` : ''}
     ${l.desc?`<div style="font-size:14px;color:var(--text2);line-height:1.6;padding:14px;background:var(--surf);border-radius:14px;margin:16px 0">${l.desc}</div>`:''}
     <div class="ref-box">
@@ -5797,9 +5854,17 @@ function openDetail(id) {
     ${!mine && user ? `<div style="text-align:center;margin-top:10px"><span onclick="openReportModal('listing','${l.id}','${(l.model||'İlan').replace(/'/g,"\\'").replace(/"/g,'&quot;')}','${l.uid||''}')" style="font-size:12px;color:var(--text3);cursor:pointer;text-decoration:underline">🚩 İlanı Şikayet Et</span></div>` : ''}
     ${pending && isAdmin ? `<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px" onclick="approveListing('${l.id}')">✓ İlanı Onayla ve Yayınla</button>`:''}
     ${mine?`<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px;background:var(--surf2);color:var(--cyan);border:1px solid var(--border2)" onclick="editListing('${l.id}')">✏️ İlanı Düzenle</button>`:''}
-    ${mine?`<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px" onclick="toggleSold('${l.id}')">${l.sold?'↺ Satıldı İşaretini Kaldır':'✓ Satıldı Olarak İşaretle'}</button>`:''}`;
+    ${mine?`<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px" onclick="toggleSold('${l.id}')">${l.sold?'↺ Satıldı İşaretini Kaldır':'✓ Satıldı Olarak İşaretle'}</button>`:''}
+    <div id="det-similar"></div>`;
   document.getElementById('detail-mo').classList.add('on');
-  if (l.uid) loadSellerRatingSummary(l.uid, 'det-seller-rating');
+  if (l.uid) loadSellerCard(l.uid, l.ownerName, mine, 'det-seller-card');
+  renderSimilarListings(l, 'det-similar');
+  // Görüntülenme sayısı — yalnızca YENİ bir açılışta (aynı oturumda tekrar tekrar render'da değil)
+  // ve ilan sahibi kendi ilanına bakmıyorsa artırılır; ek okuma yok, tek bir increment yazması.
+  if (isNewOpen && !mine) {
+    db.collection('teknohane_listings').doc(id).update({ viewCount: firebase.firestore.FieldValue.increment(1) }).catch(()=>{});
+    l.viewCount = (l.viewCount||0) + 1;
+  }
   if (isNewOpen) {
     openListingId = id;
     history.pushState({ listingDetail: id }, '', location.pathname + '?listing=' + id);
@@ -5816,11 +5881,18 @@ function exitDetailPage(toMarket) {
   if (toMarket) gt('market');
 }
 
-function shareListing(id) {
+async function shareListing(id) {
   const l = listings.find(x => x.id === id);
   if (!l) return;
   const url = location.origin + location.pathname + '?listing=' + id;
   const text = `${l.model} - ₺${parseInt(l.price||0).toLocaleString('tr-TR')}\nTeknohane'de incele:`;
+  // Native Capacitor Share eklentisi varsa (Kamera'da kullandığımız aynı özellik algılama deseni)
+  // Android'in sistem paylaşım menüsünü doğrudan onunla açıyoruz — yoksa navigator.share zaten
+  // aynı sistem menüsünü açıyor (modern Android WebView'lerde desteklenir), o yola düşülüyor.
+  if (isNativeApp() && window.Capacitor?.Plugins?.Share) {
+    try { await Capacitor.Plugins.Share.share({ title: l.model, text, url, dialogTitle: 'İlanı Paylaş' }); return; }
+    catch(e) { if (e?.message?.includes('cancel')) return; /* diğer hatalarda aşağıdaki yollara düş */ }
+  }
   if (navigator.share) {
     navigator.share({ title: l.model, text, url }).catch(()=>{});
     return;
@@ -8877,6 +8949,72 @@ function updatePubRatingBadge(avg, count) {
 }
 
 // İlan detayında satıcı adının yanında gösterilecek kısa puan özeti (tam liste çekmeden)
+// Satıcı kartı — puan/yorum sayısı (mevcut yorum sorgusu), ilan sayısı (ucuz count() agregasyonu,
+// doküman okumaz) ve rozetler (VIP/Güvenilir Satıcı/Doğrulanmış — teknohane_users'tan TEK doküman
+// okuması) birlikte gösterilir. Toplam: 1 doküman okuma + 2 hafif sorgu, yalnızca detay açılışında.
+async function loadSellerCard(sellerUid, ownerName, mine, containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const safeName = (ownerName||'?').replace(/'/g,"\\'");
+  el.innerHTML = `
+    <div class="seller-card" ${!mine?`onclick="openPublicProfile('${sellerUid}','${safeName}');exitDetailPage(false)"`:''}>
+      <div class="seller-card-av">${(ownerName||'?')[0].toUpperCase()}</div>
+      <div style="flex:1;min-width:0">
+        <div class="seller-card-name">${ownerName||'Kullanıcı'}${mine?' (Ben)':''}</div>
+        <div class="seller-card-stats" id="${containerId}-stats">Yükleniyor…</div>
+      </div>
+    </div>`;
+  try {
+    const [commentsSnap, countSnap, userSnap] = await Promise.all([
+      db.collection('teknohane_comments').where('targetType','==','seller').where('targetId','==',sellerUid).limit(50).get(),
+      db.collection('teknohane_listings').where('uid','==',sellerUid).count().get(),
+      db.collection('teknohane_users').doc(sellerUid).get(),
+    ]);
+    let total = 0, count = 0;
+    commentsSnap.docs.forEach(d => { const c = d.data(); if (c.rating) { total += c.rating; count++; } });
+    const ratingText = count ? `⭐ ${(total/count).toFixed(1)} (${count})` : 'Henüz değerlendirme yok';
+    const listingCount = countSnap.data().count;
+    const statsEl = document.getElementById(`${containerId}-stats`);
+    if (statsEl) statsEl.textContent = `${ratingText} · ${listingCount} ilan`;
+    const u = userSnap.exists ? userSnap.data() : {};
+    const badges = [];
+    if (u.vip) badges.push('💎 VIP');
+    if (u.trustedSeller) badges.push('🤝 Güvenilir Satıcı');
+    if (u.adminVerified || u.emailVerified) badges.push('✅ Doğrulanmış');
+    if (badges.length) {
+      const card = el.querySelector('.seller-card');
+      if (card) card.insertAdjacentHTML('beforeend', `<div class="seller-card-badges">${badges.map(b=>`<span class="seller-badge">${b}</span>`).join('')}</div>`);
+    }
+  } catch(e) {
+    const statsEl = document.getElementById(`${containerId}-stats`);
+    if (statsEl) statsEl.textContent = '';
+  }
+}
+
+// Benzer ilanlar — YENİ bir Firestore okuması YAPMAZ; Pazar ana ekranı için zaten yüklenmiş olan
+// marketAllListings dizisinden, aynı markadan (model string'inin ilk kelimesi) diğer ilanları
+// istemci tarafında süzer. Kullanıcı Pazar'ı hiç gezmediyse (marketAllListings boşsa) bölüm boş kalır.
+function renderSimilarListings(l, containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const brandGuess = (l.brand || (l.model||'').split(' ')[0] || '').toLowerCase();
+  if (!brandGuess || !marketAllListings.length) { el.innerHTML = ''; return; }
+  const similar = marketAllListings
+    .filter(x => x.id !== l.id && !x.sold && x.approved !== false && (x.brand||x.model||'').toLowerCase().includes(brandGuess))
+    .slice(0, 10);
+  if (!similar.length) { el.innerHTML = ''; return; }
+  el.innerHTML = `
+    <div style="font-size:14px;font-weight:700;margin:18px 0 10px">Benzer İlanlar</div>
+    <div class="similar-row">
+      ${similar.map(s => `
+        <div class="similar-card" onclick="event.stopPropagation();openDetail('${s.id}')">
+          <div class="similar-card-photo">${s.photo1?`<img src="${s.photo1}" loading="lazy" decoding="async">`:'📱'}</div>
+          <div class="similar-card-title">${s.model||''}</div>
+          <div class="similar-card-price">₺${parseInt(s.price||0).toLocaleString('tr-TR')}</div>
+        </div>`).join('')}
+    </div>`;
+}
+
 async function loadSellerRatingSummary(sellerUid, spanId) {
   const el = document.getElementById(spanId);
   if (!el) return;
