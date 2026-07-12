@@ -232,16 +232,16 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 #img-fullscreen-close{position:absolute;top:calc(var(--st)+16px);right:16px;color:#fff;font-size:28px;cursor:pointer;z-index:1001;width:40px;height:40px;display:flex;align-items:center;justify-content:center;}
 /* ==== İLAN DETAYI FOTOĞRAF GALERİSİ — img-fullscreen'den TAMAMEN AYRI, yeni bir bileşen.
    img-fullscreen Sohbet ve Forum'da da kullanıldığı için ona hiç dokunulmadı. ==== */
-#listing-gallery-mo{display:none;position:fixed;inset:0;z-index:1000;background:#000;flex-direction:column;animation:lgfade .18s ease;}
-#listing-gallery-mo.on{display:flex;}
-@keyframes lgfade{from{opacity:0}to{opacity:1}}
+#listing-gallery-mo{display:none;position:fixed;inset:0;z-index:1000;background:#000;flex-direction:column;}
+#listing-gallery-mo.on{display:flex;animation:lgfadezoom .22s cubic-bezier(.22,.61,.36,1);}
+@keyframes lgfadezoom{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
 #lg-header{display:flex;align-items:center;justify-content:space-between;padding:calc(var(--st)+14px) 16px 12px;flex-shrink:0;}
 #lg-counter{color:#fff;font-size:13px;font-weight:700;background:rgba(255,255,255,.12);padding:6px 14px;border-radius:20px;letter-spacing:.2px;}
 #lg-close{color:#fff;font-size:22px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;background:rgba(255,255,255,.12);border-radius:50%;}
 #lg-track-wrap{flex:1;overflow:hidden;position:relative;min-height:0;}
 #lg-track{display:flex;height:100%;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
 #lg-track::-webkit-scrollbar{display:none;}
-.lg-slide{flex:0 0 100%;height:100%;scroll-snap-align:center;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:pan-y;}
+.lg-slide{flex:0 0 100%;height:100%;scroll-snap-align:center;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:pan-x pan-y;}
 .lg-slide img{max-width:100%;max-height:100%;object-fit:contain;transition:transform .2s ease;will-change:transform;user-select:none;-webkit-user-drag:none;}
 #lg-thumbs{display:flex;gap:8px;padding:12px 16px calc(12px + var(--sb));overflow-x:auto;flex-shrink:0;scrollbar-width:none;}
 #lg-thumbs::-webkit-scrollbar{display:none;}
@@ -362,7 +362,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .ref-empty{font-size:13px;color:var(--text3);text-align:center;padding:8px 0;}
 .pslot{aspect-ratio:4/3;border-radius:12px;border:2px dashed var(--border2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;overflow:hidden;position:relative;background:var(--surf);}
 .pslot.reorder-src{border:2px solid var(--cyan);box-shadow:0 0 0 2px var(--cglow);}
-.pslot-cover{position:absolute;bottom:4px;left:4px;background:rgba(0,212,255,.92);color:#001018;font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:6px;letter-spacing:.2px;z-index:2;}
+.pslot-cover{position:absolute;bottom:6px;left:6px;background:rgba(0,212,255,.95);color:#001018;font-size:9.5px;font-weight:800;padding:3px 8px 3px 6px;border-radius:20px;letter-spacing:.2px;z-index:2;display:flex;align-items:center;gap:3px;box-shadow:0 2px 8px rgba(0,212,255,.35);backdrop-filter:blur(4px);}
+.pslot-cover::before{content:'★';font-size:9px;}
 .pslot-processing{display:flex;align-items:center;justify-content:center;width:100%;height:100%;}
 .pslot img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;}
 .pslot svg{width:24px;height:24px;stroke:var(--text3);fill:none;stroke-width:1.8;}
@@ -421,7 +422,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .mtab{flex:none;padding:8px 16px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;}
 .mtab.on{background:var(--cdim);border:1px solid rgba(0,212,255,.2);color:var(--cyan);}
 .mtab.off{background:var(--surf);border:1px solid var(--border2);color:var(--text2);}
-.lgrid{display:flex;flex-direction:column;gap:12px;}
+.lgrid{display:flex;flex-direction:column;gap:10px;}
 /* ==== PAZAR LİSTE KARTI — PROFESYONELLEŞTİRME ====
    Tamamen yeni, "mcard-" önekli sınıflar kullanılıyor; eski .lcard/.lcnd/.chatbtn2 gibi sınıflar
    İlan Detayı ve Sohbet ekranlarıyla paylaşıldığı için (dokunulması yasak) hiç değiştirilmedi,
@@ -429,7 +430,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .mcard{background:var(--surf);border:1px solid var(--border2);border-radius:18px;overflow:hidden;cursor:pointer;position:relative;box-shadow:0 4px 20px rgba(0,0,0,.25),0 0 0 1px rgba(0,212,255,.04);transition:transform .15s ease;}
 .mcard:active{transform:scale(.985);}
 .mcard.sold{opacity:.55;}
-.mcard-photo{position:relative;width:100%;aspect-ratio:16/10;background:linear-gradient(145deg,var(--surf2),var(--surf3));overflow:hidden;}
+.mcard-photo{position:relative;width:100%;aspect-ratio:16/11;background:linear-gradient(145deg,var(--surf2),var(--surf3));overflow:hidden;}
 .mcard-photo img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s cubic-bezier(.22,.61,.36,1);}
 .mcard:hover .mcard-photo img{transform:scale(1.03);}
 .mcard-photo-empty{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;}
@@ -446,6 +447,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .mcard-fav:active{transform:scale(.88);}
 .mcard-fav svg{width:15px;height:15px;stroke:#fff;fill:none;stroke-width:2;transition:all .15s ease;}
 .mcard-fav.on{background:rgba(255,69,58,.22);border-color:rgba(255,69,58,.45);}
+.mcard-fav.pop{animation:favpop .35s cubic-bezier(.34,1.56,.64,1);}
+@keyframes favpop{0%{transform:scale(1)}40%{transform:scale(1.35)}100%{transform:scale(1)}}
 .mcard-fav.on svg{stroke:var(--red);fill:var(--red);}
 .mcard-status-overlay{position:absolute;inset:0;background:rgba(3,6,14,.55);backdrop-filter:blur(1.5px);display:flex;align-items:center;justify-content:center;z-index:4;}
 .mcard-status-pill{background:rgba(255,69,58,.95);color:#fff;font-size:12px;font-weight:800;letter-spacing:.5px;padding:8px 20px;border-radius:30px;}
@@ -462,8 +465,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .mcard-seller-av{width:18px;height:18px;border-radius:50%;background:var(--cdim);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--cyan);border:1px solid rgba(0,212,255,.25);flex-shrink:0;}
 .mcard-seller-name{font-size:11px;color:var(--text2);font-weight:500;text-decoration:underline;text-decoration-style:dotted;text-decoration-color:var(--text3);white-space:nowrap;}
 .mcard-seller-me{font-size:9px;color:var(--cyan);font-weight:700;background:var(--cdim);padding:2px 6px;border-radius:6px;border:1px solid rgba(0,212,255,.2);margin-left:2px;}
-.mcard-actions{display:flex;gap:6px;padding-top:9px;border-top:1px solid var(--border2);}
-.mcard-actbtn{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:7px;border-radius:10px;font-size:11.5px;font-weight:600;cursor:pointer;border:1px solid transparent;font-family:inherit;}
+.mcard-actions{display:flex;gap:6px;padding-top:8px;border-top:1px solid var(--border2);}
+.mcard-actbtn{flex:1;display:flex;align-items:center;justify-content:center;gap:4px;padding:6px;border-radius:9px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid transparent;font-family:inherit;}
 .mcard-actbtn.wa{background:rgba(37,211,102,.1);border-color:rgba(37,211,102,.22);color:#25D366;}
 .mcard-actbtn.msg{background:var(--cdim);border-color:rgba(0,212,255,.2);color:var(--cyan);}
 .mcard-actbtn.edit{background:var(--surf2);border-color:var(--border2);color:var(--text2);}
@@ -501,7 +504,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .fg2{margin-bottom:0;}
 .spec-pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
 .seller-card{background:var(--surf);border:1px solid var(--border2);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:12px 0;cursor:pointer;}
-.seller-card-av{width:40px;height:40px;border-radius:50%;background:var(--cdim);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:var(--cyan);border:1px solid rgba(0,212,255,.25);flex-shrink:0;}
+.seller-card-av{width:40px;height:40px;border-radius:50%;background:var(--cdim);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:var(--cyan);border:1px solid rgba(0,212,255,.25);flex-shrink:0;object-fit:cover;}
 .seller-card-name{font-size:14px;font-weight:700;color:var(--text);margin-bottom:2px;}
 .seller-card-stats{font-size:12px;color:var(--text3);}
 .seller-card-badges{display:flex;flex-wrap:wrap;gap:6px;width:100%;margin-top:2px;}
@@ -5280,7 +5283,15 @@ function rlistings() {
     if (found) { openDetail(found.id); return; }
   }
 
-  let items = source.filter(l => !q || l.model?.toLowerCase().includes(q));
+  // Arama artık yalnızca "model" değil, önceki oturumda eklenen normalize edilmiş
+  // brandLower/cityLower/districtLower alanlarını da kullanıyor — arayüzde (tek arama kutusu)
+  // hiçbir değişiklik yok, yalnızca eşleşme kapsamı genişledi. Eski ilanlarda bu alanlar yoksa
+  // (undefined), ?. ile sessizce atlanır — geriye dönük uyumluluk bozulmadı.
+  let items = source.filter(l => !q
+    || l.model?.toLowerCase().includes(q)
+    || l.brandLower?.includes(q)
+    || l.cityLower?.includes(q)
+    || l.districtLower?.includes(q));
   if (mktab !== 'mine') items = items.filter(l => !isSoldExpired(l) && !l.paused);
   if (filterMin) items = items.filter(l => parseInt(l.price||0) >= parseInt(filterMin));
   if (filterMax) items = items.filter(l => parseInt(l.price||0) <= parseInt(filterMax));
@@ -6078,8 +6089,12 @@ async function toggleFav(id, btn) {
   if (!user) { gt('profile'); return; }
   const l = listings.find(x => x.id === id);
   const adding = !favs.has(id);
-  if (adding) { favs.add(id); btn.classList.add('on'); }
-  else { favs.delete(id); btn.classList.remove('on'); }
+  if (adding) { favs.add(id); btn.classList.add('on'); } else { favs.delete(id); btn.classList.remove('on'); }
+  // Hafif büyüme animasyonu + (varsa) Android titreşimi + küçük toast — yalnızca görsel/haptik geri
+  // bildirim, hiçbir iş mantığını etkilemez.
+  btn.classList.remove('pop'); void btn.offsetWidth; btn.classList.add('pop');
+  if (navigator.vibrate) navigator.vibrate(adding ? 15 : 10);
+  showToast(adding?'❤️':'🤍', 'rgba(255,69,58,.12)', adding?'Favorilere eklendi':'Favorilerden kaldırıldı', '', null, 1400);
   try { await db.collection('teknohane_users').doc(user.uid).set({favorites:[...favs]},{merge:true}); } catch(e) {}
   startFavoritesListener(); // liste değişti — eski dinleyici kapatılıp güncel ID'lerle yeniden kurulur
   if (l) notifyListingOwnerOnFav(l, adding);
@@ -6642,6 +6657,7 @@ let lgPhotos = [];
 let lgCurrentIndex = 0;
 let lgScale = 1;
 let lgHandlersAttached = false;
+let lgHistoryPushed = false; // Android geri tuşu — galeri açıkken bir history kaydı tutulur
 
 function openListingGallery(photosArr, startIndex) {
   if (!photosArr || !photosArr.length) return;
@@ -6658,7 +6674,12 @@ function openListingGallery(photosArr, startIndex) {
     thumbs.innerHTML = '';
   }
   updateLgCounter();
-  document.getElementById('listing-gallery-mo').classList.add('on');
+  const mo = document.getElementById('listing-gallery-mo');
+  mo.classList.add('on'); // CSS keyframe (lgfadezoom) otomatik tetiklenir
+  // Android geri tuşu: diğer tüm "sayfa/modal" davranışlarıyla aynı mantık — galeri açılırken
+  // history stack'e bir kayıt eklenir, popstate işleyicisi bunu görüp önce galeriyi kapatır.
+  history.pushState({ listingGallery: true }, '', location.href);
+  lgHistoryPushed = true;
   track.onscroll = onLgTrackScroll;
   requestAnimationFrame(() => {
     track.scrollTo({ left: track.clientWidth * lgCurrentIndex, behavior: 'instant' });
@@ -6694,10 +6715,18 @@ function lgGoTo(i) {
   updateLgCounter();
 }
 
+// X butonu/arka plana dokunma İLE Android geri tuşu (popstate) — İKİSİNDEN DE çağrılabilir.
+// exitDetailPage()'in kullandığı aynı "self-correcting" desen: hangi yoldan çağrılırsa çağrılsın,
+// history state'i tutarlı hâle getirir, popstate'i tekrar tetiklemeden temizler.
 function closeListingGallery() {
-  document.getElementById('listing-gallery-mo').classList.remove('on');
+  const mo = document.getElementById('listing-gallery-mo');
+  mo.classList.remove('on');
   document.getElementById('lg-track').innerHTML = '';
   resetLgZoom();
+  if (lgHistoryPushed) {
+    lgHistoryPushed = false;
+    if (history.state?.listingGallery) history.back(); // kullanıcı X'e bastı — geri tuşuyla aynı sonucu üretir (stack tutarlı kalır)
+  }
 }
 
 function resetLgZoom() {
@@ -8974,9 +9003,13 @@ async function loadSellerCard(sellerUid, ownerName, mine, containerId) {
     commentsSnap.docs.forEach(d => { const c = d.data(); if (c.rating) { total += c.rating; count++; } });
     const ratingText = count ? `⭐ ${(total/count).toFixed(1)} (${count})` : 'Henüz değerlendirme yok';
     const listingCount = countSnap.data().count;
+    const u = userSnap.exists ? userSnap.data() : {};
     const statsEl = document.getElementById(`${containerId}-stats`);
     if (statsEl) statsEl.textContent = `${ratingText} · ${listingCount} ilan`;
-    const u = userSnap.exists ? userSnap.data() : {};
+    // Profil fotoğrafı — zaten çekilmiş userSnap'ten, ekstra okuma yok. Uygulamanın her yerinde
+    // kullanılan aynı avatarUrl() yardımcısıyla (isim bazlı yedek dahil) üretiliyor.
+    const avEl = el.querySelector('.seller-card-av');
+    if (avEl && u.photoURL) avEl.outerHTML = `<img class="seller-card-av" src="${avatarUrl(u.photoURL, ownerName, 80)}" alt="">`;
     const badges = [];
     if (u.vip) badges.push('💎 VIP');
     if (u.trustedSeller) badges.push('🤝 Güvenilir Satıcı');
@@ -8998,15 +9031,32 @@ function renderSimilarListings(l, containerId) {
   const el = document.getElementById(containerId);
   if (!el) return;
   const brandGuess = (l.brand || (l.model||'').split(' ')[0] || '').toLowerCase();
+  const price = parseInt(l.price || 0);
+  const city = (l.city || (l.location||'').split(',')[0] || '').trim().toLowerCase();
   if (!brandGuess || !marketAllListings.length) { el.innerHTML = ''; return; }
-  const similar = marketAllListings
-    .filter(x => x.id !== l.id && !x.sold && x.approved !== false && (x.brand||x.model||'').toLowerCase().includes(brandGuess))
-    .slice(0, 10);
-  if (!similar.length) { el.innerHTML = ''; return; }
+  // Öncelik sırası: aynı marka (en ağırlıklı) > aynı fiyat aralığı (±%20) > aynı şehir.
+  // Tamamen bellekteki marketAllListings üzerinde — yeni Firestore okuması yok.
+  const scored = marketAllListings
+    .filter(x => x.id !== l.id && !x.sold && x.approved !== false)
+    .map(x => {
+      let score = 0;
+      const xBrand = (x.brand || (x.model||'').split(' ')[0] || '').toLowerCase();
+      const xCity = (x.city || (x.location||'').split(',')[0] || '').trim().toLowerCase();
+      const xPrice = parseInt(x.price || 0);
+      if (xBrand && xBrand === brandGuess) score += 100;
+      if (price && xPrice && Math.abs(xPrice - price) <= price * 0.2) score += 10;
+      if (city && xCity && xCity === city) score += 1;
+      return { x, score };
+    })
+    .filter(s => s.score > 0)
+    .sort((a,b) => b.score - a.score)
+    .slice(0, 10)
+    .map(s => s.x);
+  if (!scored.length) { el.innerHTML = ''; return; }
   el.innerHTML = `
     <div style="font-size:14px;font-weight:700;margin:18px 0 10px">Benzer İlanlar</div>
     <div class="similar-row">
-      ${similar.map(s => `
+      ${scored.map(s => `
         <div class="similar-card" onclick="event.stopPropagation();openDetail('${s.id}')">
           <div class="similar-card-photo">${s.photo1?`<img src="${s.photo1}" loading="lazy" decoding="async">`:'📱'}</div>
           <div class="similar-card-title">${s.model||''}</div>
@@ -9423,6 +9473,13 @@ setTimeout(() => {
 // Açık modal varsa kapat, yoksa çıkış uyarısı göster
 let backPressedOnce = false;
 window.addEventListener('popstate', () => {
+  // İlan detayı fotoğraf galerisi açıksa ÖNCE onu kapat (en üstte açıldığı için önceliklidir).
+  const lgMo = document.getElementById('listing-gallery-mo');
+  if (lgMo?.classList.contains('on')) {
+    lgHistoryPushed = false; // bu pop zaten galerinin kendi history kaydını tüketti, tekrar history.back() çağrılmasın
+    closeListingGallery();
+    return;
+  }
   // Tam ekran görsel açıksa ÖNCE onu kapat (modalın üstünde göründüğü için öncelik bunda)
   const fs = document.getElementById('img-fullscreen');
   if (fs?.classList.contains('on')) {
