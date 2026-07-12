@@ -354,7 +354,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .pslot.reorder-src{border:2px solid var(--cyan);box-shadow:0 0 0 2px var(--cglow);}
 .pslot-cover{position:absolute;bottom:6px;left:6px;background:rgba(0,212,255,.95);color:#001018;font-size:9.5px;font-weight:800;padding:3px 8px 3px 6px;border-radius:20px;letter-spacing:.2px;z-index:2;display:flex;align-items:center;gap:3px;box-shadow:0 2px 8px rgba(0,212,255,.35);backdrop-filter:blur(4px);}
 .pslot-cover::before{content:'★';font-size:9px;}
-.pslot-processing{display:flex;align-items:center;justify-content:center;width:100%;height:100%;}
+.pslot-processing{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;width:100%;height:100%;padding:0 4px;text-align:center;}
+.pslot-processing span{font-size:9.5px;color:var(--text3);line-height:1.3;}
 .pslot img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;}
 .pslot svg{width:24px;height:24px;stroke:var(--text3);fill:none;stroke-width:1.8;}
 .pslot span{font-size:11px;color:var(--text3);}
@@ -417,25 +418,30 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
    Tamamen yeni, "mcard-" önekli sınıflar kullanılıyor; eski .lcard/.lcnd/.chatbtn2 gibi sınıflar
    İlan Detayı ve Sohbet ekranlarıyla paylaşıldığı için (dokunulması yasak) hiç değiştirilmedi,
    yalnızca bu dosyada artık kullanılmıyorlar (zararsız, silinmeleri de gerekmiyor). */
-.mcard{background:var(--surf);border:1px solid var(--border2);border-radius:18px;overflow:hidden;cursor:pointer;position:relative;box-shadow:0 4px 20px rgba(0,0,0,.25),0 0 0 1px rgba(0,212,255,.04);transition:transform .15s ease;}
+.mcard{background:var(--surf);border:1px solid var(--border2);border-radius:16px;overflow:hidden;cursor:pointer;position:relative;box-shadow:0 3px 14px rgba(0,0,0,.22),0 0 0 1px rgba(0,212,255,.04);transition:transform .15s ease;}
 .mcard:active{transform:scale(.985);}
 .mcard.sold{opacity:.55;}
-.mcard-photo{position:relative;width:100%;aspect-ratio:16/11;background:linear-gradient(145deg,var(--surf2),var(--surf3));overflow:hidden;}
+.mcard.featured{box-shadow:0 3px 14px rgba(0,0,0,.22),0 0 0 1.5px rgba(0,212,255,.4),0 0 18px rgba(0,212,255,.14);}
+.mcard.urgent-listing .mcard-body{background:linear-gradient(155deg,rgba(255,184,0,.11),var(--surf) 65%);}
+.mcard-photo{position:relative;width:100%;aspect-ratio:16/9;background:linear-gradient(145deg,var(--surf2),var(--surf3));overflow:hidden;}
 .mcard-photo img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s cubic-bezier(.22,.61,.36,1);}
 .mcard:hover .mcard-photo img{transform:scale(1.03);}
 .mcard-photo-empty{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;}
-.mcard-photo-empty img{width:30px;height:30px;object-fit:contain;opacity:.3;filter:grayscale(1) brightness(1.6);}
-.mcard-photo-empty span{font-size:10.5px;color:var(--text3);font-weight:600;letter-spacing:.2px;}
+.mcard-photo-empty img{width:26px;height:26px;object-fit:contain;opacity:.3;filter:grayscale(1) brightness(1.6);}
+.mcard-photo-empty span{font-size:10px;color:var(--text3);font-weight:600;letter-spacing:.2px;}
 .mcard-photo::after{content:'';position:absolute;left:0;right:0;bottom:0;height:40%;background:linear-gradient(to top,rgba(0,4,10,.55),transparent);pointer-events:none;}
-.mcard-cnd{position:absolute;top:9px;left:9px;font-size:10.5px;font-weight:700;padding:4px 10px;border-radius:20px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);letter-spacing:.2px;z-index:2;}
+.mcard-badges{position:absolute;top:8px;left:8px;z-index:2;display:flex;flex-direction:column;gap:5px;align-items:flex-start;}
+.mcard-cnd{font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);letter-spacing:.2px;}
 .mcard-cnd.new{background:rgba(0,212,255,.92);color:#001018;}
 .mcard-cnd.used{background:rgba(8,14,26,.68);color:#fff;border:1px solid rgba(255,255,255,.14);}
-.mcard-origin{position:absolute;bottom:8px;left:9px;font-size:10px;font-weight:600;color:rgba(255,255,255,.95);z-index:2;display:flex;align-items:center;gap:5px;letter-spacing:.1px;}
+.mcard-featured-badge{font-size:9.5px;font-weight:700;padding:3px 9px 3px 7px;border-radius:20px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);letter-spacing:.2px;background:rgba(0,212,255,.92);color:#001018;display:flex;align-items:center;gap:3px;}
+.mcard-urgent-badge{font-size:9.5px;font-weight:700;padding:3px 9px 3px 7px;border-radius:20px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);letter-spacing:.2px;background:rgba(255,184,0,.92);color:#3a2200;display:flex;align-items:center;gap:3px;}
+.mcard-origin{position:absolute;bottom:7px;left:8px;font-size:9.5px;font-weight:600;color:rgba(255,255,255,.95);z-index:2;display:flex;align-items:center;gap:5px;letter-spacing:.1px;}
 .mcard-origin-dot{width:5px;height:5px;border-radius:50%;background:var(--cyan);box-shadow:0 0 6px var(--cyan);flex-shrink:0;}
 .mcard-origin.global .mcard-origin-dot{background:#fff;box-shadow:0 0 6px rgba(255,255,255,.6);}
-.mcard-fav{position:absolute;top:9px;right:9px;width:32px;height:32px;border-radius:50%;background:rgba(8,14,26,.55);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:3;transition:transform .15s ease,background .15s ease;}
+.mcard-fav{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;background:rgba(8,14,26,.55);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:3;transition:transform .15s ease,background .15s ease;}
 .mcard-fav:active{transform:scale(.88);}
-.mcard-fav svg{width:15px;height:15px;stroke:#fff;fill:none;stroke-width:2;transition:all .15s ease;}
+.mcard-fav svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:2;transition:all .15s ease;}
 .mcard-fav.on{background:rgba(255,69,58,.22);border-color:rgba(255,69,58,.45);}
 .mcard-fav.pop{animation:favpop .35s cubic-bezier(.34,1.56,.64,1);}
 @keyframes favpop{0%{transform:scale(1)}40%{transform:scale(1.35)}100%{transform:scale(1)}}
@@ -443,20 +449,19 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .mcard-status-overlay{position:absolute;inset:0;background:rgba(3,6,14,.55);backdrop-filter:blur(1.5px);display:flex;align-items:center;justify-content:center;z-index:4;}
 .mcard-status-pill{background:rgba(255,69,58,.95);color:#fff;font-size:12px;font-weight:800;letter-spacing:.5px;padding:8px 20px;border-radius:30px;}
 .mcard-status-pill.pending{background:rgba(255,149,0,.95);}
-.mcard-body{padding:10px 13px 11px;}
-.mcard-title{font-size:12.5px;font-weight:600;color:var(--text2);margin-bottom:2px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.mcard-price{font-size:19px;font-weight:800;color:var(--text);letter-spacing:-.3px;margin-bottom:5px;}
+.mcard-body{padding:8px 11px 9px;}
+.mcard-price{font-size:20px;font-weight:800;color:var(--text);letter-spacing:-.3px;margin-bottom:3px;}
 .mcard-price .cur{font-size:14px;font-weight:700;color:var(--cyan);}
-.mcard-desc{font-size:11.5px;color:var(--text3);margin-bottom:7px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.mcard-meta{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:8px;}
-.mcard-loc{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mcard-title{font-size:11.5px;font-weight:600;color:var(--text2);margin-bottom:5px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mcard-meta{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:8px;}
+.mcard-loc{font-size:10.5px;color:var(--text3);display:flex;align-items:center;gap:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .mcard-date{color:var(--text3);opacity:.75;}
 .mcard-seller{display:flex;align-items:center;gap:6px;cursor:pointer;flex-shrink:0;}
-.mcard-seller-av{width:18px;height:18px;border-radius:50%;background:var(--cdim);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--cyan);border:1px solid rgba(0,212,255,.25);flex-shrink:0;}
-.mcard-seller-name{font-size:11px;color:var(--text2);font-weight:500;text-decoration:underline;text-decoration-style:dotted;text-decoration-color:var(--text3);white-space:nowrap;}
+.mcard-seller-av{width:16px;height:16px;border-radius:50%;background:var(--cdim);display:flex;align-items:center;justify-content:center;font-size:8.5px;font-weight:700;color:var(--cyan);border:1px solid rgba(0,212,255,.25);flex-shrink:0;}
+.mcard-seller-name{font-size:10.5px;color:var(--text3);font-weight:500;white-space:nowrap;}
 .mcard-seller-me{font-size:9px;color:var(--cyan);font-weight:700;background:var(--cdim);padding:2px 6px;border-radius:6px;border:1px solid rgba(0,212,255,.2);margin-left:2px;}
-.mcard-actions{display:flex;gap:6px;padding-top:8px;border-top:1px solid var(--border2);}
-.mcard-actbtn{flex:1;display:flex;align-items:center;justify-content:center;gap:4px;padding:6px;border-radius:9px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid transparent;font-family:inherit;}
+.mcard-actions{display:flex;gap:6px;padding-top:7px;border-top:1px solid var(--border2);}
+.mcard-actbtn{flex:1;display:flex;align-items:center;justify-content:center;gap:3px;padding:5px;border-radius:8px;font-size:10.5px;font-weight:600;cursor:pointer;border:1px solid transparent;font-family:inherit;}
 .mcard-actbtn.wa{background:rgba(37,211,102,.1);border-color:rgba(37,211,102,.22);color:#25D366;}
 .mcard-actbtn.msg{background:var(--cdim);border-color:rgba(0,212,255,.2);color:var(--cyan);}
 .mcard-actbtn.edit{background:var(--surf2);border-color:var(--border2);color:var(--text2);}
@@ -4280,17 +4285,61 @@ function navigateFromNotificationUrl(url, attempt) {
   } catch(e) { console.error('Bildirim yönlendirme URL\'si çözülemedi:', e); }
 }
 
-async function sendPush(toUid, title, body, url) {
+// fcmToken zaten elde varsa (örn. teknohane_admin_push_targets'tan), ek bir Firestore okuması
+// olmadan doğrudan token'a push gönderir. sendPush() de aynı fonksiyonu kullanır.
+async function dispatchPushToToken(token, title, body, url) {
+  if (!token) return;
   try {
-    const snap = await db.collection('teknohane_users').doc(toUid).get();
-    const token = snap.data()?.fcmToken;
-    if (!token) return;
     await fetch(PUSH_API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token, title, body, url: url || 'https://teknohane.github.io/teknohane/' })
     });
   } catch(e) { /* sessizce geç, push olmadan da uygulama çalışmaya devam eder */ }
+}
+
+async function sendPush(toUid, title, body, url) {
+  try {
+    const snap = await db.collection('teknohane_users').doc(toUid).get();
+    await dispatchPushToToken(snap.data()?.fcmToken, title, body, url);
+  } catch(e) { /* sessizce geç, push olmadan da uygulama çalışmaya devam eder */ }
+}
+
+// ==== PAZAR — YENİ İLAN BİLDİRİMİ (ADMİNLERE, UYGULAMA KAPALIYKEN BİLE) ====
+// Sorun: admins/teknohane_users koleksiyonlarını LİSTELEMEK Firestore Rules'ta yalnızca adminlere
+// açık (bkz. "allow list: if isAdmin();") — yani ilan veren SIRADAN bir kullanıcı, kime push
+// atacağını bulmak için bu koleksiyonları sorgulayamaz. Yeni bir Cloud Function kurmadan, mevcut
+// Worker+FCM mimarisini kullanabilmek için: yalnızca fcmToken+displayName içeren, herkesin
+// OKUYABİLDİĞİ (hassas rol/yetki verisi taşımayan) dar kapsamlı bir hedef koleksiyonu tutulur.
+// NOT: teknohane_admin_push_targets/{uid} koleksiyonu için Firestore Rules'a şu blok eklenmelidir
+// (bu değişiklik canlı kurallara ayrıca uygulanmalıdır, bkz. görev raporu):
+//   match /teknohane_admin_push_targets/{uid} {
+//     allow read: if request.auth != null;
+//     allow write: if request.auth != null && request.auth.uid == uid && hasPerm('manageListings');
+//     allow delete: if isAdmin() || (request.auth != null && request.auth.uid == uid);
+//   }
+function syncAdminPushTarget(token) {
+  if (!user || !token || !hasPermission('manageListings')) return;
+  db.collection('teknohane_admin_push_targets').doc(user.uid).set({
+    fcmToken: token,
+    displayName: myAdminRole?.displayName || user.displayName || user.email || 'Admin',
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  }, { merge: true }).catch(() => {});
+}
+
+// Yeni bir ilan onaya gönderildiğinde, ilan moderasyonu yetkisi (manageListings) olan tüm adminlere
+// anlık push gönderir. Token'lar teknohane_admin_push_targets'tan tek bir sorguda gelir — admin
+// başına ek bir okuma YAPILMAZ (dispatchPushToToken doğrudan elde olan token'ı kullanır).
+async function notifyAdminsNewListing(model, ownerName) {
+  try {
+    const snap = await db.collection('teknohane_admin_push_targets').limit(50).get();
+    const title = '🟢 Yeni ilan onaya gönderildi';
+    const body = `${model}\nGönderen: ${ownerName}`;
+    snap.docs.forEach(d => {
+      if (d.id === user?.uid) return; // kendi gönderdiği ilan için kendine push atmasın
+      dispatchPushToToken(d.data().fcmToken, title, body, 'https://teknohane.github.io/teknohane/');
+    });
+  } catch(e) { /* sessizce geç — push gitmese de ilan yayınlama akışı asla bloklanmamalı */ }
 }
 
 // Uygulama şu an Capacitor native kabuğu (Android APK) içinde mi çalışıyor, yoksa normal tarayıcıda mı?
@@ -4336,6 +4385,7 @@ async function setupPushNative(silent) {
         try {
           await db.collection('teknohane_users').doc(user.uid).set({ fcmToken: token.value }, { merge: true });
           myProfileData.fcmToken = token.value;
+          syncAdminPushTarget(token.value); // Pazar: manageListings yetkili adminse, yeni ilan push hedefi tazelenir
           updatePushToggleUI();
           if (!silent) showToast('🔔', 'rgba(0,212,255,.15)', 'Bildirimler Açıldı', 'Artık uygulama kapalıyken de bildirim alacaksın.');
         } catch(e) { console.error('Push token kaydetme hatası:', e); }
@@ -4388,6 +4438,7 @@ async function setupPushWeb(silent) {
     if (!token) { if (!silent) showErrorToast('Bildirim token\'ı alınamadı, tekrar dener misin?'); return; }
     await withTimeout(db.collection('teknohane_users').doc(user.uid).set({ fcmToken: token }, { merge: true }), 10000, 'Token kaydetme');
     myProfileData.fcmToken = token;
+    syncAdminPushTarget(token); // Pazar: manageListings yetkili adminse, yeni ilan push hedefi tazelenir
     updatePushToggleUI();
     if (!silent) showToast('🔔', 'rgba(0,212,255,.15)', 'Bildirimler Açıldı', 'Artık uygulama kapalıyken de bildirim alacaksın.');
     else console.log('Push token sessizce senkronize edildi.');
@@ -5231,6 +5282,28 @@ function isSoldExpired(l) {
   return (Date.now() - soldTime) > 24 * 60 * 60 * 1000;
 }
 
+// ==== GÖRÜNTÜLENME SAYACI — CİHAZ BAZLI TEKRAR SAYIM ENGELİ ====
+// Kök sorun: openDetail()'daki eski "isNewOpen" kontrolü yalnızca AYNI modal örneği açıkken tekrar
+// render edilmesini (örn. re-render) engelliyordu — kullanıcı detayı kapatıp saniyeler içinde tekrar
+// açtığında (openListingId sıfırlandığı için) her seferinde yeni bir görüntülenme sayılıyordu.
+// Çözüm: aynı ilanın bu cihazdan son ne zaman sayıldığı localStorage'da tutulur; belirlenen pencere
+// (12 saat) içinde tekrar açılışlar sayılmaz. Ek bir Firestore okuması GEREKTİRMEZ (localStorage anlık),
+// yazma maliyeti de artmaz — tam tersine, önceden her tekrar açılışta gidiyordu, artık yalnızca
+// gerçekten yeni sayılan görüntülenmelerde gidiyor.
+const VIEW_DEDUP_WINDOW_MS = 12 * 60 * 60 * 1000;
+function shouldCountListingView(id) {
+  try {
+    const seen = JSON.parse(localStorage.getItem('tk_viewed_listings') || '{}');
+    const last = seen[id];
+    if (last && (Date.now() - last) < VIEW_DEDUP_WINDOW_MS) return false;
+    seen[id] = Date.now();
+    // Pencere dışına çıkan eski kayıtlar temizlenir — localStorage zamanla şişmesin.
+    Object.keys(seen).forEach(k => { if (Date.now() - seen[k] > VIEW_DEDUP_WINDOW_MS) delete seen[k]; });
+    localStorage.setItem('tk_viewed_listings', JSON.stringify(seen));
+    return true;
+  } catch(e) { return true; } // localStorage kullanılamıyorsa eski (her zaman say) davranışa düş
+}
+
 // ==== PAZAR EKRANI SAYFALAMA (100.000+ ilan ölçeği için) ====
 // "Tümü" sekmesi artık tüm koleksiyonu değil, 20'lik sayfalar halinde yalnızca onaylı ilanları çeker.
 // "Favorilerim" ve "İlanlarım" kendi dar kapsamlı sorgularıyla, sekmeye girildiğinde bir kez yüklenir.
@@ -5354,20 +5427,23 @@ function rlistings() {
     const pending = l.approved === false;
     const isNew = l.condition === 'Sıfır';
     const isGlobal = l.origin && l.origin !== 'Yurtiçi';
-    return `<div class="mcard ${l.sold?'sold':''}" onclick="openDetail('${l.id}')">
+    return `<div class="mcard ${l.sold?'sold':''} ${l.featured?'featured':''} ${l.urgent?'urgent-listing':''}" onclick="openDetail('${l.id}')">
       <div class="mcard-photo">
         ${l.photo1?`<img src="${l.photo1}" loading="lazy" decoding="async">`:'<div class="mcard-photo-empty"><img src="teknohane.png" alt="" onerror="this.style.display=\'none\'"><span>Fotoğraf Eklenmedi</span></div>'}
         ${(l.sold||pending)?`<div class="mcard-status-overlay"><div class="mcard-status-pill ${pending&&!l.sold?'pending':''}">${l.sold?'SATILDI':'İNCELENİYOR'}</div></div>`:''}
-        ${l.condition?`<div class="mcard-cnd ${isNew?'new':'used'}">${l.condition}</div>`:''}
+        <div class="mcard-badges">
+          ${l.condition?`<div class="mcard-cnd ${isNew?'new':'used'}">${l.condition}</div>`:''}
+          ${l.featured?'<div class="mcard-featured-badge">⭐ Öne Çıkan</div>':''}
+          ${l.urgent?'<div class="mcard-urgent-badge">🔥 Acil</div>':''}
+        </div>
         <div class="mcard-fav ${fav?'on':''}" onclick="event.stopPropagation();toggleFav('${l.id}',this)">
           <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
         </div>
         ${l.origin?`<div class="mcard-origin ${isGlobal?'global':''}"><span class="mcard-origin-dot"></span>${isGlobal?'Global':'Yurtiçi'}</div>`:''}
       </div>
       <div class="mcard-body">
-        <div class="mcard-title">${l.model||''}</div>
         <div class="mcard-price"><span class="cur">₺</span>${parseInt(l.price||0).toLocaleString('tr-TR')}</div>
-        ${l.desc?`<div class="mcard-desc">${l.desc}</div>`:''}
+        <div class="mcard-title">${l.model||''}</div>
         <div class="mcard-meta">
           <div class="mcard-loc">📍 ${l.location||'Belirtilmedi'}${l.createdAt?.toDate?` · <span class="mcard-date">${timeAgo(l.createdAt.toDate())}</span>`:''}</div>
           ${l.ownerName?`<div class="mcard-seller" onclick="event.stopPropagation();openPublicProfile('${l.uid}','${l.ownerName.replace(/'/g,"\\'")}')"><div class="mcard-seller-av">${(l.ownerName||'?')[0].toUpperCase()}</div><span class="mcard-seller-name">${l.ownerName}</span>${mine?'<span class="mcard-seller-me">Benim</span>':''}</div>`:''}
@@ -5653,6 +5729,7 @@ async function submitListing() {
       data.ownerName = user.displayName || user.email?.split('@')[0] || 'Anonim';
       data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
       await db.collection('teknohane_listings').add(data);
+      notifyAdminsNewListing(model, data.ownerName); // uygulama kapalı olsa bile ilgili adminlere anlık push
       showToast('⏳', 'rgba(255,149,0,.15)', 'İlanınız Gönderildi', 'İncelendikten sonra Pazar\'da yayınlanacaktır.');
     }
 
@@ -5781,10 +5858,14 @@ function onPslotTap(idx) {
 function addPhoto(idx, input) {
   const file = input.files[0];
   if (!file) return;
-  if (file.size > 10 * 1024 * 1024) { showToast('⚠️','rgba(255,69,58,.15)','Dosya Çok Büyük','Fotoğraf en fazla 10MB olabilir.'); input.value=''; return; }
+  // Kaynak dosya boyutu üzerinde artık düşük/sabit bir üst sınır YOK — kullanıcı 10MB, 20MB veya
+  // daha büyük bir fotoğraf seçebilir; aşağıdaki sıkıştırma adımı her zaman hedef boyuta indirger.
+  // Yalnızca gerçek dünyada hiçbir telefon fotoğrafının pratikte aşamayacağı, bozuk/yanlış bir dosya
+  // seçilmesine karşı güvenlik amaçlı bir üst sınır (50MB) korunur.
+  if (file.size > 50 * 1024 * 1024) { showToast('⚠️','rgba(255,69,58,.15)','Dosya Çok Büyük','Bu dosya işlenemeyecek kadar büyük.'); input.value=''; return; }
   // Fotoğraf işlenirken (sıkıştırma tamamlanana kadar) görsel bir ilerleme göstergesi.
   const slot = document.getElementById('ps' + idx);
-  slot.innerHTML = `<div class="pslot-processing"><div class="spin" style="width:20px;height:20px"></div></div>`;
+  slot.innerHTML = `<div class="pslot-processing"><div class="spin" style="width:20px;height:20px"></div><span>Fotoğraf optimize ediliyor…</span></div>`;
 
   const img = new Image();
   const reader = new FileReader();
@@ -5859,7 +5940,7 @@ function openDetail(id) {
       <div class="det-hero-stats">
         ${dateStr?`<span>📅 ${dateStr}</span>`:''}
         <span>👁 ${l.viewCount||0} görüntülenme</span>
-        <span>❤️ ${(l.favoritedByUids||[]).length} favori</span>
+        <span id="det-fav-count">❤️ ${(l.favoritedByUids||[]).length} favori</span>
       </div>
     </div>
     <div class="det-status-row det-anim" style="animation-delay:.08s">
@@ -5924,9 +6005,11 @@ function openDetail(id) {
   document.getElementById('detail-mo').classList.add('on');
   if (l.uid) loadSellerCard(l.uid, l.ownerName, mine, 'det-seller-card');
   renderSimilarListings(l, 'det-similar');
-  // Görüntülenme sayısı — yalnızca YENİ bir açılışta (aynı oturumda tekrar tekrar render'da değil)
-  // ve ilan sahibi kendi ilanına bakmıyorsa artırılır; ek okuma yok, tek bir increment yazması.
-  if (isNewOpen && !mine) {
+  // Görüntülenme sayısı — yalnızca YENİ bir açılışta, ilan sahibi kendi ilanına bakmıyorsa VE bu
+  // cihazdan aynı ilan yakın zamanda (12 saat içinde) zaten sayılmadıysa artırılır (bkz.
+  // shouldCountListingView) — ek okuma yok, yalnızca gerçekten yeni sayılan görüntülenmede tek bir
+  // increment yazması olur.
+  if (isNewOpen && !mine && shouldCountListingView(id)) {
     db.collection('teknohane_listings').doc(id).update({ viewCount: firebase.firestore.FieldValue.increment(1) }).catch(()=>{});
     l.viewCount = (l.viewCount||0) + 1;
   }
@@ -6165,16 +6248,33 @@ async function toggleFav(id, btn) {
 }
 
 // İlana favori eklenip çıkarılmasını ilan üzerinde (favoritedByUids) işaretler ve
-// favori eklenmişse ilan sahibine kalıcı bildirim gönderir
+// favori eklenmişse ilan sahibine kalıcı bildirim gönderir.
+// Yerel favoritedByUids dizisi de İYİMSER (optimistic) olarak güncellenir — aksi halde, ilan detayı
+// zaten açıkken favori sayısı bir sonraki tam veri çekimine kadar (Pazar'a dönüp geri gelene dek)
+// eski/yanlış görünmeye devam ederdi. Yazma başarısız olursa yerel değişiklik geri alınır.
+function renderDetFavCount(l) {
+  if (currentListing && currentListing.id === l.id) {
+    const el = document.getElementById('det-fav-count');
+    if (el) el.textContent = `❤️ ${(l.favoritedByUids||[]).length} favori`;
+  }
+}
 async function notifyListingOwnerOnFav(l, adding) {
   if (!l || !user) return;
+  const prevIds = l.favoritedByUids || [];
+  l.favoritedByUids = adding
+    ? (prevIds.includes(user.uid) ? prevIds : [...prevIds, user.uid])
+    : prevIds.filter(u => u !== user.uid);
+  renderDetFavCount(l);
   try {
     await db.collection('teknohane_listings').doc(l.id).update({
       favoritedByUids: adding
         ? firebase.firestore.FieldValue.arrayUnion(user.uid)
         : firebase.firestore.FieldValue.arrayRemove(user.uid)
     });
-  } catch(e) {}
+  } catch(e) {
+    l.favoritedByUids = prevIds; // yazma başarısız oldu — sayı yanlış görünmesin diye geri alınır
+    renderDetFavCount(l);
+  }
   if (adding && l.uid && l.uid !== user.uid) {
     const name = user.displayName || user.email?.split('@')[0] || 'Biri';
     const msg = `${name}, "${l.model}" ilanınızı favorilerine ekledi.`;
@@ -7374,7 +7474,7 @@ function radmin() {
     <div class="adm-row" style="${pending?'border:1px solid rgba(255,149,0,.35);background:rgba(255,149,0,.05)':''}" onclick="openDetail('${l.id}')">
       ${l.photo1 ? `<img src="${l.photo1}" loading="lazy" decoding="async">` : `<div style="width:44px;height:44px;border-radius:8px;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">📱</div>`}
       <div class="adm-info">
-        <div class="adm-model">${l.featured?'⭐ ':''}${l.sold?'✅ ':''}${l.paused?'⏸️ ':''}${l.model||'—'}${pending?' <span style="color:#FF9500;font-size:10px;font-weight:700">⏳ ONAY BEKLİYOR</span>':''}${l.rejected?' <span style="color:var(--red);font-size:10px;font-weight:700">✕ REDDEDİLDİ</span>':''}</div>
+        <div class="adm-model">${l.featured?'⭐ ':''}${l.urgent?'🔥 ':''}${l.sold?'✅ ':''}${l.paused?'⏸️ ':''}${l.model||'—'}${pending?' <span style="color:#FF9500;font-size:10px;font-weight:700">⏳ ONAY BEKLİYOR</span>':''}${l.rejected?' <span style="color:var(--red);font-size:10px;font-weight:700">✕ REDDEDİLDİ</span>':''}</div>
         <div class="adm-meta">₺${parseInt(l.price||0).toLocaleString('tr-TR')} · ${l.ownerName||'Anonim'}</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px" onclick="event.stopPropagation()">
           ${pending?`<span class="pcompl-pill" style="cursor:pointer" onclick="rejectListingPrompt('${l.id}')">Reddet</span>`:''}
@@ -7382,12 +7482,26 @@ function radmin() {
           ${!pending && !l.rejected ? `<span class="pcompl-pill" style="cursor:pointer" onclick="adminToggleSold('${l.id}')">${l.sold?'Satıldıyı Kaldır':'Satıldı İşaretle'}</span>` : ''}
         </div>
       </div>
-      <span class="pcompl-pill" onclick="event.stopPropagation();toggleListingFeatured('${l.id}')" style="cursor:pointer;flex-shrink:0">${l.featured?'⭐':'☆'}</span>
+      <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0" onclick="event.stopPropagation()">
+        <span class="pcompl-pill" onclick="toggleListingFeatured('${l.id}')" style="cursor:pointer;background:${l.featured?'var(--cdim)':''};color:${l.featured?'var(--cyan)':''}">${l.featured?'⭐':'☆'}</span>
+        <span class="pcompl-pill" onclick="toggleListingUrgent('${l.id}')" style="cursor:pointer;background:${l.urgent?'rgba(255,184,0,.18)':''};color:${l.urgent?'#FFB800':''}">🔥</span>
+      </div>
       <div class="adm-del" onclick="event.stopPropagation();delListing('${l.id}')">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M9 6V4h6v2"/></svg>
       </div>
     </div>`;
   }).join('');
+}
+
+// Bir ilan alanı adminden değiştirildiğinde, aynı ilanın olası TÜM bellek kopyalarını (listings,
+// marketAllListings, marketMineListings, marketFavListings — her biri ayrı sorgudan geldiği için
+// ayrı obje referanslarıdır) tek yerden senkronize eder; böylece Pazar ekranı yeniden yüklenmeden
+// de anında güncel görünür.
+function syncListingFieldEverywhere(id, patch) {
+  [listings, marketAllListings, marketMineListings, marketFavListings].forEach(arr => {
+    const item = arr?.find(x => x.id === id);
+    if (item) Object.assign(item, patch);
+  });
 }
 
 async function toggleListingFeatured(id) {
@@ -7397,10 +7511,24 @@ async function toggleListingFeatured(id) {
   const newVal = !l.featured;
   try {
     await db.collection('teknohane_listings').doc(id).update({ featured: newVal });
-    l.featured = newVal;
+    syncListingFieldEverywhere(id, { featured: newVal });
     adminLog(newVal ? 'feature_listing' : 'unfeature_listing', 'listing', id, l.model||id, { featured: !newVal }, { featured: newVal }, 'success');
     radmin(); rlistings();
     showToast('✓','rgba(48,209,88,.15)', newVal?'Öne Çıkarıldı':'Öne Çıkarma Kaldırıldı', '');
+  } catch(e) { showToast('⚠️','rgba(255,69,58,.15)','Hata','İşlem yapılamadı: ' + e.message); }
+}
+
+async function toggleListingUrgent(id) {
+  if (!hasPermission('manageListings')) { showToast('⚠️','rgba(255,69,58,.15)','Yetkin Yok',''); return; }
+  const l = listings.find(x => x.id === id);
+  if (!l) return;
+  const newVal = !l.urgent;
+  try {
+    await db.collection('teknohane_listings').doc(id).update({ urgent: newVal });
+    syncListingFieldEverywhere(id, { urgent: newVal });
+    adminLog(newVal ? 'mark_listing_urgent' : 'unmark_listing_urgent', 'listing', id, l.model||id, { urgent: !newVal }, { urgent: newVal }, 'success');
+    radmin(); rlistings();
+    showToast('✓','rgba(48,209,88,.15)', newVal?'Acil Olarak İşaretlendi':'Acil İşareti Kaldırıldı', '');
   } catch(e) { showToast('⚠️','rgba(255,69,58,.15)','Hata','İşlem yapılamadı: ' + e.message); }
 }
 
