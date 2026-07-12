@@ -165,24 +165,43 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .forum-tabs::-webkit-scrollbar{display:none;}
 .forum-tab{font-size:13px;font-weight:600;padding:7px 14px;border-radius:20px;border:1px solid var(--border2);background:var(--surf);color:var(--text2);cursor:pointer;white-space:nowrap;}
 .forum-tab.on{background:var(--cdim);border-color:rgba(0,212,255,.3);color:var(--cyan);}
-.post-card{background:var(--surf);border-radius:14px;border:1px solid var(--border2);padding:14px;margin-bottom:10px;cursor:pointer;}
+/* ==== FORUM — KOMPAKT KONU KARTLARI (Reddit/Technopat/DonanımHaber yoğunluk hissi) ====
+   Görsel varsa küçük sol küçük resim + sağda bilgi; görsel yoksa tam genişlik metin. Başlık ön
+   planda, açıklama önizlemesi kaldırıldı (yoğunluk için) — veri modeli değişmedi, yalnızca görünüm. */
+.post-card{background:var(--surf);border-radius:14px;border:1px solid var(--border2);padding:10px;margin-bottom:8px;cursor:pointer;display:flex;gap:10px;}
 .post-card:active{background:var(--surf2);}
-.post-type-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;}
+.post-card-thumb{width:60px;height:60px;border-radius:10px;overflow:hidden;flex-shrink:0;background:var(--surf2);}
+.post-card-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.post-card-body{flex:1;min-width:0;}
+.post-badges-row{display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-bottom:4px;}
+.post-type-badge{display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px;text-transform:uppercase;letter-spacing:.3px;line-height:1.5;}
 .post-type-soru{background:rgba(0,122,255,.12);color:#007AFF;}
 .post-type-tartisma{background:rgba(48,209,88,.12);color:var(--green);}
 .post-type-haber{background:rgba(255,149,0,.12);color:#FF9500;}
 .post-type-inceleme{background:rgba(175,82,222,.12);color:#AF52DE;}
 .post-type-kampanya{background:rgba(255,59,48,.12);color:var(--red);}
-.post-cat-badge{display:inline-flex;align-items:center;font-size:10px;font-weight:600;padding:2px 7px;border-radius:5px;background:var(--surf2);color:var(--text2);margin-left:4px;border:1px solid var(--border2);}
-.post-title{font-size:14px;font-weight:700;line-height:1.4;margin-bottom:8px;}
-.post-body-preview{font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:10px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-.post-meta{display:flex;align-items:center;gap:12px;font-size:11px;color:var(--text3);}
-.post-meta-item{display:flex;align-items:center;gap:4px;}
-.post-meta-item svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;}
-.post-thumb{width:100%;height:140px;object-fit:cover;border-radius:10px;margin-bottom:10px;}
+.post-type-badge.pinned-badge{background:rgba(0,212,255,.12);color:var(--cyan);text-transform:none;}
+.post-type-badge.featured-badge{background:rgba(255,204,0,.12);color:#FFCC00;text-transform:none;}
+.post-type-badge.locked-badge{background:rgba(255,69,58,.1);color:var(--red);text-transform:none;}
+.post-type-badge.resolved-badge{background:rgba(48,209,88,.12);color:var(--green);text-transform:none;margin-left:auto;}
+.post-type-badge.popular-badge{background:rgba(255,149,0,.12);color:#FF9500;text-transform:none;}
+.post-cat-badge{display:inline-flex;align-items:center;font-size:9px;font-weight:600;padding:2px 6px;border-radius:5px;background:var(--surf2);color:var(--text2);border:1px solid var(--border2);}
+.post-title{font-size:13.5px;font-weight:700;line-height:1.32;margin-bottom:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.post-tags-row{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:4px;}
+.post-tag-chip{font-size:9px;font-weight:600;padding:1px 6px;border-radius:5px;background:var(--surf2);color:var(--text2);border:1px solid var(--border2);}
+.post-meta-row{font-size:10.5px;color:var(--text3);display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.post-meta-author{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;color:var(--text3);}
+.post-meta-stat{display:flex;align-items:center;gap:2px;}
+/* Yükleniyor iskeleti — Pazar'da ilan detayı fotoğrafları için tanımlanan @keyframes detskel
+   shimmer animasyonu paylaşılıyor (global bir CSS keyframe adı, herhangi bir modüle özel değil). */
+.post-card-skel{display:flex;gap:10px;background:var(--surf);border-radius:14px;border:1px solid var(--border2);padding:10px;margin-bottom:8px;}
+.pcs-thumb{width:60px;height:60px;border-radius:10px;flex-shrink:0;background:linear-gradient(100deg,var(--surf2) 30%,var(--surf3) 50%,var(--surf2) 70%);background-size:200% 100%;animation:detskel 1.3s ease infinite;}
+.pcs-body{flex:1;display:flex;flex-direction:column;gap:8px;justify-content:center;}
+.pcs-line{height:10px;border-radius:5px;background:linear-gradient(100deg,var(--surf2) 30%,var(--surf3) 50%,var(--surf2) 70%);background-size:200% 100%;animation:detskel 1.3s ease infinite;}
 /* Post detay modal */
 .post-detail-header{margin-bottom:16px;}
 .post-detail-body{font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:16px;white-space:pre-wrap;}
+.post-detail-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
 .post-detail-img{width:100%;border-radius:12px;margin-bottom:16px;cursor:pointer;max-height:280px;object-fit:cover;}
 .post-actions{display:flex;align-items:center;gap:10px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border2);}
 .like-btn{display:flex;align-items:center;gap:6px;background:var(--surf2);border:1px solid var(--border2);border-radius:10px;padding:8px 14px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text2);font-family:inherit;}
@@ -197,7 +216,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .comment-item.best{background:rgba(48,209,88,.08);border:1px solid rgba(48,209,88,.25);}
 .best-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:var(--green);margin-bottom:6px;}
 .comment-author{font-size:12px;font-weight:700;margin-bottom:4px;color:var(--cyan);}
-.comment-text{font-size:13px;color:var(--text);line-height:1.5;}
+.comment-text{font-size:13px;color:var(--text);line-height:1.5;white-space:pre-wrap;word-break:break-word;}
+.cmt-code{background:var(--surf3);color:var(--cyan);font-family:monospace;font-size:12px;padding:1px 5px;border-radius:4px;}
+.cmt-codeblock{background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:8px 10px;margin:6px 0;overflow-x:auto;}
+.cmt-codeblock code{font-family:monospace;font-size:11.5px;color:var(--text2);white-space:pre;}
+.cmt-quote{display:block;border-left:2px solid var(--cyan);padding-left:8px;color:var(--text3);opacity:.85;}
+.comment-item.editing .comment-text{display:none;}
+.cmt-edit-area{width:100%;background:var(--surf3);border:1px solid var(--border2);border-radius:8px;padding:8px 10px;color:var(--text);font-size:13px;font-family:inherit;resize:vertical;min-height:50px;}
 .comment-img{width:100%;border-radius:8px;margin-top:8px;cursor:pointer;max-height:180px;object-fit:cover;}
 .comment-meta{display:flex;align-items:center;justify-content:space-between;margin-top:8px;}
 .comment-actions{display:flex;gap:8px;align-items:center;}
@@ -338,14 +363,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .listing-id-label{font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.4px;}
 .listing-id-val{font-size:12px;font-weight:700;color:var(--text2);letter-spacing:.3px;font-family:monospace;}
 .listing-id-copy{font-size:11px;color:var(--cyan);font-weight:700;cursor:pointer;padding:3px 8px;border-radius:6px;background:var(--cdim);}
-/* Forum iyileştirme */
-.post-card{background:var(--surf);border-radius:16px;border:1px solid var(--border2);padding:0;margin-bottom:12px;cursor:pointer;overflow:hidden;}
-.post-card:active{opacity:.85;}
-.post-card-img{width:100%;height:160px;object-fit:cover;display:block;}
-.post-card-body{padding:14px;}
-.post-card-footer{display:flex;align-items:center;gap:12px;padding:10px 14px;border-top:1px solid var(--border2);background:var(--surf2);}
-.post-card-footer-item{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text3);}
-.post-card-footer-item svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;}
 .act-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;}
 .abtn{padding:14px 10px;border-radius:14px;border:none;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px;}
 .abtn svg{width:22px;height:22px;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
@@ -1677,6 +1694,8 @@ body.tk-maintenance #maintenance-gate{
       <div class="pcat" data-pcat="bilgisayar" onclick="selPostCat('bilgisayar',this)">💻 Bilgisayar</div>
       <div class="pcat" data-pcat="aksesuar" onclick="selPostCat('aksesuar',this)">🎧 Aksesuar</div>
     </div>
+    <label class="fl" style="margin-bottom:6px">Etiketler <span style="color:var(--text3);font-weight:400">(isteğe bağlı, en fazla 3)</span></label>
+    <div class="cat-sel" id="np-tag-sel" style="margin-bottom:14px"></div>
     <div class="fg"><label class="fl">Başlık</label><input class="fi" type="text" id="np-title" placeholder="Konunuzu özetleyin…" maxlength="120"></div>
     <div class="fg"><label class="fl">Açıklama</label><textarea class="fi" id="np-body" placeholder="Detayları yazın…" style="resize:none;min-height:90px;height:90px;font-family:inherit;font-size:15px"></textarea></div>
     <div class="fg">
@@ -6357,6 +6376,7 @@ let forumPosts = [];
 let currentPost = null;
 let currentPostType = 'soru';
 let currentPostCat = 'genel';
+let currentPostTags = [];
 
 const POST_TYPES = {
   soru:      {label:'❓ Soru',      cls:'post-type-soru'},
@@ -6369,6 +6389,50 @@ const POST_CATS = {
   'genel':'📱 Genel', 'akilli-telefon':'📲 Akıllı Telefon',
   'tablet':'📟 Tablet', 'bilgisayar':'💻 Bilgisayar', 'aksesuar':'🎧 Aksesuar'
 };
+// Sabit, admin-küratörlü etiket listesi — serbest metin etiket YOK ki arama/filtreleme kirlenmesin.
+// Firestore'da her gönderi `tags: string[]` alanı taşır (yalnızca bu listeden seçilenler) — ileride
+// `where('tags','array-contains',tag)` ile index gerektirmeden (tek eşitlik + limit, orderBy yoksa)
+// etiket bazlı filtreleme eklenebilir; bu görevde yalnızca veri modeli ve seçim arayüzü hazırlanıyor,
+// arama arayüzü kasıtlı olarak değiştirilmedi (istenen budur).
+const FORUM_TAGS = ['Android','iPhone','Samsung','Xiaomi','Yardım','Karşılaştırma','İnceleme','Sorun','Pil','Kamera','Performans'];
+
+// ==== GÜVENLİK: Kullanıcı girdisini HTML'e güvenli şekilde yerleştirme ====
+// Kök sorun: post.title/body ve comment.body şimdiye kadar innerHTML'e HİÇ kaçışsız yazılıyordu —
+// bir kullanıcı başlığa/açıklamaya <img onerror=...> gibi bir HTML parçası yazarsa bu doğrudan
+// çalışırdı (XSS). escapeHtml() tüm Forum render noktalarında (kart, detay, yorumlar) kullanılıyor.
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// Bir gönderi/yorum metnini GÜVENLİ şekilde biçimlendirir: önce escapeHtml() ile kaçışlanır (XSS
+// riski sıfırlanır), ARDINDAN yalnızca çok basit, düz-metin işaretleyicileri (```kod bloğu```,
+// `satır içi kod`, > alıntı satırı) HTML'e çevrilir — ağır bir markdown kütüphanesi eklenmedi.
+// Satır sonları CSS (`white-space:pre-wrap`) ile korunuyor, burada <br> üretilmiyor.
+function formatForumText(text) {
+  if (!text) return '';
+  let safe = escapeHtml(text);
+  safe = safe.replace(/```([\s\S]+?)```/g, (m, code) => `<pre class="cmt-codeblock"><code>${code}</code></pre>`);
+  safe = safe.replace(/`([^`\n]+)`/g, '<code class="cmt-code">$1</code>');
+  safe = safe.split('\n').map(line => line.match(/^&gt;\s?/) ? `<span class="cmt-quote">${line.replace(/^&gt;\s?/,'')}</span>` : line).join('\n');
+  return safe;
+}
+
+// ==== GÖRÜNTÜLENME SAYACI — Pazar'daki (teknohane_listings) desenle AYNI mantık, ama kasıtlı olarak
+// AYRI bir fonksiyon/anahtar: Pazar modülünün kendi fonksiyonuna dokunulmadan (kapsam dışı), aynı
+// cihaz-bazlı 12 saatlik tekrar-sayım engeli Forum gönderileri için de uygulanıyor.
+const POST_VIEW_DEDUP_WINDOW_MS = 12 * 60 * 60 * 1000;
+function shouldCountPostView(id) {
+  try {
+    const seen = JSON.parse(localStorage.getItem('tk_viewed_posts') || '{}');
+    const last = seen[id];
+    if (last && (Date.now() - last) < POST_VIEW_DEDUP_WINDOW_MS) return false;
+    seen[id] = Date.now();
+    Object.keys(seen).forEach(k => { if (Date.now() - seen[k] > POST_VIEW_DEDUP_WINDOW_MS) delete seen[k]; });
+    localStorage.setItem('tk_viewed_posts', JSON.stringify(seen));
+    return true;
+  } catch(e) { return true; }
+}
 
 // ==== FORUM 2.0 — SAYFALAMA (Pazar mimarisiyle birebir aynı desen) ====
 // Eski mimari (tek seferlik .limit(60), sayfalama yok) tamamen kaldırıldı.
@@ -6379,14 +6443,21 @@ let forumLoading = false;
 let forumSearchActive = false;
 let forumSearchDebounceTimer = null;
 
+// Sekmeler (Yeni/Popüler/Çözüldü/Takip Ettiklerim) hepsi AYNI temel veriyi (son N gönderi) farklı
+// süzüyor/sıralıyor — bu yüzden sekme değiştirmek artık Firestore'a YENİDEN gitmiyor; zaten yüklü
+// ham veri varsa yalnızca istemci tarafında yeniden çizilir (bkz. rForum). Bu, "Yeni→Popüler→
+// Çözüldü→Takip Ettiklerim" arasında gezinirken 4 ayrı sorgu yerine tek bir sorgu yeterli olmasını
+// sağlar — gereksiz Firestore okumasını doğrudan ortadan kaldıran bir düzeltmedir.
 function switchForumTab(tab, el) {
+  const wasSearching = forumSearchActive;
   forumCurrentTab = tab;
   forumSearchActive = false;
   const si = document.getElementById('forum-search-inp');
   if (si) si.value = '';
   document.querySelectorAll('.forum-tab').forEach(t => t.classList.remove('on'));
   el.classList.add('on');
-  loadForumPage(true);
+  if (!wasSearching && forumPosts.length) rForum();
+  else loadForumPage(true);
 }
 
 async function loadForumPage(reset) {
@@ -6401,26 +6472,15 @@ async function loadForumPage(reset) {
     // birden fazla orderBy() kombinasyonu Firestore'da her zaman composite index gerektirir —
     // bu index olmadığı sürece sorgu ya hata verir ya da (index "building" durumundaysa) sessizce
     // boş/eksik sonuç döner. Bunu tamamen ortadan kaldırmak için sunucu sorgusu, index GEREKTİRMEYEN
-    // tek-alanlı orderBy('createdAt') haline indirgendi; sekmeye özgü filtreler (archived/resolved/
-    // following/popular sıralaması) istemci tarafında uygulanıyor.
+    // tek-alanlı orderBy('createdAt') haline indirgendi. Sekmeye özgü filtre/sıralama (archived/
+    // resolved/following/popular) artık FETCH ANINDA değil, render anında (rForum içinde) uygulanıyor
+    // — böylece ham veri sekmeler arasında yeniden kullanılabiliyor (yukarıdaki nota bakın).
     let q = db.collection('teknohane_posts').orderBy('createdAt', 'desc').limit(50);
     if (forumLastDoc) q = q.startAfter(forumLastDoc);
     const snap = await q.get();
-    let newItems = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    let newItems = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.archived !== true);
     forumLastDoc = snap.docs[snap.docs.length - 1] || forumLastDoc;
     forumHasMore = snap.docs.length === 50;
-
-    // Sekmeye özgü filtreleme — hepsi istemci tarafında, index gerektirmeden.
-    newItems = newItems.filter(p => p.archived !== true);
-    if (forumCurrentTab === 'resolved') {
-      newItems = newItems.filter(p => p.resolved === true);
-    } else if (forumCurrentTab === 'following') {
-      const uids = new Set(myProfileData.followingUids || []);
-      newItems = newItems.filter(p => uids.has(p.uid));
-    } else if (forumCurrentTab === 'popular') {
-      newItems = [...newItems].sort((a,b) => (b.likeCount ?? (b.likes||[]).length) - (a.likeCount ?? (a.likes||[]).length));
-    }
-
     forumPosts = reset ? newItems : [...forumPosts, ...newItems];
   } catch (e) {
     console.error('Forum yüklenemedi:', e);
@@ -6463,42 +6523,54 @@ async function runForumSearch(query) {
   }
 }
 
+// Yükleniyor durumunda gerçek boyutlarda birkaç iskelet (skeleton) kart gösterir — düz bir
+// spinner yerine, içeriğin nasıl göründüğüne dair anında bir ipucu verir (premium his).
+function forumSkeletonHTML(count) {
+  return Array.from({length: count || 4}).map(() => `<div class="post-card-skel">
+    <div class="pcs-thumb"></div>
+    <div class="pcs-body"><div class="pcs-line" style="width:40%"></div><div class="pcs-line" style="width:85%"></div><div class="pcs-line" style="width:55%"></div></div>
+  </div>`).join('');
+}
+
 function rForum() {
   const list = document.getElementById('forum-list');
   if (!list) return;
-  if (!forumPosts.length && forumLoading) { list.innerHTML = `<div class="load"><div class="spin"></div><span>Yükleniyor…</span></div>`; return; }
-  if (!forumPosts.length) { list.innerHTML = `<div class="no">${forumSearchActive?'Sonuç bulunamadı':'Henüz konu yok — ilk sen aç!'}</div>`; return; }
-  const items = [...forumPosts].sort((a,b) => (b.pinned?1:0) - (a.pinned?1:0));
+  if (!forumPosts.length && forumLoading) { list.innerHTML = forumSkeletonHTML(5); return; }
+  // Sekmeye özgü filtre/sıralama — artık burada (render anında), ham veri (forumPosts) sekmeler
+  // arasında YENİDEN KULLANILIYOR, her sekme değişiminde yeni bir Firestore sorgusu atılmıyor.
+  let items = forumPosts;
+  if (forumCurrentTab === 'resolved') items = items.filter(p => p.resolved === true);
+  else if (forumCurrentTab === 'following') { const uids = new Set(myProfileData.followingUids || []); items = items.filter(p => uids.has(p.uid)); }
+  else if (forumCurrentTab === 'popular') items = [...items].sort((a,b) => (b.likeCount ?? (b.likes||[]).length) - (a.likeCount ?? (a.likes||[]).length));
+  if (!items.length) { list.innerHTML = `<div class="no">${forumSearchActive?'Sonuç bulunamadı':forumCurrentTab==='resolved'?'Henüz çözülen konu yok':forumCurrentTab==='following'?'Takip ettiğin kimsenin konusu yok':'Henüz konu yok — ilk sen aç!'}</div>`; return; }
+  items = [...items].sort((a,b) => (b.pinned?1:0) - (a.pinned?1:0));
   list.innerHTML = items.map(p => {
     const likeCount = p.likeCount ?? (p.likes||[]).length;
     const ts = p.createdAt?.toDate ? timeAgo(p.createdAt.toDate()) : '';
     const pt = POST_TYPES[p.type] || POST_TYPES.tartisma;
     const catLabel = POST_CATS[p.category] || '';
-    const isPopular = likeCount >= 10; // basit, sabit eşik — Popüler rozeti
+    const isPopular = likeCount >= 10 && !p.resolved; // basit, sabit eşik — Popüler rozeti (Çözüldü varsa gizlenir, rozet kirliliği olmasın)
+    const authorSafe = escapeHtml(p.authorName || '—');
+    const authorJs = (p.authorName||'').replace(/'/g,"\\'");
     return `<div class="post-card" onclick="openPost('${p.id}')">
-      ${p.imageUrl ? `<img class="post-card-img" src="${p.imageUrl}" loading="lazy" decoding="async" onclick="event.stopPropagation();openFullscreen('${p.imageUrl}')">` : ''}
+      ${p.imageUrl ? `<div class="post-card-thumb"><img src="${p.imageUrl}" loading="lazy" decoding="async"></div>` : ''}
       <div class="post-card-body">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap">
-          ${p.pinned?'<div class="post-type-badge" style="background:rgba(0,212,255,.12);color:var(--cyan)">📌 Sabit</div>':''}
-          ${p.featured?'<div class="post-type-badge" style="background:rgba(255,204,0,.12);color:#FFCC00">⭐ Öne Çıkan</div>':''}
-          ${p.locked?'<div class="post-type-badge" style="background:rgba(255,69,58,.1);color:var(--red)">🔒 Kilitli</div>':''}
+        <div class="post-badges-row">
+          ${p.pinned?'<div class="post-type-badge pinned-badge" title="Sabit">📌</div>':''}
+          ${p.featured?'<div class="post-type-badge featured-badge" title="Öne Çıkan">⭐</div>':''}
+          ${p.locked?'<div class="post-type-badge locked-badge" title="Kilitli">🔒</div>':''}
           <div class="post-type-badge ${pt.cls}">${pt.label}</div>
           ${catLabel?`<div class="post-cat-badge">${catLabel}</div>`:''}
-          ${isPopular?'<div class="post-type-badge" style="background:rgba(255,149,0,.12);color:#FF9500">🔥 Popüler</div>':''}
-          ${p.resolved?'<div class="post-type-badge" style="background:rgba(48,209,88,.12);color:var(--green);margin-left:auto">✓ Çözüldü</div>':''}
+          ${p.resolved?'<div class="post-type-badge resolved-badge">✓ Çözüldü</div>':''}
+          ${isPopular?'<div class="post-type-badge popular-badge">🔥</div>':''}
         </div>
-        <div class="post-title">${p.title||''}</div>
-        <div class="post-body-preview">${p.body||''}</div>
-        <div style="font-size:11px;color:var(--text3);margin-top:6px"><span onclick="event.stopPropagation();openPublicProfile('${p.uid}','${(p.authorName||'').replace(/'/g,"\\'")}')" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted">${p.authorName||'—'}</span> · ${ts}</div>
-      </div>
-      <div class="post-card-footer">
-        <div class="post-card-footer-item">
-          <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-          ${likeCount}
-        </div>
-        <div class="post-card-footer-item">
-          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          ${p.answerCount||0}
+        <div class="post-title">${escapeHtml(p.title)}</div>
+        ${(p.tags&&p.tags.length)?`<div class="post-tags-row">${p.tags.slice(0,3).map(t=>`<span class="post-tag-chip">#${escapeHtml(t)}</span>`).join('')}</div>`:''}
+        <div class="post-meta-row">
+          <span onclick="event.stopPropagation();openPublicProfile('${p.uid}','${authorJs}')" class="post-meta-author">${authorSafe}</span>
+          <span>· ${ts}</span>
+          <span class="post-meta-stat">❤ ${likeCount}</span>
+          <span class="post-meta-stat">💬 ${p.answerCount||0}</span>
         </div>
       </div>
     </div>`;
@@ -6522,6 +6594,8 @@ function openNewPost() {
   document.getElementById('np-photo-preview').innerHTML = '';
   document.getElementById('np-photo-label').textContent = 'Fotoğraf ekle';
   npPhotoB64 = null;
+  currentPostTags = [];
+  document.getElementById('np-tag-sel').innerHTML = FORUM_TAGS.map(t => `<div class="pcat" data-ptag="${t}" onclick="selPostTag('${t}',this)">${t}</div>`).join('');
   selPostType('soru', document.querySelector('[data-ptype="soru"]'));
   selPostCat('genel', document.querySelector('[data-pcat="genel"]'));
   document.getElementById('new-post-mo').classList.add('on');
@@ -6531,6 +6605,16 @@ function selPostType(type, el) {
   currentPostType = type;
   document.querySelectorAll('[data-ptype]').forEach(x => x.classList.remove('on'));
   el?.classList.add('on');
+}
+// Etiketler tek seçimli (tür/kategori) değil, ÇOKLU seçimli — bir etikete tekrar dokunmak onu
+// kaldırır; en fazla 3 etikete izin verilir (kart üzerinde de en fazla 3 gösteriliyor, tutarlı).
+function selPostTag(tag, el) {
+  const idx = currentPostTags.indexOf(tag);
+  if (idx > -1) { currentPostTags.splice(idx, 1); el.classList.remove('on'); }
+  else {
+    if (currentPostTags.length >= 3) { showToast('⚠️','rgba(255,69,58,.15)','En Fazla 3 Etiket','Daha fazla etiket eklemek için önce birini kaldır.'); return; }
+    currentPostTags.push(tag); el.classList.add('on');
+  }
 }
 function selPostCat(cat, el) {
   currentPostCat = cat;
@@ -6596,12 +6680,15 @@ async function submitPost() {
       titleLower: title.toLowerCase(), // Firestore'da başlangıç eşleşmesi araması için
       uid: user.uid,
       authorName: user.displayName || user.email?.split('@')[0] || 'Anonim',
+      tags: [...currentPostTags],
       likes: [],
       likeCount: 0,
       answerCount: 0,
+      viewCount: 0,
       bestAnswer: null,
       resolved: false,
       pinned: false, featured: false, locked: false, archived: false,
+      followers: [user.uid],
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
     if (npPhotoB64) data.imageUrl = npPhotoB64;
@@ -6640,6 +6727,12 @@ async function openPost(id) {
     } catch(e) {}
   }
   if (!currentPost) { showToast('❗','rgba(255,69,58,.12)','Bulunamadı','Bu konu kaldırılmış olabilir.'); return; }
+  // Görüntülenme sayısı — yalnızca konu sahibi olmayan ve bu cihazdan yakın zamanda (12 saat)
+  // sayılmamış açılışlarda artırılır (bkz. shouldCountPostView) — ek okuma yok, tek increment yazması.
+  if ((!user || user.uid !== currentPost.uid) && shouldCountPostView(id)) {
+    db.collection('teknohane_posts').doc(id).update({ viewCount: firebase.firestore.FieldValue.increment(1) }).catch(()=>{});
+    currentPost.viewCount = (currentPost.viewCount||0) + 1;
+  }
   renderPostDetail();
   document.getElementById('post-detail-mo').classList.add('on');
   cmtPhotoB64 = null;
@@ -6658,21 +6751,28 @@ function renderPostDetail() {
   const isOwner = user && user.uid === p.uid;
   const isAdmin = isAdminNow();
   const canDelete = isOwner || isAdmin;
+  const isFollowing = user && (p.followers||[]).includes(user.uid);
   const ts = p.createdAt?.toDate ? p.createdAt.toDate().toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric'}) : '';
   const pt = POST_TYPES[p.type] || POST_TYPES.tartisma;
   const catLabel = POST_CATS[p.category] || '';
+  const authorSafe = escapeHtml(p.authorName || '—');
+  const authorJs = (p.authorName||'').replace(/'/g,"\\'");
   document.getElementById('post-detail-body').innerHTML = `
     <div class="post-detail-header">
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap">
         <div class="post-type-badge ${pt.cls}">${pt.label}</div>
         ${catLabel?`<div class="post-cat-badge">${catLabel}</div>`:''}
       </div>
-      <div style="font-size:18px;font-weight:700;margin-bottom:8px;line-height:1.3">${p.title}</div>
-      <div style="font-size:12px;color:var(--text3);margin-bottom:12px"><span onclick="openPublicProfile('${p.uid}','${(p.authorName||'').replace(/'/g,"\\'")}')" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted">${p.authorName}</span> · ${ts}</div>
+      <div style="font-size:18px;font-weight:700;margin-bottom:8px;line-height:1.3">${escapeHtml(p.title)}</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span><span onclick="openPublicProfile('${p.uid}','${authorJs}')" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;color:var(--text3)">${authorSafe}</span> · ${ts}</span>
+        <span>👁 ${p.viewCount||0}</span>
+      </div>
     </div>
+    ${(p.tags&&p.tags.length)?`<div class="post-detail-tags">${p.tags.map(t=>`<span class="post-tag-chip">#${escapeHtml(t)}</span>`).join('')}</div>`:''}
     ${p.imageUrl?`<img class="post-detail-img" src="${p.imageUrl}" onclick="openFullscreen('${p.imageUrl}')">` : ''}
-    <div class="post-detail-body">${p.body||''}</div>
-    <div class="post-actions">
+    <div class="post-detail-body">${formatForumText(p.body)}</div>
+    <div class="post-actions" style="flex-wrap:wrap">
       <button class="like-btn ${liked?'liked':''}" onclick="likePost('${p.id}')">
         <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
         ${(p.likes||[]).length} Beğeni
@@ -6682,6 +6782,10 @@ function renderPostDetail() {
         ${p.answerCount||0}
       </div>
       ${p.bestAnswer?'<span style="color:var(--green);font-size:12px;font-weight:700">✓ Çözüldü</span>':''}
+      ${user?`<button class="like-btn ${isFollowing?'liked':''}" onclick="toggleThreadFollow('${p.id}')" title="Bu konuya yeni yorum gelince bildirim al">${isFollowing?'🔔 Takip Ediliyor':'🔕 Takip Et'}</button>`:''}
+      <button class="like-btn" onclick="shareForumPost('${p.id}')" title="Paylaş">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51L8.59 10.49"/></svg>
+      </button>
       ${canDelete?`<button class="del-post-btn" onclick="deletePost('${p.id}')"><svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>Sil</button>`:''}
       ${user && user.uid!==p.uid?`<span onclick="openReportModal('forum_post','${p.id}','${(p.title||'Gönderi').replace(/'/g,"\\'").replace(/"/g,'&quot;')}','${p.uid||''}')" style="font-size:11px;color:var(--text3);cursor:pointer;text-decoration:underline;margin-left:auto">🚩 Şikayet Et</span>`:''}
     </div>`;
@@ -6697,17 +6801,22 @@ function renderComments() {
   const list = document.getElementById('comments-list');
   if (!list) return;
   if (!comments.length) { list.innerHTML = '<div class="no" style="padding:16px 0">Henüz yorum yok — ilk yorumu sen yap!</div>'; return; }
-  list.innerHTML = comments.map(c => {
+  // En iyi cevap her zaman en üstte gösterilir (Stack Overflow deseni) — diğerleri kronolojik sırada
+  // kalır. Stabil sıralama (Array.sort stabildir) sayesinde en iyi cevap dışındaki sıra bozulmaz.
+  const sorted = [...comments].sort((a,b) => (p.bestAnswer===b.id?1:0) - (p.bestAnswer===a.id?1:0));
+  list.innerHTML = sorted.map(c => {
     const isBest = p.bestAnswer === c.id;
     const likedC = user && (c.likes||[]).includes(user.uid);
     const canBest = (isOwner || isAdmin) && p.type === 'soru';
     const isCommentOwner = user && user.uid === c.uid;
     const canDelComment = isCommentOwner || isAdmin;
     const ts = c.createdAt?.toDate ? timeAgo(c.createdAt.toDate()) : '';
+    const authorSafe = escapeHtml(c.authorName || '—');
+    const authorJs = (c.authorName||'').replace(/'/g,"\\'");
     return `<div class="comment-item ${isBest?'best':''}" id="cmt-${c.id}">
       ${isBest?'<div class="best-badge">✓ En İyi Cevap</div>':''}
-      <div class="comment-author" onclick="openPublicProfile('${c.uid}','${(c.authorName||'').replace(/'/g,"\\'")}')" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;display:inline-block">${c.authorName||'—'}</div>
-      <div class="comment-text">${c.body||''}</div>
+      <div class="comment-author" onclick="openPublicProfile('${c.uid}','${authorJs}')" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;display:inline-block">${authorSafe}</div>
+      <div class="comment-text">${formatForumText(c.body)}</div>
       ${c.imageUrl?`<img class="comment-img" src="${c.imageUrl}" loading="lazy" decoding="async" onclick="openFullscreen('${c.imageUrl}')">` : ''}
       <div class="comment-meta">
         <div class="comment-actions">
@@ -6716,10 +6825,11 @@ function renderComments() {
           </button>
           ${canBest && !isBest ? `<button class="mark-best-btn" onclick="markBest('${c.id}')">✓ En İyi</button>` : ''}
           ${canBest && isBest ? `<button class="unmark-best-btn" onclick="unmarkBest('${c.id}')">↺ Geri Al</button>` : ''}
+          ${isCommentOwner ? `<button class="del-comment-btn" style="color:var(--cyan)" onclick="startEditComment('${c.id}')">Düzenle</button>` : ''}
           ${canDelComment ? `<button class="del-comment-btn" onclick="deleteComment('${c.id}')">Sil</button>` : ''}
           ${user && !isCommentOwner ? `<button class="del-comment-btn" onclick="openReportModal('comment','${c.id}','${(c.body||'Yorum').slice(0,40).replace(/'/g,"\\'").replace(/"/g,'&quot;').replace(/\n/g,' ')}','${c.uid||''}')">🚩</button>` : ''}
         </div>
-        <span style="font-size:11px;color:var(--text3)">${ts}</span>
+        <span style="font-size:11px;color:var(--text3)">${ts}${c.edited?' · düzenlendi':''}</span>
       </div>
     </div>`;
   }).join('');
@@ -6771,11 +6881,54 @@ async function submitComment() {
     const pi = forumPosts.findIndex(x=>x.id===p.id);
     if (pi>-1) forumPosts[pi].answerCount = p.answerCount;
     rForum();
-    if (p.uid && p.uid !== user.uid) {
+    // Konu sahibi VE konuyu takip eden herkese (kendisi hariç) bildirim gider — "Takip Et" özelliğinin
+    // asıl amacı bu: bir konuya yorum geldiğinde, yalnızca sahibi değil, takip eden herkes haberdar olur.
+    const notifyTargets = new Set([p.uid, ...(p.followers||[])].filter(uid => uid && uid !== user.uid));
+    if (notifyTargets.size) {
       const name = user.displayName || user.email?.split('@')[0] || 'Biri';
-      notifyUser(p.uid, 'post_comment', `${name}, "${p.title}" gönderine yorum yaptı`, null, p.id);
+      notifyTargets.forEach(uid => notifyUser(uid, 'post_comment', `${name}, "${p.title}" gönderine yorum yaptı`, null, p.id));
     }
   } catch(e) { showErrorToast(e.message); }
+}
+
+// "Takip Et": konuya yeni yorum geldiğinde bildirim almak için. followers[] alanı, konu oluşturulurken
+// zaten yazar kendisini içerecek şekilde başlatılıyor (bkz. submitPost). Yeni bir yetki/koleksiyon
+// sistemi icat edilmedi — mevcut notifyUser() ve arrayUnion/arrayRemove deseni kullanılıyor.
+async function toggleThreadFollow(id) {
+  if (!user) { gt('profile'); return; }
+  const p = currentPost;
+  const isFollowing = (p.followers||[]).includes(user.uid);
+  try {
+    await db.collection('teknohane_posts').doc(id).update({
+      followers: isFollowing ? firebase.firestore.FieldValue.arrayRemove(user.uid) : firebase.firestore.FieldValue.arrayUnion(user.uid)
+    });
+    p.followers = isFollowing ? (p.followers||[]).filter(u=>u!==user.uid) : [...(p.followers||[]), user.uid];
+    renderPostDetail();
+    showToast(isFollowing?'🔕':'🔔', isFollowing?'var(--surf2)':'rgba(0,212,255,.15)', isFollowing?'Takipten Çıkıldı':'Takip Ediliyor', isFollowing?'':'Bu konuya yeni yorum gelince bildirim alacaksın.');
+  } catch(e) { showErrorToast(e.message); }
+}
+
+// Paylaş: Pazar'daki shareListing() ile aynı üç kademeli düşüş deseni (native paylaşım eklentisi →
+// navigator.share → panoya kopyala), ama Forum'a özel AYRI bir fonksiyon — Pazar'ın kendi fonksiyonuna
+// dokunulmuyor (kapsam dışı).
+async function shareForumPost(id) {
+  const p = currentPost?.id === id ? currentPost : forumPosts.find(x => x.id === id);
+  if (!p) return;
+  const url = location.origin + location.pathname + '?post=' + id;
+  const text = `${p.title}\nTeknohane Forum'da incele:`;
+  if (isNativeApp() && window.Capacitor?.Plugins?.Share) {
+    try { await Capacitor.Plugins.Share.share({ title: p.title, text, url, dialogTitle: 'Konuyu Paylaş' }); return; }
+    catch(e) { if (e?.message?.includes('cancel')) return; }
+  }
+  if (navigator.share) { navigator.share({ title: p.title, text, url }).catch(()=>{}); return; }
+  const full = `${text} ${url}`;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(full).then(() => showToast('🔗','var(--cdim)','Bağlantı Kopyalandı','Konu linki panoya kopyalandı.'));
+  } else {
+    const el = document.createElement('textarea');
+    el.value = full; document.body.appendChild(el); el.select(); document.execCommand('copy'); el.remove();
+    showToast('🔗','var(--cdim)','Bağlantı Kopyalandı','Konu linki panoya kopyalandı.');
+  }
 }
 
 // Beğeni toggle (yorum)
@@ -6859,6 +7012,47 @@ async function deleteComment(cid) {
     if (pi>-1) { forumPosts[pi].answerCount = p.answerCount; forumPosts[pi].bestAnswer = p.bestAnswer; }
     renderPostDetail(); renderComments(); rForum();
   } catch(e) { showErrorToast('Silinemedi.'); }
+}
+
+// Yorum sahibinin kendi yorumunu düzenlemesi — daha önce yalnızca admin (editAdminComment) bunu
+// yapabiliyordu. Yorum satır içinde bir textarea'ya dönüşür, "Kaydet"/"Vazgeç" ile devam edilir.
+function startEditComment(cid) {
+  const p = currentPost;
+  const c = (p._comments||[]).find(x => x.id === cid);
+  const el = document.getElementById(`cmt-${cid}`);
+  if (!c || !el) return;
+  el.classList.add('editing');
+  const textEl = el.querySelector('.comment-text');
+  if (!textEl) return;
+  textEl.insertAdjacentHTML('afterend', `
+    <div class="cmt-edit-wrap" id="cmt-edit-wrap-${cid}">
+      <textarea class="cmt-edit-area" id="cmt-edit-area-${cid}">${escapeHtml(c.body||'')}</textarea>
+      <div style="display:flex;gap:8px;margin-top:6px">
+        <button class="mark-best-btn" onclick="saveCommentEdit('${cid}')">Kaydet</button>
+        <button class="unmark-best-btn" onclick="cancelEditComment('${cid}')">Vazgeç</button>
+      </div>
+    </div>`);
+  document.getElementById(`cmt-edit-area-${cid}`)?.focus();
+}
+function cancelEditComment(cid) {
+  document.getElementById(`cmt-${cid}`)?.classList.remove('editing');
+  document.getElementById(`cmt-edit-wrap-${cid}`)?.remove();
+}
+async function saveCommentEdit(cid) {
+  const p = currentPost;
+  const textarea = document.getElementById(`cmt-edit-area-${cid}`);
+  if (!textarea) return;
+  // textarea.value zaten çözülmüş (unescaped) düz metin döner — escapeHtml() yalnızca render
+  // sırasında uygulanır, burada ham metin Firestore'a yazılır (mevcut desenle aynı).
+  const newBody = textarea.value.trim();
+  if (!newBody) { showToast('⚠️','rgba(255,69,58,.15)','Boş Olamaz','Yorum boş bırakılamaz.'); return; }
+  try {
+    await db.collection('teknohane_posts').doc(p.id).collection('comments').doc(cid).update({ body: newBody, edited: true });
+    const c = (p._comments||[]).find(x => x.id === cid);
+    if (c) { c.body = newBody; c.edited = true; }
+    cancelEditComment(cid);
+    renderComments();
+  } catch(e) { showErrorToast('Kaydedilemedi: ' + e.message); }
 }
 
 // Tam ekran görsel
