@@ -109,10 +109,21 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .chat-skel-row{display:flex;gap:8px;margin-bottom:10px;}
 .chat-skel-bubble{height:36px;border-radius:14px;background:linear-gradient(100deg,var(--surf2) 30%,var(--surf3) 50%,var(--surf2) 70%);background-size:200% 100%;animation:detskel 1.3s ease infinite;}
 #chat-messages{min-height:0;-webkit-overflow-scrolling:touch;}
-.notif-ic{width:38px;height:38px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;}
+.notif-ic{width:38px;height:38px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;position:relative;}
+.notif-ic img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+/* Profil fotoğrafı VARSA gösterilen küçük olay rozeti — fotoğraf yoksa zaten .notif-ic'in kendisi
+   olay ikonunu (emoji) taşıyor, bu rozet yalnızca fotoğrafın üzerine binen ikinci katman içindir. */
+.notif-ic-badge{position:absolute;bottom:-2px;right:-2px;width:15px;height:15px;border-radius:50%;background:var(--bg2);border:1.5px solid var(--bg2);display:flex;align-items:center;justify-content:center;font-size:8px;line-height:1;}
 .notif-txt{flex:1;min-width:0;}
 .notif-msg{font-size:13px;color:var(--text);line-height:1.4;}
 .notif-time{font-size:11px;color:var(--text3);margin-top:3px;}
+/* Okundu/okunmadı ayrımı daha belirgin olsun diye: okunmuş bildirimlerin ikonu hafifçe soluklaşır. */
+.notif-item:not(.unread) .notif-ic{opacity:.6;}
+/* Bildirim listesi — gerçek boyutlu skeleton (Pazar/Sohbet'teki @keyframes detskel shimmer'ı paylaşılıyor) */
+.notif-skel-row{display:flex;gap:12px;padding:14px 4px;align-items:center;}
+.notif-skel-ic{width:38px;height:38px;border-radius:50%;flex-shrink:0;background:linear-gradient(100deg,var(--surf2) 30%,var(--surf3) 50%,var(--surf2) 70%);background-size:200% 100%;animation:detskel 1.3s ease infinite;}
+.notif-skel-lines{flex:1;display:flex;flex-direction:column;gap:6px;}
+.notif-skel-line{height:10px;border-radius:5px;background:linear-gradient(100deg,var(--surf2) 30%,var(--surf3) 50%,var(--surf2) 70%);background-size:200% 100%;animation:detskel 1.3s ease infinite;}
 .hbtn svg{width:18px;height:18px;stroke:var(--text2);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
 .hbtn img{width:36px;height:36px;border-radius:50%;object-fit:cover;background:var(--surf2);}
 
@@ -1298,6 +1309,7 @@ body.tk-maintenance #maintenance-gate{
       <span class="pcompl-pill notif-cat-pill" data-cat="referrals" onclick="setNotifCategory('referrals')">Referanslar<span class="notif-cat-dot" data-cat-dot="referrals"></span></span>
       <span class="pcompl-pill notif-cat-pill" data-cat="market" onclick="setNotifCategory('market')">Pazar<span class="notif-cat-dot" data-cat-dot="market"></span></span>
       <span class="pcompl-pill notif-cat-pill" data-cat="forum" onclick="setNotifCategory('forum')">Forum<span class="notif-cat-dot" data-cat-dot="forum"></span></span>
+      <span class="pcompl-pill notif-cat-pill" data-cat="messages" onclick="setNotifCategory('messages')">Mesajlar<span class="notif-cat-dot" data-cat-dot="messages"></span></span>
       <span class="pcompl-pill notif-cat-pill" data-cat="system" onclick="setNotifCategory('system')">Sistem<span class="notif-cat-dot" data-cat-dot="system"></span></span>
     </div>
     <div id="notif-list"></div>
@@ -4353,18 +4365,38 @@ const NOTIF_TYPE_CATEGORY = {
   price_drop: 'market', listing_favorited: 'market', seller_review: 'market',
   post_liked: 'forum', post_comment: 'forum', comment_liked: 'forum',
   admin_notification: 'system', admin_warning: 'system', complaint_update: 'system',
+  new_message: 'messages',
 };
 
-async function notifyUser(toUid, type, message, listingId, postId) {
+// fromUid/fromName/fromPhotoURL — OPSİYONEL aktör bilgisi (bildirimi tetikleyen kişi). Var olan
+// veri modelini BOZMAZ, yalnızca ek alan olarak eklenir; verilmezse (ör. sistem/admin bildirimleri)
+// üçü de null kalır. Çağıran taraflarda zaten bellekte olan user.uid/displayName/myProfileData.photoURL
+// kullanılıyor — bunun için YENİ bir okuma gerekmiyor. Bildirim Merkezi bunu profil fotoğrafı,
+// kişi-bazlı gruplama ("Ali 3 yorum yaptı") ve bazı yönlendirmeler (ör. yeni takipçi → profiline git)
+// için kullanıyor.
+// skipPush=true — çağıran taraf zaten kendi (daha özel metinli) push'unu ayrıca gönderiyorsa, buradaki
+// genel push ÇİFT bildirim olmasın diye atlanır (bkz. markChatMessageSent).
+async function notifyUser(toUid, type, message, listingId, postId, fromUid, fromName, fromPhotoURL, skipPush) {
+  // Sessiz bildirim koruması: aynı (alıcı+tür+mesaj+hedef) kombinasyonu çok kısa sürede TEKRAR
+  // tetiklenirse (örn. çift tıklama/ağ yeniden denemesi) ikinci çağrı sessizce atlanır. Durum yeni bir
+  // global değişken yerine bu fonksiyonun kendi özelliğinde (Map), yalnızca oturum belleğinde tutulur.
+  const dedupeKey = toUid + '|' + type + '|' + message + '|' + (listingId||'') + '|' + (postId||'');
+  const now = Date.now();
+  notifyUser._recent = notifyUser._recent || new Map();
+  if (notifyUser._recent.size > 200) notifyUser._recent.clear();
+  const lastAt = notifyUser._recent.get(dedupeKey);
+  if (lastAt && (now - lastAt) < 10000) return;
+  notifyUser._recent.set(dedupeKey, now);
   try {
     await db.collection('teknohane_notifications').add({
       toUid, type, message, listingId: listingId || null, postId: postId || null,
       category: NOTIF_TYPE_CATEGORY[type] || 'system',
+      fromUid: fromUid || null, fromName: fromName || null, fromPhotoURL: fromPhotoURL || null,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       read: false
     });
   } catch(e) { /* sessizce geç */ }
-  if (!systemSettings.notificationsDisabled) {
+  if (!skipPush && !systemSettings.notificationsDisabled) {
     sendPush(toUid, 'Teknohane', message, listingId ? `/teknohane/?listing=${listingId}` : (postId ? `/teknohane/?post=${postId}` : '/teknohane/'));
   }
 }
@@ -4733,18 +4765,22 @@ function osNotify(title, body) {
 
 // ---- BİLDİRİM KUTUSU ----
 let unsubNotifBadge = null;
+// post_liked/comment_liked ÖNCEDEN listing_favorited ile aynı ❤️ ikonunu paylaşıyordu (Pazar
+// favorisiyle Forum beğenisi görsel olarak ayrışmıyordu) — 👍'ya çevrildi. post_comment ÖNCEDEN
+// 💬 kullanıyordu, bu ikon artık new_message'a ait olduğu için 📝'ye çevrildi.
 const NOTIF_ICONS = {
   price_drop: { ic: '💰', bg: 'rgba(48,209,88,.15)' },
   listing_favorited: { ic: '❤️', bg: 'rgba(255,69,58,.12)' },
   new_referrer: { ic: '🤝', bg: 'rgba(255,149,0,.15)' },
   seller_review: { ic: '⭐', bg: 'rgba(255,204,0,.15)' },
-  post_liked: { ic: '❤️', bg: 'rgba(255,69,58,.12)' },
-  post_comment: { ic: '💬', bg: 'rgba(0,212,255,.12)' },
-  comment_liked: { ic: '❤️', bg: 'rgba(255,69,58,.12)' },
+  post_liked: { ic: '👍', bg: 'rgba(0,212,255,.12)' },
+  post_comment: { ic: '📝', bg: 'rgba(0,212,255,.12)' },
+  comment_liked: { ic: '👍', bg: 'rgba(0,212,255,.12)' },
   new_follower: { ic: '👤', bg: 'rgba(0,212,255,.12)' },
   admin_notification: { ic: '🔔', bg: 'var(--cdim)' },
   admin_warning: { ic: '⚠️', bg: 'rgba(255,149,0,.15)' },
   complaint_update: { ic: '📋', bg: 'rgba(0,212,255,.12)' },
+  new_message: { ic: '💬', bg: 'rgba(0,212,255,.12)' },
 };
 
 function subscribeNotifBadge(uid) {
@@ -4756,6 +4792,16 @@ function subscribeNotifBadge(uid) {
       const n = snap.size;
       const badge = document.getElementById('notif-badge');
       if (!badge) return;
+      // Rozet sayısı ARTTIYSA (gerçekten yeni bir bildirim geldi, yalnızca okundu-işaretleme gibi bir
+      // azalma değil) hafif bir "canlı" tepki verilir — YENİ bir animasyon icat edilmedi, Mesajlar'daki
+      // aynı .msg-in (fade+slide+scale) sınıfı yeniden tetikleniyor. Önceki değer yeni bir global
+      // değişken yerine rozet elemanının kendi özelliğinde (_lastN) tutuluyor.
+      if (n > (badge._lastN || 0)) {
+        badge.classList.remove('msg-in');
+        void badge.offsetWidth;
+        badge.classList.add('msg-in');
+      }
+      badge._lastN = n;
       if (n > 0) { badge.textContent = n > 9 ? '9+' : n; badge.style.display = 'flex'; }
       else badge.style.display = 'none';
     }, () => {});
@@ -4766,14 +4812,19 @@ function subscribeNotifBadge(uid) {
 // rozetini besliyor; kategori sekmeleri ve liste, yalnızca modal AÇIKKEN, tek seferlik sorgularla
 // çalışıyor. Gruplama ve tarih başlıkları tamamen istemci tarafında, ek okuma olmadan yapılıyor.
 
-const NOTIF_GROUPABLE_TYPES = ['new_follower', 'listing_favorited', 'post_liked', 'comment_liked'];
+const NOTIF_GROUPABLE_TYPES = ['new_follower', 'listing_favorited', 'post_liked', 'comment_liked', 'post_comment'];
+// n>1 durumunda kullanılan grup etiketleri. post_comment DIŞINDAKİ türler farklı KİŞİLERden gelse
+// bile aynı hedefte (ör. aynı ilan) birleşiyor — bu yüzden "N kişi" ifadesi doğru. post_comment ise
+// (bkz. groupNotifDocs) yalnızca AYNI kişiden ardışık yorumları birleştiriyor, bu yüzden isim varsa
+// kişiye özel etiket ("Ali, 3 yorum yaptı") gösterilebiliyor.
 const NOTIF_GROUP_LABELS = {
   new_follower: n => `${n} kişi seni takip etti`,
   listing_favorited: n => `${n} kişi ilanını favoriledi`,
   post_liked: n => `${n} kişi gönderini beğendi`,
   comment_liked: n => `${n} kişi yorumunu beğendi`,
+  post_comment: (n, name) => name ? `${name}, ${n} yorum yaptı` : `${n} kişi yorum yaptı`,
 };
-const NOTIF_CATEGORY_LIST = ['followers', 'referrals', 'market', 'forum', 'system'];
+const NOTIF_CATEGORY_LIST = ['followers', 'referrals', 'market', 'forum', 'system', 'messages'];
 
 let notifCurrentCategory = 'all';
 let notifAccumulatedDocs = [];
@@ -4787,7 +4838,11 @@ function groupNotifDocs(docs) {
   const groups = [];
   docs.forEach(d => {
     const n = d.data();
-    const groupKey = n.type + '|' + (n.listingId||'') + '|' + (n.postId||'');
+    // post_comment: aynı kişiden ardışık yorumlar birleşsin diye anahtara fromUid de eklenir (kişiye
+    // özel "Ali, 3 yorum yaptı" etiketi bunu gerektirir). Diğer gruplanabilir türlerde (takip/favori/
+    // beğeni) fromUid anahtara EKLENMEZ — farklı kişilerden gelse bile aynı hedefte tek karta
+    // indirgenmesi ("3 kişi seni takip etti") zaten var olan ve değerli bir davranış, bozulmuyor.
+    const groupKey = n.type + '|' + (n.listingId||'') + '|' + (n.postId||'') + (n.type === 'post_comment' ? '|' + (n.fromUid||'') : '');
     const last = groups[groups.length - 1];
     if (NOTIF_GROUPABLE_TYPES.includes(n.type) && last && last.key === groupKey && last.items[0].data().read === n.read) {
       last.items.push(d);
@@ -4817,11 +4872,26 @@ function renderNotifGroupCard(g) {
   const anyUnread = g.items.some(d => !d.data().read);
   const ids = g.items.map(d => d.id).join(',');
   const time = first.createdAt?.toDate ? fd(first.createdAt.toDate().toISOString()) : '';
-  const label = (g.items.length > 1 && NOTIF_GROUP_LABELS[g.type]) ? NOTIF_GROUP_LABELS[g.type](g.items.length) : first.message;
+  // Hangi kaynaktan gelirse gelsin (grup etiketi VEYA ham mesaj metni), tek noktadan escapeHtml
+  // uygulanıyor — mesaj metni ilan modeli/gönderi başlığı/kullanıcı adı gibi kullanıcı kontrollü
+  // veriler içerebiliyor, XSS riski burada tamamen kapatılıyor.
+  const rawLabel = (g.items.length > 1 && NOTIF_GROUP_LABELS[g.type]) ? NOTIF_GROUP_LABELS[g.type](g.items.length, first.fromName) : first.message;
+  const label = escapeHtml(rawLabel);
+  // fromName burada bir onclick="...('...')" özniteliğinin İÇİNDEKİ tek tırnaklı bir JS string'ine
+  // gömülüyor — escapeHtml() burada YETERSİZ kalır çünkü tarayıcı özniteliği JS olarak çalıştırmadan
+  // ÖNCE HTML varlıklarını (ör. &#39;) geri çözer, yani kaçışlanmış tek tırnak yine string'i kırar.
+  // escapeJsAttr(): önce JS string sınırı (tek tırnak) için kaçışlar, ayrıca öznitelik sınırını
+  // (çift tırnak) da HTML varlığına çevirir — ikisi birlikte hem kırılmayı hem XSS'i engeller.
+  const fromNameJs = escapeJsAttr(first.fromName || '');
+  // Profil fotoğrafı VARSA gösterilir (avatar + küçük olay rozeti); yoksa .notif-ic tek başına olay
+  // ikonunu (emoji) taşımaya devam eder — sahte/varsayılan bir avatar ASLA üretilmez.
+  const icHtml = first.fromPhotoURL
+    ? `<img src="${first.fromPhotoURL}" alt=""><span class="notif-ic-badge">${meta.ic}</span>`
+    : meta.ic;
   return `<div class="notif-swipe-wrap" data-ids="${ids}">
     <div class="notif-swipe-del">🗑️</div>
-    <div class="notif-item ${anyUnread?'unread':''}" onclick="clickNotifGroup('${ids}','${first.listingId||''}',${anyUnread},'${first.postId||''}')">
-      <div class="notif-ic" style="background:${meta.bg}">${meta.ic}</div>
+    <div class="notif-item msg-in ${anyUnread?'unread':''}" onclick="clickNotifGroup('${ids}','${first.listingId||''}',${anyUnread},'${first.postId||''}','${first.type}','${first.fromUid||''}','${fromNameJs}')">
+      <div class="notif-ic" style="background:${first.fromPhotoURL?'var(--surf2)':meta.bg}">${icHtml}</div>
       <div class="notif-txt" style="flex:1"><div class="notif-msg">${label}</div><div class="notif-time">${anyUnread?'<span style="color:var(--cyan);font-weight:700">Yeni · </span>':''}${time}</div></div>
       ${anyUnread?'<div class="unread-dot"></div>':''}
     </div>
@@ -4863,13 +4933,18 @@ function setNotifCategory(cat) {
   loadNotifPage(true);
 }
 
+// Gerçek boyutlu skeleton — spinner yerine. Sohbet/Pazar'daki aynı desen (satır + ikon iskeleti).
+function notifSkeletonHTML() {
+  return Array.from({length:6}).map(() => `<div class="notif-skel-row"><div class="notif-skel-ic"></div><div class="notif-skel-lines"><div class="notif-skel-line" style="width:70%"></div><div class="notif-skel-line" style="width:40%"></div></div></div>`).join('');
+}
+
 async function loadNotifPage(reset) {
   if (!user || notifLoading) return;
   if (reset) { notifAccumulatedDocs = []; notifLastDoc = null; notifHasMore = true; }
   if (!notifHasMore) return;
   notifLoading = true;
   const list = document.getElementById('notif-list');
-  if (reset) list.innerHTML = `<div class="load"><div class="spin"></div></div>`;
+  if (reset) list.innerHTML = notifSkeletonHTML();
   try {
     let q = db.collection('teknohane_notifications').where('toUid', '==', user.uid);
     if (notifCurrentCategory !== 'all') q = q.where('category', '==', notifCurrentCategory);
@@ -4992,7 +5067,7 @@ async function markAllNotifsRead() {
   } catch(e) { showToast('⚠️', 'rgba(255,69,58,.15)', 'Hata', 'İşlem tamamlanamadı: ' + e.message); }
 }
 
-async function clickNotifGroup(idsCsv, listingId, wasUnread, postId) {
+async function clickNotifGroup(idsCsv, listingId, wasUnread, postId, type, fromUid, fromName) {
   const ids = idsCsv.split(',');
   if (wasUnread) {
     const batch = db.batch();
@@ -5007,6 +5082,19 @@ async function clickNotifGroup(idsCsv, listingId, wasUnread, postId) {
     closemo('notif-mo');
     gt('community');
     setTimeout(() => openPost(postId), 100);
+  } else if (type === 'new_message' && fromUid) {
+    // Mesajlar'ın kendi ekran açma fonksiyonu (openChatWith) OLDUĞU GİBİ çağrılıyor — Mesajlar'ın
+    // kodu bu görevde değiştirilmedi, yalnızca zaten var olan genel arayüzü kullanılıyor.
+    closemo('notif-mo');
+    openChatWith(fromUid, fromName || 'Kullanıcı');
+  } else if (type === 'new_follower' && fromUid) {
+    closemo('notif-mo');
+    openPublicProfile(fromUid, fromName || 'Kullanıcı');
+  } else if (type === 'seller_review') {
+    // Değerlendireni anonimleştiren mesaj politikası gereği (bkz. notifyUser çağrısı) belirli bir
+    // profile değil, yalnızca kendi Profil ekranına yönlendirilir.
+    closemo('notif-mo');
+    gt('profile');
   }
 }
 
@@ -5308,6 +5396,13 @@ async function markChatMessageSent(ref, lastMessageText, recipientUid, extra) {
     [`unreadCount.${recipientUid}`]: firebase.firestore.FieldValue.increment(1),
     ...(extra || {})
   }, { merge: true });
+  // Bildirim Merkezi'nde kalıcı "Yeni Mesaj" kaydı — daha önce yalnızca anlık push vardı (bkz. çağıran
+  // fonksiyonlardaki sendPush), uygulama kapalıyken/başka ekrandayken gelen mesaj Bildirimler'de hiç
+  // görünmüyordu. skipPush=true: push zaten çağıran fonksiyonda özel metinle (📷/📎 dahil) ayrıca
+  // gönderiliyor, burada ikinci kez atılmasın diye.
+  const senderName = user.displayName || user.email?.split('@')[0] || 'Biri';
+  const preview = lastMessageText.split('\n')[0].slice(0, 60);
+  notifyUser(recipientUid, 'new_message', `${senderName}: ${preview}`, null, null, user.uid, senderName, myProfileData.photoURL, true);
 }
 
 async function sendChatMessage() {
@@ -6280,7 +6375,7 @@ async function submitListing() {
         const fark = oldPrice - newPrice;
         const msg = `${model}: ₺${oldPrice.toLocaleString('tr-TR')} → ₺${newPrice.toLocaleString('tr-TR')} (-₺${fark.toLocaleString('tr-TR')})`;
         old.favoritedByUids.filter(uid => uid !== user.uid).forEach(uid => {
-          notifyUser(uid, 'price_drop', msg, editingListingId);
+          notifyUser(uid, 'price_drop', msg, editingListingId, null, user.uid, myProfileData.displayName || user.displayName || null, myProfileData.photoURL);
         });
       }
 
@@ -6775,7 +6870,7 @@ async function toggleRef() {
         referrers: firebase.firestore.FieldValue.arrayUnion(newRef)
       });
       l.referrers = [...refs, newRef];
-      notifyUser(l.uid, 'new_referrer', `${name}, "${l.model}" ilanınıza referans oldu.`, l.id);
+      notifyUser(l.uid, 'new_referrer', `${name}, "${l.model}" ilanınıza referans oldu.`, l.id, null, user.uid, name, myProfileData.photoURL);
     }
     const idx = listings.findIndex(x => x.id === l.id);
     if (idx > -1) listings[idx] = l;
@@ -6852,7 +6947,7 @@ async function notifyListingOwnerOnFav(l, adding) {
   if (adding && l.uid && l.uid !== user.uid) {
     const name = user.displayName || user.email?.split('@')[0] || 'Biri';
     const msg = `${name}, "${l.model}" ilanınızı favorilerine ekledi.`;
-    notifyUser(l.uid, 'listing_favorited', msg, l.id);
+    notifyUser(l.uid, 'listing_favorited', msg, l.id, null, user.uid, name, myProfileData.photoURL);
   }
 }
 
@@ -6909,6 +7004,14 @@ const FORUM_TAGS = ['Android','iPhone','Samsung','Xiaomi','Yardım','Karşılaş
 function escapeHtml(str) {
   if (!str) return '';
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// Bir metni onclick="...('${değer}')" gibi tek tırnaklı bir JS string olarak, ÇİFT tırnaklı bir HTML
+// özniteliğinin içine güvenle gömmek için. escapeHtml() burada YETMEZ: tarayıcı özniteliği JS olarak
+// çalıştırmadan önce HTML varlıklarını geri çözer, yani &#39; yine ham tek tırnağa döner ve string'i
+// kırar. Burada hem JS string sınırı (') kaçışlanır hem öznitelik sınırı (") HTML varlığına çevrilir.
+function escapeJsAttr(str) {
+  return String(str||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 // Bir gönderi/yorum metnini GÜVENLİ şekilde biçimlendirir: önce escapeHtml() ile kaçışlanır (XSS
@@ -7356,7 +7459,7 @@ async function likePost(id) {
     renderPostDetail(); renderComments();
     if (!isLiked && p.uid && p.uid !== user.uid) {
       const name = user.displayName || user.email?.split('@')[0] || 'Biri';
-      notifyUser(p.uid, 'post_liked', `${name}, "${p.title}" gönderini beğendi`, null, p.id);
+      notifyUser(p.uid, 'post_liked', `${name}, "${p.title}" gönderini beğendi`, null, p.id, user.uid, name, myProfileData.photoURL);
     }
   } catch(e) {}
 }
@@ -7392,7 +7495,7 @@ async function submitComment() {
     const notifyTargets = new Set([p.uid, ...(p.followers||[])].filter(uid => uid && uid !== user.uid));
     if (notifyTargets.size) {
       const name = user.displayName || user.email?.split('@')[0] || 'Biri';
-      notifyTargets.forEach(uid => notifyUser(uid, 'post_comment', `${name}, "${p.title}" gönderine yorum yaptı`, null, p.id));
+      notifyTargets.forEach(uid => notifyUser(uid, 'post_comment', `${name}, "${p.title}" gönderine yorum yaptı`, null, p.id, user.uid, name, myProfileData.photoURL));
     }
   } catch(e) { showErrorToast(e.message); }
 }
@@ -7453,7 +7556,7 @@ async function likeComment(cid) {
     renderComments();
     if (!wasLiked && c.uid && c.uid !== user.uid) {
       const name = user.displayName || user.email?.split('@')[0] || 'Biri';
-      notifyUser(c.uid, 'comment_liked', `${name}, yorumunu beğendi`, null, p.id);
+      notifyUser(c.uid, 'comment_liked', `${name}, yorumunu beğendi`, null, p.id, user.uid, name, myProfileData.photoURL);
     }
   } catch(e) {}
 }
@@ -7943,7 +8046,7 @@ async function toggleFollow(uid) {
     myProfileData.followingUids = updated;
     if (!isFollowing) {
       const myName = myProfileData.displayName || user.displayName || user.email?.split('@')[0] || 'Biri';
-      notifyUser(uid, 'new_follower', `${myName} seni takip etti`, null);
+      notifyUser(uid, 'new_follower', `${myName} seni takip etti`, null, null, user.uid, myName, myProfileData.photoURL);
     }
     const btn = document.getElementById('pub-follow-btn');
     if (btn) {
@@ -10112,6 +10215,8 @@ async function submitSellerReview(sellerUid) {
     srRating = 0;
     document.querySelectorAll('#sr-stars span').forEach(el => el.textContent = '☆');
     loadSellerReviews(sellerUid, 'sr-list');
+    // NOT: mesaj metni bilinçli olarak "Birisi" diyor (değerlendiren kişi anonimleştiriliyor) — bu
+    // yüzden burada fromUid/fromPhotoURL DE geçilmiyor, aksi halde profil fotoğrafı anonimliği bozardı.
     notifyUser(sellerUid, 'seller_review', `Birisi seni ${submittedRating}★ ile değerlendirdi`, null);
     showToast('⭐', 'rgba(255,204,0,.15)', 'Puanın Kaydedildi', 'Satıcı değerlendirmen için teşekkürler.');
   } catch(e) { showErrorToast(e.message); }
