@@ -651,6 +651,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .trust-num{font-size:20px;font-weight:700;margin-top:4px;}
 .trust-num span{font-size:13px;font-weight:500;color:var(--text2);}
 .trust-badge{display:inline-block;margin-top:8px;background:rgba(61,221,151,.12);color:#3DDC97;font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;}
+/* Satıcı Güveni — premium kart (bkz. renderTrustCardHTML) */
+.trust-card.premium{background:linear-gradient(160deg,var(--surf2),var(--surf));border:1px solid rgba(255,184,77,.2);position:relative;overflow:hidden;}
+.trust-card.premium::before{content:'';position:absolute;top:-40px;left:-30px;width:140px;height:140px;border-radius:50%;background:radial-gradient(circle,rgba(255,184,77,.12),transparent 70%);pointer-events:none;}
+.trust-count{font-size:12px;color:var(--text2);margin-top:4px;}
+.trust-tags{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:12px;position:relative;}
+.trust-tag{font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;background:rgba(61,221,151,.12);color:#3DDC97;border:1px solid rgba(61,221,151,.25);}
+.trust-tag.muted{background:var(--surf3);color:var(--text2);border-color:var(--border2);}
 .pstats-card{display:flex;background:var(--surf);border:1px solid var(--border);border-radius:18px;padding:18px 8px;margin-bottom:16px;}
 .pstat-item{flex:1;text-align:center;position:relative;}
 .pstat-item+.pstat-item::before{content:'';position:absolute;left:0;top:6px;bottom:6px;width:1px;background:var(--border);opacity:.6;}
@@ -679,10 +686,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .pcol-prev-add{flex-shrink:0;border:1px dashed var(--border2);border-radius:12px;padding:10px 14px;font-size:12px;color:var(--cyan);white-space:nowrap;cursor:pointer;}
 .pbadge-card{background:var(--surf);border:1px solid var(--border);border-radius:18px;padding:18px;margin-bottom:16px;}
 .pbadge-row{display:flex;gap:14px;overflow-x:auto;padding-bottom:2px;}
-.pbadge-item{flex-shrink:0;text-align:center;width:72px;opacity:.35;filter:grayscale(1);}
+.pbadge-item{flex-shrink:0;text-align:center;width:72px;opacity:.35;filter:grayscale(1);transition:transform .15s ease,opacity .15s ease;}
 .pbadge-item.earned{opacity:1;filter:none;}
-.pbadge-ic{width:60px;height:60px;border-radius:50%;background:var(--surf2);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 6px;}
-.pbadge-item.earned .pbadge-ic{border-color:rgba(0,212,255,.4);box-shadow:0 0 14px var(--cglow);background:rgba(0,212,255,.08);}
+.pbadge-item:active{transform:scale(.93);}
+.pbadge-ic{width:60px;height:60px;border-radius:50%;background:var(--surf2);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 6px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:transform .15s ease,box-shadow .15s ease;}
+.pbadge-item.earned .pbadge-ic{border-color:rgba(0,212,255,.4);box-shadow:0 0 14px var(--cglow);background:rgba(0,212,255,.1);}
+.pbadge-item.earned:active .pbadge-ic{transform:scale(1.08);box-shadow:0 0 20px var(--cglow);}
+@media (hover:hover){.pbadge-item.earned:hover .pbadge-ic{transform:scale(1.06);box-shadow:0 0 18px var(--cglow);}}
 .pbadge-item.pbadge-new .pbadge-ic{animation:pbadgePop .6s cubic-bezier(.34,1.56,.64,1);}
 @keyframes pbadgePop{0%{transform:scale(.3);opacity:0;}60%{transform:scale(1.15);opacity:1;}100%{transform:scale(1);}}
 .pbadge-lbl{font-size:10px;color:var(--text2);line-height:1.3;}
@@ -714,13 +724,27 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .profile-tabs{display:flex;gap:8px;margin:20px 0 12px;}
 .ptab{flex:1;text-align:center;padding:10px 4px;border-radius:10px;background:var(--surf);border:1px solid var(--border2);font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;}
 .ptab.on{background:var(--cdim);color:var(--cyan);border-color:var(--cyan);}
-.mini-lcard{display:flex;gap:10px;align-items:center;padding:10px;background:var(--surf);border:1px solid var(--border2);border-radius:12px;margin-bottom:8px;cursor:pointer;}
-.mini-lcard-thumb{width:48px;height:48px;border-radius:8px;overflow:hidden;flex-shrink:0;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:18px;}
-.mini-lcard-thumb img{width:100%;height:100%;object-fit:cover;}
-.mini-lcard-info{flex:1;min-width:0;}
-.mini-lcard-title{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:6px;}
-.mini-lcard-meta{font-size:11px;color:var(--text2);margin-top:2px;}
-.mini-lcard-sold{font-size:10px;font-weight:700;color:#fff;background:var(--red);padding:2px 6px;border-radius:6px;flex-shrink:0;}
+/* Profil — Forum Konularım mini kartı (forumMiniCardHTML tarafından üretilir, own+public profil
+   arasında paylaşılır) */
+.pf-card{background:var(--surf);border:1px solid var(--border2);border-radius:12px;padding:10px 12px;margin-bottom:8px;cursor:pointer;transition:transform .12s ease,background .12s ease;}
+.pf-card:active{transform:scale(.99);background:var(--surf2);}
+.pf-badges{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:4px;}
+.pf-title{font-size:13px;font-weight:600;line-height:1.3;margin-bottom:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.pf-meta{font-size:10.5px;color:var(--text3);}
+/* Profil — gerçek boyutlu skeleton (bkz. profileSkeletonHTML), Pazar'ın @keyframes detskel
+   shimmer'ını paylaşıyor */
+.pskel-av{width:92px;height:92px;border-radius:50%;margin:-46px auto 14px;background:linear-gradient(100deg,var(--surf2) 30%,var(--surf3) 50%,var(--surf2) 70%);background-size:200% 100%;animation:detskel 1.3s ease infinite;}
+.pskel-line{height:12px;border-radius:6px;margin:0 auto;background:linear-gradient(100deg,var(--surf2) 30%,var(--surf3) 50%,var(--surf2) 70%);background-size:200% 100%;animation:detskel 1.3s ease infinite;}
+.pskel-circle{width:80px;height:80px;border-radius:50%;margin:0 auto;background:linear-gradient(100deg,var(--surf2) 30%,var(--surf3) 50%,var(--surf2) 70%);background-size:200% 100%;animation:detskel 1.3s ease infinite;}
+/* Profil — sayfa açılışında hafif, sıralı (stagger) giriş; abartısız (.25s, küçük translateY) */
+#profile-c.on > *{animation:pfadeup .32s ease both;}
+#profile-c.on > *:nth-child(1){animation-delay:.02s}
+#profile-c.on > *:nth-child(2){animation-delay:.06s}
+#profile-c.on > *:nth-child(3){animation-delay:.1s}
+#profile-c.on > *:nth-child(4){animation-delay:.14s}
+#profile-c.on > *:nth-child(5){animation-delay:.18s}
+#profile-c.on > *:nth-child(n+6){animation-delay:.2s}
+@keyframes pfadeup{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 .apbtn svg{width:15px;height:15px;}
 /* Admin ilan listesi */
 .adm-row{display:flex;align-items:center;gap:10px;padding:10px;background:var(--surf);border-radius:12px;margin-bottom:8px;}
@@ -1393,6 +1417,11 @@ body.tk-maintenance #maintenance-gate{
       <label class="fl">Biyografi</label>
       <textarea class="fi" id="ep-bio" rows="3" maxlength="150" placeholder="Kendini kısaca tanıt..." style="resize:none;font-family:inherit" oninput="document.getElementById('ep-bio-count').textContent=this.value.length"></textarea>
       <span style="font-size:11px;color:var(--text3);display:block;margin-top:4px"><span id="ep-bio-count">0</span>/150 karakter</span>
+    </div>
+    <div class="fg">
+      <label class="fl">Şehir <span style="color:var(--text3);font-weight:400">(isteğe bağlı)</span></label>
+      <div class="csel" data-for="ep-city" data-title="Şehir Seç" onclick="openPicker(this)"><span class="csel-label">Şehir Seçin</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+      <select id="ep-city" style="display:none"><option value=""></option></select>
     </div>
     <button class="sbtn2" onclick="saveProfileInfo()">Kaydet</button>
 
@@ -3162,14 +3191,57 @@ function syncEarnedBadges(earnedNow) {
   return newlyUnlocked;
 }
 
+// Profil yüklenirken gösterilen, gerçek kart boyutlarında iskelet — düz bir spinner yerine.
+// Forum'daki @keyframes detskel (Pazar'ın ilan fotoğrafı skeleton'ı için tanımlanan, paylaşılan
+// global bir CSS keyframe) burada da yeniden kullanılıyor — yeni bir animasyon icat edilmedi.
+function profileSkeletonHTML() {
+  const line = (w) => `<div class="pskel-line" style="width:${w}"></div>`;
+  return `
+    <div class="phero" style="padding-top:24px">
+      <div class="pskel-av"></div>
+      ${line('40%')}<div style="height:8px"></div>${line('60%')}
+    </div>
+    <div class="tscore-card"><div class="pskel-circle"></div></div>
+    <div class="pstats-card">${Array.from({length:5}).map(()=>`<div class="pstat-item">${line('70%')}</div>`).join('')}</div>
+    <div class="pacc-card">${line('90%')}<div style="height:10px"></div>${line('75%')}<div style="height:10px"></div>${line('85%')}</div>`;
+}
+
+// ==== SATICI GÜVENİ — PREMIUM KART (paylaşılan, tek doğruluk kaynağı) ====
+// Hem kendi profilin (rprof) hem başka bir kullanıcının herkese açık profili (renderPublicProfileBody)
+// AYNI bu fonksiyonu kullanır — kod tekrarı yok. Veri kaynağı: ikisi de zaten çağırmakta olduğu
+// loadSellerReviews()'un döndürdüğü {avg,count} — YENİ bir Firestore okuması eklenmedi, yalnızca
+// zaten var olan veri artık daha görünür/premium bir yerde (tek kart) sunuluyor.
+// NOT: "% olumlu" gibi bir oran, loadSellerReviews()'un tek tek yorum verisini dışarı vermemesi
+// (yalnızca özet {avg,count}) ve bu görevin yeni bir Firestore sorgusuna izin vermemesi nedeniyle
+// KASITLI olarak eklenmedi — uydurma/sahte bir güven metriği göstermemek için (bkz. proje kuralı:
+// güven puanı yalnızca gerçek veriyle gösterilir).
+function renderTrustCardHTML(avg, count, opts) {
+  const { trustedSeller, verified, joinedYear } = opts || {};
+  const hasRating = count > 0;
+  const tags = [
+    trustedSeller ? '<span class="trust-tag">🤝 Güvenilir Satıcı</span>' : '',
+    verified ? '<span class="trust-tag">✓ Doğrulanmış Hesap</span>' : '',
+    joinedYear ? `<span class="trust-tag muted">📅 Üye: ${joinedYear}</span>` : '',
+  ].filter(Boolean).join('');
+  return `<div class="trust-card premium">
+    ${hasRating ? `
+      <div class="trust-stars">${'★'.repeat(Math.round(avg))}${'☆'.repeat(5-Math.round(avg))}</div>
+      <div class="trust-num">${avg.toFixed(1)}<span>/5</span></div>
+      <div class="trust-count">${count} değerlendirme</div>` : `
+      <div class="trust-stars" style="color:var(--text3)">☆☆☆☆☆</div>
+      <div class="trust-num" style="font-size:14px;color:var(--text2)">Henüz değerlendirme yok</div>`}
+    ${tags?`<div class="trust-tags">${tags}</div>`:''}
+  </div>`;
+}
+
 function rprof() {
   const c = document.getElementById('profile-c');
   if (!c) return;
   if (user && !isDataFresh('profile')) {
     // Firestore'dan doğrulanmış veri henüz gelmedi — ne eski bellek verisi ne varsayılan bir şey
     // gösterilir, yalnızca nötr bir yükleniyor durumu. Veri gelince requestProfileRerender() bunu
-    // gerçek veriyle tek seferde değiştirecek.
-    c.innerHTML = `<div class="load" style="padding-top:100px"><div class="spin"></div><span>Profil yükleniyor…</span></div>`;
+    // gerçek veriyle tek seferde değiştirecek. Spinner yerine gerçek boyutlu iskelet (skeleton).
+    c.innerHTML = profileSkeletonHTML();
     return;
   }
   const isAdmin = isAdminNow();
@@ -3191,8 +3263,6 @@ function rprof() {
       : teknohaneScore>=31 ? 'İyi gidiyorsun, birkaç adım daha'
       : 'Profilini tamamlayarak skorunu artırabilirsin';
 
-    // Güven Puanı: yalnızca gerçek `rating` verisi varsa gösterilir, uygulama tarafında asla hesaplanmaz/yazılmaz (altyapı — ileride backend/Cloud Function besleyecek)
-    const myRating = typeof myProfileData.rating === 'number' ? myProfileData.rating : null;
 
     const BADGES_DEF = computeBadges(user.uid, scoreProfileData, isAdmin, scoreInfo);
     const myPrivacy = getPrivacy(myProfileData);
@@ -3214,6 +3284,7 @@ function rprof() {
     const complPct = Math.round(complDone/complItems.length*100);
     const complMissing = complItems.filter(i=>!i.done);
     const joinedDateStr = myProfileData.createdAt?.toDate ? myProfileData.createdAt.toDate().toLocaleDateString('tr-TR',{month:'long',year:'numeric'}) : null;
+    const joinedYear = myProfileData.createdAt?.toDate ? myProfileData.createdAt.toDate().getFullYear() : null;
     const activityItems = [];
     listings.filter(l=>l.uid===user.uid).forEach(l=>{
       if (l.createdAt?.toDate) activityItems.push({ ts:l.createdAt.toMillis?l.createdAt.toMillis():0, date:l.createdAt.toDate(), icon:'🛍️', text:`"${l.model||'İlan'}" yayınladın` });
@@ -3246,12 +3317,13 @@ function rprof() {
         <input type="file" id="cover-photo-input" accept="image/*" style="display:none" onchange="handleCoverPhoto(this)">
         <img class="pav" src="${av}" onerror="this.onerror=null;this.src='${avFallback}'" alt="">
         <div style="display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap">
-          <span class="pname">${user.displayName||'Kullanıcı'}</span>
+          <span class="pname">${escapeHtml(user.displayName||'Kullanıcı')}</span>
           ${isAdmin?'<span class="admin-badge">ADMIN</span>':''}
         </div>
-        ${myProfileData.username?`<div class="puname">@${myProfileData.username}</div>`:''}
-        <div class="pemail">${user.email}</div>
-        ${myProfileData.bio?`<div class="pbio">${myProfileData.bio}</div>`:''}
+        ${myProfileData.username?`<div class="puname">@${escapeHtml(myProfileData.username)}</div>`:''}
+        <div class="pemail">${escapeHtml(user.email)}</div>
+        ${myProfileData.city?`<div class="puname" style="color:var(--text3)">📍 ${escapeHtml(myProfileData.city)}</div>`:''}
+        ${myProfileData.bio?`<div class="pbio">${escapeHtml(myProfileData.bio)}</div>`:''}
         <div class="pverify">
           <span class="pverify-item${user.emailVerified?' ok':''}">${user.emailVerified?'✓':'○'} E-posta ${user.emailVerified?'doğrulandı':'doğrulanmadı'}</span>
           <span class="pverify-item${hasVerifiedPhoneNumber?' ok':''}">${hasVerifiedPhoneNumber?'✓':'○'} Telefon ${hasVerifiedPhoneNumber?'doğrulandı':'eklenmedi'}</span>
@@ -3278,13 +3350,8 @@ function rprof() {
         <div class="tscore-label">Teknohane Skoru</div>
         <div class="tscore-sub">${scoreDesc}</div>
       </div>
-      <div class="trust-card">
-        ${myRating !== null ? `
-        <div class="trust-stars">${'★'.repeat(Math.round(myRating))}${'☆'.repeat(5-Math.round(myRating))}</div>
-        <div class="trust-num">${myRating.toFixed(1)}<span>/5</span></div>` : `
-        <div class="trust-stars" style="color:var(--text3);">☆☆☆☆☆</div>
-        <div class="trust-num" style="font-size:14px;color:var(--text2);">Henüz hesaplanmadı</div>`}
-      </div>
+      <div id="my-trust-card">${renderTrustCardHTML(0, 0, { trustedSeller: myProfileData.trustedSeller, verified: user.emailVerified||myProfileData.adminVerified, joinedYear })}</div>
+      <div id="my-trust-reviews-raw" style="display:none"></div>
       <div class="pstats-card">
         <div class="pstat-item"><div class="pstat-num" data-target="${myListingsCount}">0</div><div class="pstat-lbl">İlan</div></div>
         <div class="pstat-item"><div class="pstat-num" data-target="${myCompareCount}">0</div><div class="pstat-lbl">Karşılaştırma</div></div>
@@ -3339,11 +3406,19 @@ function rprof() {
         <div class="psec-title">🏅 Rozetler</div>
         <div class="pbadge-row">
           ${BADGES_DEF.map(b=>`
-            <div class="pbadge-item${b.done?' earned':''}${newlyUnlocked.includes(b.id)?' pbadge-new':''}"${b.locked&&!b.done?` onclick="showToast('ℹ️','rgba(0,212,255,.15)','${b.label}','${b.info}')"`:''}>
+            <div class="pbadge-item${b.done?' earned':''}${newlyUnlocked.includes(b.id)?' pbadge-new':''}" title="${escapeHtml(b.label)}${b.info?' — '+escapeHtml(b.info):''}"${b.locked&&!b.done?` onclick="showToast('ℹ️','rgba(0,212,255,.15)','${b.label}','${b.info}')"`:''}>
               <div class="pbadge-ic">${b.icon}</div><div class="pbadge-lbl">${b.label}</div>
             </div>`).join('')}
         </div>
       </div>
+      <div class="psec-title" style="margin-top:4px">📂 İçeriklerim</div>
+      <div class="profile-tabs">
+        <div class="ptab${profileTab==='mine'?' on':''}" onclick="switchProfileTab('mine',this)">İlanlarım</div>
+        <div class="ptab${profileTab==='forum'?' on':''}" onclick="switchProfileTab('forum',this)">Forum</div>
+        <div class="ptab${profileTab==='favs'?' on':''}" onclick="switchProfileTab('favs',this)">Favoriler</div>
+        <div class="ptab${profileTab==='refs'?' on':''}" onclick="switchProfileTab('refs',this)">Referanslar</div>
+      </div>
+      <div id="profile-listings" style="margin-bottom:16px"></div>
       <div class="pacc-card" id="security-section">
         <div class="psec-title">🔒 Güvenlik</div>
         <div class="pacc-row"><span class="pacc-lbl">E-posta Doğrulama</span><span class="pacc-val"${user.emailVerified?' style="color:#3DDC97"':''}>${user.emailVerified?'✓ Doğrulandı':'Doğrulanmadı'}</span></div>
@@ -3404,6 +3479,14 @@ function rprof() {
     updateThemeToggleUI();
     animateProfileStats();
     loadProfileExtrasIfNeeded();
+    // Satıcı güveni kartı — loadSellerReviews() ZATEN başka profillerde çağrılan aynı fonksiyon,
+    // burada da kendi profilim için çağrılıp döndürdüğü {avg,count} ile kart yerinde güncelleniyor.
+    // Ek bir Firestore koleksiyonu/sorgu deseni YOK, yalnızca zaten var olan sorgu yeniden kullanılıyor.
+    loadSellerReviews(user.uid, 'my-trust-reviews-raw').then(({avg,count}) => {
+      const el = document.getElementById('my-trust-card');
+      if (el) el.innerHTML = renderTrustCardHTML(avg, count, { trustedSeller: myProfileData.trustedSeller, verified: user.emailVerified||myProfileData.adminVerified, joinedYear });
+    }).catch(()=>{});
+    renderProfileListings();
   } else {
     c.innerHTML = `
       <div class="awrap">
@@ -3426,6 +3509,26 @@ function rprof() {
 }
 
 let profileTab = 'mine';
+// Bir forum gönderisinin küçük, minimal önizleme kartı — kendi profilindeki "Forum Konularım"
+// sekmesi VE başkasının herkese açık profilindeki "Forumdaki Konular" bölümü TARAFINDAN paylaşılır
+// (kod tekrarı yok). Forum'un kendi renk/etiket sabitleri (POST_TYPES/POST_CATS) ve escapeHtml()
+// zaten global olduğu için yeniden kullanılıyor — Forum modülünün kendi dosyasına dokunulmadı.
+function forumMiniCardHTML(p) {
+  const pt = POST_TYPES[p.type] || POST_TYPES.tartisma;
+  const catLabel = POST_CATS[p.category] || '';
+  const ts = p.createdAt?.toDate ? timeAgo(p.createdAt.toDate()) : '';
+  return `<div class="pf-card" onclick="closemo('pub-profile-mo');gt('community');setTimeout(()=>openPost('${p.id}'),50)">
+    <div class="pf-badges">
+      ${p.pinned?'<span class="post-type-badge pinned-badge">📌</span>':''}
+      <span class="post-type-badge ${pt.cls}">${pt.label}</span>
+      ${catLabel?`<span class="post-cat-badge">${catLabel}</span>`:''}
+      ${p.resolved?'<span class="post-type-badge resolved-badge">✓ Çözüldü</span>':''}
+    </div>
+    <div class="pf-title">${escapeHtml(p.title||'Forum gönderisi')}</div>
+    <div class="pf-meta">💬 ${p.answerCount||0} · 👁 ${p.viewCount||0} · ${ts}</div>
+  </div>`;
+}
+
 function switchProfileTab(tab, el) {
   profileTab = tab;
   document.querySelectorAll('.ptab').forEach(t => t.classList.remove('on'));
@@ -3436,6 +3539,15 @@ function switchProfileTab(tab, el) {
 function renderProfileListings() {
   const c = document.getElementById('profile-listings');
   if (!c || !user) return;
+  if (profileTab === 'forum') {
+    // forumPosts, yalnızca Topluluk ekranı en az bir kez ziyaret edildiyse bellekte olur (Profil
+    // burada YENİ bir Firestore sorgusu tetiklemiyor) — bu yüzden boş olması "hiç konu yok" anlamına
+    // gelmeyebilir, bu ihtimal aşağıdaki mesajda dürüstçe belirtiliyor.
+    const myPosts = forumPosts.filter(p => p.uid === user.uid);
+    c.innerHTML = myPosts.length ? myPosts.map(forumMiniCardHTML).join('')
+      : `<div class="no">Henüz konu bulunamadı${forumPosts.length?'':' (Topluluk sekmesini ziyaret ettikten sonra tekrar kontrol et)'}</div>`;
+    return;
+  }
   let items = [];
   if (profileTab === 'mine') items = listings.filter(l => l.uid === user.uid);
   else if (profileTab === 'favs') items = listings.filter(l => favs.has(l.id) && !isSoldExpired(l));
@@ -3446,14 +3558,9 @@ function renderProfileListings() {
     c.innerHTML = `<div class="no">${msg}</div>`;
     return;
   }
-  c.innerHTML = items.map(l => `
-    <div class="mini-lcard" onclick="gt('market');setTimeout(()=>openDetail('${l.id}'),50)">
-      <div class="mini-lcard-thumb">${l.photo1?`<img src="${l.photo1}" alt="" loading="lazy" decoding="async">`:'📱'}</div>
-      <div class="mini-lcard-info">
-        <div class="mini-lcard-title"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.model||''}</span>${l.sold?'<span class="mini-lcard-sold">SATILDI</span>':''}</div>
-        <div class="mini-lcard-meta">₺${parseInt(l.price||0).toLocaleString('tr-TR')}${l.approved===false?' · İnceleniyor':''}</div>
-      </div>
-    </div>`).join('');
+  // İlanlarım/Favorilerim/Referanslarım — Pazar ekranındaki TAM OLARAK AYNI kart (mcardHTML) ile,
+  // hiçbir yeniden tasarım/kod tekrarı olmadan.
+  c.innerHTML = items.map(mcardHTML).join('');
 }
 
 function openEditProfile() {
@@ -3464,6 +3571,16 @@ function openEditProfile() {
   document.getElementById('ep-username').value = myProfileData.username || '';
   document.getElementById('ep-bio').value = myProfileData.bio || '';
   document.getElementById('ep-bio-count').textContent = (myProfileData.bio || '').length;
+  // Şehir seçenekleri — Pazar'ın ilan formunda zaten tanımlı olan TR_IL_LIST global dizisi yeniden
+  // kullanılıyor (aynı 81 il), yeni bir veri kaynağı icat edilmedi. Yalnızca ilk açılışta doldurulur.
+  const citySel = document.getElementById('ep-city');
+  if (citySel && !citySel.dataset.filled) {
+    citySel.innerHTML = '<option value=""></option>' + TR_IL_LIST.map(il => `<option value="${il}">${il}</option>`).join('');
+    citySel.dataset.filled = '1';
+  }
+  citySel.value = myProfileData.city || '';
+  const cityTrigger = document.querySelector('.csel[data-for="ep-city"] .csel-label');
+  if (cityTrigger) cityTrigger.textContent = myProfileData.city || 'Şehir Seçin';
   const err = document.getElementById('ep-err');
   err.textContent = ''; err.classList.remove('on');
 
@@ -3769,6 +3886,7 @@ async function saveProfileInfo() {
   const name = document.getElementById('ep-name').value.trim();
   const uname = document.getElementById('ep-username').value.trim().toLowerCase();
   const bio = document.getElementById('ep-bio').value.trim();
+  const city = document.getElementById('ep-city').value.trim();
 
   if (!name) { err.textContent = 'Görünen ad boş olamaz'; err.classList.add('on'); return; }
   if (uname && !/^[a-z0-9_]{3,20}$/.test(uname)) {
@@ -3797,13 +3915,14 @@ async function saveProfileInfo() {
     await user.reload();
     user = auth.currentUser;
 
-    const fsUpdates = { displayName: name, username: uname || firebase.firestore.FieldValue.delete(), bio: bio || firebase.firestore.FieldValue.delete() };
+    const fsUpdates = { displayName: name, username: uname || firebase.firestore.FieldValue.delete(), bio: bio || firebase.firestore.FieldValue.delete(), city: city || firebase.firestore.FieldValue.delete() };
     if (epNewPhotoDataUrl) { fsUpdates.photoURL = epNewPhotoDataUrl; fsUpdates.customPhoto = true; }
     await db.collection('teknohane_users').doc(user.uid).set(fsUpdates, { merge: true });
 
     myProfileData.displayName = name;
     myProfileData.username = uname || null;
     myProfileData.bio = bio || null;
+    myProfileData.city = city || null;
     if (epNewPhotoDataUrl) { myProfileData.photoURL = epNewPhotoDataUrl; myProfileData.customPhoto = true; }
     epNewPhotoDataUrl = null;
 
@@ -5425,6 +5544,48 @@ function onMarketSearchInput() {
   marketSearchDebounceTimer = setTimeout(rlistings, 200);
 }
 
+// Tek bir ilanın .mcard HTML'ini üretir — rlistings() (Pazar) tarafından üretilen kartla BİREBİR
+// aynı görünüm/davranışı, Profil'in "İlanlarım" sekmesi gibi diğer ekranların da tekrar kullanabilmesi
+// için ayrı bir fonksiyona çıkarıldı (kod tekrarı olmasın diye) — şablonun kendisi hiç değişmedi,
+// yalnızca rlistings()'in doğrudan içine yazılı olan kısım buraya taşındı.
+function mcardHTML(l) {
+  const mine = user && l.uid === user.uid;
+  const fav = favs.has(l.id);
+  const pending = l.approved === false;
+  const isNew = l.condition === 'Sıfır';
+  return `<div class="mcard ${l.sold?'sold':''} ${l.showcase?'showcase':''} ${l.featured?'featured':''} ${l.urgent?'urgent-listing':''}" onclick="openDetail('${l.id}')">
+    <div class="mcard-row">
+      <div class="mcard-photo">
+        ${l.photo1?`<img src="${l.photo1}" loading="lazy" decoding="async">`:'<div class="mcard-photo-empty"><img src="teknohane.png" alt="" onerror="this.style.display=\'none\'"><span>Fotoğraf Yok</span></div>'}
+        ${(l.sold||pending)?`<div class="mcard-status-overlay"><div class="mcard-status-pill ${pending&&!l.sold?'pending':''}">${l.sold?'SATILDI':'İNCELENİYOR'}</div></div>`:''}
+        ${l.condition?`<div class="mcard-badges"><div class="mcard-cnd ${isNew?'new':'used'}">${l.condition}</div></div>`:''}
+        ${(l.showcase||l.featured||l.urgent)?`<div class="mcard-tag-row">
+          ${l.showcase?'<div class="mcard-tag-ic showcase-ic" title="Vitrin">📌</div>':''}
+          ${l.featured?'<div class="mcard-tag-ic featured-ic" title="Öne Çıkan">⭐</div>':''}
+          ${l.urgent?'<div class="mcard-tag-ic urgent-ic" title="Acil">🔥</div>':''}
+        </div>`:''}
+        <div class="mcard-fav ${fav?'on':''}" onclick="event.stopPropagation();toggleFav('${l.id}',this)">
+          <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        </div>
+      </div>
+      <div class="mcard-info">
+        <div class="mcard-price"><span class="cur">₺</span>${parseInt(l.price||0).toLocaleString('tr-TR')}</div>
+        <div class="mcard-title">${l.model||''}</div>
+        <div class="mcard-loc">📍 ${l.location||'Belirtilmedi'}${l.createdAt?.toDate?` · <span class="mcard-date">${timeAgo(l.createdAt.toDate())}</span>`:''}</div>
+        <div class="mcard-foot" onclick="event.stopPropagation()">
+          ${l.ownerName?`<div class="mcard-seller" onclick="openPublicProfile('${l.uid}','${l.ownerName.replace(/'/g,"\\'")}')"><span class="mcard-seller-name">${l.ownerName}</span>${mine?'<span class="mcard-seller-me">· Siz</span>':''}</div>`:'<span></span>'}
+          <div class="mcard-qa">
+            ${l.phone?`<div class="mcard-qa-btn wa" onclick="ol(waListingLink('${(l.model||'').replace(/'/g,"\\'")}','${l.phone}'))" title="WhatsApp"><svg viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.998 2C6.477 2 2 6.477 2 12c0 1.989.574 3.842 1.565 5.408L2 22l4.757-1.535A9.958 9.958 0 0 0 11.998 22c5.523 0 10-4.477 10-10S17.521 2 11.998 2z"/></svg></div>`:''}
+            ${!mine && l.uid ? `<div class="mcard-qa-btn msg" onclick="openChatWith('${l.uid}','${(l.ownerName||'Kullanıcı').replace(/'/g,"\\'")}','${(l.model||'').replace(/'/g,"\\'")}')" title="Mesaj"><svg viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></div>` : ''}
+            ${mine?`<div class="mcard-qa-btn edit" onclick="editListing('${l.id}')" title="Düzenle"><svg viewBox="0 0 24 24" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg></div>`:''}
+            ${mine?`<div class="mcard-qa-btn del" onclick="delListing('${l.id}')" title="Sil"><svg viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></div>`:''}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
 function rlistings() {
   const grid = document.getElementById('lgrid');
   if (!grid) return;
@@ -5472,43 +5633,7 @@ function rlistings() {
     grid.innerHTML = `<div class="load"><div style="font-size:40px">${mktab==='fav'?'❤️':mktab==='mine'?'📋':'📭'}</div><div>${mktab==='fav'?'Favori yok':mktab==='mine'?'Henüz ilanın yok':'Sonuç bulunamadı'}</div></div>`;
     return;
   }
-  grid.innerHTML = items.map(l => {
-    const mine = user && l.uid === user.uid;
-    const fav = favs.has(l.id);
-    const pending = l.approved === false;
-    const isNew = l.condition === 'Sıfır';
-    return `<div class="mcard ${l.sold?'sold':''} ${l.showcase?'showcase':''} ${l.featured?'featured':''} ${l.urgent?'urgent-listing':''}" onclick="openDetail('${l.id}')">
-      <div class="mcard-row">
-        <div class="mcard-photo">
-          ${l.photo1?`<img src="${l.photo1}" loading="lazy" decoding="async">`:'<div class="mcard-photo-empty"><img src="teknohane.png" alt="" onerror="this.style.display=\'none\'"><span>Fotoğraf Yok</span></div>'}
-          ${(l.sold||pending)?`<div class="mcard-status-overlay"><div class="mcard-status-pill ${pending&&!l.sold?'pending':''}">${l.sold?'SATILDI':'İNCELENİYOR'}</div></div>`:''}
-          ${l.condition?`<div class="mcard-badges"><div class="mcard-cnd ${isNew?'new':'used'}">${l.condition}</div></div>`:''}
-          ${(l.showcase||l.featured||l.urgent)?`<div class="mcard-tag-row">
-            ${l.showcase?'<div class="mcard-tag-ic showcase-ic" title="Vitrin">📌</div>':''}
-            ${l.featured?'<div class="mcard-tag-ic featured-ic" title="Öne Çıkan">⭐</div>':''}
-            ${l.urgent?'<div class="mcard-tag-ic urgent-ic" title="Acil">🔥</div>':''}
-          </div>`:''}
-          <div class="mcard-fav ${fav?'on':''}" onclick="event.stopPropagation();toggleFav('${l.id}',this)">
-            <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-          </div>
-        </div>
-        <div class="mcard-info">
-          <div class="mcard-price"><span class="cur">₺</span>${parseInt(l.price||0).toLocaleString('tr-TR')}</div>
-          <div class="mcard-title">${l.model||''}</div>
-          <div class="mcard-loc">📍 ${l.location||'Belirtilmedi'}${l.createdAt?.toDate?` · <span class="mcard-date">${timeAgo(l.createdAt.toDate())}</span>`:''}</div>
-          <div class="mcard-foot" onclick="event.stopPropagation()">
-            ${l.ownerName?`<div class="mcard-seller" onclick="openPublicProfile('${l.uid}','${l.ownerName.replace(/'/g,"\\'")}')"><span class="mcard-seller-name">${l.ownerName}</span>${mine?'<span class="mcard-seller-me">· Siz</span>':''}</div>`:'<span></span>'}
-            <div class="mcard-qa">
-              ${l.phone?`<div class="mcard-qa-btn wa" onclick="ol(waListingLink('${(l.model||'').replace(/'/g,"\\'")}','${l.phone}'))" title="WhatsApp"><svg viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.998 2C6.477 2 2 6.477 2 12c0 1.989.574 3.842 1.565 5.408L2 22l4.757-1.535A9.958 9.958 0 0 0 11.998 22c5.523 0 10-4.477 10-10S17.521 2 11.998 2z"/></svg></div>`:''}
-              ${!mine && l.uid ? `<div class="mcard-qa-btn msg" onclick="openChatWith('${l.uid}','${(l.ownerName||'Kullanıcı').replace(/'/g,"\\'")}','${(l.model||'').replace(/'/g,"\\'")}')" title="Mesaj"><svg viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></div>` : ''}
-              ${mine?`<div class="mcard-qa-btn edit" onclick="editListing('${l.id}')" title="Düzenle"><svg viewBox="0 0 24 24" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg></div>`:''}
-              ${mine?`<div class="mcard-qa-btn del" onclick="delListing('${l.id}')" title="Sil"><svg viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></div>`:''}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
+  grid.innerHTML = items.map(mcardHTML).join('');
 
   // "Tümü" sekmesinde, arama/filtre aktif değilse ve daha fazla sayfa varsa "Daha Fazla Yükle" göster.
   if (mktab === 'all' && !q && !filterMin && !filterMax && filterBrand === 'Tümü') {
@@ -7267,9 +7392,9 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
   const scoreInfo = computeTeknohaneScore(uid, data);
   const teknohaneScore = scoreInfo.score;
   const scoreRingOffset = (276.5 * (1 - teknohaneScore/100)).toFixed(1);
-  const myRating = typeof data.rating === 'number' ? data.rating : null;
   const BADGES_DEF = computeBadges(uid, data, isTargetAdmin, scoreInfo);
   const joinedDateStr = data.createdAt?.toDate ? data.createdAt.toDate().toLocaleDateString('tr-TR',{month:'long',year:'numeric'}) : null;
+  const joinedYear = data.createdAt?.toDate ? data.createdAt.toDate().getFullYear() : null;
   const lastSeenStr = data.lastSeen?.toDate ? timeAgo(data.lastSeen.toDate()) : null;
   const isFollowingUser = (myProfileData.followingUids||[]).includes(uid);
   const isOnlineNow = isPresenceOnline(presenceData);
@@ -7280,9 +7405,10 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
     <div class="phero">
       <div class="pcover" style="${data.coverPhotoURL?`background-image:url('${data.coverPhotoURL}');background-size:cover;background-position:center;`:''}"></div>
       <img class="pav" src="${av}" onerror="this.onerror=null;this.src='${avFallback}'" alt="">
-      <div class="pname">${displayName}${isMe?' (Sen)':''} ${isOnlineNow?'<span style="color:#3DDC97;font-size:12px;vertical-align:middle">●</span>':''}</div>
-      ${data.username?`<div class="puname">@${data.username}</div>`:''}
-      ${data.bio?`<div class="pbio">${data.bio}</div>`:''}
+      <div class="pname">${escapeHtml(displayName)}${isMe?' (Sen)':''} ${isOnlineNow?'<span style="color:#3DDC97;font-size:12px;vertical-align:middle">●</span>':''}</div>
+      ${data.username?`<div class="puname">@${escapeHtml(data.username)}</div>`:''}
+      ${data.city?`<div class="puname" style="color:var(--text3)">📍 ${escapeHtml(data.city)}</div>`:''}
+      ${data.bio?`<div class="pbio">${escapeHtml(data.bio)}</div>`:''}
       <div class="pverify">
         <span class="pverify-item${data.emailVerified?' ok':''}">${data.emailVerified?'✓':'○'} E-posta ${data.emailVerified?'doğrulandı':'doğrulanmadı'}</span>
       </div>
@@ -7324,13 +7450,7 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
       <div class="tscore-label">Teknohane Skoru</div>
     </div>` : ''}
 
-    <div class="trust-card">
-      ${myRating !== null ? `
-      <div class="trust-stars">${'★'.repeat(Math.round(myRating))}${'☆'.repeat(5-Math.round(myRating))}</div>
-      <div class="trust-num">${myRating.toFixed(1)}<span>/5</span></div>` : `
-      <div class="trust-stars" style="color:var(--text3);">☆☆☆☆☆</div>
-      <div class="trust-num" style="font-size:14px;color:var(--text2);">Henüz hesaplanmadı</div>`}
-    </div>
+    <div id="pub-trust-card">${renderTrustCardHTML(0, 0, { trustedSeller: data.trustedSeller, verified: data.emailVerified||data.adminVerified, joinedYear })}</div>
 
     <div class="pub-stats">
       <div class="apstat"><div class="apstat-n">${userListings.length}</div><div class="apstat-l">Aktif İlan</div></div>
@@ -7404,14 +7524,17 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
     <div class="ud-section" id="pub-forum-section">
       <div class="ud-section-title">Forumdaki Konular</div>
       ${(() => { const posts = forumPosts.filter(p=>p.uid===uid).slice(0,5);
-        return posts.length ? posts.map(p=>`<div class="pact-row"><div class="pact-ic">📝</div><div class="pact-body"><div class="pact-txt">${p.title||'Forum gönderisi'}</div><div class="pact-time">${p.createdAt?.toDate?timeAgo(p.createdAt.toDate()):''}</div></div></div>`).join('') : '<div class="ud-empty">Henüz forum konusu yok</div>'; })()}
+        return posts.length ? posts.map(forumMiniCardHTML).join('') : '<div class="ud-empty">Henüz forum konusu yok</div>'; })()}
     </div>
     <div class="ud-section">
       <div class="ud-section-title">Yorumları</div>
       <div id="pub-comments-list"><div class="load"><div class="spin"></div></div></div>
     </div>` : ''}`;
 
-  loadSellerReviews(uid, 'sr-list');
+  loadSellerReviews(uid, 'sr-list').then(({avg,count}) => {
+    const el = document.getElementById('pub-trust-card');
+    if (el) el.innerHTML = renderTrustCardHTML(avg, count, { trustedSeller: data.trustedSeller, verified: data.emailVerified||data.adminVerified, joinedYear });
+  }).catch(()=>{});
 }
 
 async function shareProfile(uid, name) {
@@ -9714,7 +9837,15 @@ function gt(name) {
   }
   if(name==='community' && !forumPosts.length && !forumLoading) loadForumPage(true);
   if(name==='compare') loadExtraPhones();
-  if(name==='profile') rprof();
+  if(name==='profile') {
+    // Sayfa açılışında hafif, sıralı (stagger) fade animasyonu — yalnızca profile SEKMESİNE
+    // yeni girildiğinde tetiklenir (privacy toggle gibi küçük iç güncellemelerde rprof() tekrar
+    // çağrılsa bile her seferinde yeniden oynamaz, bu da "abartılı" hissi engeller).
+    const pc = document.getElementById('profile-c');
+    pc?.classList.remove('on');
+    rprof();
+    requestAnimationFrame(() => pc?.classList.add('on'));
+  }
   showTabTip(name);
 }
 
