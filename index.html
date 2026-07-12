@@ -327,8 +327,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .listing-id-label{font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.4px;}
 .listing-id-val{font-size:12px;font-weight:700;color:var(--text2);letter-spacing:.3px;font-family:monospace;}
 .listing-id-copy{font-size:11px;color:var(--cyan);font-weight:700;cursor:pointer;padding:3px 8px;border-radius:6px;background:var(--cdim);}
-/* İlan tarihi */
-.listing-date{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px;margin-bottom:12px;}
 /* Forum iyileştirme */
 .post-card{background:var(--surf);border-radius:16px;border:1px solid var(--border2);padding:0;margin-bottom:12px;cursor:pointer;overflow:hidden;}
 .post-card:active{opacity:.85;}
@@ -337,20 +335,12 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .post-card-footer{display:flex;align-items:center;gap:12px;padding:10px 14px;border-top:1px solid var(--border2);background:var(--surf2);}
 .post-card-footer-item{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text3);}
 .post-card-footer-item svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;}
-/* WhatsApp orijinal — yukarda tanımlandı */.det-info{background:var(--surf);border-radius:14px;padding:4px 14px;margin-bottom:16px;}
-.det-row{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border2);font-size:14px;}
-.det-row:last-child{border-bottom:none;}
-.det-lbl{color:var(--text2);width:80px;flex-shrink:0;font-size:13px;}
 .act-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;}
 .abtn{padding:14px 10px;border-radius:14px;border:none;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px;}
 .abtn svg{width:22px;height:22px;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
 .abtn-lbl{font-size:12px;font-weight:600;}
-.act-wa{background:#25D366;color:#fff;border:none;}
-.act-wa svg{stroke:#fff;}
 .act-ref{background:rgba(255,149,0,.12);color:#FF9500;border:1px solid rgba(255,149,0,.3);}
 .act-ref svg{stroke:#FF9500;}
-.act-fav2{background:rgba(255,69,58,.12);color:var(--red);border:1px solid rgba(255,69,58,.3);}
-.act-fav2 svg{stroke:var(--red);}
 .act-fav2.on svg{fill:var(--red);}
 .ref-box{background:var(--surf);border-radius:14px;padding:14px;margin-bottom:16px;}
 .ref-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
@@ -480,9 +470,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .ltit{font-size:15px;font-weight:600;margin-bottom:6px;}
 .lrow{display:flex;align-items:center;justify-content:space-between;margin-top:6px;}
 .lprc{font-size:18px;font-weight:700;color:var(--cyan);}
-.lcnd{font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;}
-.cn{background:rgba(48,209,88,.12);color:var(--green);border:1px solid rgba(48,209,88,.2);}
-.cu{background:var(--cdim);color:var(--cyan);border:1px solid rgba(0,212,255,.2);}
 .lft{display:flex;align-items:center;justify-content:space-between;margin-top:10px;}
 .lloc{font-size:11px;color:var(--text2);}
 .lacts{display:flex;gap:8px;align-items:center;}
@@ -503,19 +490,64 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .fg2-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
 .fg2{margin-bottom:0;}
 .spec-pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
-.seller-card{background:var(--surf);border:1px solid var(--border2);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:12px 0;cursor:pointer;}
-.seller-card-av{width:40px;height:40px;border-radius:50%;background:var(--cdim);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:var(--cyan);border:1px solid rgba(0,212,255,.25);flex-shrink:0;object-fit:cover;}
-.seller-card-name{font-size:14px;font-weight:700;color:var(--text);margin-bottom:2px;}
-.seller-card-stats{font-size:12px;color:var(--text3);}
-.seller-card-badges{display:flex;flex-wrap:wrap;gap:6px;width:100%;margin-top:2px;}
+/* ==== İLAN DETAYI — PREMIUM TASARIM (yalnızca bu sayfada kullanılan yeni sınıflar) ==== */
+.det-photo{opacity:0;transition:opacity .3s ease;}
+.det-photo.loaded{opacity:1;}
+.det-photo-skel{aspect-ratio:4/3;border-radius:12px;background:linear-gradient(100deg,var(--surf2) 30%,var(--surf3) 50%,var(--surf2) 70%);background-size:200% 100%;animation:detskel 1.3s ease infinite;position:absolute;inset:0;}
+@keyframes detskel{0%{background-position:150% 0}100%{background-position:-50% 0}}
+.det-photo-wrap{position:relative;}
+.det-photo-empty{grid-column:1/-1;aspect-ratio:16/9;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:var(--surf2);border-radius:12px;}
+.det-photo-empty img{width:44px;height:44px;object-fit:contain;opacity:.28;filter:grayscale(1) brightness(1.6);}
+.det-photo-empty span{font-size:11.5px;color:var(--text3);font-weight:600;}
+.det-hero-title{font-size:16px;font-weight:600;color:var(--text2);margin-bottom:4px;}
+.det-hero-price{font-size:32px;font-weight:800;letter-spacing:-.5px;color:var(--text);margin-bottom:8px;}
+.det-hero-price .cur{color:var(--cyan);font-size:21px;font-weight:700;}
+.det-hero-stats{display:flex;gap:14px;font-size:12px;color:var(--text3);margin-bottom:12px;flex-wrap:wrap;}
+.det-hero-stats span{display:flex;align-items:center;gap:4px;}
+.det-status-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+.det-status-badge{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:20px;font-size:12.5px;font-weight:700;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid;}
+.det-status-badge .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.det-status-badge.st-new{background:rgba(0,212,255,.12);border-color:rgba(0,212,255,.3);color:var(--cyan);}
+.det-status-badge.st-new .dot{background:var(--cyan);box-shadow:0 0 6px var(--cyan);}
+.det-status-badge.st-used{background:rgba(255,149,0,.12);border-color:rgba(255,149,0,.3);color:#FF9500;}
+.det-status-badge.st-used .dot{background:#FF9500;box-shadow:0 0 6px #FF9500;}
+.det-status-badge.st-sold{background:rgba(255,69,58,.14);border-color:rgba(255,69,58,.35);color:var(--red);}
+.det-status-badge.st-sold .dot{background:var(--red);box-shadow:0 0 6px var(--red);}
+.det-status-badge.st-info{background:var(--surf2);border-color:var(--border2);color:var(--text2);}
+.det-contact-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:16px 0;}
+.det-contact-btn{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 4px;border-radius:14px;border:1px solid transparent;cursor:pointer;font-family:inherit;transition:transform .12s ease;background:none;position:relative;overflow:hidden;}
+.ripple-dot{position:absolute;border-radius:50%;background:rgba(255,255,255,.28);transform:scale(0);animation:rippleAnim .45s ease-out;pointer-events:none;}
+@keyframes rippleAnim{to{transform:scale(2.4);opacity:0;}}
+.det-contact-btn:active{transform:scale(.92);}
+.det-contact-btn .det-contact-lbl{font-size:10.5px;font-weight:600;}
+.det-contact-btn.dc-wa{background:rgba(37,211,102,.1);border-color:rgba(37,211,102,.25);color:#25D366;}
+.det-contact-btn.dc-msg{background:var(--cdim);border-color:rgba(0,212,255,.25);color:var(--cyan);}
+.det-contact-btn.dc-share{background:var(--surf2);border-color:var(--border2);color:var(--text2);}
+.det-contact-btn.dc-fav{background:var(--surf2);border-color:var(--border2);color:var(--text2);}
+.det-contact-btn.dc-fav.on{background:rgba(255,69,58,.1);border-color:rgba(255,69,58,.3);color:var(--red);}
+.det-desc-text{font-size:14px;color:var(--text2);line-height:1.6;padding:14px;background:var(--surf);border-radius:14px;margin:16px 0 0;max-height:112px;overflow:hidden;position:relative;transition:max-height .25s ease;}
+.det-desc-text.expanded{max-height:800px;}
+.det-desc-text.clamped::after{content:'';position:absolute;left:0;right:0;bottom:0;height:36px;background:linear-gradient(to top, var(--surf), transparent);}
+.det-desc-toggle{display:block;text-align:center;font-size:12.5px;font-weight:700;color:var(--cyan);padding:8px;cursor:pointer;}
+.det-anim{animation:detfadeup .32s cubic-bezier(.22,.61,.36,1) both;}
+@keyframes detfadeup{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.seller-card-lg{background:var(--surf);border:1px solid var(--border2);border-radius:16px;padding:16px;margin:12px 0;}
+.seller-card-lg-top{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+.seller-card-lg-av{width:56px;height:56px;border-radius:50%;background:var(--cdim);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:var(--cyan);border:1px solid rgba(0,212,255,.25);flex-shrink:0;object-fit:cover;}
+.seller-card-lg-name{font-size:15px;font-weight:700;color:var(--text);margin-bottom:3px;}
+.seller-card-lg-stats{font-size:12px;color:var(--text3);}
+.seller-card-lg-badges{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;}
+.seller-card-lg-actions{display:flex;gap:8px;margin-top:4px;}
+.seller-card-lg-btn{flex:1;text-align:center;padding:9px;border-radius:11px;font-size:12.5px;font-weight:600;cursor:pointer;background:var(--surf2);color:var(--cyan);border:1px solid var(--border2);}
 .seller-badge{font-size:10.5px;font-weight:700;color:var(--cyan);background:var(--cdim);border:1px solid rgba(0,212,255,.2);padding:3px 9px;border-radius:20px;}
+.seller-badge.trust{color:var(--green);background:rgba(48,209,88,.12);border-color:rgba(48,209,88,.3);}
 .similar-row{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;}
 .similar-row::-webkit-scrollbar{display:none;}
-.similar-card{flex:0 0 120px;cursor:pointer;}
-.similar-card-photo{width:120px;height:90px;border-radius:12px;overflow:hidden;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:6px;}
+.similar-card{flex:0 0 92px;cursor:pointer;}
+.similar-card-photo{width:92px;height:70px;border-radius:10px;overflow:hidden;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:5px;}
 .similar-card-photo img{width:100%;height:100%;object-fit:cover;}
-.similar-card-title{font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;}
-.similar-card-price{font-size:12.5px;font-weight:700;color:var(--cyan);}
+.similar-card-title{font-size:10.5px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;}
+.similar-card-price{font-size:12.5px;font-weight:800;color:var(--text);}
 .spec-pill{background:var(--surf2);border:1px solid var(--border2);border-radius:8px;padding:4px 10px;font-size:11px;color:var(--text2);}
 .spec-pill b{color:var(--text);font-weight:600;}
 /* FİLTRE */
@@ -4062,6 +4094,20 @@ function showErrorToast(message) {
   showToast('⚠️', 'rgba(255,69,58,.15)', 'Hata', message || 'Bir şeyler ters gitti.');
 }
 
+// Premium, abartısız dokunma geri bildirimi (ripple) — herhangi bir butona onpointerdown="spawnRipple(event,this)"
+// ile eklenebilir. Tek, paylaşılan fonksiyon; iş mantığını etkilemez, yalnızca görsel.
+function spawnRipple(e, el) {
+  const rect = el.getBoundingClientRect();
+  const size = Math.max(rect.width, rect.height);
+  const x = (e.clientX ?? rect.left + rect.width/2) - rect.left - size/2;
+  const y = (e.clientY ?? rect.top + rect.height/2) - rect.top - size/2;
+  const dot = document.createElement('span');
+  dot.className = 'ripple-dot';
+  dot.style.cssText = `width:${size}px;height:${size}px;left:${x}px;top:${y}px;`;
+  el.appendChild(dot);
+  setTimeout(() => dot.remove(), 450);
+}
+
 function showToast(icon, iconBg, title, desc, onClick, duration) {
   const wrap = document.getElementById('toast-wrap');
   if (!wrap) return;
@@ -5804,35 +5850,37 @@ function openDetail(id) {
   // Tarih
   const dateStr = l.createdAt?.toDate ? l.createdAt.toDate().toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric'}) : null;
   document.getElementById('det-body').innerHTML = `
-    ${ps.length ? `<div class="det-photos">${ps.map((p,i)=>`<img class="det-photo" src="${p}" onclick="openListingGallery(currentDetailPhotos, ${i})">`).join('')}</div>` : ''}
-    ${l.sold ? `<div style="background:rgba(255,69,58,.12);border:1px solid rgba(255,69,58,.3);color:var(--red);font-size:13px;font-weight:700;padding:8px 14px;border-radius:10px;margin-bottom:12px;text-align:center">✓ Bu ilan satıldı</div>` : ''}
+    ${ps.length ? `<div class="det-photos det-anim">${ps.map((p,i)=>`<div class="det-photo-wrap"><div class="det-photo-skel" id="det-skel-${i}"></div><img class="det-photo" src="${p}" onclick="openListingGallery(currentDetailPhotos, ${i})" onload="this.classList.add('loaded');const s=document.getElementById('det-skel-${i}');if(s)s.remove();"></div>`).join('')}</div>` : `<div class="det-photos det-anim"><div class="det-photo-empty"><img src="teknohane.png" alt="" onerror="this.style.display='none'"><span>Fotoğraf Eklenmedi</span></div></div>`}
     ${pending && mine && !isAdmin ? `<div style="background:rgba(255,149,0,.12);border:1px solid rgba(255,149,0,.3);color:#FF9500;font-size:13px;font-weight:700;padding:8px 14px;border-radius:10px;margin-bottom:12px;text-align:center">⏳ İlanınız inceleniyor, onaylandığında Pazar'da görünecek</div>` : ''}
     ${pending && isAdmin ? `<div style="background:rgba(255,149,0,.12);border:1px solid rgba(255,149,0,.3);color:#FF9500;font-size:13px;font-weight:700;padding:8px 14px;border-radius:10px;margin-bottom:12px;text-align:center">⏳ Onay bekliyor</div>` : ''}
-    <div style="font-size:22px;font-weight:700;margin-bottom:4px">${l.model||''}</div>
-    <div style="font-size:28px;font-weight:700;color:var(--cyan);margin-bottom:6px">₺${parseInt(l.price||0).toLocaleString('tr-TR')}</div>
-    <div style="font-size:12px;color:var(--text3);margin-bottom:10px;display:flex;gap:12px">
-      <span>❤️ ${(l.favoritedByUids||[]).length} favori</span>
-      <span>👁 ${l.viewCount||0} görüntülenme</span>
+    <div class="det-anim" style="animation-delay:.04s">
+      <div class="det-hero-title">${l.model||''}</div>
+      <div class="det-hero-price"><span class="cur">₺</span>${parseInt(l.price||0).toLocaleString('tr-TR')}</div>
+      <div class="det-hero-stats">
+        ${dateStr?`<span>📅 ${dateStr}</span>`:''}
+        <span>👁 ${l.viewCount||0} görüntülenme</span>
+        <span>❤️ ${(l.favoritedByUids||[]).length} favori</span>
+      </div>
     </div>
-    ${dateStr?`<div class="listing-date">📅 ${dateStr}</div>`:''}
-    <div class="listing-id-bar">
+    <div class="det-status-row det-anim" style="animation-delay:.08s">
+      ${l.sold ? `<div class="det-status-badge st-sold"><span class="dot"></span>🔴 Satıldı</div>` : (l.condition==='Sıfır' ? `<div class="det-status-badge st-new"><span class="dot"></span>🟢 Sıfır</div>` : `<div class="det-status-badge st-used"><span class="dot"></span>🟠 ${l.condition||'İkinci El'}</div>`)}
+      ${l.origin?`<div class="det-status-badge st-info">${l.origin}</div>`:''}
+      ${l.location?`<div class="det-status-badge st-info">📍 ${l.location}</div>`:''}
+    </div>
+    <div class="listing-id-bar det-anim" style="animation-delay:.1s">
       <div><div class="listing-id-label">İlan No</div><div class="listing-id-val">#${shortId}</div></div>
       <div style="display:flex;gap:8px">
         <div class="listing-id-copy" onclick="copyListingId('${shortId}','${id}')">Kopyala</div>
-        <div class="listing-id-copy" onclick="shareListing('${id}')">🔗 Paylaş</div>
+        <div class="listing-id-copy" style="background:var(--cdim);color:var(--cyan);font-weight:800" onclick="shareListing('${id}')">🔗 Paylaş</div>
       </div>
     </div>
-    <div style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap">
-      <span class="lcnd ${l.condition==='Sıfır'?'cn':'cu'}">${l.condition||''}</span>
-      ${l.origin?`<span class="lcnd" style="background:var(--surf2);color:var(--text2);border:1px solid var(--border2)">${l.origin}</span>`:''}
-    </div>
-    <div class="det-info">
-      ${l.location?`<div class="det-row"><span class="det-lbl">Konum</span><span>📍 ${l.location}</span></div>`:''}
-    </div>
-    <div id="det-seller-card"></div>
-    ${specs.length ? `<div class="spec-pills">${specs.map(s=>`<div class="spec-pill"><b>${s.l}:</b> ${s.v}</div>`).join('')}</div>` : ''}
-    ${l.desc?`<div style="font-size:14px;color:var(--text2);line-height:1.6;padding:14px;background:var(--surf);border-radius:14px;margin:16px 0">${l.desc}</div>`:''}
-    <div class="ref-box">
+    <div id="det-seller-card" class="det-anim" style="animation-delay:.12s"></div>
+    ${specs.length ? `<div class="spec-pills det-anim" style="animation-delay:.14s">${specs.map(s=>`<div class="spec-pill"><b>${s.l}:</b> ${s.v}</div>`).join('')}</div>` : ''}
+    ${l.desc?`<div class="det-anim" style="animation-delay:.16s">
+      <div class="det-desc-text ${l.desc.length>160?'clamped':''}" id="det-desc-text">${l.desc}</div>
+      ${l.desc.length>160?`<span class="det-desc-toggle" id="det-desc-toggle" onclick="toggleDetDesc()">Devamını Oku</span>`:''}
+    </div>`:''}
+    <div class="ref-box det-anim" style="animation-delay:.18s">
       <div class="ref-head">
         <span class="ref-count"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>${refs.length} kişi referans oldu</span>
       </div>
@@ -5840,28 +5888,34 @@ function openDetail(id) {
         ${refs.length ? refs.map(r=>`<div class="ref-item"><div class="ref-av">${(r.name||'?')[0].toUpperCase()}</div>${r.name}</div>`).join('') : '<div class="ref-empty">Henüz referans olan yok</div>'}
       </div>
     </div>
-    <div class="act-grid">
-      ${l.phone?`<button class="abtn act-wa" onclick="ol(waListingLink('${(l.model||'').replace(/'/g,"\\'")}','${l.phone}'))">
-        <svg viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.998 2C6.477 2 2 6.477 2 12c0 1.989.574 3.842 1.565 5.408L2 22l4.757-1.535A9.958 9.958 0 0 0 11.998 22c5.523 0 10-4.477 10-10S17.521 2 11.998 2z"/></svg>
-        <span class="abtn-lbl">İletişim</span>
+    <div class="det-contact-row det-anim" style="animation-delay:.2s">
+      ${l.phone?`<button class="det-contact-btn dc-wa" onpointerdown="spawnRipple(event,this)" onclick="ol(waListingLink('${(l.model||'').replace(/'/g,"\\'")}','${l.phone}'))">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.998 2C6.477 2 2 6.477 2 12c0 1.989.574 3.842 1.565 5.408L2 22l4.757-1.535A9.958 9.958 0 0 0 11.998 22c5.523 0 10-4.477 10-10S17.521 2 11.998 2z"/></svg>
+        <span class="det-contact-lbl">WhatsApp</span>
       </button>`:'<div></div>'}
+      ${!mine && l.uid ? `<button class="det-contact-btn dc-msg" onpointerdown="spawnRipple(event,this)" onclick="openChatWith('${l.uid}','${(l.ownerName||'Kullanıcı').replace(/'/g,"\\'")}','${(l.model||'').replace(/'/g,"\\'")}')">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        <span class="det-contact-lbl">Mesaj</span>
+      </button>`:'<div></div>'}
+      <button class="det-contact-btn dc-share" onpointerdown="spawnRipple(event,this)" onclick="shareListing('${id}')">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51L8.59 10.49"/></svg>
+        <span class="det-contact-lbl">Paylaş</span>
+      </button>
+      <button class="det-contact-btn dc-fav ${fav?'on':''}" id="dfav" onpointerdown="spawnRipple(event,this)" onclick="detFav()">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        <span class="det-contact-lbl">${fav?'Favoride':'Favorile'}</span>
+      </button>
+    </div>
+    <div class="act-grid det-anim" style="animation-delay:.22s">
       <button class="abtn act-ref" id="dref-btn" onclick="toggleRef()" ${(!user||mine)?'style="opacity:.5;pointer-events:none"':''}>
         <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         <span class="abtn-lbl">${alreadyRef?'Referansı Geri Çek':mine?'Kendi İlanın':'Referans Ol'}</span>
-      </button>
-      <button class="abtn act-fav2 ${fav?'on':''}" id="dfav" onclick="detFav()">
-        <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-        <span class="abtn-lbl">${fav?'Favoride':'Favorile'}</span>
       </button>
       ${mine?`<button class="abtn" style="background:rgba(255,69,58,.12);color:var(--red);border:1px solid rgba(255,69,58,.3)" onclick="delListing('${l.id}');exitDetailPage(true)">
         <svg viewBox="0 0 24 24" stroke="var(--red)"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M9 6V4h6v2"/></svg>
         <span class="abtn-lbl">Sil</span>
       </button>`:'<div></div>'}
     </div>
-    ${!mine && l.uid ? `<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px;background:var(--surf2);color:var(--cyan);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;gap:8px" onclick="openChatWith('${l.uid}','${(l.ownerName||'Kullanıcı').replace(/'/g,"\\'")}','${(l.model||'').replace(/'/g,"\\'")}')">
-      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-      Uygulama İçinden Mesaj Gönder
-    </button>` : ''}
     ${!mine && user ? `<div style="text-align:center;margin-top:10px"><span onclick="openReportModal('listing','${l.id}','${(l.model||'İlan').replace(/'/g,"\\'").replace(/"/g,'&quot;')}','${l.uid||''}')" style="font-size:12px;color:var(--text3);cursor:pointer;text-decoration:underline">🚩 İlanı Şikayet Et</span></div>` : ''}
     ${pending && isAdmin ? `<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px" onclick="approveListing('${l.id}')">✓ İlanı Onayla ve Yayınla</button>`:''}
     ${mine?`<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px;background:var(--surf2);color:var(--cyan);border:1px solid var(--border2)" onclick="editListing('${l.id}')">✏️ İlanı Düzenle</button>`:''}
@@ -6070,6 +6124,16 @@ async function toggleRef() {
     if (idx > -1) listings[idx] = l;
     openDetail(l.id);
   } catch(e) { showErrorToast(e.message); }
+}
+
+// Uzun ilan açıklamalarında "Devamını Oku" / "Daralt" geçişi — yalnızca görsel, veri değişmiyor.
+function toggleDetDesc() {
+  const el = document.getElementById('det-desc-text');
+  const btn = document.getElementById('det-desc-toggle');
+  if (!el || !btn) return;
+  const expanded = el.classList.toggle('expanded');
+  el.classList.toggle('clamped', !expanded);
+  btn.textContent = expanded ? 'Daralt' : 'Devamını Oku';
 }
 
 async function detFav() {
@@ -8986,12 +9050,19 @@ async function loadSellerCard(sellerUid, ownerName, mine, containerId) {
   if (!el) return;
   const safeName = (ownerName||'?').replace(/'/g,"\\'");
   el.innerHTML = `
-    <div class="seller-card" ${!mine?`onclick="openPublicProfile('${sellerUid}','${safeName}');exitDetailPage(false)"`:''}>
-      <div class="seller-card-av">${(ownerName||'?')[0].toUpperCase()}</div>
-      <div style="flex:1;min-width:0">
-        <div class="seller-card-name">${ownerName||'Kullanıcı'}${mine?' (Ben)':''}</div>
-        <div class="seller-card-stats" id="${containerId}-stats">Yükleniyor…</div>
+    <div class="seller-card-lg">
+      <div class="seller-card-lg-top" ${!mine?`onclick="openPublicProfile('${sellerUid}','${safeName}');exitDetailPage(false)" style="cursor:pointer"`:''}>
+        <div class="seller-card-lg-av">${(ownerName||'?')[0].toUpperCase()}</div>
+        <div style="flex:1;min-width:0">
+          <div class="seller-card-lg-name">${ownerName||'Kullanıcı'}${mine?' (Ben)':''}</div>
+          <div class="seller-card-lg-stats" id="${containerId}-stats">Yükleniyor…</div>
+        </div>
       </div>
+      <div id="${containerId}-badges"></div>
+      ${!mine?`<div class="seller-card-lg-actions">
+        <div class="seller-card-lg-btn" onclick="openPublicProfile('${sellerUid}','${safeName}');exitDetailPage(false)">Profili Gör</div>
+        <div class="seller-card-lg-btn" onclick="openPublicProfile('${sellerUid}','${safeName}');exitDetailPage(false)">Tüm İlanları</div>
+      </div>`:''}
     </div>`;
   try {
     const [commentsSnap, countSnap, userSnap] = await Promise.all([
@@ -9001,23 +9072,21 @@ async function loadSellerCard(sellerUid, ownerName, mine, containerId) {
     ]);
     let total = 0, count = 0;
     commentsSnap.docs.forEach(d => { const c = d.data(); if (c.rating) { total += c.rating; count++; } });
-    const ratingText = count ? `⭐ ${(total/count).toFixed(1)} (${count})` : 'Henüz değerlendirme yok';
+    const ratingText = count ? `⭐ ${(total/count).toFixed(1)} (${count} yorum)` : 'Henüz değerlendirme yok';
     const listingCount = countSnap.data().count;
     const u = userSnap.exists ? userSnap.data() : {};
     const statsEl = document.getElementById(`${containerId}-stats`);
     if (statsEl) statsEl.textContent = `${ratingText} · ${listingCount} ilan`;
     // Profil fotoğrafı — zaten çekilmiş userSnap'ten, ekstra okuma yok. Uygulamanın her yerinde
     // kullanılan aynı avatarUrl() yardımcısıyla (isim bazlı yedek dahil) üretiliyor.
-    const avEl = el.querySelector('.seller-card-av');
-    if (avEl && u.photoURL) avEl.outerHTML = `<img class="seller-card-av" src="${avatarUrl(u.photoURL, ownerName, 80)}" alt="">`;
+    const avEl = el.querySelector('.seller-card-lg-av');
+    if (avEl && u.photoURL) avEl.outerHTML = `<img class="seller-card-lg-av" src="${avatarUrl(u.photoURL, ownerName, 112)}" alt="">`;
     const badges = [];
-    if (u.vip) badges.push('💎 VIP');
-    if (u.trustedSeller) badges.push('🤝 Güvenilir Satıcı');
-    if (u.adminVerified || u.emailVerified) badges.push('✅ Doğrulanmış');
-    if (badges.length) {
-      const card = el.querySelector('.seller-card');
-      if (card) card.insertAdjacentHTML('beforeend', `<div class="seller-card-badges">${badges.map(b=>`<span class="seller-badge">${b}</span>`).join('')}</div>`);
-    }
+    if (u.vip) badges.push({t:'💎 VIP', trust:false});
+    if (u.trustedSeller) badges.push({t:'🤝 Güvenilir Satıcı', trust:true});
+    if (u.adminVerified || u.emailVerified) badges.push({t:'✅ Doğrulanmış', trust:false});
+    const badgesEl = document.getElementById(`${containerId}-badges`);
+    if (badgesEl && badges.length) badgesEl.innerHTML = `<div class="seller-card-lg-badges">${badges.map(b=>`<span class="seller-badge${b.trust?' trust':''}">${b.t}</span>`).join('')}</div>`;
   } catch(e) {
     const statsEl = document.getElementById(`${containerId}-stats`);
     if (statsEl) statsEl.textContent = '';
