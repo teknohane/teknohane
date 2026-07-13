@@ -847,6 +847,19 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .adm-user-stat{text-align:center;}
 .adm-user-stat-n{font-size:14px;font-weight:700;color:var(--cyan);}
 .adm-user-stat-l{font-size:9px;color:var(--text3);text-transform:uppercase;}
+/* Toplu seçim/toplu işlem — İlanlar + Kullanıcılar sekmelerinde paylaşılan görünüm */
+.bulk-check{width:18px;height:18px;flex-shrink:0;accent-color:var(--cyan);cursor:pointer;}
+.bulk-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--cdim);border:1px solid rgba(0,212,255,.3);border-radius:12px;padding:10px 12px;margin-bottom:10px;animation:msgIn .18s ease both;}
+.bulk-bar .bulk-count{font-size:12px;font-weight:700;color:var(--cyan);flex-shrink:0;}
+.bulk-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;}
+.bulk-act-btn{font-size:11px;font-weight:700;padding:6px 12px;border-radius:8px;border:1px solid rgba(0,212,255,.3);background:var(--surf);color:var(--cyan);cursor:pointer;font-family:inherit;}
+.bulk-act-btn.danger{border-color:rgba(255,69,58,.3);color:var(--red);}
+.bulk-act-btn.ghost{border-color:var(--border2);color:var(--text3);background:transparent;}
+/* Admin listeleri için gerçek boyutlu skeleton — spinner yerine (bkz. Sohbet/Pazar'daki aynı desen) */
+.adm-skel-row{display:flex;align-items:center;gap:10px;padding:10px;background:var(--surf);border-radius:12px;margin-bottom:8px;}
+.adm-skel-thumb{width:44px;height:44px;border-radius:8px;flex-shrink:0;background:linear-gradient(100deg,var(--surf2) 30%,var(--surf3) 50%,var(--surf2) 70%);background-size:200% 100%;animation:detskel 1.3s ease infinite;}
+.adm-skel-lines{flex:1;display:flex;flex-direction:column;gap:6px;}
+.adm-skel-line{height:10px;border-radius:5px;background:linear-gradient(100deg,var(--surf2) 30%,var(--surf3) 50%,var(--surf2) 70%);background-size:200% 100%;animation:detskel 1.3s ease infinite;}
 /* Kullanıcı detay paneli */
 .ud-hero{display:flex;align-items:center;gap:14px;margin-bottom:20px;}
 .ud-av{width:64px;height:64px;border-radius:50%;object-fit:cover;background:var(--cdim);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:var(--cyan);flex-shrink:0;}
@@ -1722,15 +1735,32 @@ body.tk-maintenance #maintenance-gate{
         <svg class="sico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input class="si" type="text" id="adm-srch" placeholder="Model veya satıcı ara…" oninput="radmin()">
       </div>
+      <div class="bulk-bar" id="adm-list-bulkbar" style="display:none">
+        <span class="bulk-count">0 seçili</span>
+        <div class="bulk-actions">
+          <button class="bulk-act-btn" onclick="bulkApproveListings()">Onayla</button>
+          <button class="bulk-act-btn" onclick="bulkArchiveListings()">Arşivle</button>
+          <button class="bulk-act-btn danger" onclick="bulkDeleteListings()">Sil</button>
+          <button class="bulk-act-btn ghost" onclick="bulkClear('adm-list')">Vazgeç</button>
+        </div>
+      </div>
       <div id="adm-list"></div>
     </div>
 
     <div id="admin-users-view" style="display:none">
       <div class="sw" style="margin-bottom:12px">
         <svg class="sico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input class="si" type="text" id="adm-user-srch" placeholder="İsim, kullanıcı adı, e-posta, telefon veya UID ara…" oninput="rAdminUsers()">
+        <input class="si" type="text" id="adm-user-srch" placeholder="Kullanıcı adı, e-posta, telefon veya UID ara…" oninput="onAdminUserSearchInput(this.value)">
+      </div>
+      <div class="bulk-bar" id="adm-users-list-bulkbar" style="display:none">
+        <span class="bulk-count">0 seçili</span>
+        <div class="bulk-actions">
+          <button class="bulk-act-btn danger" onclick="openBulkBan()">Banla</button>
+          <button class="bulk-act-btn ghost" onclick="bulkClear('adm-users-list')">Vazgeç</button>
+        </div>
       </div>
       <div id="adm-users-list"><div class="load"><div class="spin"></div><span>Kullanıcılar yükleniyor…</span></div></div>
+      <button class="apbtn" id="adm-users-load-more" style="margin-top:12px;background:var(--surf2);color:var(--text);display:none" onclick="loadAdminUsers(false)">Daha Fazla Yükle</button>
     </div>
 
     <div id="admin-forum-view" style="display:none">
@@ -2032,6 +2062,13 @@ function isAdminNow() {
   return !!(user && myAdminRole && myAdminRole.isActive !== false);
 }
 
+// Admin panelindeki liste yükleme durumları için gerçek boyutlu skeleton — spinner yerine (bkz.
+// Sohbet/Bildirimler/Pazar'daki aynı desen, @keyframes detskel paylaşılıyor). Tüm admin listeleri
+// (kullanıcılar/forum/şikayetler/loglar/yorumlar/duyurular) bu TEK fonksiyonu paylaşıyor.
+function adminSkeletonHTML(count) {
+  return Array.from({length: count||5}).map(() => `<div class="adm-skel-row"><div class="adm-skel-thumb"></div><div class="adm-skel-lines"><div class="adm-skel-line" style="width:70%"></div><div class="adm-skel-line" style="width:40%"></div></div></div>`).join('');
+}
+
 // Giriş yapmış kullanıcının belirli bir yetkiye sahip olup olmadığını söyler (aksiyon bazlı kontrol için).
 function hasPermission(perm) {
   return isAdminNow() && !!myAdminRole.permissions?.[perm];
@@ -2041,6 +2078,9 @@ function hasPermission(perm) {
 // Her admin işleminden sonra çağrılır, admin_logs koleksiyonuna değiştirilemez/silinemez bir kayıt yazar
 // (bkz. Firestore Rules: admin_logs için update/delete daima false). Log yazımı asla ana işlemi bloklamaz
 // veya başarısız kılmaz — hata olursa yalnızca konsola yazılır.
+// NOT (IP adresi): İstemci JS kendi genel IP adresini güvenilir şekilde bilemez — bunun için ya ayrı
+// bir dış servise istek (yeni bir 3. parti bağımlılık) ya da sunucu taraflı bir Cloud Function
+// gerekir; ikisi de bu görevin kapsamı dışında bırakıldı (bkz. rapor). Sahte/tahmini bir IP YAZILMIYOR.
 async function adminLog(action, targetType, targetId, targetLabel, oldValue, newValue, result) {
   if (!user || !isAdminNow()) return;
   try {
@@ -2056,6 +2096,8 @@ async function adminLog(action, targetType, targetId, targetLabel, oldValue, new
       newValue: newValue ?? null,
       result: result || 'success',
       device: detectDeviceLabel(),
+      // Zaten senkron/bellekte olan cihaz oturum kimliği — ek bir okuma/yeni bir sistem gerekmiyor.
+      sessionId: localStorage.getItem('tk_device_id') || null,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
   } catch (e) {
@@ -2089,7 +2131,7 @@ function setLogTypeFilter(type) {
 async function loadAdminLogs(reset) {
   const list = document.getElementById('adm-logs-list');
   if (!list || !hasPermission('viewLogs')) return;
-  if (reset) { adminLogsLastDoc = null; list.innerHTML = `<div class="load"><div class="spin"></div></div>`; }
+  if (reset) { adminLogsLastDoc = null; list.innerHTML = adminSkeletonHTML(6); }
   try {
     let q = db.collection('admin_logs');
     const targetTypes = LOG_TYPE_GROUPS[adminLogTypeFilter];
@@ -2109,8 +2151,8 @@ async function loadAdminLogs(reset) {
       return `<div class="pact-row">
         <div class="pact-ic">🛡️</div>
         <div class="pact-body">
-          <div class="pact-txt"><b>${l.adminName||'Admin'}</b> — ${l.action} ${l.targetLabel?`(${l.targetLabel})`:''}</div>
-          <div class="pact-time">${when} · <span style="color:${resultColor}">${l.result||'success'}</span></div>
+          <div class="pact-txt"><b>${escapeHtml(l.adminName)||'Admin'}</b> — ${escapeHtml(l.action)} ${l.targetLabel?`(${escapeHtml(l.targetLabel)})`:''}</div>
+          <div class="pact-time">${when} · <span style="color:${resultColor}">${escapeHtml(l.result)||'success'}</span></div>
         </div>
       </div>`;
     }).join('');
@@ -2153,7 +2195,7 @@ function setComplaintTypeFilter(type) {
 async function loadComplaints(reset) {
   const list = document.getElementById('adm-complaints-list');
   if (!list || !hasPermission('manageComplaints')) return;
-  if (reset) { complaintsLastDoc = null; complaintsPageCache = []; list.innerHTML = `<div class="load"><div class="spin"></div></div>`; }
+  if (reset) { complaintsLastDoc = null; complaintsPageCache = []; list.innerHTML = adminSkeletonHTML(6); }
   try {
     let q = db.collection('teknohane_complaints').where('status', '==', complaintStatusFilter).orderBy('createdAt', 'desc').limit(30);
     if (complaintsLastDoc) q = q.startAfter(complaintsLastDoc);
@@ -2180,10 +2222,10 @@ function rComplaintsList() {
     const when = c.createdAt?.toDate ? timeAgo(c.createdAt.toDate()) : '—';
     return `<div class="ud-item" onclick="openComplaintDetail('${c.id}')" style="flex-direction:column;align-items:stretch;gap:4px">
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <span class="ud-item-name">${COMPLAINT_TYPE_LABELS[c.type]||c.type}: ${c.targetLabel||'—'}</span>
+        <span class="ud-item-name">${COMPLAINT_TYPE_LABELS[c.type]||c.type}: ${escapeHtml(c.targetLabel)||'—'}</span>
         <span style="font-size:10px;font-weight:700;color:${PRIORITY_COLORS[c.priority||'normal']}">${PRIORITY_LABELS[c.priority||'normal']}</span>
       </div>
-      <div class="ud-item-meta">${c.reasonLabel||'—'} · ${c.reporterName||'—'} · ${when}</div>
+      <div class="ud-item-meta">${escapeHtml(c.reasonLabel)||'—'} · ${escapeHtml(c.reporterName)||'—'} · ${when}</div>
     </div>`;
   }).join('');
 }
@@ -2192,18 +2234,18 @@ function renderComplaintPreviewSkeleton(c) {
   if (c.type === 'listing') {
     const l = listings.find(x => x.id === c.targetId);
     if (l) return `<div class="pcol-current">
-      <div class="pcol-current-ic">${l.photo1?`<img src="${l.photo1}" style="width:100%;height:100%;object-fit:cover;border-radius:12px" loading="lazy" decoding="async">`:'📱'}</div>
-      <div><div class="pcol-current-name">${l.model}</div><div class="pcol-current-tag">₺${parseInt(l.price||0).toLocaleString('tr-TR')}</div></div>
+      <div class="pcol-current-ic">${l.photo1?`<img src="${escapeHtml(l.photo1)}" style="width:100%;height:100%;object-fit:cover;border-radius:12px" loading="lazy" decoding="async">`:'📱'}</div>
+      <div><div class="pcol-current-name">${escapeHtml(l.model)}</div><div class="pcol-current-tag">₺${parseInt(l.price||0).toLocaleString('tr-TR')}</div></div>
     </div>`;
-    return `<div class="ud-empty">${c.targetLabel} (ilan bulunamadı — silinmiş olabilir)</div>`;
+    return `<div class="ud-empty">${escapeHtml(c.targetLabel)} (ilan bulunamadı — silinmiş olabilir)</div>`;
   }
   if (c.type === 'forum_post') {
     const p = forumPosts.find(x => x.id === c.targetId);
-    if (p) return `<div class="pacc-card"><div class="psec-title">${p.title||''}</div><div style="font-size:12px;color:var(--text2);line-height:1.5">${(p.body||'').slice(0,140)}${(p.body||'').length>140?'…':''}</div></div>`;
-    return `<div class="ud-empty">${c.targetLabel} (gönderi bulunamadı — silinmiş olabilir)</div>`;
+    if (p) return `<div class="pacc-card"><div class="psec-title">${escapeHtml(p.title)}</div><div style="font-size:12px;color:var(--text2);line-height:1.5">${escapeHtml((p.body||'').slice(0,140))}${(p.body||'').length>140?'…':''}</div></div>`;
+    return `<div class="ud-empty">${escapeHtml(c.targetLabel)} (gönderi bulunamadı — silinmiş olabilir)</div>`;
   }
   if (c.type === 'user') return `<div id="cmp-user-preview"><div class="load"><div class="spin"></div></div></div>`;
-  if (c.type === 'comment') return `<div class="pacc-card"><div class="psec-title">Yorum İçeriği</div><div style="font-size:12px;color:var(--text2)">${c.targetLabel}</div></div>`;
+  if (c.type === 'comment') return `<div class="pacc-card"><div class="psec-title">Yorum İçeriği</div><div style="font-size:12px;color:var(--text2)">${escapeHtml(c.targetLabel)}</div></div>`;
   return '';
 }
 
@@ -2217,8 +2259,8 @@ async function loadComplaintUserPreview(uid) {
     const scoreInfo = computeTeknohaneScore(uid, u);
     const av = avatarUrl(u.photoURL, u.displayName, 128);
     el.innerHTML = `<div class="pcol-current">
-      <img src="${av}" style="width:40px;height:40px;border-radius:50%;object-fit:cover">
-      <div><div class="pcol-current-name">${u.displayName||'Kullanıcı'}</div><div class="pcol-current-tag">Teknohane Skoru: ${scoreInfo.score}</div></div>
+      <img src="${escapeHtml(av)}" style="width:40px;height:40px;border-radius:50%;object-fit:cover">
+      <div><div class="pcol-current-name">${escapeHtml(u.displayName)||'Kullanıcı'}</div><div class="pcol-current-tag">Teknohane Skoru: ${scoreInfo.score}</div></div>
     </div>`;
   } catch(e) { el.innerHTML = '<div class="ud-empty">Yüklenemedi</div>'; }
 }
@@ -2256,9 +2298,9 @@ function renderComplaintDetail(id, c) {
 
     <div class="pacc-card">
       <div class="psec-title">Şikayet Bilgileri</div>
-      <div class="pacc-row"><span class="pacc-lbl">Şikayet Eden</span><span class="pacc-val">${c.reporterName||'—'}</span></div>
-      <div class="pacc-row"><span class="pacc-lbl">Sebep</span><span class="pacc-val">${c.reasonLabel||'—'}</span></div>
-      ${c.description?`<div class="pacc-row"><span class="pacc-lbl">Açıklama</span><span class="pacc-val" style="text-align:right;max-width:60%">${c.description}</span></div>`:''}
+      <div class="pacc-row"><span class="pacc-lbl">Şikayet Eden</span><span class="pacc-val">${escapeHtml(c.reporterName)||'—'}</span></div>
+      <div class="pacc-row"><span class="pacc-lbl">Sebep</span><span class="pacc-val">${escapeHtml(c.reasonLabel)||'—'}</span></div>
+      ${c.description?`<div class="pacc-row"><span class="pacc-lbl">Açıklama</span><span class="pacc-val" style="text-align:right;max-width:60%">${escapeHtml(c.description)}</span></div>`:''}
       <div class="pacc-row"><span class="pacc-lbl">Tarih</span><span class="pacc-val">${when}</span></div>
       <div class="pacc-row"><span class="pacc-lbl">Öncelik</span><span class="pacc-val">
         <div class="csel" data-for="cmp-priority-select" data-title="Öncelik" onclick="openPicker(this)" style="width:auto;padding:4px 8px;font-size:12px;display:inline-flex"><span class="csel-label">${{low:'Düşük',normal:'Normal',high:'Yüksek',critical:'Kritik'}[c.priority||'normal']}</span><svg class="csel-arrow" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:4px"><polyline points="6 9 12 15 18 9"/></svg></div>
@@ -2275,7 +2317,7 @@ function renderComplaintDetail(id, c) {
       ${(c.history||[]).slice().reverse().map(h => `
         <div class="pact-row">
           <div class="pact-ic">📝</div>
-          <div class="pact-body"><div class="pact-txt">${h.detail||h.action}</div><div class="pact-time">${h.byName||''} · ${h.at?.toDate ? timeAgo(h.at.toDate()) : (h.at ? timeAgo(new Date(h.at)) : '')}</div></div>
+          <div class="pact-body"><div class="pact-txt">${escapeHtml(h.detail||h.action)}</div><div class="pact-time">${escapeHtml(h.byName)||''} · ${h.at?.toDate ? timeAgo(h.at.toDate()) : (h.at ? timeAgo(new Date(h.at)) : '')}</div></div>
         </div>`).join('') || '<div class="ud-empty">Geçmiş yok</div>'}
     </div>
 
@@ -2449,8 +2491,21 @@ async function loadDashboard() {
       safeGet(db.collection('teknohane_users').where('createdAt', '>=', sevenDaysAgo)),
       safeGet(db.collection('teknohane_complaints').where('createdAt', '>=', sevenDaysAgo)),
     ]);
+    // Değerlendirme sayısı — tek bir ucuz count() sorgusu (targetType 'phone'/'seller' olan yorumlar).
+    // Ayrı bir composite index gerektirmiyor (tek alan 'in' sorgusu, tekli alan indeksi otomatik).
+    const totalReviews = await safeCount(db.collection('teknohane_comments').where('targetType', 'in', ['phone','seller']));
 
-    const stats = { totalUsers, todayUsers, online, totalListings: listings.length, totalPosts, totalComments, totalComplaints, pendingComplaints, resolvedComplaints, banned, activeToday, loginsToday, messagesToday };
+    // Aşağıdaki 3 istatistik TAMAMEN bellekten — zaten yüklü `listings` dizisi (Pazar'ın kendi
+    // yükleme deseni) üzerinden hesaplanıyor, YENİ bir Firestore okuması YOK.
+    const totalViews = listings.reduce((sum, l) => sum + (l.viewCount||0), 0);
+    const totalFavorites = listings.reduce((sum, l) => sum + (l.favoritedByUids||[]).length, 0);
+    const mostViewedListing = [...listings].sort((a,b) => (b.viewCount||0) - (a.viewCount||0))[0];
+    const listerCounts = {};
+    listings.forEach(l => { if (l.uid) listerCounts[l.uid] = (listerCounts[l.uid]||0) + 1; });
+    const topListerUid = Object.keys(listerCounts).sort((a,b) => listerCounts[b]-listerCounts[a])[0];
+    const topListerListing = topListerUid ? listings.find(l => l.uid === topListerUid) : null;
+
+    const stats = { totalUsers, todayUsers, online, totalListings: listings.length, totalPosts, totalComments, totalComplaints, pendingComplaints, resolvedComplaints, banned, activeToday, loginsToday, messagesToday, totalReviews, totalViews, totalFavorites, totalPhones: PHONES.length };
     const pendingListings = listings.filter(l => l.approved === false).length;
     const publishedListings = listings.filter(l => l.approved !== false && !l.sold).length;
     const soldListings = listings.filter(l => l.sold).length;
@@ -2459,20 +2514,24 @@ async function loadDashboard() {
     const recentLogs = recentLogsSnap.docs.map(d => d.data());
     const recentListings = [...listings].sort((a,b) => (b.createdAt?.toMillis?.()||0) - (a.createdAt?.toMillis?.()||0)).slice(0,10);
     const recentPosts = [...forumPosts].sort((a,b) => (b.createdAt?.toMillis?.()||0) - (a.createdAt?.toMillis?.()||0)).slice(0,10);
+    const highlights = {
+      mostViewedListing: mostViewedListing && mostViewedListing.viewCount ? mostViewedListing : null,
+      topLister: topListerUid ? { uid: topListerUid, name: topListerListing?.ownerName || 'Kullanıcı', count: listerCounts[topListerUid] } : null,
+    };
     const charts = {
       userDaily: bucketByDay(weeklyUsersSnap.docs.map(d => d.data().createdAt)),
       complaintDaily: bucketByDay(weeklyComplaintsSnap.docs.map(d => d.data().createdAt)),
       listingDaily: bucketByDay(listings.filter(l => l.createdAt?.toDate && l.createdAt.toDate() >= sevenDaysAgo).map(l => l.createdAt)),
     };
 
-    renderDashboard(stats, { pendingListings, publishedListings, soldListings, todayListings, bannedToday }, recentLogs, recentUsers, recentListings, recentPosts, charts);
+    renderDashboard(stats, { pendingListings, publishedListings, soldListings, todayListings, bannedToday }, recentLogs, recentUsers, recentListings, recentPosts, charts, highlights);
   } catch (e) {
     console.error('Dashboard yüklenemedi:', e);
     el.innerHTML = '<div class="no">Dashboard yüklenemedi. Bir Firestore index\'i gerekebilir — konsolu kontrol edin.</div>';
   }
 }
 
-function renderDashboard(stats, pending, recentLogs, recentUsers, recentListings, recentPosts, charts) {
+function renderDashboard(stats, pending, recentLogs, recentUsers, recentListings, recentPosts, charts, highlights) {
   const el = document.getElementById('adm-dashboard-content');
   if (!el) return;
   const fmt = v => (v === null || v === undefined) ? '—' : v;
@@ -2487,8 +2546,18 @@ function renderDashboard(stats, pending, recentLogs, recentUsers, recentListings
         ['Toplam Şikayet', stats.totalComplaints], ['Bekleyen Şikayet', stats.pendingComplaints], ['Çözülen Şikayet', stats.resolvedComplaints],
         ['Banlı Kullanıcı', stats.banned], ['Bugün Aktif', stats.activeToday],
         ['Son 24s Giriş', stats.loginsToday], ['Son 24s Mesaj', stats.messagesToday],
+        ['Toplam Değerlendirme', stats.totalReviews], ['Toplam Telefon', stats.totalPhones],
+        ['Toplam Görüntülenme', stats.totalViews], ['Toplam Favori', stats.totalFavorites],
       ].map(([label,val]) => `<div class="pstat-item" style="flex:1 1 28%;min-width:85px;margin-bottom:12px"><div class="pstat-num">${fmt(val)}</div><div class="pstat-lbl">${label}</div></div>`).join('')}
     </div>
+
+    ${(highlights.mostViewedListing || highlights.topLister) ? `
+    <div class="psec-title">🏆 Öne Çıkanlar</div>
+    <div class="pacc-card">
+      ${highlights.mostViewedListing?`<div class="pacc-row" style="cursor:pointer" onclick="closemo('admin-mo');openDetail('${highlights.mostViewedListing.id}')"><span class="pacc-lbl">En Çok Görüntülenen İlan</span><span class="pacc-val">${escapeHtml(highlights.mostViewedListing.model)} (${highlights.mostViewedListing.viewCount})</span></div>`:''}
+      ${highlights.topLister?`<div class="pacc-row"><span class="pacc-lbl">En Çok İlan Veren Kullanıcı</span><span class="pacc-val">${escapeHtml(highlights.topLister.name)} (${highlights.topLister.count} ilan)</span></div>`:''}
+    </div>
+    <div style="font-size:10px;color:var(--text3);margin:-10px 0 16px;text-align:center">Not: "En Popüler Telefon" ve "En Çok Mesajlaşan Kullanıcı" için henüz veri toplanmıyor (bkz. rapor)</div>` : ''}
 
     <div class="psec-title">⏳ Bekleyen İşler</div>
     <div class="pstats-card">
@@ -2521,7 +2590,7 @@ function renderDashboard(stats, pending, recentLogs, recentUsers, recentListings
       ${recentLogs.length ? recentLogs.map(l => `
         <div class="pact-row">
           <div class="pact-ic">🛡️</div>
-          <div class="pact-body"><div class="pact-txt"><b>${l.adminName||'Admin'}</b> — ${l.action} ${l.targetLabel?`(${l.targetLabel})`:''}</div><div class="pact-time">${l.createdAt?.toDate?timeAgo(l.createdAt.toDate()):''}</div></div>
+          <div class="pact-body"><div class="pact-txt"><b>${escapeHtml(l.adminName)||'Admin'}</b> — ${escapeHtml(l.action)} ${l.targetLabel?`(${escapeHtml(l.targetLabel)})`:''}</div><div class="pact-time">${l.createdAt?.toDate?timeAgo(l.createdAt.toDate()):''}</div></div>
         </div>`).join('') : '<div class="ud-empty">Henüz hareket yok</div>'}
     </div>
 
@@ -2529,8 +2598,8 @@ function renderDashboard(stats, pending, recentLogs, recentUsers, recentListings
     <div class="pacc-card">
       ${recentUsers.length ? recentUsers.map(u => `
         <div class="adm-user-row" style="cursor:default">
-          ${u.photoURL?`<img class="adm-user-av" src="${u.photoURL}" alt="">`:`<div class="adm-user-av">${(u.displayName||'?')[0].toUpperCase()}</div>`}
-          <div class="adm-user-info"><div class="adm-user-name">${u.displayName||'İsimsiz'}</div><div class="adm-user-email">${u.username?'@'+u.username:(u.email||'')}</div></div>
+          ${u.photoURL?`<img class="adm-user-av" src="${escapeHtml(u.photoURL)}" alt="">`:`<div class="adm-user-av">${(u.displayName||'?')[0].toUpperCase()}</div>`}
+          <div class="adm-user-info"><div class="adm-user-name">${escapeHtml(u.displayName)||'İsimsiz'}</div><div class="adm-user-email">${u.username?'@'+escapeHtml(u.username):escapeHtml(u.email)}</div></div>
           <div style="font-size:11px;color:var(--text3);flex-shrink:0">${u.createdAt?.toDate?timeAgo(u.createdAt.toDate()):''}</div>
         </div>`).join('') : '<div class="ud-empty">Kayıt yok</div>'}
     </div>
@@ -2539,8 +2608,8 @@ function renderDashboard(stats, pending, recentLogs, recentUsers, recentListings
     <div class="pacc-card">
       ${recentListings.length ? recentListings.map(l => `
         <div class="ud-item" onclick="closemo('admin-mo');openDetail('${l.id}')">
-          <span class="ud-item-name">${l.model}</span>
-          <span class="ud-item-meta">₺${parseInt(l.price||0).toLocaleString('tr-TR')} · ${l.ownerName||'—'}</span>
+          <span class="ud-item-name">${escapeHtml(l.model)}</span>
+          <span class="ud-item-meta">₺${parseInt(l.price||0).toLocaleString('tr-TR')} · ${escapeHtml(l.ownerName)||'—'}</span>
         </div>`).join('') : '<div class="ud-empty">İlan yok</div>'}
     </div>
 
@@ -2548,8 +2617,8 @@ function renderDashboard(stats, pending, recentLogs, recentUsers, recentListings
     <div class="pacc-card">
       ${recentPosts.length ? recentPosts.map(p => `
         <div class="ud-item" onclick="closemo('admin-mo');openPost('${p.id}')">
-          <span class="ud-item-name">${p.title||'Gönderi'}</span>
-          <span class="ud-item-meta">${p.authorName||'—'} · ${p.createdAt?.toDate?timeAgo(p.createdAt.toDate()):''}</span>
+          <span class="ud-item-name">${escapeHtml(p.title)||'Gönderi'}</span>
+          <span class="ud-item-meta">${escapeHtml(p.authorName)||'—'} · ${p.createdAt?.toDate?timeAgo(p.createdAt.toDate()):''}</span>
         </div>`).join('') : '<div class="ud-empty">Gönderi yok</div>'}
     </div>
 
@@ -2574,12 +2643,35 @@ const AUDIENCE_LABELS = {
 // Küçük, kesin listelerde (belirli UID/kullanıcı adı/rol) push GERÇEKTEN çalışıyor.
 const LARGE_AUDIENCE_TYPES = ['all', 'active_30d', 'not_banned'];
 
+// Hazır bildirim şablonları — yalnızca FORMU önceden dolduran bir kısayol, veri modeline veya hedef
+// kitle değerlendirme mantığına (matchesAnnouncementAudience, Bildirimler modülünde) dokunmuyor.
+// NOT: VIP/Satıcı hedef kitlesi bu oturumda EKLENMEDİ — çünkü doğru çalışması için hedef kitle
+// eşleştirme mantığının da (Bildirimler modülü, bu görevde dokunulmaması istenen) güncellenmesi
+// gerekirdi; yalnızca burada seçenek eklemek kimseye ulaşmayan, sessizce bozuk bir özellik olurdu.
+const ANNOUNCEMENT_TEMPLATES = {
+  update: { emoji:'🆕', label:'Yeni Güncelleme', title:'Yeni Güncelleme', description:'Uygulamamıza yeni özellikler eklendi! Güncellemeyi kaçırma.', priority:'update' },
+  maintenance: { emoji:'🛠️', label:'Bakım Duyurusu', title:'Bakım Duyurusu', description:'Sistemimizde planlı bakım çalışması yapılacaktır. Bu süre zarfında bazı özellikler geçici olarak kullanılamayabilir.', priority:'maintenance' },
+  campaign: { emoji:'🎉', label:'Kampanya', title:'Kampanya', description:'Sizin için özel bir kampanya hazırladık!', priority:'info' },
+  warning: { emoji:'⚠️', label:'Uyarı', title:'Uyarı', description:'Lütfen dikkat: ', priority:'critical' },
+  security: { emoji:'🔒', label:'Güvenlik', title:'Güvenlik Bildirimi', description:'Hesap güvenliğinle ilgili önemli bir bilgilendirme.', priority:'critical' },
+  system: { emoji:'🔔', label:'Sistem', title:'Sistem Bildirimi', description:'', priority:'normal' },
+};
+function applyAnnouncementTemplate(key) {
+  const t = ANNOUNCEMENT_TEMPLATES[key];
+  if (!t) return;
+  document.getElementById('ann-emoji').value = t.emoji;
+  document.getElementById('ann-title').value = t.title;
+  document.getElementById('ann-description').value = t.description;
+  document.getElementById('ann-priority').value = t.priority;
+  syncPickerTriggerLabel('ann-priority');
+}
+
 let adminAnnouncementsCache = [];
 
 async function loadAdminAnnouncements() {
   const list = document.getElementById('adm-announcements-list');
   if (!list || !hasPermission('sendNotifications')) return;
-  list.innerHTML = `<div class="load"><div class="spin"></div></div>`;
+  list.innerHTML = adminSkeletonHTML(5);
   try {
     const snap = await db.collection('teknohane_announcements').orderBy('createdAt', 'desc').limit(50).get();
     adminAnnouncementsCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -2601,7 +2693,7 @@ function renderAdminAnnouncementsList() {
     const pm = ANNOUNCEMENT_PRIORITY_META[a.priority] || ANNOUNCEMENT_PRIORITY_META.normal;
     return `<div class="ud-item" onclick="openAnnouncementStats('${a.id}')" style="flex-direction:column;align-items:stretch;gap:4px">
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <span class="ud-item-name">${a.emoji||pm.icon} ${a.title||''}${a.pinned?' 📌':''}</span>
+        <span class="ud-item-name">${escapeHtml(a.emoji)||pm.icon} ${escapeHtml(a.title)}${a.pinned?' 📌':''}</span>
         <span style="font-size:10px;font-weight:700;color:${STATUS_COLORS[st]}">${STATUS_LABELS[st]}</span>
       </div>
       <div class="ud-item-meta">${AUDIENCE_LABELS[a.audienceType]||a.audienceType} · ${a.createdAt?.toDate?timeAgo(a.createdAt.toDate()):''}</div>
@@ -2625,12 +2717,18 @@ function renderAnnouncementForm(a, editId) {
 
   body.innerHTML = `
     <input type="hidden" id="ann-edit-id" value="${editId||''}">
-    <div class="fg"><label class="fl">Başlık</label><input class="fi" id="ann-title" value="${a.title||''}"></div>
-    <div class="fg"><label class="fl">Emoji (isteğe bağlı)</label><input class="fi" id="ann-emoji" value="${a.emoji||''}" placeholder="🎉" maxlength="4"></div>
-    <div class="fg"><label class="fl">Açıklama</label><textarea class="fi" id="ann-description" rows="3" style="resize:none;font-family:inherit">${a.description||''}</textarea></div>
-    <div class="fg"><label class="fl">Görsel URL (isteğe bağlı)</label><input class="fi" id="ann-image" value="${a.imageUrl||''}"></div>
-    <div class="fg"><label class="fl">Bağlantı URL (isteğe bağlı)</label><input class="fi" id="ann-link" value="${a.linkUrl||''}"></div>
-    <div class="fg"><label class="fl">Buton Yazısı</label><input class="fi" id="ann-button-text" value="${a.buttonText||'Detay'}"></div>
+    ${editId ? '' : `
+    <div class="fg"><label class="fl">Hazır Şablon (isteğe bağlı)</label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${Object.entries(ANNOUNCEMENT_TEMPLATES).map(([key,t]) => `<span class="pcompl-pill" style="cursor:pointer" onclick="applyAnnouncementTemplate('${key}')">${t.emoji} ${t.label}</span>`).join('')}
+      </div>
+    </div>`}
+    <div class="fg"><label class="fl">Başlık</label><input class="fi" id="ann-title" value="${escapeHtml(a.title)}"></div>
+    <div class="fg"><label class="fl">Emoji (isteğe bağlı)</label><input class="fi" id="ann-emoji" value="${escapeHtml(a.emoji)}" placeholder="🎉" maxlength="4"></div>
+    <div class="fg"><label class="fl">Açıklama</label><textarea class="fi" id="ann-description" rows="3" style="resize:none;font-family:inherit">${escapeHtml(a.description)}</textarea></div>
+    <div class="fg"><label class="fl">Görsel URL (isteğe bağlı)</label><input class="fi" id="ann-image" value="${escapeHtml(a.imageUrl)}"></div>
+    <div class="fg"><label class="fl">Bağlantı URL (isteğe bağlı)</label><input class="fi" id="ann-link" value="${escapeHtml(a.linkUrl)}"></div>
+    <div class="fg"><label class="fl">Buton Yazısı</label><input class="fi" id="ann-button-text" value="${escapeHtml(a.buttonText)||'Detay'}"></div>
     <div class="fg"><label class="fl">Öncelik</label>
       <div class="csel" data-for="ann-priority" data-title="Öncelik" onclick="openPicker(this)"><span class="csel-label"></span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
       <select id="ann-priority" style="display:none">${priorityOptions}</select>
@@ -2673,8 +2771,8 @@ function renderAnnouncementForm(a, editId) {
     <div class="fg"><label class="fl" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="ann-send-push" ${a.sendPush?'checked':''} onchange="document.getElementById('ann-push-wrap').style.display=this.checked?'block':'none'"> Push bildirimi de gönderilsin</label></div>
     <div class="fg" id="ann-push-wrap" style="display:${a.sendPush?'block':'none'}">
       <div id="ann-push-large-warning" style="display:none;font-size:12px;color:#FF9500;margin-bottom:8px">⚠️ Bu hedef kitle için toplu push henüz desteklenmiyor (küçük listelerde çalışır) — duyuru yine de uygulama içinde herkese görünecek.</div>
-      <label class="fl">Push Başlığı</label><input class="fi" id="ann-push-title" value="${a.pushTitle||''}">
-      <label class="fl" style="margin-top:8px">Push Mesajı</label><input class="fi" id="ann-push-message" value="${a.pushMessage||''}">
+      <label class="fl">Push Başlığı</label><input class="fi" id="ann-push-title" value="${escapeHtml(a.pushTitle)}">
+      <label class="fl" style="margin-top:8px">Push Mesajı</label><input class="fi" id="ann-push-message" value="${escapeHtml(a.pushMessage)}">
     </div>
 
     <div class="aerr" id="ann-err"></div>
@@ -2817,10 +2915,10 @@ async function openAnnouncementStats(id) {
   ]);
 
   body.innerHTML = `
-    <div class="mtit">${a.emoji||''} ${a.title}</div>
+    <div class="mtit">${escapeHtml(a.emoji)||''} ${escapeHtml(a.title)}</div>
     <div class="pacc-card">
       <div class="pacc-row"><span class="pacc-lbl">Durum</span><span class="pacc-val">${STATUS_LABELS[st]}</span></div>
-      <div class="pacc-row"><span class="pacc-lbl">Oluşturan</span><span class="pacc-val">${a.createdByName||'—'}</span></div>
+      <div class="pacc-row"><span class="pacc-lbl">Oluşturan</span><span class="pacc-val">${escapeHtml(a.createdByName)||'—'}</span></div>
       <div class="pacc-row"><span class="pacc-lbl">Oluşturulma</span><span class="pacc-val">${a.createdAt?.toDate?a.createdAt.toDate().toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric'}):'—'}</span></div>
       <div class="pacc-row"><span class="pacc-lbl">Hedef Kitle</span><span class="pacc-val">${AUDIENCE_LABELS[a.audienceType]||a.audienceType}</span></div>
       <div class="pacc-row"><span class="pacc-lbl">Tahmini Ulaşılan</span><span class="pacc-val">${audienceCount??'—'}</span></div>
@@ -6984,6 +7082,15 @@ async function notifyListingOwnerOnFav(l, adding) {
 
 async function delListing(id) {
   if (!(await confirmDialog('İlan silinsin mi?'))) return;
+  await performListingDelete(id);
+}
+
+// delListing'in ONAY SORULMADAN çalışan gerçek silme mantığı — tek başına delListing() zaten kendi
+// confirmDialog'unu çağırıyordu; toplu silmede N ilan için N kez (paylaşılan TEK confirm-mo modalını
+// eşzamanlı çağırarak) onay istemek modalı bozardı. Bu yüzden mantık ayrıştırıldı: toplu silme TEK bir
+// onay sorar (bkz. bulkDeleteListings), sonra bu fonksiyonu ID başına çağırır. Tekli silme davranışı
+// birebir korunuyor.
+async function performListingDelete(id) {
   const l = listings.find(x => x.id === id);
   const isAdminModeration = isAdminNow() && l && user.uid !== l.uid;
   try {
@@ -8337,6 +8444,33 @@ async function toggleSystemSetting(key) {
   } catch(e) { showToast('⚠️', 'rgba(255,69,58,.15)', 'Hata', 'Ayar değiştirilemedi: ' + e.message); }
 }
 
+// ==== TOPLU SEÇİM / TOPLU İŞLEM — PAYLAŞILAN ALTYAPI (İlanlar + Kullanıcılar sekmeleri) ====
+// Seçili ID kümesi, yeni bir global değişken yerine liste konteynerinin kendi DOM özelliğinde
+// (el._selected) tutulur — hangi sekmede olursa olsun AYNI 4 yardımcı fonksiyon paylaşılır.
+function bulkSelected(containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return new Set();
+  if (!el._selected) el._selected = new Set();
+  return el._selected;
+}
+function bulkToggle(containerId, id, checked) {
+  const sel = bulkSelected(containerId);
+  if (checked) sel.add(id); else sel.delete(id);
+  updateBulkBar(containerId);
+}
+function bulkClear(containerId) {
+  bulkSelected(containerId).clear();
+  updateBulkBar(containerId);
+}
+function updateBulkBar(containerId) {
+  const sel = bulkSelected(containerId);
+  const bar = document.getElementById(containerId + '-bulkbar');
+  if (!bar) return;
+  bar.style.display = sel.size ? 'flex' : 'none';
+  const countEl = bar.querySelector('.bulk-count');
+  if (countEl) countEl.textContent = sel.size + ' seçili';
+}
+
 function radmin() {
   const list = document.getElementById('adm-list');
   if (!list) return;
@@ -8349,19 +8483,24 @@ function radmin() {
     return aPending - bPending;
   });
   if (!items.length) { list.innerHTML = '<div class="no">İlan bulunamadı</div>'; return; }
+  const sel = bulkSelected('adm-list');
   list.innerHTML = items.map(l => {
     const pending = l.approved === false;
     return `
     <div class="adm-row" style="${pending?'border:1px solid rgba(255,149,0,.35);background:rgba(255,149,0,.05)':''}" onclick="openDetail('${l.id}')">
-      ${l.photo1 ? `<img src="${l.photo1}" loading="lazy" decoding="async">` : `<div style="width:44px;height:44px;border-radius:8px;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">📱</div>`}
+      <input type="checkbox" class="bulk-check" onclick="event.stopPropagation()" onchange="bulkToggle('adm-list','${l.id}',this.checked)" ${sel.has(l.id)?'checked':''}>
+      ${l.photo1 ? `<img src="${escapeHtml(l.photo1)}" loading="lazy" decoding="async">` : `<div style="width:44px;height:44px;border-radius:8px;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">📱</div>`}
       <div class="adm-info">
-        <div class="adm-model">${l.showcase?'📌 ':''}${l.featured?'⭐ ':''}${l.urgent?'🔥 ':''}${l.sold?'✅ ':''}${l.paused?'⏸️ ':''}${l.model||'—'}${pending?' <span style="color:#FF9500;font-size:10px;font-weight:700">⏳ ONAY BEKLİYOR</span>':''}${l.rejected?' <span style="color:var(--red);font-size:10px;font-weight:700">✕ REDDEDİLDİ</span>':''}</div>
-        <div class="adm-meta">₺${parseInt(l.price||0).toLocaleString('tr-TR')} · ${l.ownerName||'Anonim'}</div>
+        <div class="adm-model">${l.showcase?'📌 ':''}${l.featured?'⭐ ':''}${l.urgent?'🔥 ':''}${l.archived?'🗄️ ':''}${l.sold?'✅ ':''}${l.paused?'⏸️ ':''}${escapeHtml(l.model)||'—'}${pending?' <span style="color:#FF9500;font-size:10px;font-weight:700">⏳ ONAY BEKLİYOR</span>':''}${l.rejected?' <span style="color:var(--red);font-size:10px;font-weight:700">✕ REDDEDİLDİ</span>':''}</div>
+        <div class="adm-meta">₺${parseInt(l.price||0).toLocaleString('tr-TR')} · ${escapeHtml(l.ownerName)||'Anonim'}</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px" onclick="event.stopPropagation()">
           <span class="pcompl-pill" style="cursor:pointer" onclick="editListing('${l.id}')">✏️ Düzenle</span>
           ${pending?`<span class="pcompl-pill" style="cursor:pointer" onclick="rejectListingPrompt('${l.id}')">Reddet</span>`:''}
           ${!pending && !l.rejected ? `<span class="pcompl-pill" style="cursor:pointer" onclick="toggleListingPaused('${l.id}')">${l.paused?'Yayına Al':'Pasife Al'}</span>` : ''}
           ${!pending && !l.rejected ? `<span class="pcompl-pill" style="cursor:pointer" onclick="adminToggleSold('${l.id}')">${l.sold?'Satıldıyı Kaldır':'Satıldı İşaretle'}</span>` : ''}
+          ${!pending ? `<span class="pcompl-pill" style="cursor:pointer" onclick="toggleListingArchived('${l.id}')">${l.archived?'Arşivden Çıkar':'🗄️ Arşivle'}</span>` : ''}
+          ${!pending ? `<span class="pcompl-pill" style="cursor:pointer" onclick="extendListingDuration('${l.id}')">⏱️ Süre Uzat</span>` : ''}
+          ${l.uid ? `<span class="pcompl-pill" style="cursor:pointer" onclick="messageListingOwner('${l.uid}','${escapeJsAttr(l.ownerName)}','${escapeJsAttr(l.model)}')">💬 Sahibine Mesaj</span>` : ''}
         </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0" onclick="event.stopPropagation()">
@@ -8374,6 +8513,31 @@ function radmin() {
       </div>
     </div>`;
   }).join('');
+  updateBulkBar('adm-list');
+}
+
+async function bulkApproveListings() {
+  const ids = [...bulkSelected('adm-list')];
+  if (!ids.length || !hasPermission('manageListings')) return;
+  if (!(await confirmDialog(`${ids.length} ilan onaylansın mı?`))) return;
+  await Promise.all(ids.map(id => approveListing(id)));
+  bulkClear('adm-list');
+  showToast('✓','rgba(48,209,88,.15)','Tamamlandı', `${ids.length} ilan onaylandı.`);
+}
+async function bulkArchiveListings() {
+  const ids = [...bulkSelected('adm-list')];
+  if (!ids.length || !hasPermission('manageListings')) return;
+  await Promise.all(ids.map(id => toggleListingModerationField(id, 'archived', 'archive_listing', 'Arşivlendi', 'Arşivden Çıkarıldı')));
+  bulkClear('adm-list');
+  showToast('✓','rgba(48,209,88,.15)','Tamamlandı', `${ids.length} ilan arşivlendi.`);
+}
+async function bulkDeleteListings() {
+  const ids = [...bulkSelected('adm-list')];
+  if (!ids.length) return;
+  if (!(await confirmDialog(`${ids.length} ilan kalıcı olarak silinsin mi? Bu işlem geri alınamaz.`))) return;
+  await Promise.all(ids.map(id => performListingDelete(id)));
+  bulkClear('adm-list');
+  showToast('🗑️','rgba(255,69,58,.15)','Silindi', `${ids.length} ilan silindi.`);
 }
 
 // Bir ilan alanı adminden değiştirildiğinde, aynı ilanın olası TÜM bellek kopyalarını (listings,
@@ -8387,50 +8551,61 @@ function syncListingFieldEverywhere(id, patch) {
   });
 }
 
-async function toggleListingFeatured(id) {
+// Öne Çıkar/Acil/Vitrin/Arşiv — dördü de aynı desen (Forum'daki toggleForumModerationField ile
+// birebir aynı yaklaşım), tek bir ortak yardımcı üzerinden (kod tekrarı yok).
+async function toggleListingModerationField(id, field, actionLog, onLabel, offLabel) {
   if (!hasPermission('manageListings')) { showToast('⚠️','rgba(255,69,58,.15)','Yetkin Yok',''); return; }
   const l = listings.find(x => x.id === id);
   if (!l) return;
-  const newVal = !l.featured;
+  const newVal = !l[field];
   try {
-    await db.collection('teknohane_listings').doc(id).update({ featured: newVal });
-    syncListingFieldEverywhere(id, { featured: newVal });
-    adminLog(newVal ? 'feature_listing' : 'unfeature_listing', 'listing', id, l.model||id, { featured: !newVal }, { featured: newVal }, 'success');
+    await db.collection('teknohane_listings').doc(id).update({ [field]: newVal });
+    syncListingFieldEverywhere(id, { [field]: newVal });
+    adminLog(newVal ? actionLog+'_on' : actionLog+'_off', 'listing', id, l.model||id, { [field]: !newVal }, { [field]: newVal }, 'success');
     radmin(); rlistings();
-    showToast('✓','rgba(48,209,88,.15)', newVal?'Öne Çıkarıldı':'Öne Çıkarma Kaldırıldı', '');
+    showToast('✓','rgba(48,209,88,.15)', newVal?onLabel:offLabel, '');
+  } catch(e) { showToast('⚠️','rgba(255,69,58,.15)','Hata','İşlem yapılamadı: ' + e.message); }
+}
+function toggleListingFeatured(id) { toggleListingModerationField(id, 'featured', 'feature_listing', 'Öne Çıkarıldı', 'Öne Çıkarma Kaldırıldı'); }
+function toggleListingUrgent(id) { toggleListingModerationField(id, 'urgent', 'mark_listing_urgent', 'Acil Olarak İşaretlendi', 'Acil İşareti Kaldırıldı'); }
+// Arşiv: yeni, katkı alanı (archived) — yalnızca admin panelinin yazdığı/okuduğu ek bir bayrak,
+// var olan veri modelini bozmuyor. "Pasife Al"dan (paused) kasıtlı olarak AYRI: paused "yayından
+// geçici kaldır" anlamına gelirken, archived "artık aktif değil, arşivde tut" anlamına geliyor.
+function toggleListingArchived(id) { toggleListingModerationField(id, 'archived', 'archive_listing', 'Arşivlendi', 'Arşivden Çıkarıldı'); }
+
+// İlan süresini uzatma — yeni, katkı alanı (expiresAt), var olan veri modelini bozmuyor. Uzatma,
+// mevcut bitiş tarihinden (varsa) sonrasına eklenir; yoksa bugünden başlar.
+async function extendListingDuration(id) {
+  if (!hasPermission('manageListings')) { showToast('⚠️','rgba(255,69,58,.15)','Yetkin Yok',''); return; }
+  const l = listings.find(x => x.id === id);
+  if (!l) return;
+  const daysStr = await promptDialog('Kaç gün uzatılsın?', '30', { title: 'İlan Süresini Uzat', okLabel: 'Uzat' });
+  if (daysStr === null) return;
+  const days = parseInt(daysStr);
+  if (!days || days <= 0) { showToast('⚠️','rgba(255,69,58,.15)','Geçersiz Değer','Pozitif bir gün sayısı girin.'); return; }
+  const base = l.expiresAt?.toDate && l.expiresAt.toDate().getTime() > Date.now() ? l.expiresAt.toDate() : new Date();
+  const newExpiry = new Date(base.getTime() + days*24*60*60*1000);
+  const newExpiryTs = firebase.firestore.Timestamp.fromDate(newExpiry);
+  try {
+    await db.collection('teknohane_listings').doc(id).update({ expiresAt: newExpiryTs });
+    syncListingFieldEverywhere(id, { expiresAt: newExpiryTs });
+    adminLog('extend_listing', 'listing', id, l.model||id, { expiresAt: l.expiresAt||null }, { expiresAt: newExpiryTs }, 'success');
+    radmin();
+    showToast('✓','rgba(48,209,88,.15)','Süre Uzatıldı', `${days} gün eklendi.`);
   } catch(e) { showToast('⚠️','rgba(255,69,58,.15)','Hata','İşlem yapılamadı: ' + e.message); }
 }
 
-async function toggleListingUrgent(id) {
-  if (!hasPermission('manageListings')) { showToast('⚠️','rgba(255,69,58,.15)','Yetkin Yok',''); return; }
-  const l = listings.find(x => x.id === id);
-  if (!l) return;
-  const newVal = !l.urgent;
-  try {
-    await db.collection('teknohane_listings').doc(id).update({ urgent: newVal });
-    syncListingFieldEverywhere(id, { urgent: newVal });
-    adminLog(newVal ? 'mark_listing_urgent' : 'unmark_listing_urgent', 'listing', id, l.model||id, { urgent: !newVal }, { urgent: newVal }, 'success');
-    radmin(); rlistings();
-    showToast('✓','rgba(48,209,88,.15)', newVal?'Acil Olarak İşaretlendi':'Acil İşareti Kaldırıldı', '');
-  } catch(e) { showToast('⚠️','rgba(255,69,58,.15)','Hata','İşlem yapılamadı: ' + e.message); }
+// İlan sahibine admin panelinden doğrudan mesaj — Mesajlar modülünün KENDİ, zaten var olan
+// openChatWith() fonksiyonu OLDUĞU GİBİ çağrılıyor; Mesajlar'ın kodu bu görevde değiştirilmedi.
+function messageListingOwner(uid, ownerName, model) {
+  if (!uid) return;
+  closemo('admin-mo');
+  openChatWith(uid, ownerName || 'Kullanıcı', model);
 }
 
 // Vitrin: en yüksek öncelikli tanıtım katmanı — rlistings() sıralamasında hem "satıldı"dan sonra
-// hem "öne çıkan"dan ÖNCE gelir (bkz. sort comparator). Yeni bir yetki sistemi icat edilmedi,
-// mevcut manageListings yetkisi kullanılıyor (toggleListingFeatured/Urgent ile aynı desen).
-async function toggleListingShowcase(id) {
-  if (!hasPermission('manageListings')) { showToast('⚠️','rgba(255,69,58,.15)','Yetkin Yok',''); return; }
-  const l = listings.find(x => x.id === id);
-  if (!l) return;
-  const newVal = !l.showcase;
-  try {
-    await db.collection('teknohane_listings').doc(id).update({ showcase: newVal });
-    syncListingFieldEverywhere(id, { showcase: newVal });
-    adminLog(newVal ? 'mark_listing_showcase' : 'unmark_listing_showcase', 'listing', id, l.model||id, { showcase: !newVal }, { showcase: newVal }, 'success');
-    radmin(); rlistings();
-    showToast('✓','rgba(48,209,88,.15)', newVal?'Vitrine Eklendi':'Vitrinden Kaldırıldı', '');
-  } catch(e) { showToast('⚠️','rgba(255,69,58,.15)','Hata','İşlem yapılamadı: ' + e.message); }
-}
+// hem "öne çıkan"dan ÖNCE gelir (bkz. sort comparator).
+function toggleListingShowcase(id) { toggleListingModerationField(id, 'showcase', 'mark_listing_showcase', 'Vitrine Eklendi', 'Vitrinden Kaldırıldı'); }
 
 // KULLANICI YÖNETİMİ
 // Admin forum listesi, herkese açık ekranın sekmeye göre kapsamı değişen forumPosts'undan
@@ -8439,7 +8614,7 @@ async function toggleListingShowcase(id) {
 let adminForumPosts = [];
 async function loadAdminForumPosts() {
   const list = document.getElementById('adm-forum-list');
-  if (list) list.innerHTML = `<div class="load"><div class="spin"></div></div>`;
+  if (list) list.innerHTML = adminSkeletonHTML(6);
   try {
     const snap = await db.collection('teknohane_posts').orderBy('createdAt', 'desc').limit(50).get();
     adminForumPosts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -8463,20 +8638,22 @@ function rAdminForum() {
           ${p.featured?'<span style="font-size:12px">⭐</span>':''}
           ${p.locked?'<span style="font-size:12px">🔒</span>':''}
           ${p.archived?'<span style="font-size:12px">🗄️</span>':''}
+          ${p.resolved?'<span style="font-size:12px">✓</span>':''}
           <span class="post-type-badge ${pt.cls}" style="margin:0">${pt.label}</span>
-          <span style="font-size:12px;font-weight:600;color:var(--text)">${(p.title||'').substring(0,40)}${p.title?.length>40?'…':''}</span>
+          <span style="font-size:12px;font-weight:600;color:var(--text)">${escapeHtml((p.title||'').substring(0,40))}${p.title?.length>40?'…':''}</span>
         </div>
         <div class="adm-del" onclick="event.stopPropagation();adminDeletePost('${p.id}')">
           <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M9 6V4h6v2"/></svg>
         </div>
       </div>
-      <div style="font-size:11px;color:var(--text3)">${p.authorName} · ${p.likeCount ?? (p.likes||[]).length} beğeni · ${p.answerCount||0} yorum</div>
+      <div style="font-size:11px;color:var(--text3)">${escapeHtml(p.authorName)} · ${p.likeCount ?? (p.likes||[]).length} beğeni · ${p.answerCount||0} yorum</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap" onclick="event.stopPropagation()">
         <span class="pcompl-pill" onclick="openForumPostEdit('${p.id}')" style="cursor:pointer">✏️ Düzenle</span>
         <span class="pcompl-pill" onclick="toggleForumPin('${p.id}')" style="cursor:pointer">${p.pinned?'Sabitlemeyi Kaldır':'📌 Sabitle'}</span>
         <span class="pcompl-pill" onclick="toggleForumFeatured('${p.id}')" style="cursor:pointer">${p.featured?'Öne Çıkarmayı Kaldır':'⭐ Öne Çıkar'}</span>
         <span class="pcompl-pill" onclick="toggleForumLocked('${p.id}')" style="cursor:pointer">${p.locked?'Kilidi Aç':'🔒 Kilitle'}</span>
         <span class="pcompl-pill" onclick="toggleForumArchived('${p.id}')" style="cursor:pointer">${p.archived?'Arşivden Çıkar':'🗄️ Arşivle'}</span>
+        <span class="pcompl-pill" onclick="toggleForumResolved('${p.id}')" style="cursor:pointer">${p.resolved?'Çözüldüyü Kaldır':'✓ Çözüldü Yap'}</span>
         ${p.uid?`<span class="pcompl-pill" onclick="closemo('admin-mo');openUserEdit('${p.uid}')" style="cursor:pointer">⚠️ Yazarı Uyar</span>`:''}
       </div>
     </div>`;
@@ -8502,6 +8679,9 @@ async function toggleForumModerationField(id, field, actionLog, onLabel, offLabe
 function toggleForumFeatured(id) { toggleForumModerationField(id, 'featured', 'feature_forum_post', 'Öne Çıkarıldı', 'Öne Çıkarma Kaldırıldı'); }
 function toggleForumLocked(id) { toggleForumModerationField(id, 'locked', 'lock_forum_post', 'Kilitlendi', 'Kilit Kaldırıldı'); }
 function toggleForumArchived(id) { toggleForumModerationField(id, 'archived', 'archive_forum_post', 'Arşivlendi', 'Arşivden Çıkarıldı'); }
+// "Çözüldü" — konu sahibi zaten "En İyi Cevap Seç" (markBest) ile bunu ayarlayabiliyordu; bu, admin'e
+// de AYNI alanı doğrudan değiştirebilme yetkisi veriyor (ör. sahibi pasifse/konu terk edilmişse).
+function toggleForumResolved(id) { toggleForumModerationField(id, 'resolved', 'resolve_forum_post', 'Çözüldü Olarak İşaretlendi', 'Çözüldü İşareti Kaldırıldı'); }
 
 async function toggleForumPin(id) {
   if (!hasPermission('manageListings')) { showToast('⚠️','rgba(255,69,58,.15)','Yetkin Yok',''); return; }
@@ -8566,7 +8746,7 @@ async function loadAdminComments(reset) {
   if (!list || !hasPermission('manageComplaints')) return;
   if (reset) { adminCommentsCache = []; adminCommentsLastDoc = null; adminCommentsHasMore = true; }
   if (!adminCommentsHasMore) return;
-  list.innerHTML = adminCommentsCache.length ? list.innerHTML : `<div class="load"><div class="spin"></div></div>`;
+  list.innerHTML = adminCommentsCache.length ? list.innerHTML : adminSkeletonHTML(6);
   try {
     let q = db.collectionGroup('comments').orderBy('createdAt', 'desc').limit(30);
     if (adminCommentsLastDoc) q = q.startAfter(adminCommentsLastDoc);
@@ -8592,8 +8772,8 @@ function renderAdminCommentsList() {
     const post = forumPosts.find(p => p.id === c.postId);
     const complaintCount = complaintsPageCache.filter(x => x.type === 'comment' && x.targetId === c.id).length;
     return `<div class="adm-row" style="flex-direction:column;align-items:flex-start;gap:6px">
-      <div style="font-size:12px;color:var(--text);width:100%">${(c.body||'').slice(0,120)}${(c.body||'').length>120?'…':''}${c.hidden?' <span style="color:var(--red);font-size:10px">(GİZLİ)</span>':''}</div>
-      <div style="font-size:11px;color:var(--text3)">${c.authorName||'—'} · ${post?.title?('"'+post.title.slice(0,25)+'"'):'Gönderi'} · ${c.createdAt?.toDate?timeAgo(c.createdAt.toDate()):''} · ${(c.likes||[]).length} beğeni${complaintCount?` · ⚠️ ${complaintCount} şikayet`:''}</div>
+      <div style="font-size:12px;color:var(--text);width:100%">${escapeHtml((c.body||'').slice(0,120))}${(c.body||'').length>120?'…':''}${c.hidden?' <span style="color:var(--red);font-size:10px">(GİZLİ)</span>':''}</div>
+      <div style="font-size:11px;color:var(--text3)">${escapeHtml(c.authorName)||'—'} · ${post?.title?('"'+escapeHtml(post.title.slice(0,25))+'"'):'Gönderi'} · ${c.createdAt?.toDate?timeAgo(c.createdAt.toDate()):''} · ${(c.likes||[]).length} beğeni${complaintCount?` · ⚠️ ${complaintCount} şikayet`:''}</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         <span class="pcompl-pill" style="cursor:pointer" onclick="editAdminComment('${c.postId}','${c.id}')">Düzenle</span>
         <span class="pcompl-pill" style="cursor:pointer" onclick="toggleCommentHidden('${c.postId}','${c.id}')">${c.hidden?'Göster':'Gizle'}</span>
@@ -8664,34 +8844,113 @@ async function adminDeletePost(id) {
   } catch(e) { showErrorToast('Silinemedi.'); }
 }
 let adminUsersCache = null;
-let adminRolesCache = {}; // uid -> admins/{uid} dokümanı (role, permissions, isActive)
+let adminUsersLastDoc = null;
+let adminUsersHasMore = true;
+let adminUsersSearching = false;
+let adminRolesCache = {}; // uid -> admins/{uid} dokümanı (role, permissions, isActive) — bu koleksiyon
+// zaten küçük (yalnızca personel), tam okunması sorun değil; sorun olan teknohane_users idi (aşağıda).
 
-async function loadAdminUsers() {
+// ÖNCEDEN bu fonksiyon filtresiz/limitsiz TÜM teknohane_users koleksiyonunu okuyordu — Kullanıcılar
+// sekmesi her açıldığında (500K kullanıcıda) 500K okuma demekti. Artık diğer tüm admin listeleriyle
+// (loglar/şikayetler/yorumlar) AYNI desende: limit(50) + "Daha Fazla Yükle" sayfalaması.
+async function loadAdminUsers(reset) {
   const list = document.getElementById('adm-users-list');
   if (!list) return;
+  if (reset !== false) { adminUsersCache = []; adminUsersLastDoc = null; adminUsersHasMore = true; adminUsersSearching = false; }
+  if (!adminUsersHasMore) return;
+  if (!adminUsersCache?.length) list.innerHTML = adminSkeletonHTML(6);
   try {
+    const needsRoles = !Object.keys(adminRolesCache).length;
+    let q = db.collection('teknohane_users').orderBy('createdAt', 'desc').limit(50);
+    if (adminUsersLastDoc) q = q.startAfter(adminUsersLastDoc);
     const [usersSnap, adminsSnap] = await Promise.all([
-      db.collection('teknohane_users').get(),
-      db.collection('admins').get().catch(() => ({ docs: [] }))
+      q.get(),
+      needsRoles ? db.collection('admins').get().catch(() => ({ docs: [] })) : Promise.resolve(null)
     ]);
-    adminUsersCache = usersSnap.docs.map(d => ({ uid: d.id, ...d.data() }));
-    adminRolesCache = {};
-    adminsSnap.docs.forEach(d => { adminRolesCache[d.id] = d.data(); });
+    if (adminsSnap) adminsSnap.docs.forEach(d => { adminRolesCache[d.id] = d.data(); });
+    const newUsers = usersSnap.docs.map(d => ({ uid: d.id, ...d.data() }));
+    adminUsersLastDoc = usersSnap.docs[usersSnap.docs.length - 1] || adminUsersLastDoc;
+    adminUsersHasMore = usersSnap.docs.length === 50;
+    adminUsersCache = [...(adminUsersCache||[]), ...newUsers];
     rAdminUsers();
+    updateAdminUsersLoadMoreBtn();
   } catch(e) {
-    list.innerHTML = `<div class="no">Kullanıcılar yüklenemedi</div>`;
+    console.error('Kullanıcılar yüklenemedi:', e);
+    list.innerHTML = `<div class="no">Kullanıcılar yüklenemedi.</div>`;
+  }
+}
+
+function updateAdminUsersLoadMoreBtn() {
+  const btn = document.getElementById('adm-users-load-more');
+  if (btn) btn.style.display = (!adminUsersSearching && adminUsersHasMore) ? 'block' : 'none';
+}
+
+// Arama artık TAM koleksiyon taraması değil, 3-4 HEDEFLİ ve ucuz sorgu: UID (doğrudan doküman
+// okuma), e-posta (eşitlik), telefon (eşitlik), kullanıcı adı (teknohane_usernames üzerinden ÖN EK
+// eşleşmesi — genel kullanıcı aramasının (runUserSearch) KULLANDIĞI AYNI koleksiyon/desen, kod
+// tekrarı yok). Hiçbiri yeni composite index gerektirmiyor (tekli alan eşitliği/doküman ID aralığı).
+// DÜRÜST SINIR: serbest ad-soyad METNİ içinde arama artık desteklenmiyor — bu yalnızca tam koleksiyon
+// taraması (eski, ölçeklenmeyen davranış) veya ayrı bir tam-metin arama servisiyle (Algolia vb.,
+// yeni bir 3. parti bağımlılık) mümkün olurdu; ikisi de bu görevin kapsamı dışında bırakıldı.
+let adminUserSearchDebounceTimer = null;
+function onAdminUserSearchInput(q) {
+  clearTimeout(adminUserSearchDebounceTimer);
+  adminUserSearchDebounceTimer = setTimeout(() => {
+    q = q.trim();
+    if (!q) { loadAdminUsers(true); return; }
+    searchAdminUsers(q);
+  }, 300);
+}
+
+async function searchAdminUsers(q) {
+  const list = document.getElementById('adm-users-list');
+  if (!list) return;
+  adminUsersSearching = true;
+  list.innerHTML = adminSkeletonHTML(4);
+  const qLower = q.toLowerCase();
+  try {
+    const lookups = [
+      db.collection('teknohane_users').where('email', '==', qLower).limit(10).get().catch(() => ({ docs: [] })),
+      db.collection('teknohane_users').where('phoneNumber', '==', q).limit(10).get().catch(() => ({ docs: [] })),
+      db.collection('teknohane_usernames')
+        .where(firebase.firestore.FieldPath.documentId(), '>=', qLower)
+        .where(firebase.firestore.FieldPath.documentId(), '<=', qLower + '')
+        .limit(10).get().catch(() => ({ docs: [] })),
+      /^[A-Za-z0-9]{20,40}$/.test(q) ? db.collection('teknohane_users').doc(q).get().then(d => ({ docs: d.exists ? [d] : [] })).catch(() => ({ docs: [] })) : Promise.resolve({ docs: [] }),
+    ];
+    const [byEmail, byPhone, byUsername, byUid] = await Promise.all(lookups);
+    const usernameUids = byUsername.docs.map(d => d.data().uid).filter(Boolean);
+    const byUsernameFull = usernameUids.length
+      ? await Promise.all(usernameUids.map(uid => db.collection('teknohane_users').doc(uid).get()))
+      : [];
+    const seen = new Map();
+    [...byEmail.docs, ...byPhone.docs, ...byUid.docs, ...byUsernameFull].forEach(d => {
+      if (d.exists) seen.set(d.id, { uid: d.id, ...d.data() });
+    });
+    if (!Object.keys(adminRolesCache).length) {
+      const adminsSnap = await db.collection('admins').get().catch(() => ({ docs: [] }));
+      adminsSnap.docs.forEach(d => { adminRolesCache[d.id] = d.data(); });
+    }
+    adminUsersCache = [...seen.values()];
+    adminUsersHasMore = false;
+    rAdminUsers();
+    updateAdminUsersLoadMoreBtn();
+  } catch(e) {
+    console.error('Kullanıcı araması başarısız:', e);
+    list.innerHTML = '<div class="no">Arama yapılamadı: ' + e.message + '</div>';
   }
 }
 
 const ROLE_LABELS = { super_admin: 'Süper Admin', admin: 'Admin', moderator: 'Moderatör', editor: 'Editör' };
 
+// Arama artık sorgu seviyesinde (searchAdminUsers) yapılıyor — burada yalnızca zaten yüklenmiş
+// sayfa/arama sonucu render ediliyor, ikinci bir istemci taraflı metin filtresi YOK.
 function rAdminUsers() {
   const list = document.getElementById('adm-users-list');
   if (!list || !adminUsersCache) return;
-  const q = (document.getElementById('adm-user-srch')?.value||'').toLowerCase();
 
   // Her kullanıcı için ilan sayısını listings'ten hesapla (bellekte zaten var, ekstra sorgu yok)
-  const enriched = adminUsersCache.map(u => {
+  const items = adminUsersCache.map(u => {
     const userListings = listings.filter(l => l.uid === u.uid);
     let fallbackName = u.displayName;
     if (!fallbackName && userListings[0]) fallbackName = userListings[0].ownerName;
@@ -8702,7 +8961,6 @@ function rAdminUsers() {
       }
     }
     const roleInfo = adminRolesCache[u.uid];
-    const phoneText = u.currentPhone ? `${u.currentPhone.brand} ${u.currentPhone.model}` : '';
     return {
       ...u,
       listingCount: userListings.length,
@@ -8710,25 +8968,25 @@ function rAdminUsers() {
       displayName: fallbackName || 'İsimsiz Kullanıcı',
       email: u.email || '',
       role: (roleInfo && roleInfo.isActive !== false) ? roleInfo.role : null,
-      searchBlob: `${fallbackName||''} ${u.email||''} ${u.username||''} ${u.uid} ${u.phoneNumber||''} ${phoneText}`.toLowerCase()
     };
   });
 
-  let items = enriched.filter(u => !q || u.searchBlob.includes(q));
+  if (!items.length) { list.innerHTML = `<div class="no">${adminUsersSearching?'Kullanıcı bulunamadı':'Henüz kullanıcı yok'}</div>`; updateBulkBar('adm-users-list'); return; }
 
-  if (!items.length) { list.innerHTML = '<div class="no">Kullanıcı bulunamadı</div>'; return; }
-
+  const sel = bulkSelected('adm-users-list');
   list.innerHTML = items.map(u => `
     <div class="adm-user-row" onclick="openUserDetail('${u.uid}')">
-      ${u.photoURL ? `<img class="adm-user-av" src="${u.photoURL}" alt="">` : `<div class="adm-user-av">${(u.displayName||'?')[0].toUpperCase()}</div>`}
+      <input type="checkbox" class="bulk-check" onclick="event.stopPropagation()" onchange="bulkToggle('adm-users-list','${u.uid}',this.checked)" ${sel.has(u.uid)?'checked':''}>
+      ${u.photoURL ? `<img class="adm-user-av" src="${escapeHtml(u.photoURL)}" alt="">` : `<div class="adm-user-av">${(u.displayName||'?')[0].toUpperCase()}</div>`}
       <div class="adm-user-info">
-        <div class="adm-user-name">${u.displayName}${u.role?` <span class="admin-badge">${ROLE_LABELS[u.role]||u.role}</span>`:''}${isCurrentlyBanned(u)?' <span class="admin-badge" style="background:var(--red)">BANLI</span>':''}</div>
-        <div class="adm-user-email">${u.email}</div>
+        <div class="adm-user-name">${escapeHtml(u.displayName)}${u.role?` <span class="admin-badge">${ROLE_LABELS[u.role]||u.role}</span>`:''}${isCurrentlyBanned(u)?' <span class="admin-badge" style="background:var(--red)">BANLI</span>':''}${u.accountDisabled?' <span class="admin-badge" style="background:var(--text3)">PASİF</span>':''}</div>
+        <div class="adm-user-email">${escapeHtml(u.email)}</div>
       </div>
       <div class="adm-user-stats">
         <div class="adm-user-stat"><div class="adm-user-stat-n">${u.listingCount}</div><div class="adm-user-stat-l">İlan</div></div>
       </div>
     </div>`).join('');
+  updateBulkBar('adm-users-list');
 }
 
 function openUserDetail(uid) {
@@ -8764,11 +9022,11 @@ function openUserDetail(uid) {
 
   document.getElementById('user-detail-body').innerHTML = `
     <div class="phero" style="padding-bottom:20px">
-      <div class="pcover" style="${u.coverPhotoURL?`background-image:url('${u.coverPhotoURL}');background-size:cover;background-position:center;`:''}"></div>
-      <img class="pav" src="${av}" onerror="this.onerror=null;this.src='${avFallback}'" alt="">
-      <div class="pname">${displayName}</div>
-      ${u.username?`<div class="puname">@${u.username}</div>`:''}
-      <div class="pemail">${u.email||'—'}</div>
+      <div class="pcover" style="${u.coverPhotoURL?`background-image:url('${escapeHtml(u.coverPhotoURL)}');background-size:cover;background-position:center;`:''}"></div>
+      <img class="pav" src="${escapeHtml(av)}" onerror="this.onerror=null;this.src='${escapeHtml(avFallback)}'" alt="">
+      <div class="pname">${escapeHtml(displayName)}</div>
+      ${u.username?`<div class="puname">@${escapeHtml(u.username)}</div>`:''}
+      <div class="pemail">${escapeHtml(u.email)||'—'}</div>
 
       <!-- Hızlı Bilgi Kartı -->
       <div class="pverify">
@@ -8777,6 +9035,7 @@ function openUserDetail(uid) {
         <span class="pverify-item${u.emailVerified?' ok':''}">${u.emailVerified?'✓':'○'} E-posta ${u.emailVerified?'Doğrulandı':'Doğrulanmadı'}</span>
         <span class="pverify-item${u.phoneNumber?' ok':''}">${u.phoneNumber?'✓':'○'} Telefon ${u.phoneNumber?'Doğrulandı':'Doğrulanmadı'}</span>
         <span class="pverify-item${isBanned?'':' ok'}"${isBanned?' style="color:var(--red)"':''}>${isBanned?'⛔ Banlı':'✓ Ban Yok'}</span>
+        ${u.accountDisabled?'<span class="pverify-item" style="color:var(--text3)">⏸ Hesap Pasif</span>':''}
       </div>
     </div>
 
@@ -8785,8 +9044,8 @@ function openUserDetail(uid) {
       <div class="pacc-row"><span class="pacc-lbl">UID</span><span class="pacc-val" style="font-size:10px;word-break:break-all;text-align:right;max-width:60%">${uid}</span></div>
       <div class="pacc-row"><span class="pacc-lbl">Kayıt Tarihi</span><span class="pacc-val">${joinedDateStr}</span></div>
       <div class="pacc-row"><span class="pacc-lbl">Son Giriş</span><span class="pacc-val">${lastSeenStr}</span></div>
-      <div class="pacc-row"><span class="pacc-lbl">Telefon Numarası</span><span class="pacc-val">${u.phoneNumber||'—'}</span></div>
-      <div class="pacc-row"><span class="pacc-lbl">Kullanılan Cihaz</span><span class="pacc-val">${u.lastLoginDevice||'—'}</span></div>
+      <div class="pacc-row"><span class="pacc-lbl">Telefon Numarası</span><span class="pacc-val">${escapeHtml(u.phoneNumber)||'—'}</span></div>
+      <div class="pacc-row"><span class="pacc-lbl">Kullanılan Cihaz</span><span class="pacc-val">${escapeHtml(u.lastLoginDevice)||'—'}</span></div>
       <div class="pacc-row"><span class="pacc-lbl">Takip Edilen</span><span class="pacc-val">${(u.followingUids||[]).length}</span></div>
       <div class="pacc-row"><span class="pacc-lbl">Takipçi</span><span class="pacc-val" id="ud-followers-count">Yükleniyor…</span></div>
       <div class="pacc-row"><span class="pacc-lbl">Forum Gönderisi</span><span class="pacc-val" id="ud-forum-count">Yükleniyor…</span></div>
@@ -8817,7 +9076,7 @@ function openUserDetail(uid) {
       <div class="ud-section-title">İlanları (${userListings.length})</div>
       ${userListings.length ? userListings.map(l => `
         <div class="ud-item" onclick="closemo('user-detail-mo');openDetail('${l.id}')">
-          <span class="ud-item-name">${l.model}${l.approved===false?' ⏳':''}${l.sold?' ✓':''}</span>
+          <span class="ud-item-name">${escapeHtml(l.model)}${l.approved===false?' ⏳':''}${l.sold?' ✓':''}</span>
           <span class="ud-item-meta">₺${parseInt(l.price||0).toLocaleString('tr-TR')}</span>
         </div>`).join('') : '<div class="ud-empty">Henüz ilan vermemiş</div>'}
     </div>
@@ -8826,7 +9085,7 @@ function openUserDetail(uid) {
       <div class="ud-section-title">Favorilediği İlanlar</div>
       ${favListings.length ? favListings.map(l => `
         <div class="ud-item" onclick="closemo('user-detail-mo');openDetail('${l.id}')">
-          <span class="ud-item-name">${l.model}</span>
+          <span class="ud-item-name">${escapeHtml(l.model)}</span>
           <span class="ud-item-meta">₺${parseInt(l.price||0).toLocaleString('tr-TR')}</span>
         </div>`).join('') : '<div class="ud-empty">Favori ilanı yok</div>'}
     </div>
@@ -8835,8 +9094,8 @@ function openUserDetail(uid) {
       <div class="ud-section-title">Referans Olduğu İlanlar</div>
       ${refListings.length ? refListings.map(l => `
         <div class="ud-item" onclick="closemo('user-detail-mo');openDetail('${l.id}')">
-          <span class="ud-item-name">${l.model}</span>
-          <span class="ud-item-meta">${l.ownerName||'—'}</span>
+          <span class="ud-item-name">${escapeHtml(l.model)}</span>
+          <span class="ud-item-meta">${escapeHtml(l.ownerName)||'—'}</span>
         </div>`).join('') : '<div class="ud-empty">Referans olduğu ilan yok</div>'}
     </div>
 
@@ -8848,7 +9107,7 @@ function openUserDetail(uid) {
     <div class="ud-section">
       <div class="ud-section-title">Yönetici İşlemleri</div>
       <div style="display:flex;flex-direction:column;gap:8px">
-        <button class="apbtn" onclick="closemo('user-detail-mo');openPublicProfile('${uid}','${displayName.replace(/'/g,"\\'")}')">👁️ Profili Görüntüle</button>
+        <button class="apbtn" onclick="closemo('user-detail-mo');openPublicProfile('${uid}','${escapeJsAttr(displayName)}')">👁️ Profili Görüntüle</button>
         <button class="apbtn" onclick="openUserEdit('${uid}')">✏️ Düzenle</button>
         <button class="apbtn" style="background:rgba(255,69,58,.08);border-color:rgba(255,69,58,.25);color:var(--red)" onclick="openUserBan('${uid}')">🚫 Ban İşlemleri</button>
         <button class="apbtn" onclick="openUserLogs('${uid}')">📋 Logları Gör</button>
@@ -8905,9 +9164,9 @@ function openUserEdit(uid) {
   const isAdminUser = !!(roleInfo && roleInfo.isActive !== false);
   const body = document.getElementById('user-edit-body');
   body.innerHTML = `
-    <div class="fg"><label class="fl">Ad Soyad</label><input class="fi" id="ue-name" value="${(u.displayName||'').replace(/"/g,'&quot;')}"></div>
-    <div class="fg"><label class="fl">Kullanıcı Adı</label><input class="fi" id="ue-username" value="${(u.username||'').replace(/"/g,'&quot;')}"></div>
-    <div class="fg"><label class="fl">Biyografi</label><textarea class="fi" id="ue-bio" rows="2" style="resize:none;font-family:inherit">${u.bio||''}</textarea></div>
+    <div class="fg"><label class="fl">Ad Soyad</label><input class="fi" id="ue-name" value="${escapeHtml(u.displayName)}"></div>
+    <div class="fg"><label class="fl">Kullanıcı Adı</label><input class="fi" id="ue-username" value="${escapeHtml(u.username)}"></div>
+    <div class="fg"><label class="fl">Biyografi</label><textarea class="fi" id="ue-bio" rows="2" style="resize:none;font-family:inherit">${escapeHtml(u.bio)}</textarea></div>
     <div class="fg"><label class="fl" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="ue-vip" ${u.vip?'checked':''}> VIP rozeti</label></div>
     <div class="fg"><label class="fl" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="ue-trusted" ${u.trustedSeller?'checked':''}> Güvenilir Satıcı rozeti</label></div>
     <div class="fg"><label class="fl" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="ue-adminverified" ${u.adminVerified?'checked':''}> Doğrulanmış Hesap (admin onayı)</label></div>
@@ -8926,6 +9185,11 @@ function openUserEdit(uid) {
            <button class="apbtn" onclick="grantAdminRole('${uid}')">Admin Yap</button>` : '<div class="ud-empty">Admin atama yetkin yok</div>')}
     </div>
     <div class="ud-section">
+      <div class="ud-section-title">Hesap Durumu</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Ban'dan farklı: kural ihlali içermeyen, geri alınabilir bir askıya alma.</div>
+      <button class="apbtn" style="${u.accountDisabled?'background:rgba(48,209,88,.1);border-color:rgba(48,209,88,.3);color:#3DDC97':'background:var(--surf2);color:var(--text)'}" onclick="toggleAccountDisabled('${uid}')">${u.accountDisabled?'✓ Hesabı Aktif Et':'⏸ Hesabı Pasife Al'}</button>
+    </div>
+    <div class="ud-section">
       <div class="ud-section-title">Uyarı / Bildirim Gönder</div>
       <textarea class="fi" id="ue-message" rows="2" style="resize:none;font-family:inherit" placeholder="Kullanıcıya gönderilecek mesaj..."></textarea>
       <div style="display:flex;gap:8px;margin-top:8px">
@@ -8935,11 +9199,11 @@ function openUserEdit(uid) {
     </div>
     <div class="ud-section">
       <div class="ud-section-title">Şifre</div>
-      ${u.email ? `<button class="apbtn" onclick="sendUserPasswordReset('${(u.email||'').replace(/'/g,"\\'")}')">✉️ Şifre Sıfırlama Maili Gönder</button>` : '<div class="ud-empty">E-posta adresi yok</div>'}
+      ${u.email ? `<button class="apbtn" onclick="sendUserPasswordReset('${escapeJsAttr(u.email)}')">✉️ Şifre Sıfırlama Maili Gönder</button>` : '<div class="ud-empty">E-posta adresi yok</div>'}
     </div>
     <div class="ud-section">
       <div class="ud-section-title">Yönetici Notu (yalnızca adminler görür)</div>
-      <div id="ue-notes-list">${(u.adminNotes||[]).slice().reverse().map(n => `<div class="pact-row"><div class="pact-ic">📝</div><div class="pact-body"><div class="pact-txt">${n.text}</div><div class="pact-time">${n.byName||''} · ${n.at?.toDate?timeAgo(n.at.toDate()):''}</div></div></div>`).join('') || '<div class="ud-empty">Not yok</div>'}</div>
+      <div id="ue-notes-list">${(u.adminNotes||[]).slice().reverse().map(n => `<div class="pact-row"><div class="pact-ic">📝</div><div class="pact-body"><div class="pact-txt">${escapeHtml(n.text)}</div><div class="pact-time">${escapeHtml(n.byName)||''} · ${n.at?.toDate?timeAgo(n.at.toDate()):''}</div></div></div>`).join('') || '<div class="ud-empty">Not yok</div>'}</div>
       <textarea class="fi" id="ue-note-text" rows="2" style="resize:none;font-family:inherit;margin-top:8px" placeholder="Yeni not..."></textarea>
       <button class="apbtn" style="margin-top:8px" onclick="addUserNote('${uid}')">Not Ekle</button>
     </div>`;
@@ -8968,6 +9232,24 @@ async function saveUserEdit(uid) {
   } catch(e) {
     err.textContent = 'Hata: ' + e.message; err.classList.add('on');
   }
+}
+
+// Hesabı pasife alma/aktif etme — BAN'DAN KASITLI OLARAK AYRI bir alan (accountDisabled). Ban; kural
+// ihlali/sebep/süre taşıyan bir yaptırım, bu ise nötr, geri alınabilir bir "hesabı askıya al"
+// durumu (ör. kullanıcının kendi isteği, şüpheli aktivite incelemesi vb.) — ikisi karıştırılmıyor.
+async function toggleAccountDisabled(uid) {
+  if (!hasPermission('manageUsers')) { showToast('⚠️','rgba(255,69,58,.15)','Yetkin Yok',''); return; }
+  const u = adminUsersCache?.find(x => x.uid === uid);
+  if (!u) return;
+  const newVal = !u.accountDisabled;
+  try {
+    await db.collection('teknohane_users').doc(uid).set({ accountDisabled: newVal }, { merge: true });
+    u.accountDisabled = newVal;
+    adminLog(newVal ? 'disable_account' : 'enable_account', 'user', uid, u.displayName||uid, { accountDisabled: !newVal }, { accountDisabled: newVal }, 'success');
+    rAdminUsers();
+    if (document.getElementById('user-edit-mo')?.classList.contains('on')) openUserEdit(uid);
+    showToast('✓','rgba(48,209,88,.15)', newVal?'Hesap Pasife Alındı':'Hesap Aktif Edildi', '');
+  } catch(e) { showToast('⚠️','rgba(255,69,58,.15)','Hata','İşlem yapılamadı: ' + e.message); }
 }
 
 async function grantAdminRole(uid) {
@@ -9065,7 +9347,7 @@ async function openUserLogs(uid) {
       const l = d.data();
       return `<div class="pact-row">
         <div class="pact-ic">🛡️</div>
-        <div class="pact-body"><div class="pact-txt"><b>${l.adminName||'Admin'}</b> — ${l.action}</div><div class="pact-time">${l.createdAt?.toDate?timeAgo(l.createdAt.toDate()):''}</div></div>
+        <div class="pact-body"><div class="pact-txt"><b>${escapeHtml(l.adminName)||'Admin'}</b> — ${escapeHtml(l.action)}</div><div class="pact-time">${l.createdAt?.toDate?timeAgo(l.createdAt.toDate()):''}</div></div>
       </div>`;
     }).join('');
   } catch(e) {
@@ -9158,26 +9440,10 @@ function openUserBan(uid) {
   document.getElementById('ban-mo').classList.add('on');
 }
 
-function renderBanModal(uid) {
-  const u = adminUsersCache?.find(x => x.uid === uid);
-  const body = document.getElementById('ban-modal-body');
-  if (!u || !body) return;
-
-  if (isCurrentlyBanned(u)) {
-    const expiresStr = u.banExpiresAt?.toDate ? u.banExpiresAt.toDate().toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}) : null;
-    body.innerHTML = `
-      <div class="pacc-card">
-        <div class="pacc-row"><span class="pacc-lbl">Sebep</span><span class="pacc-val">${u.banReasonLabel||'—'}</span></div>
-        <div class="pacc-row"><span class="pacc-lbl">Tür</span><span class="pacc-val">${u.banType==='permanent'?'Süresiz':'Geçici'}</span></div>
-        ${expiresStr?`<div class="pacc-row"><span class="pacc-lbl">Bitiş</span><span class="pacc-val">${expiresStr}</span></div>`:''}
-        <div class="pacc-row"><span class="pacc-lbl">Uygulayan</span><span class="pacc-val">${u.bannedByName||'—'}</span></div>
-        ${u.banAdminNote?`<div class="pacc-row"><span class="pacc-lbl">Yönetici Notu</span><span class="pacc-val">${u.banAdminNote}</span></div>`:''}
-      </div>
-      <button class="apbtn" style="background:rgba(48,209,88,.1);border-color:rgba(48,209,88,.3);color:#3DDC97" onclick="removeBan('${uid}')">✓ Banı Kaldır</button>`;
-    return;
-  }
-
-  body.innerHTML = `
+// Ban formunun HTML'i — hem tekli (renderBanModal) hem toplu (openBulkBan) ban akışı tarafından
+// PAYLAŞILIYOR, yalnızca gönder butonunun onclick'i ve etiketi değişiyor (kod tekrarı yok).
+function banFormHTML(submitOnclick, submitLabel) {
+  return `
     <div class="fg"><label class="fl">Ban Süresi</label>
       <div class="csel" data-for="ban-duration" data-title="Ban Süresi" onclick="openPicker(this)"><span class="csel-label">Süresiz</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
       <select id="ban-duration" style="display:none" onchange="document.getElementById('ban-custom-date-wrap').style.display=this.value==='custom'?'block':'none'">
@@ -9211,36 +9477,76 @@ function renderBanModal(uid) {
       <textarea class="fi" id="ban-user-msg" rows="2" style="resize:none;font-family:inherit" placeholder="Bu hesap ... nedeniyle kısıtlandı."></textarea>
     </div>
     <div class="aerr" id="ban-err"></div>
-    <button class="apbtn" style="background:rgba(255,69,58,.08);border-color:rgba(255,69,58,.25);color:var(--red)" onclick="applyBan('${uid}')">🚫 Banı Uygula</button>`;
+    <button class="apbtn" style="background:rgba(255,69,58,.08);border-color:rgba(255,69,58,.25);color:var(--red)" onclick="${submitOnclick}">🚫 ${submitLabel}</button>`;
 }
 
-async function applyBan(uid) {
-  if (!hasPermission('banUsers')) return;
-  const err = document.getElementById('ban-err'); err.textContent=''; err.classList.remove('on');
+function renderBanModal(uid) {
+  const u = adminUsersCache?.find(x => x.uid === uid);
+  const body = document.getElementById('ban-modal-body');
+  if (!u || !body) return;
 
+  if (isCurrentlyBanned(u)) {
+    const expiresStr = u.banExpiresAt?.toDate ? u.banExpiresAt.toDate().toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}) : null;
+    body.innerHTML = `
+      <div class="pacc-card">
+        <div class="pacc-row"><span class="pacc-lbl">Sebep</span><span class="pacc-val">${escapeHtml(u.banReasonLabel)||'—'}</span></div>
+        <div class="pacc-row"><span class="pacc-lbl">Tür</span><span class="pacc-val">${u.banType==='permanent'?'Süresiz':'Geçici'}</span></div>
+        ${expiresStr?`<div class="pacc-row"><span class="pacc-lbl">Bitiş</span><span class="pacc-val">${expiresStr}</span></div>`:''}
+        <div class="pacc-row"><span class="pacc-lbl">Uygulayan</span><span class="pacc-val">${escapeHtml(u.bannedByName)||'—'}</span></div>
+        ${u.banAdminNote?`<div class="pacc-row"><span class="pacc-lbl">Yönetici Notu</span><span class="pacc-val">${escapeHtml(u.banAdminNote)}</span></div>`:''}
+      </div>
+      <button class="apbtn" style="background:rgba(48,209,88,.1);border-color:rgba(48,209,88,.3);color:#3DDC97" onclick="removeBan('${uid}')">✓ Banı Kaldır</button>`;
+    return;
+  }
+
+  body.innerHTML = banFormHTML(`applyBan('${uid}')`, 'Banı Uygula');
+}
+
+// Kullanıcılar sekmesindeki toplu seçimden çoklu ban — AYNI ban-mo formunu, hedef listesini modalın
+// kendi DOM özelliğinde (yeni bir global değişken değil) tutarak yeniden kullanır.
+function openBulkBan() {
+  const ids = [...bulkSelected('adm-users-list')];
+  if (!ids.length) return;
+  if (!hasPermission('banUsers')) { showToast('⚠️', 'rgba(255,69,58,.15)', 'Yetkin Yok', 'Ban işlemleri için gerekli yetkiye sahip değilsin.'); return; }
+  document.getElementById('ban-mo')._bulkUids = ids;
+  const body = document.getElementById('ban-modal-body');
+  body.innerHTML = `<div class="pacc-card" style="font-size:12px;color:var(--text2);margin-bottom:4px">${ids.length} kullanıcı için TEK bir ban süresi/sebebi uygulanacak.</div>` + banFormHTML('applyBulkBan()', `${ids.length} Kullanıcıyı Banla`);
+  document.getElementById('ban-mo').classList.add('on');
+}
+
+// Ban formundaki alanları okur/doğrular — applyBan (tekli) ve applyBulkBan (çoklu) tarafından
+// PAYLAŞILIYOR. Doğrulama başarısızsa ban-err'e mesaj yazıp null döner.
+function readBanFormFields() {
+  const err = document.getElementById('ban-err'); err.textContent=''; err.classList.remove('on');
   const duration = document.getElementById('ban-duration').value;
   const reasonCode = document.getElementById('ban-reason-select').value;
   const reasonObj = BAN_REASONS.find(r=>r.code===reasonCode);
   let reasonLabel = reasonObj?.label || 'Diğer';
   if (reasonCode === 'diger') {
     const otherText = document.getElementById('ban-other-text').value.trim();
-    if (!otherText) { err.textContent = 'Diğer seçildiyse açıklama yazılmalı'; err.classList.add('on'); return; }
+    if (!otherText) { err.textContent = 'Diğer seçildiyse açıklama yazılmalı'; err.classList.add('on'); return null; }
     reasonLabel = otherText;
   }
   const adminNote = document.getElementById('ban-admin-note').value.trim();
   const userMessage = document.getElementById('ban-user-msg').value.trim();
-
   let banType, banExpiresDate;
   if (duration === 'permanent') { banType = 'permanent'; banExpiresDate = null; }
   else if (duration === 'custom') {
     const customVal = document.getElementById('ban-custom-date').value;
-    if (!customVal) { err.textContent = 'Bitiş tarihi seçilmeli'; err.classList.add('on'); return; }
+    if (!customVal) { err.textContent = 'Bitiş tarihi seçilmeli'; err.classList.add('on'); return null; }
     banType = 'temporary'; banExpiresDate = new Date(customVal);
   } else {
     banType = 'temporary';
     banExpiresDate = new Date(Date.now() + parseInt(duration) * 24 * 60 * 60 * 1000);
   }
+  return { banType, banExpiresDate, reasonCode, reasonLabel, adminNote, userMessage };
+}
 
+async function applyBan(uid) {
+  if (!hasPermission('banUsers')) return;
+  const fields = readBanFormFields();
+  if (!fields) return;
+  const { banType, banExpiresDate, reasonCode, reasonLabel, adminNote, userMessage } = fields;
   const u = adminUsersCache?.find(x => x.uid === uid);
   const targetName = u?.displayName || uid;
   const oldVal = { banned: !!u?.banned };
@@ -9266,7 +9572,41 @@ async function applyBan(uid) {
     showToast('✓', 'rgba(48,209,88,.15)', 'Banlandı', `${targetName} kullanıcısı banlandı.`);
   } catch(e) {
     adminLog('ban_user', 'user', uid, targetName, oldVal, null, 'error: ' + e.message);
-    err.textContent = 'Hata: ' + e.message; err.classList.add('on');
+    document.getElementById('ban-err').textContent = 'Hata: ' + e.message;
+    document.getElementById('ban-err').classList.add('on');
+  }
+}
+
+async function applyBulkBan() {
+  if (!hasPermission('banUsers')) return;
+  const uids = document.getElementById('ban-mo')._bulkUids || [];
+  if (!uids.length) return;
+  const fields = readBanFormFields();
+  if (!fields) return;
+  const { banType, banExpiresDate, reasonCode, reasonLabel, adminNote, userMessage } = fields;
+  const banData = {
+    banned: true, banType,
+    banExpiresAt: banExpiresDate ? firebase.firestore.Timestamp.fromDate(banExpiresDate) : null,
+    banReasonCode: reasonCode, banReasonLabel: reasonLabel,
+    banAdminNote: adminNote, banUserMessage: userMessage,
+    bannedBy: user.uid, bannedByName: myAdminRole?.displayName || user.displayName || user.email,
+    bannedAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+  try {
+    await Promise.all(uids.map(async uid => {
+      const u = adminUsersCache?.find(x => x.uid === uid);
+      const oldVal = { banned: !!u?.banned };
+      await db.collection('teknohane_users').doc(uid).set(banData, { merge: true });
+      if (u) Object.assign(u, banData);
+      adminLog('ban_user', 'user', uid, u?.displayName||uid, oldVal, { banned:true, banType, banExpiresAt: banExpiresDate, reasonLabel }, 'success');
+    }));
+    closemo('ban-mo');
+    bulkClear('adm-users-list');
+    rAdminUsers();
+    showToast('✓', 'rgba(48,209,88,.15)', 'Banlandı', `${uids.length} kullanıcı banlandı.`);
+  } catch(e) {
+    document.getElementById('ban-err').textContent = 'Hata: ' + e.message;
+    document.getElementById('ban-err').classList.add('on');
   }
 }
 
