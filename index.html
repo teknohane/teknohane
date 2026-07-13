@@ -34,7 +34,7 @@
 [data-theme="light"] #hdr{background:rgba(242,242,247,.88);box-shadow:0 0.5px 0 var(--border2);backdrop-filter:saturate(180%) blur(20px);}
 [data-theme="light"] #tabs{background:rgba(249,249,251,.92);box-shadow:0 -0.5px 0 var(--border2);}
 [data-theme="light"] .lcard,[data-theme="light"] .vc,[data-theme="light"] .wc,[data-theme="light"] .mi,[data-theme="light"] .pitem,[data-theme="light"] .adm-row,[data-theme="light"] .adm-user-row,[data-theme="light"] .ud-item,[data-theme="light"] .ref-item,[data-theme="light"] .cmt,[data-theme="light"] .phero,[data-theme="light"] .ch-hero,[data-theme="light"] .apanel,[data-theme="light"] .theme-panel{box-shadow:0 1px 2px rgba(0,0,0,0.04);}
-[data-theme="light"] .feat,[data-theme="light"] .ctbl,[data-theme="light"] .det-sheet,[data-theme="light"] .ms{box-shadow:0 8px 24px rgba(0,0,0,0.08);}
+[data-theme="light"] .feat,[data-theme="light"] .ctbl,[data-theme="light"] .cmp-hero,[data-theme="light"] .det-sheet,[data-theme="light"] .ms{box-shadow:0 8px 24px rgba(0,0,0,0.08);}
 [data-theme="light"] .new-btn,[data-theme="light"] .sbtn,[data-theme="light"] .sbtn2,[data-theme="light"] .wel-btn,[data-theme="light"] .filter-apply,[data-theme="light"] .admin-badge,[data-theme="light"] .share-btn{color:#FFFFFF;}
 [data-theme="light"] .share-btn svg{stroke:#FFFFFF;}
 [data-theme="light"] .gbtn{box-shadow:0 1px 2px rgba(0,0,0,0.06);}
@@ -364,6 +364,37 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .ccell{padding:11px;font-size:12px;}
 .ccell.lbl{color:var(--text2);font-weight:500;background:rgba(0,212,255,.03);}
 .ccell.val{font-weight:500;}
+/* Karşılaştırma — premium üst bölüm (iki telefon + VS). Gerçek telefon FOTOĞRAFI yok (bkz. görev
+   raporu), bu yüzden .cmp-hero-badge sahte bir görsel değil, markanın baş harfini taşıyan nötr bir
+   rozet — uygulamanın başka yerlerindeki isim baş harfi rozetleriyle (Sohbet/Bildirimler) aynı ilke. */
+.cmp-hero{display:flex;align-items:flex-start;gap:8px;background:var(--surf);border:1px solid var(--border2);border-radius:16px;padding:18px 10px;margin-bottom:14px;}
+.cmp-hero-phone{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;text-align:center;gap:2px;}
+.cmp-hero-badge{width:60px;height:60px;border-radius:50%;background:var(--cdim);color:var(--cyan);font-size:24px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-bottom:6px;}
+.cmp-hero-name{font-size:12.5px;font-weight:700;line-height:1.3;}
+.cmp-hero-brand{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-top:1px;}
+.cmp-hero-meta{display:flex;flex-direction:column;align-items:center;gap:2px;margin-top:8px;}
+.cmp-hero-yr{font-size:11px;color:var(--text3);}
+.cmp-hero-price{font-size:13px;font-weight:700;color:var(--cyan);}
+.cmp-hero-score{margin-top:8px;font-size:9.5px;color:var(--text3);background:var(--surf2);padding:3px 8px;border-radius:20px;white-space:nowrap;}
+.cmp-vs{flex-shrink:0;width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),#0080ff);color:#000;font-size:10.5px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-top:14px;}
+/* Kategori accordion — hafif, JS'siz max-height geçişi. İlk kategori varsayılan açık (bkz.
+   cmpCategoryAccordionHTML), diğerleri kapalı — "tek seferde yüzlerce satır" görülmesin diye. */
+.cmp-cat{border-bottom:1px solid var(--border2);}
+.cmp-cat:last-child{border-bottom:none;}
+.cmp-cat-hdr{display:flex;align-items:center;justify-content:space-between;padding:13px 12px;font-size:13px;font-weight:700;cursor:pointer;}
+.cmp-cat-chev{flex-shrink:0;color:var(--text3);transition:transform .2s ease;}
+.cmp-cat.open .cmp-cat-chev{transform:rotate(180deg);}
+.cmp-cat-body{max-height:0;overflow:hidden;transition:max-height .25s ease;}
+.cmp-cat.open .cmp-cat-body{max-height:600px;}
+/* Kazanan hücre — hafif yeşil zemin + küçük ✔ rozeti, abartılı efekt yok. */
+.ccell-wrap{position:relative;min-width:0;}
+.ccell-wrap.win{background:rgba(48,209,88,.12);border-radius:8px;}
+.ccell-wrap.win .ccell.val{color:#30D158;font-weight:700;}
+.cmp-win-badge{position:absolute;top:1px;right:2px;font-size:9px;color:#30D158;}
+/* "Sadece farkları göster" — tamamen CSS ile, yeni bir render/sorgu yok (bkz. toggleCmpDiffOnly). */
+.cmp-diff-toggle{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text2);margin-bottom:12px;cursor:pointer;user-select:none;}
+.diff-only .crow[data-same="1"]{display:none;}
+.diff-only .cmp-cat:not(:has(.crow[data-same="0"])){display:none;}
 .plist{display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto;}
 .pitem{display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--surf);border-radius:12px;border:1px solid var(--border2);cursor:pointer;}
 .pitem:active{background:var(--surf2);}
@@ -9613,28 +9644,152 @@ function rplist() {
   l.innerHTML=sorted.map(p=>`<div class="pitem" onclick="ppick(${PHONES.indexOf(p)})"><div><div class="pn">${p.brand} ${p.name}</div><div class="ps">${p.chip||'—'} · ${p.ram||'—'}</div></div><div style="display:flex;align-items:center;gap:8px"><div class="pp">${p.price||'—'}</div><div class="abdg">Ekle</div></div></div>`).join('');
 }
 
+// ==== KARŞILAŞTIRMA — VERİ BİÇİMLENDİRME/KAZANAN YARDIMCILARI ====
+// Worker'dan (GSMArena) gelen wt/os/cam alanları el yazması PHONES kayıtlarından FARKLI, ham
+// formatta geliyor (örn. wt: "179 g (6.31 oz)" vs "227g", os: "Android 16, up to 6 major Android
+// upgrades..." vs "Android 15", cam: 200+ karakterlik tam sensör dökümü vs "48+12MP" — curl ile
+// doğrulandı). Bu fonksiyon YALNIZCA GÖSTERİM içindir, hiçbir veriyi değiştirmez/yeniden yazmaz —
+// ham değer p.* üzerinde olduğu gibi kalır (bkz. fetchMissingSpecs).
+function fmtSpecValue(key, raw) {
+  if (raw === undefined || raw === null) return null;
+  const s = String(raw).trim();
+  if (!s || s === 'null' || s === 'undefined' || s === 'NaN') return null;
+  if (key === 'wt') { const m = s.match(/[\d.]+\s*g\b/i); return m ? m[0].replace(/\s+/g,'') : s; }
+  if (key === 'os') { return s.split(',')[0].trim(); }
+  if (key === 'cam') {
+    const mps = [...s.matchAll(/(\d+)\s*MP/gi)].map(m => m[1]);
+    if (mps.length) return mps.join('+') + 'MP';
+    return s.length > 40 ? s.slice(0, 40) + '…' : s;
+  }
+  return s;
+}
+
+// Sayısal karşılaştırmaya uygun alanlar için ham metinden sayı çıkarır — yalnızca kazanan hesabı
+// içindir, ekrana asla bu sayı değil fmtSpecValue'nun ürettiği metin yazılır.
+function parseNumericSpec(key, raw) {
+  const s = String(raw || '');
+  if (key === 'ram' || key === 'storage') {
+    const m = s.match(/([\d.]+)\s*(TB|GB|MB)/i);
+    if (!m) return null;
+    let n = parseFloat(m[1]);
+    if (/TB/i.test(m[2])) n *= 1024;
+    if (/MB/i.test(m[2])) n /= 1024;
+    return isNaN(n) ? null : n;
+  }
+  if (key === 'bat') { const m = s.match(/([\d.]+)\s*mAh/i); return m ? parseFloat(m[1]) : null; }
+  if (key === 'wt') { const m = s.match(/([\d.]+)\s*g\b/i); return m ? parseFloat(m[1]) : null; }
+  if (key === 'scr') { const m = s.match(/([\d.]+)\s*Hz/i); return m ? parseFloat(m[1]) : null; }
+  return null;
+}
+
+function parseScreenInches(raw) {
+  const m = String(raw || '').match(/([\d.]+)\s*"/);
+  return m ? parseFloat(m[1]) : null;
+}
+
+// Ağırlık DÜŞÜK olan kazanır, diğer karşılaştırılabilir alanlarda YÜKSEK olan kazanır. chip/cam/os
+// metin biçiminde tutarsız/karşılaştırılamaz olduğu için (bkz. yukarıdaki not) kazanan HİÇ hesaplanmıyor.
+const CMP_LOWER_WINS = new Set(['wt']);
+const CMP_COMPARABLE_KEYS = new Set(['ram', 'storage', 'bat', 'wt', 'scr']);
+function computeSpecWinner(key, rawA, rawB) {
+  if (!CMP_COMPARABLE_KEYS.has(key)) return null;
+  let vA, vB;
+  if (key === 'scr') {
+    vA = parseNumericSpec('scr', rawA); vB = parseNumericSpec('scr', rawB); // önce Hz dene
+    if (vA == null || vB == null) { vA = parseScreenInches(rawA); vB = parseScreenInches(rawB); } // ikisinde de Hz yoksa ekran boyutuna düş
+  } else {
+    vA = parseNumericSpec(key, rawA); vB = parseNumericSpec(key, rawB);
+  }
+  if (vA == null || vB == null || vA === vB) return null;
+  const aWins = CMP_LOWER_WINS.has(key) ? vA < vB : vA > vB;
+  return aWins ? 'a' : 'b';
+}
+
+// Karşılaştırma özellik kategorileri — GSMArena Worker'ı DOĞRULANDI (curl): yalnızca
+// chip/ram/storage/cam/bat/scr/wt/os alanlarını döndürüyor. Bu yüzden yalnızca GERÇEKTEN karşılığı
+// olan 6 kategori tanımlanıyor. Ön Kamera/Bağlantılar/Ses/Dayanıklılık/Kutu İçeriği/Diğer için
+// hiçbir alan yok — sahte/hep-boş bir kategori göstermek yerine bu kategoriler hiç tanımlanmıyor
+// (bkz. görev raporu, kullanıcı onayı: boş kategoriler tamamen gizlensin).
+const CMP_CATEGORIES = [
+  { label: '⚡ Performans', rows: [{ k: 'chip', l: 'İşlemci' }, { k: 'ram', l: 'RAM' }, { k: 'storage', l: 'Depolama' }] },
+  { label: '📺 Ekran', rows: [{ k: 'scr', l: 'Ekran' }] },
+  { label: '📷 Kamera', rows: [{ k: 'cam', l: 'Kamera' }] },
+  { label: '🔋 Batarya', rows: [{ k: 'bat', l: 'Batarya' }] },
+  { label: '📱 Tasarım', rows: [{ k: 'wt', l: 'Ağırlık' }] },
+  { label: '📲 Yazılım', rows: [{ k: 'os', l: 'İşletim Sistemi' }] },
+];
+
+// Bir özellik hücresini üretir. DOM sözleşmesi KORUNUYOR: id her zaman spec-{key}-{side} —
+// fetchMissingSpecs bu id'yi bulup async olarak dolduruyor, burada değişmedi.
+function cmpCellHTML(key, raw, phone, side) {
+  const formatted = fmtSpecValue(key, raw);
+  const body = formatted || (phone.gsmarenaUrl ? '<span class="spin-mini"></span>' : '—');
+  return `<div class="ccell val" id="spec-${key}-${side}">${body}</div>`;
+}
+
+// Gerçek bir telefon FOTOĞRAFI veri modelinde YOK (ne el yazması PHONES kayıtlarında ne GSMArena
+// Worker'ında bir görsel URL'si var — curl ile doğrulandı). Bu yüzden burada SAHTE/yanıltıcı bir
+// görsel KULLANILMIYOR, yalnızca markanın baş harfini taşıyan nötr "temsili" bir rozet gösteriliyor —
+// uygulamanın başka yerlerinde de aynı ilke (bkz. Sohbet/Bildirimler'deki isim baş harfi rozetleri).
+function cmpHeroPhoneHTML(p, side) {
+  const initial = (p.brand || '?')[0].toUpperCase();
+  return `<div class="cmp-hero-phone">
+    <div class="cmp-hero-badge">${initial}</div>
+    <div class="cmp-hero-name">${p.name}</div>
+    <div class="cmp-hero-brand">${p.brand}</div>
+    <div class="cmp-hero-meta">
+      <span class="cmp-hero-yr">${p.yr || '—'}</span>
+      <span class="cmp-hero-price">${priceCell(p, side)}</span>
+    </div>
+    <div class="cmp-hero-score">⭐ Puan: Yakında</div>
+  </div>`;
+}
+
+// İki telefonlu (b verilirse) ya da tekli (b yoksa) modda, kategorilere ayrılmış, açılıp kapanabilir
+// (accordion) özellik listesini üretir. Kazanan hücreye .win sınıfı + küçük ✔ rozeti eklenir.
+// "Sadece farkları göster" tamamen bellekte/CSS ile çözülsün diye her satıra render sırasında
+// data-same yazılıyor — yeni bir sorgu/render tetiklenmiyor (bkz. toggleCmpDiffOnly).
+function cmpCategoryAccordionHTML(a, b) {
+  return CMP_CATEGORIES.map((cat, ci) => {
+    const rowsHtml = cat.rows.map(r => {
+      const rawA = a[r.k];
+      const rawB = b ? b[r.k] : undefined;
+      const fmtA = fmtSpecValue(r.k, rawA);
+      const fmtB = b ? fmtSpecValue(r.k, rawB) : null;
+      const same = b ? (String(fmtA || '—') === String(fmtB || '—') ? '1' : '0') : '0';
+      const winner = b ? computeSpecWinner(r.k, rawA, rawB) : null;
+      const cellA = cmpCellHTML(r.k, rawA, a, 'a');
+      const cellB = b ? cmpCellHTML(r.k, rawB, b, 'b') : '';
+      const wrapA = `<div class="ccell-wrap${winner==='a'?' win':''}">${cellA}${winner==='a'?'<span class="cmp-win-badge">✔</span>':''}</div>`;
+      const wrapB = b ? `<div class="ccell-wrap${winner==='b'?' win':''}">${cellB}${winner==='b'?'<span class="cmp-win-badge">✔</span>':''}</div>` : '';
+      return `<div class="crow" data-same="${same}"><div class="ccell lbl">${r.l}</div>${wrapA}${wrapB}</div>`;
+    }).join('');
+    return `<div class="cmp-cat${ci===0?' open':''}">
+      <div class="cmp-cat-hdr" onclick="toggleCmpCategory(this)">
+        <span>${cat.label}</span>
+        <svg class="cmp-cat-chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="cmp-cat-body">${rowsHtml}</div>
+    </div>`;
+  }).join('');
+}
+
+function toggleCmpCategory(hdrEl) {
+  hdrEl.parentElement.classList.toggle('open');
+}
+
+// "Sadece farkları göster" — tamamen bellekte/CSS ile çözülüyor, yeni bir sorgu veya render
+// tetiklemiyor. Satırlardaki data-same, cmpCategoryAccordionHTML render'ı sırasında zaten yazılmıştı.
+function toggleCmpDiffOnly(on) {
+  document.getElementById('cmp-res')?.classList.toggle('diff-only', on);
+}
+
 // Karşılaştırmada sadece tek telefon seçiliyken özellik tablosu + yorumları gösterir
 function rsingle(p, side) {
   prRating[side] = 0;
-  const rows=[
-    {k:'chip',l:'İşlemci',v:p.chip},
-    {k:'ram',l:'RAM',v:p.ram},
-    {k:'storage',l:'Depolama',v:p.storage},
-    {k:'cam',l:'Kamera',v:p.cam},
-    {k:'bat',l:'Batarya',v:p.bat},
-    {k:'scr',l:'Ekran',v:p.scr},
-    {k:'wt',l:'Ağırlık',v:p.wt},
-    {k:'os',l:'İşletim Sistemi',v:p.os},
-  ];
-  document.getElementById('cmp-res').innerHTML=`
-    <div class="ctbl">
-      <div class="crow" style="background:rgba(0,212,255,.05)">
-        <div class="ccell lbl"></div>
-        <div class="ccell" style="font-weight:700;font-size:12px;color:var(--cyan)">${p.brand}<br>${p.name}</div>
-      </div>
-      <div class="crow"><div class="ccell lbl">Fiyat</div><div class="ccell val">${priceCell(p,side)}</div></div>
-      ${rows.map(r=>`<div class="crow"><div class="ccell lbl">${r.l}</div><div class="ccell val" id="spec-${r.k}-${side}">${r.v||(p.gsmarenaUrl?'<span class="spin-mini"></span>':'—')}</div></div>`).join('')}
-    </div>
+  document.getElementById('cmp-res').innerHTML = `
+    <div class="cmp-hero msg-in">${cmpHeroPhoneHTML(p, side)}</div>
+    <div class="ctbl">${cmpCategoryAccordionHTML(p, null)}</div>
     <div class="cmp-price-note">🔄 simgesi olan fiyatlar Cimri.com'dan canlı kontrol edilebilir</div>
     <div class="phone-reviews">
       <div class="pr-tit">${p.brand} ${p.name} — Yorumlar</div>
@@ -9840,26 +9995,14 @@ function priceCell(p, side) {
 function rcmptbl() {
   const a=pA,b=pB;
   prRating = { a: 0, b: 0 };
-  const rows=[
-    {k:'chip',l:'İşlemci',a:a.chip,b:b.chip},
-    {k:'ram',l:'RAM',a:a.ram,b:b.ram},
-    {k:'storage',l:'Depolama',a:a.storage,b:b.storage},
-    {k:'cam',l:'Kamera',a:a.cam,b:b.cam},
-    {k:'bat',l:'Batarya',a:a.bat,b:b.bat},
-    {k:'scr',l:'Ekran',a:a.scr,b:b.scr},
-    {k:'wt',l:'Ağırlık',a:a.wt,b:b.wt},
-    {k:'os',l:'İşletim Sistemi',a:a.os,b:b.os},
-  ];
   document.getElementById('cmp-res').innerHTML=`
-    <div class="ctbl">
-      <div class="crow" style="background:rgba(0,212,255,.05)">
-        <div class="ccell lbl"></div>
-        <div class="ccell" style="font-weight:700;font-size:12px;color:var(--cyan)">${a.brand}<br>${a.name}</div>
-        <div class="ccell" style="font-weight:700;font-size:12px;color:var(--cyan)">${b.brand}<br>${b.name}</div>
-      </div>
-      <div class="crow"><div class="ccell lbl">Fiyat</div><div class="ccell val">${priceCell(a,'a')}</div><div class="ccell val">${priceCell(b,'b')}</div></div>
-      ${rows.map(r=>`<div class="crow"><div class="ccell lbl">${r.l}</div><div class="ccell val" id="spec-${r.k}-a">${r.a||(a.gsmarenaUrl?'<span class="spin-mini"></span>':'—')}</div><div class="ccell val" id="spec-${r.k}-b">${r.b||(b.gsmarenaUrl?'<span class="spin-mini"></span>':'—')}</div></div>`).join('')}
+    <div class="cmp-hero msg-in">
+      ${cmpHeroPhoneHTML(a, 'a')}
+      <div class="cmp-vs">VS</div>
+      ${cmpHeroPhoneHTML(b, 'b')}
     </div>
+    <label class="cmp-diff-toggle"><input type="checkbox" onchange="toggleCmpDiffOnly(this.checked)"> Sadece farkları göster</label>
+    <div class="ctbl">${cmpCategoryAccordionHTML(a, b)}</div>
     <div class="cmp-price-note">🔄 simgesi olan fiyatlar Cimri.com'dan canlı kontrol edilebilir</div>
     <button class="share-btn" onclick="shareComparison()">
       <svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
@@ -9901,7 +10044,8 @@ async function fetchMissingSpecs(p, side) {
     const allEmpty = !d.cam && !d.wt && !d.os;
     const fill = (key, val) => {
       const el = document.getElementById(`spec-${key}-${side}`);
-      if (el && val) el.textContent = val;
+      const formatted = fmtSpecValue(key, val);
+      if (el && formatted) el.textContent = formatted;
       else if (el && allEmpty) el.innerHTML = `<span style="font-size:9px;color:orange">Worker'dan boş geldi</span>`;
       else if (el) el.textContent = '—';
     };
@@ -9909,6 +10053,21 @@ async function fetchMissingSpecs(p, side) {
     if (!p.wt) fill('wt', d.wt);
     if (!p.os) fill('os', d.os);
     p.cam = p.cam || d.cam; p.wt = p.wt || d.wt; p.os = p.os || d.os;
+    // Ağırlık kazananı render anında hesaplanamamış olabilir (veri asenkron geldi) — yalnızca bu TEK
+    // satır için, tüm sonucu yeniden çekip ek Firestore/API okuması yaratmadan tazelenir.
+    if (pA && pB) {
+      const winner = computeSpecWinner('wt', pA.wt, pB.wt);
+      ['a','b'].forEach(sd => {
+        const cell = document.getElementById(`spec-wt-${sd}`);
+        const wrap = cell?.parentElement;
+        if (!wrap) return;
+        const shouldWin = winner === sd;
+        wrap.classList.toggle('win', shouldWin);
+        const existingBadge = wrap.querySelector('.cmp-win-badge');
+        if (shouldWin && !existingBadge) wrap.insertAdjacentHTML('beforeend', '<span class="cmp-win-badge">✔</span>');
+        else if (!shouldWin && existingBadge) existingBadge.remove();
+      });
+    }
   } catch(e) {
     ['cam','wt','os'].forEach(key => {
       if (!p[key]) {
