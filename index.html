@@ -18,11 +18,11 @@
      BOZMADAN, yalnızca bu 5 dosyanın ağ isteğinin, tarayıcı HTML'in o satırına fiilen ulaşmadan ÖNCE,
      mümkün olduğunca erken (head ayrıştırılırken) başlamasını sağlıyor. Çalıştırma sırası/zamanı
      DEĞİŞMEDİ, yalnızca byte'lar daha erken önbelleğe alınmış oluyor. -->
-<link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js">
-<link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js">
-<link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js">
-<link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js">
-<link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js">
+<link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js">
+<link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js">
+<link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js">
+<link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js">
+<link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js">
 <!-- Google Fonts artık ENGELLEYİCİ (render-blocking) değil: standart "preload + onload'da
      stylesheet'e çevir" deseni. Sonuç aynı (DM Sans uygulanır), yalnızca ilk boyama stylesheet
      ağ isteğini beklemek zorunda kalmıyor. <noscript> JS kapalıyken eski (engelleyici ama
@@ -2038,12 +2038,18 @@ body.tk-maintenance #maintenance-gate{
   </div>
 </div>
 
-<!-- FIREBASE -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<!-- FIREBASE — KÖK NEDEN DÜZELTMESİ: 9.23.0'da count() agregasyon sorguları (Query.count()) hiç
+     yoktu, bu yüzden uygulama genelinde ~18 sayaç (takipçi, dashboard, duyuru istatistikleri vb.)
+     sessizce "–"/0 gösteriyordu ("count is not a function" — gerçek cihazda yakalandı). 10.14.1'e
+     yükseltildi: hem count() bu sürümde var HEM DE Auth.RecaptchaVerifier'ın parametre sırasının
+     kırıldığı v11 eşiğinin ALTINDA kalınıyor (telefon doğrulama akışına dokunmaya gerek kalmadı).
+     Ayrıca her sayaç artık firestoreCount() güvenlik ağından geçiyor — count() ileride yine
+     kullanılamaz hale gelirse sessizce "–" göstermek yerine normal bir okumaya düşer. -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
 <script>
 firebase.initializeApp({
   apiKey:"AIzaSyADpIRNLQEIer_gplTgwKi_EKkfcyrYoqY",
@@ -2057,6 +2063,24 @@ const auth = firebase.auth();
 auth.languageCode = 'tr'; // Telefon doğrulama SMS'i ve reCAPTCHA arayüzü Türkçe gelsin
 const db = firebase.firestore();
 const storage = firebase.storage();
+
+// KÖK NEDEN DÜZELTMESİ: uygulama genelinde ~18 farklı yerde `query.count().get()` doğrudan
+// çağrılıyordu. Gerçek cihazda yakalanan hata (bkz. geçici hata konsolu): sabitlenen SDK sürümünde
+// (9.23.0) count() agregasyonu HİÇ YOKTU — "count is not a function" — bu yüzden TÜM sayaçlar
+// (takipçi, dashboard, duyuru istatistikleri, bildirim rozetleri vb.) sessizce "–"/0 gösteriyordu.
+// Asıl düzeltme SDK sürümünü yükseltmek (bkz. <head> ve </body> öncesi script etiketleri) — ama
+// gelecekte SDK tekrar eskirse/uyumsuzluk çıkarsa sessizce bozulmasın diye BURADA da bir güvenlik
+// ağı var: count() yoksa normal bir okumaya (.get()+.size) düşer — daha pahalı ama ÇALIŞIR.
+async function firestoreCount(query) {
+  try {
+    if (typeof query.count === 'function') {
+      const snap = await query.count().get();
+      return snap.data().count;
+    }
+    const snap = await query.get();
+    return snap.size;
+  } catch (e) { return null; }
+}
 const PUSH_API = 'https://teknohane-push.yusuf-aykac.workers.dev/';
 const VAPID_KEY = 'BPt5vY5P3Dr9DG2zHOQwhQKnH6V5UruqGisQRTlGWxkNaAYtYKAEG9xiTHn78yGq1DlrsnWFSazOquL_9krdtjY';
 let user = null;
@@ -2351,8 +2375,8 @@ async function loadComplaintUserPreview(uid) {
     const snap = await db.collection('teknohane_users').doc(uid).get();
     if (!snap.exists) { el.innerHTML = '<div class="ud-empty">Kullanıcı bulunamadı</div>'; return; }
     const u = snap.data();
-    const listingsCountSnap = await db.collection('teknohane_listings').where('uid','==',uid).count().get().catch(()=>null);
-    const scoreInfo = computeTeknohaneScore(uid, u, new Array(listingsCountSnap?.data().count || 0));
+    const listingsCountVal = await firestoreCount(db.collection('teknohane_listings').where('uid','==',uid));
+    const scoreInfo = computeTeknohaneScore(uid, u, new Array(listingsCountVal || 0));
     const av = avatarUrl(u.photoURL, u.displayName, 128);
     el.innerHTML = `<div class="pcol-current">
       <img src="${escapeHtml(av)}" style="width:40px;height:40px;border-radius:50%;object-fit:cover">
@@ -2365,8 +2389,7 @@ async function loadComplaintDuplicateCount(id, c) {
   const el = document.getElementById('cmp-duplicate-count');
   if (!el) return;
   try {
-    const snap = await db.collection('teknohane_complaints').where('type','==',c.type).where('targetId','==',c.targetId).count().get();
-    const count = snap.data().count;
+    const count = await firestoreCount(db.collection('teknohane_complaints').where('type','==',c.type).where('targetId','==',c.targetId));
     el.textContent = count > 1 ? `⚠️ Bu ${(COMPLAINT_TYPE_LABELS[c.type]||c.type).toLowerCase()} hakkında daha önce ${count} şikayet yapılmış.` : 'Bu, bu hedef hakkındaki ilk şikayet.';
   } catch(e) { el.textContent = 'Tekrar sayısı yüklenemedi.'; }
 }
@@ -2559,7 +2582,7 @@ async function loadDashboard() {
   const sevenDaysAgo = new Date(now.getTime() - 7*24*60*60*1000);
   const onlineThreshold = new Date(Date.now() - PRESENCE_ONLINE_WINDOW_MS);
   // Her sorgu kendi başına güvenli — biri başarısız olsa bile (örn. eksik index) dashboard'un geri kalanı çalışmaya devam eder.
-  const safeCount = q => q.count().get().then(s => s.data().count).catch(() => null);
+  const safeCount = q => firestoreCount(q);
   const safeGet = q => q.get().catch(() => ({ docs: [] }));
 
   try {
@@ -3024,12 +3047,12 @@ async function resolveAudienceCount(a) {
   try {
     if (a.audienceType === 'specific_uids') return (a.audienceUids||[]).length;
     if (a.audienceType === 'specific_usernames') return (a.audienceUsernames||[]).length;
-    if (a.audienceType === 'admins') return (await db.collection('admins').where('role','in',['admin','super_admin']).where('isActive','==',true).count().get()).data().count;
-    if (a.audienceType === 'moderators') return (await db.collection('admins').where('role','==','moderator').where('isActive','==',true).count().get()).data().count;
-    if (a.audienceType === 'editors') return (await db.collection('admins').where('role','==','editor').where('isActive','==',true).count().get()).data().count;
+    if (a.audienceType === 'admins') return await firestoreCount(db.collection('admins').where('role','in',['admin','super_admin']).where('isActive','==',true));
+    if (a.audienceType === 'moderators') return await firestoreCount(db.collection('admins').where('role','==','moderator').where('isActive','==',true));
+    if (a.audienceType === 'editors') return await firestoreCount(db.collection('admins').where('role','==','editor').where('isActive','==',true));
     // 'all', 'active_30d', 'not_banned' için kesin sayı tüm kullanıcı tabanını taramayı gerektirir —
     // ekstra pahalı sorgu yapmak yerine toplam kullanıcı sayısını yaklaşık gösterge olarak veriyoruz.
-    return (await db.collection('teknohane_users').count().get()).data().count;
+    return await firestoreCount(db.collection('teknohane_users'));
   } catch(e) { return null; }
 }
 
@@ -3042,10 +3065,10 @@ async function openAnnouncementStats(id) {
 
   const st = getAnnouncementEffectiveStatus(a);
   const STATUS_LABELS = { draft:'Taslak', scheduled:'Zamanlanmış', published:'Yayında', expired:'Süresi Doldu', inactive:'Pasif' };
-  const [audienceCount, readsSnap, dismissedSnap] = await Promise.all([
+  const [audienceCount, readsCount, dismissedCount] = await Promise.all([
     resolveAudienceCount(a),
-    db.collection('teknohane_announcements').doc(id).collection('reads').where('read','==',true).count().get().catch(()=>null),
-    db.collection('teknohane_announcements').doc(id).collection('reads').where('dismissed','==',true).count().get().catch(()=>null),
+    firestoreCount(db.collection('teknohane_announcements').doc(id).collection('reads').where('read','==',true)),
+    firestoreCount(db.collection('teknohane_announcements').doc(id).collection('reads').where('dismissed','==',true)),
   ]);
 
   body.innerHTML = `
@@ -3056,8 +3079,8 @@ async function openAnnouncementStats(id) {
       <div class="pacc-row"><span class="pacc-lbl">Oluşturulma</span><span class="pacc-val">${a.createdAt?.toDate?a.createdAt.toDate().toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric'}):'—'}</span></div>
       <div class="pacc-row"><span class="pacc-lbl">Hedef Kitle</span><span class="pacc-val">${AUDIENCE_LABELS[a.audienceType]||a.audienceType}</span></div>
       <div class="pacc-row"><span class="pacc-lbl">Tahmini Ulaşılan</span><span class="pacc-val">${audienceCount??'—'}</span></div>
-      <div class="pacc-row"><span class="pacc-lbl">Okuyan</span><span class="pacc-val">${readsSnap?.data().count ?? '—'}</span></div>
-      <div class="pacc-row"><span class="pacc-lbl">Kapatan</span><span class="pacc-val">${dismissedSnap?.data().count ?? '—'}</span></div>
+      <div class="pacc-row"><span class="pacc-lbl">Okuyan</span><span class="pacc-val">${readsCount ?? '—'}</span></div>
+      <div class="pacc-row"><span class="pacc-lbl">Kapatan</span><span class="pacc-val">${dismissedCount ?? '—'}</span></div>
     </div>
     <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px">
       <button class="apbtn" onclick="closemo('announcement-stats-mo');openAnnouncementForm('${id}')">✏️ Düzenle</button>
@@ -4133,13 +4156,13 @@ function loadActiveSessions() {
     .catch(() => { const el2 = document.getElementById('pacc-sessions-count'); if (el2) el2.textContent = 'Gösterilemiyor'; });
 }
 
-function loadMyFollowersCount() {
+async function loadMyFollowersCount() {
   if (!user) return;
   // count() agregasyon sorgusu — yalnızca sayı gösterilecekken tam dokümanları okumak yerine
   // (bkz. görev raporu, P2), koleksiyon büyüklüğünden bağımsız, sabit düşük maliyetli okuma.
-  db.collection('teknohane_users').where('followingUids', 'array-contains', user.uid).count().get()
-    .then(snap => { const el = document.getElementById('my-followers-count'); if (el) el.textContent = snap.data().count; })
-    .catch(() => { const el = document.getElementById('my-followers-count'); if (el) el.textContent = '—'; });
+  const count = await firestoreCount(db.collection('teknohane_users').where('followingUids', 'array-contains', user.uid));
+  const el = document.getElementById('my-followers-count');
+  if (el) el.textContent = count ?? '—';
 }
 
 // ==== TELEFON NUMARASI DOĞRULAMA (Firebase Phone Auth — gerçek SMS OTP akışı) ====
@@ -5306,9 +5329,8 @@ async function loadNotifCategoryCounts() {
   if (!user) return;
   try {
     const results = await Promise.all(NOTIF_CATEGORY_LIST.map(cat =>
-      db.collection('teknohane_notifications')
-        .where('toUid', '==', user.uid).where('category', '==', cat).where('read', '==', false)
-        .count().get().then(s => s.data().count).catch(() => 0)
+      firestoreCount(db.collection('teknohane_notifications')
+        .where('toUid', '==', user.uid).where('category', '==', cat).where('read', '==', false)).then(c => c || 0)
     ));
     NOTIF_CATEGORY_LIST.forEach((cat, i) => {
       const dot = document.querySelector(`[data-cat-dot="${cat}"]`);
@@ -8384,9 +8406,8 @@ async function openPublicProfile(uid, nameHint) {
   // Takipçi/takip edilen sayıları — teknohane_users koleksiyonunda sorgu gerektirir,
   // ayrı ve asenkron yükleniyor ki ana profil render'ı bu sorguyu beklemek zorunda kalmasın.
   // count() agregasyonu — yalnızca sayı gösterilecekken tam dokümanları okumaktan kaçınır.
-  db.collection('teknohane_users').where('followingUids', 'array-contains', uid).count().get()
-    .then(snap => { const el = document.getElementById('pub-followers-count'); if (el) el.textContent = snap.data().count; })
-    .catch(() => { const el = document.getElementById('pub-followers-count'); if (el) el.textContent = '—'; });
+  firestoreCount(db.collection('teknohane_users').where('followingUids', 'array-contains', uid))
+    .then(count => { const el = document.getElementById('pub-followers-count'); if (el) el.textContent = count ?? '—'; });
   const followingCount = (data.followingUids || []).length;
   const followingEl = document.getElementById('pub-following-count');
   if (followingEl) followingEl.textContent = followingCount;
@@ -8717,8 +8738,8 @@ async function runUserSearch(query) {
 async function updateAdminStats() {
   const ln = document.getElementById('adm-cnt-listing');
   if (!ln) return;
-  const snap = await db.collection('teknohane_listings').count().get().catch(()=>null);
-  ln.textContent = snap ? snap.data().count : '–';
+  const count = await firestoreCount(db.collection('teknohane_listings'));
+  ln.textContent = count ?? '–';
 }
 
 function openAdmin() {
@@ -9600,10 +9621,10 @@ async function loadUserDetailExtras(uid) {
   }).catch(() => {});
 
   // count() agregasyonu — yalnızca sayı gösterilecekken tam dokümanları okumaktan kaçınır.
-  db.collection('teknohane_users').where('followingUids', 'array-contains', uid).count().get().then(snap => {
+  firestoreCount(db.collection('teknohane_users').where('followingUids', 'array-contains', uid)).then(count => {
     const el = document.getElementById('ud-followers-count');
-    if (el) el.textContent = snap.data().count;
-  }).catch(() => { const el = document.getElementById('ud-followers-count'); if (el) el.textContent = '—'; });
+    if (el) el.textContent = count ?? '—';
+  });
 
   db.collection('teknohane_posts').where('uid', '==', uid).orderBy('createdAt', 'desc').limit(20).get().then(snap => {
     const countEl = document.getElementById('ud-forum-count');
@@ -11034,15 +11055,15 @@ async function loadSellerCard(sellerUid, ownerName, mine, containerId) {
       </div>`:''}
     </div>`;
   try {
-    const [commentsSnap, countSnap, userSnap] = await Promise.all([
+    const [commentsSnap, listingCountVal, userSnap] = await Promise.all([
       db.collection('teknohane_comments').where('targetType','==','seller').where('targetId','==',sellerUid).limit(50).get(),
-      db.collection('teknohane_listings').where('uid','==',sellerUid).count().get(),
+      firestoreCount(db.collection('teknohane_listings').where('uid','==',sellerUid)),
       db.collection('teknohane_users').doc(sellerUid).get(),
     ]);
     let total = 0, count = 0;
     commentsSnap.docs.forEach(d => { const c = d.data(); if (c.rating) { total += c.rating; count++; } });
     const ratingText = count ? `⭐ ${(total/count).toFixed(1)} (${count} yorum)` : 'Henüz değerlendirme yok';
-    const listingCount = countSnap.data().count;
+    const listingCount = listingCountVal ?? 0;
     const u = userSnap.exists ? userSnap.data() : {};
     const statsEl = document.getElementById(`${containerId}-stats`);
     if (statsEl) statsEl.textContent = `${ratingText} · ${listingCount} ilan`;
