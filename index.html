@@ -1839,6 +1839,7 @@ body.tk-maintenance #maintenance-gate{
         </div>
       </div>
       <div id="adm-list"></div>
+      <button class="apbtn" id="adm-list-load-more" style="margin-top:12px;background:var(--surf2);color:var(--text);display:none" onclick="loadAdminListings(false)">Daha Fazla Yükle</button>
     </div>
 
     <div id="admin-users-view" style="display:none">
@@ -2326,7 +2327,7 @@ function rComplaintsList() {
 
 function renderComplaintPreviewSkeleton(c) {
   if (c.type === 'listing') {
-    const l = listings.find(x => x.id === c.targetId);
+    const l = getListingByIdSync(c.targetId);
     if (l) return `<div class="pcol-current">
       <div class="pcol-current-ic">${l.photo1?`<img src="${escapeHtml(l.photo1)}" style="width:100%;height:100%;object-fit:cover;border-radius:12px" loading="lazy" decoding="async">`:'📱'}</div>
       <div><div class="pcol-current-name">${escapeHtml(l.model)}</div><div class="pcol-current-tag">₺${parseInt(l.price||0).toLocaleString('tr-TR')}</div></div>
@@ -2350,7 +2351,8 @@ async function loadComplaintUserPreview(uid) {
     const snap = await db.collection('teknohane_users').doc(uid).get();
     if (!snap.exists) { el.innerHTML = '<div class="ud-empty">Kullanıcı bulunamadı</div>'; return; }
     const u = snap.data();
-    const scoreInfo = computeTeknohaneScore(uid, u);
+    const listingsCountSnap = await db.collection('teknohane_listings').where('uid','==',uid).count().get().catch(()=>null);
+    const scoreInfo = computeTeknohaneScore(uid, u, new Array(listingsCountSnap?.data().count || 0));
     const av = avatarUrl(u.photoURL, u.displayName, 128);
     el.innerHTML = `<div class="pcol-current">
       <img src="${escapeHtml(av)}" style="width:40px;height:40px;border-radius:50%;object-fit:cover">
@@ -2565,7 +2567,9 @@ async function loadDashboard() {
       totalUsers, todayUsers, online, totalPosts, totalComments,
       totalComplaints, pendingComplaints, resolvedComplaints, banned, activeToday, bannedToday,
       loginsToday, messagesToday,
-      recentLogsSnap, recentUsersSnap, weeklyUsersSnap, weeklyComplaintsSnap
+      totalListingsCount, pendingListingsCount, soldListingsCount, todayListingsCount,
+      recentLogsSnap, recentUsersSnap, weeklyUsersSnap, weeklyComplaintsSnap,
+      recentListingsSnap, weeklyListingsSnap, topListerSnap
     ] = await Promise.all([
       safeCount(db.collection('teknohane_users')),
       safeCount(db.collection('teknohane_users').where('createdAt', '>=', todayStart)),
@@ -2580,42 +2584,51 @@ async function loadDashboard() {
       safeCount(db.collection('teknohane_users').where('bannedAt', '>=', todayStart)),
       safeCount(db.collectionGroup('sessions').where('lastActive', '>=', todayStart)),
       safeCount(db.collectionGroup('messages').where('createdAt', '>=', todayStart)),
+      // KÖK NEDEN DÜZELTMESİ (Genel Performans): eskiden bu 4 istatistik TÜM `listings` dizisi
+      // taranarak hesaplanıyordu (100.000+ ilan ölçeğinde felaket derecede pahalı) — artık her biri
+      // ucuz, bağımsız birer count() agregasyonu.
+      safeCount(db.collection('teknohane_listings')),
+      safeCount(db.collection('teknohane_listings').where('approved', '==', false)),
+      safeCount(db.collection('teknohane_listings').where('sold', '==', true)),
+      safeCount(db.collection('teknohane_listings').where('createdAt', '>=', todayStart)),
       safeGet(db.collection('admin_logs').orderBy('createdAt', 'desc').limit(20)),
       safeGet(db.collection('teknohane_users').orderBy('createdAt', 'desc').limit(10)),
       safeGet(db.collection('teknohane_users').where('createdAt', '>=', sevenDaysAgo)),
       safeGet(db.collection('teknohane_complaints').where('createdAt', '>=', sevenDaysAgo)),
+      safeGet(db.collection('teknohane_listings').orderBy('createdAt', 'desc').limit(10)),
+      safeGet(db.collection('teknohane_listings').where('createdAt', '>=', sevenDaysAgo)),
+      // "En Çok İlan Veren Kullanıcı" artık listingsCount denormalizasyonundan (bkz. submitListing/
+      // performListingDelete) tek bir sıralı sorgu ile geliyor — TÜM kullanıcıları taramak YOK.
+      safeGet(db.collection('teknohane_users').orderBy('listingsCount', 'desc').limit(1)),
     ]);
     // Değerlendirme sayısı — tek bir ucuz count() sorgusu (targetType 'phone'/'seller' olan yorumlar).
     // Ayrı bir composite index gerektirmiyor (tek alan 'in' sorgusu, tekli alan indeksi otomatik).
     const totalReviews = await safeCount(db.collection('teknohane_comments').where('targetType', 'in', ['phone','seller']));
 
-    // Aşağıdaki 3 istatistik TAMAMEN bellekten — zaten yüklü `listings` dizisi (Pazar'ın kendi
-    // yükleme deseni) üzerinden hesaplanıyor, YENİ bir Firestore okuması YOK.
-    const totalViews = listings.reduce((sum, l) => sum + (l.viewCount||0), 0);
-    const totalFavorites = listings.reduce((sum, l) => sum + (l.favoritedByUids||[]).length, 0);
-    const mostViewedListing = [...listings].sort((a,b) => (b.viewCount||0) - (a.viewCount||0))[0];
-    const listerCounts = {};
-    listings.forEach(l => { if (l.uid) listerCounts[l.uid] = (listerCounts[l.uid]||0) + 1; });
-    const topListerUid = Object.keys(listerCounts).sort((a,b) => listerCounts[b]-listerCounts[a])[0];
-    const topListerListing = topListerUid ? listings.find(l => l.uid === topListerUid) : null;
+    // NOT (dürüstlük): "Toplam Görüntülenme"/"Toplam Favori"/"En Çok Görüntülenen İlan" artık
+    // gösterilmiyor — bunlar TÜM ilan koleksiyonunu toplamayı (sum) gerektiriyordu; bu SDK sürümünde
+    // Firestore sum() agregasyonu yok ve site geneli bir sayaç (denormalizasyon) bu oturumun
+    // kapsamı dışında bırakıldı (yarım/yanlış veri göstermektense hiç göstermemek tercih edildi).
+    const totalListings = totalListingsCount || 0;
+    const pendingListings = pendingListingsCount || 0;
+    const soldListings = soldListingsCount || 0;
+    const todayListings = todayListingsCount || 0;
+    const publishedListings = Math.max(0, totalListings - pendingListings - soldListings);
 
-    const stats = { totalUsers, todayUsers, online, totalListings: listings.length, totalPosts, totalComments, totalComplaints, pendingComplaints, resolvedComplaints, banned, activeToday, loginsToday, messagesToday, totalReviews, totalViews, totalFavorites, totalPhones: PHONES.length };
-    const pendingListings = listings.filter(l => l.approved === false).length;
-    const publishedListings = listings.filter(l => l.approved !== false && !l.sold).length;
-    const soldListings = listings.filter(l => l.sold).length;
-    const todayListings = listings.filter(l => l.createdAt?.toDate && l.createdAt.toDate() >= todayStart).length;
+    const stats = { totalUsers, todayUsers, online, totalListings, totalPosts, totalComments, totalComplaints, pendingComplaints, resolvedComplaints, banned, activeToday, loginsToday, messagesToday, totalReviews, totalViews: null, totalFavorites: null, totalPhones: PHONES.length };
     const recentUsers = recentUsersSnap.docs.map(d => ({ uid: d.id, ...d.data() }));
     const recentLogs = recentLogsSnap.docs.map(d => d.data());
-    const recentListings = [...listings].sort((a,b) => (b.createdAt?.toMillis?.()||0) - (a.createdAt?.toMillis?.()||0)).slice(0,10);
+    const recentListings = recentListingsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
     const recentPosts = [...forumPosts].sort((a,b) => (b.createdAt?.toMillis?.()||0) - (a.createdAt?.toMillis?.()||0)).slice(0,10);
+    const topListerDoc = topListerSnap.docs[0];
     const highlights = {
-      mostViewedListing: mostViewedListing && mostViewedListing.viewCount ? mostViewedListing : null,
-      topLister: topListerUid ? { uid: topListerUid, name: topListerListing?.ownerName || 'Kullanıcı', count: listerCounts[topListerUid] } : null,
+      mostViewedListing: null,
+      topLister: (topListerDoc && topListerDoc.data().listingsCount > 0) ? { uid: topListerDoc.id, name: topListerDoc.data().displayName || 'Kullanıcı', count: topListerDoc.data().listingsCount } : null,
     };
     const charts = {
       userDaily: bucketByDay(weeklyUsersSnap.docs.map(d => d.data().createdAt)),
       complaintDaily: bucketByDay(weeklyComplaintsSnap.docs.map(d => d.data().createdAt)),
-      listingDaily: bucketByDay(listings.filter(l => l.createdAt?.toDate && l.createdAt.toDate() >= sevenDaysAgo).map(l => l.createdAt)),
+      listingDaily: bucketByDay(weeklyListingsSnap.docs.map(d => d.data().createdAt)),
     };
 
     renderDashboard(stats, { pendingListings, publishedListings, soldListings, todayListings, bannedToday }, recentLogs, recentUsers, recentListings, recentPosts, charts, highlights);
@@ -3234,7 +3247,6 @@ function detectDeviceLabel() {
 }
 let epNewPhotoDataUrl = null;
 let epPhotoUploading = false;
-let listings = [];
 let favs = new Set();
 let mktab = 'all';
 
@@ -3250,7 +3262,6 @@ async function loadSystemSettings() {
 function applyMaintenanceGate() {
   document.body.classList.toggle('tk-maintenance', !!systemSettings.maintenanceMode && !isAdminNow());
 }
-let listingsReady = false;
 
 // AUTH
 auth.onAuthStateChanged(u => {
@@ -3271,9 +3282,11 @@ auth.onAuthStateChanged(u => {
     document.getElementById('hchat').style.display = 'flex';
     renderHeaderAvatar(); // 'profile' henüz stale — nötr durumda kalır, eski Auth fotoğrafı gösterilmez
 
-    // UI'ı hemen güncelle, Firestore işlemlerini bekleme
+    // UI'ı hemen güncelle, Firestore işlemlerini bekleme — rlistings/checkMyExpiredListings artık
+    // kendi hazır olma durumunu kendisi yönetiyor (bkz. marketAllLoadedOnce/marketMineLoaded),
+    // önceden gereken listingsReady ön-koşulu ARTIK YOK.
     rprof();
-    if (listingsReady) { rlistings(); checkMyExpiredListings(); }
+    rlistings(); checkMyExpiredListings();
 
     // Favori/profil verisini arka planda çek ve senkronize et — UI'ı bloklamaz
     syncUserProfile(u);
@@ -3294,7 +3307,7 @@ auth.onAuthStateChanged(u => {
     markDataStale('profile'); // sonraki girişte (farklı bir hesap dahil) eski durumun sızmaması için
     profileExtrasLoadedForUid = null;
     rprof();
-    if (listingsReady) rlistings();
+    rlistings();
     unsubNotifBadge?.();
     unsubChatBadge?.();
     stopPresenceHeartbeat();
@@ -3397,13 +3410,17 @@ function themePanelHTML() {
 
 // Teknohane Skoru: 0-100 arası, yalnızca Firestore'da gerçekten var olan alanlardan hesaplanır
 // (Auth-özel alanlar kullanılmaz ki başka kullanıcılar için de doğru çalışsın).
-function computeTeknohaneScore(uid, profileData) {
-  const listingsCount = listings.filter(l => l.uid === uid).length;
+// KÖK NEDEN DÜZELTMESİ (Genel Performans): eskiden ilan sayısı/referans sayısı, TÜM koleksiyonu
+// okuyan global `listings` dizisi taranarak hesaplanıyordu. Artık `listingsArr` çağıran tarafından
+// verilir — kendi profilim için zaten yüklü marketMineListings, başka bir profil için o kullanıcıya
+// özel dar kapsamlı bir sorgu (bkz. openPublicProfile). Referans sayısı ise profileData.
+// referredListingIds alanından (bkz. toggleRef denormalizasyonu) okunur — NOT: bu alan eklenmeden
+// önce yapılmış eski referanslar sayılmaz (geriye dönük taşıma bu oturumun kapsamı dışında).
+function computeTeknohaneScore(uid, profileData, listingsArr) {
+  const listingsCount = (listingsArr || []).length;
   const forumCount = forumPosts.filter(p => p.uid === uid).length;
   const compareCount = profileData.compareCount || 0;
-  // Referans sayısı: zaten bellekte yüklü olan `listings` dizisinden hesaplanır — ek Firestore
-  // sorgusu gerekmez, koleksiyon büyüklüğünden bağımsız (yalnızca o an yüklü sayfa üzerinden).
-  const referralCount = listings.filter(l => (l.referrers||[]).some(r => r.uid === uid)).length;
+  const referralCount = (profileData.referredListingIds || []).length;
   const lastSeenDate = profileData.lastSeen?.toDate ? profileData.lastSeen.toDate() : null;
   const isRecentlyActive = lastSeenDate ? (Date.now() - lastSeenDate.getTime()) < 7*24*60*60*1000 : false;
   const criteria = [
@@ -3579,7 +3596,9 @@ function rprof() {
     // Kendi skorum için, Firestore'daki (günde 1 senkronize olan) emailVerified yerine her zaman
     // güncel olan canlı Auth değerini kullanıyoruz — tek kaynak fonksiyonu bozmadan, en taze veriyle.
     const scoreProfileData = { ...myProfileData, emailVerified: user.emailVerified };
-    const scoreInfo = computeTeknohaneScore(user.uid, scoreProfileData);
+    // marketMineListings henüz yüklenmemişse (ilk profil ziyareti) geçici olarak 0 gösterilir —
+    // loadMarketMine() tamamlanınca (bkz. ensureProfileTabDataLoaded altta) kendiliğinden düzelir.
+    const scoreInfo = computeTeknohaneScore(user.uid, scoreProfileData, marketMineLoaded ? marketMineListings : []);
     const lastSignIn = user.metadata?.lastSignInTime ? new Date(user.metadata.lastSignInTime) : null;
     const { score: teknohaneScore, listingsCount: myListingsCount, forumCount: myForumCount, compareCount: myCompareCount } = scoreInfo;
     const myLikesReceived = forumPosts.filter(p => p.uid === user.uid).reduce((s,p)=>s+(p.likes||[]).length,0);
@@ -3612,20 +3631,25 @@ function rprof() {
     const joinedDateStr = myProfileData.createdAt?.toDate ? myProfileData.createdAt.toDate().toLocaleDateString('tr-TR',{month:'long',year:'numeric'}) : null;
     const joinedYear = myProfileData.createdAt?.toDate ? myProfileData.createdAt.toDate().getFullYear() : null;
     const activityItems = [];
-    listings.filter(l=>l.uid===user.uid).forEach(l=>{
+    // marketMineListings/marketRefListings henüz yüklenmemişse (ilk profil ziyareti) burada eksik
+    // görünebilir — arka planda tetiklenir (bkz. altta), veri gelince rprof() kendiliğinden tekrar
+    // render eder (aynı öz-düzelten desen, Teknohane Skoru'ndaki ilan sayısıyla aynı).
+    marketMineListings.forEach(l=>{
       if (l.createdAt?.toDate) activityItems.push({ ts:l.createdAt.toMillis?l.createdAt.toMillis():0, date:l.createdAt.toDate(), icon:'🛍️', text:`"${l.model||'İlan'}" yayınladın` });
     });
+    if (!marketMineLoaded) loadMarketMine();
     forumPosts.filter(p=>p.uid===user.uid).forEach(p=>{
       if (p.createdAt?.toDate) activityItems.push({ ts:p.createdAt.toMillis?p.createdAt.toMillis():0, date:p.createdAt.toDate(), icon:'💬', text:`"${p.title||'Forum gönderisi'}" paylaştın` });
     });
-    // Referans olunan ilanlar da aktivite geçmişine dahil — zaten bellekte olan listings dizisinden,
-    // ek sorgu yok. Yalnızca `at` zaman damgası taşıyan (bu değişiklikten sonra eklenen) referanslar
-    // görünür — eski referanslarda bu alan yok, sahte bir tarih uydurulmuyor.
-    listings.forEach(l => {
+    // Referans olunan ilanlar da aktivite geçmişine dahil — bkz. loadMarketRefs (referredListingIds
+    // denormalizasyonu). Yalnızca `at` zaman damgası taşıyan (bu değişiklikten sonra eklenen)
+    // referanslar görünür — eski referanslarda bu alan yok, sahte bir tarih uydurulmuyor.
+    marketRefListings.forEach(l => {
       const myRef = (l.referrers||[]).find(r => r.uid === user.uid);
       const refDate = myRef?.at?.toDate ? myRef.at.toDate() : (myRef?.at instanceof Date ? myRef.at : null);
       if (refDate) activityItems.push({ ts: refDate.getTime(), date: refDate, icon:'🔗', text:`"${l.model||'İlan'}" ilanına referans oldun` });
     });
+    if (!marketRefLoaded) loadMarketRefs();
     activityItems.sort((a,b)=>b.ts-a.ts);
     const topActivity = activityItems.slice(0,4);
     c.innerHTML = `
@@ -3812,7 +3836,7 @@ function rprof() {
       const el = document.getElementById('my-trust-card');
       if (el) el.innerHTML = renderTrustCardHTML(avg, count, { trustedSeller: myProfileData.trustedSeller, verified: user.emailVerified||myProfileData.adminVerified, joinedYear });
     }).catch(()=>{});
-    renderProfileListings();
+    ensureProfileTabDataLoaded();
   } else {
     c.innerHTML = `
       <div class="awrap">
@@ -3859,9 +3883,23 @@ function switchProfileTab(tab, el) {
   profileTab = tab;
   document.querySelectorAll('.ptab').forEach(t => t.classList.remove('on'));
   el.classList.add('on');
+  ensureProfileTabDataLoaded();
+}
+
+// KÖK NEDEN DÜZELTMESİ (Genel Performans): eskiden bu üç sekme, önceden TAM koleksiyonu okuyan
+// global `listings` dizisini süzüyordu. Artık Pazar ekranıyla AYNI dar kapsamlı, sayfalamalı
+// kaynakları (marketMineListings/marketFavListings/marketRefListings) paylaşıyor — henüz
+// yüklenmemişse burada (yalnızca sekmeye girildiğinde) tetiklenir, TEKRAR okuma yapılmaz.
+function ensureProfileTabDataLoaded() {
+  if (profileTab === 'mine' && !marketMineLoaded) { loadMarketMine(); return; }
+  if (profileTab === 'favs' && !marketFavLoaded) { loadMarketFavorites(); return; }
+  if (profileTab === 'refs' && !marketRefLoaded) { loadMarketRefs(); return; }
   renderProfileListings();
 }
 
+// Yalnızca GÖRÜNTÜLER — hiçbir veri yükleme/tetikleme yapmaz (bkz. ensureProfileTabDataLoaded).
+// loadMarketMine/loadMarketFavorites/loadMarketRefs'in kendi içinden de çağrıldığı için burada
+// bir yükleme tetiklenirse sonsuz döngüye girer — bu yüzden bilinçli olarak "aptal" tutuluyor.
 function renderProfileListings() {
   const c = document.getElementById('profile-listings');
   if (!c || !user) return;
@@ -3874,11 +3912,12 @@ function renderProfileListings() {
       : `<div class="no">Henüz konu bulunamadı${forumPosts.length?'':' (Topluluk sekmesini ziyaret ettikten sonra tekrar kontrol et)'}</div>`;
     return;
   }
-  let items = [];
-  if (profileTab === 'mine') items = listings.filter(l => l.uid === user.uid);
-  else if (profileTab === 'favs') items = listings.filter(l => favs.has(l.id) && !isSoldExpired(l));
-  else if (profileTab === 'refs') items = listings.filter(l => (l.referrers||[]).some(r => r.uid === user.uid) && !isSoldExpired(l));
+  let items = [], loaded = true;
+  if (profileTab === 'mine') { items = marketMineListings; loaded = marketMineLoaded; }
+  else if (profileTab === 'favs') { items = marketFavListings.filter(l => !isSoldExpired(l)); loaded = marketFavLoaded; }
+  else if (profileTab === 'refs') { items = marketRefListings.filter(l => !isSoldExpired(l)); loaded = marketRefLoaded; }
 
+  if (!loaded) { c.innerHTML = `<div class="load"><div class="spin"></div></div>`; return; }
   if (!items.length) {
     const msg = profileTab === 'mine' ? 'Henüz ilan vermedin' : profileTab === 'favs' ? 'Henüz favori ilanın yok' : 'Henüz kimseye referans olmadın';
     c.innerHTML = `<div class="no">${msg}</div>`;
@@ -4811,7 +4850,8 @@ function navigateFromNotificationUrl(url, attempt) {
     const postId = u.searchParams.get('post');
     const profileUid = u.searchParams.get('profile');
     if (listingId) {
-      if (!listings.length && attempt < 10) { setTimeout(() => navigateFromNotificationUrl(url, attempt+1), 400); return; }
+      // openDetail artık kendi tekil-doküman fallback'ini yapıyor (bkz. getListingById) — bellekte
+      // hazır olsun olmasın, TEKRARLI SORGULAMA (retry-polling) GEREKMEDEN doğrudan çağrılabilir.
       gt('market'); openDetail(listingId);
     } else if (postId) {
       if (!forumPosts.length && attempt < 10) { setTimeout(() => navigateFromNotificationUrl(url, attempt+1), 400); return; }
@@ -5663,11 +5703,12 @@ function exitChatThread() {
 }
 
 // Sohbet içi ilan kartı — Pazar'ın kendi .mcard-price sınıfı yeniden kullanılıyor (aynı tasarım
-// dili, kod tekrarı yok). Veri, zaten bellekte yüklü olan global `listings` dizisinden okunur —
-// yeni bir Firestore okuması YOK. İlan silinmiş/bulunamıyorsa nazik bir "artık mevcut değil" durumu.
+// dili, kod tekrarı yok). Mesaj listesi render edilirken senkron çağrıldığı için yalnızca zaten
+// bellekte yüklü dar kapsamlı kaynaklara bakar (bkz. getListingByIdSync) — ağ isteği YOK. İlan bu
+// kaynaklarda yoksa (silinmiş VEYA sadece hiç yüklenmemiş, ikisi de aynı nazik mesajla gösterilir).
 function chatListingCardHTML(listingId) {
-  const l = listings.find(x => x.id === listingId);
-  if (!l) return `<div class="chat-listing-card" style="cursor:default"><div class="chat-listing-card-info"><div class="chat-listing-card-title">Bu ilan artık mevcut değil</div></div></div>`;
+  const l = getListingByIdSync(listingId);
+  if (!l) return `<div class="chat-listing-card" onclick="exitChatThread();gt('market');setTimeout(()=>openDetail('${listingId}'),50)"><div class="chat-listing-card-info"><div class="chat-listing-card-title">İlanı görüntülemek için dokun</div></div></div>`;
   const cityLabel = l.city || (l.location||'').split(',')[0] || 'Belirtilmedi';
   return `<div class="chat-listing-card" onclick="exitChatThread();gt('market');setTimeout(()=>openDetail('${l.id}'),50)">
     ${l.photo1?`<img class="chat-listing-card-thumb" src="${l.photo1}" loading="lazy" decoding="async">`:'<div class="chat-listing-card-thumb" style="display:flex;align-items:center;justify-content:center;font-size:20px">📱</div>'}
@@ -5681,11 +5722,15 @@ function chatListingCardHTML(listingId) {
 }
 
 // Composer'daki "İlan Ekle" düğmesi — kullanıcının KENDİ aktif ilanlarından birini seçip sohbete
-// kart olarak göndermesini sağlar. Liste, zaten yüklü `listings` dizisinden süzülür (yeni sorgu yok).
-function openChatListingPicker() {
+// kart olarak göndermesini sağlar. Pazar/Profil'in kendi dar kapsamlı marketMineListings kaynağı
+// paylaşılır — henüz yüklenmemişse burada bir kerelik yüklenir (tüm koleksiyon taranmaz).
+async function openChatListingPicker() {
   if (!user || !currentChatOtherUid) return;
-  const mine = listings.filter(l => l.uid === user.uid && !l.sold && l.approved !== false);
+  document.getElementById('chat-listing-picker-mo').classList.add('on');
   const list = document.getElementById('chat-listing-picker-list');
+  list.innerHTML = `<div class="load"><div class="spin"></div></div>`;
+  if (!marketMineLoaded) await loadMarketMine();
+  const mine = marketMineListings.filter(l => !l.sold && l.approved !== false);
   list.innerHTML = mine.length ? mine.map(l => `
     <div class="clp-row" onclick="sendChatListingCard('${l.id}')">
       ${l.photo1?`<img class="clp-thumb" src="${l.photo1}" loading="lazy" decoding="async">`:'<div class="clp-thumb" style="display:flex;align-items:center;justify-content:center;font-size:18px">📱</div>'}
@@ -5694,7 +5739,6 @@ function openChatListingPicker() {
         <div class="clp-price">₺${parseInt(l.price||0).toLocaleString('tr-TR')}</div>
       </div>
     </div>`).join('') : '<div class="no">Paylaşılabilecek aktif ilanın yok</div>';
-  document.getElementById('chat-listing-picker-mo').classList.add('on');
 }
 
 async function sendChatListingCard(listingId) {
@@ -5925,7 +5969,7 @@ function renderChatList() {
     const time = c.lastAt?.toDate ? fd(c.lastAt.toDate().toISOString()) : '';
     const preview = (c.lastMessage||'').slice(0,40) + ((c.lastMessage||'').length>40?'…':'');
     const avHtml = otherAv ? `<img src="${otherAv}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : escapeHtml(otherName)[0]?.toUpperCase();
-    const listingThumb = c.lastListingId ? listings.find(l => l.id === c.lastListingId)?.photo1 : null;
+    const listingThumb = c.lastListingId ? getListingByIdSync(c.lastListingId)?.photo1 : null;
     const otherNameJs = otherName.replace(/'/g,"\\'");
     const rowClick = forwardMsgId ? `forwardMsgTo('${otherUid}','${otherNameJs}')` : `openChatThread('${otherUid}','${otherNameJs}')`;
     return `<div class="notif-swipe-wrap" data-id="${d.id}">
@@ -6089,49 +6133,33 @@ let prevRefCounts = {};
 let prevPrices = {};
 let editingListingId = null;
 
-// Pazar ekranı ve Profil/Admin/Dashboard/Şikayet (eski mimari) için TEK SEFERLİK okuma.
-// Artık gerçek zamanlı DEĞİL — bildirim üretimi aşağıdaki 3 dar kapsamlı dinleyiciye taşındı.
-async function loadListings() {
-  listingsReady = false;
-  try {
-    const snap = await db.collection('teknohane_listings').orderBy('createdAt', 'desc').get();
-    listings = snap.docs.map(d => ({id:d.id,...d.data()}));
-    listingsReady = true;
-    rlistings();
-    if (isAdminNow()) updateAdminStats();
-    if (document.getElementById('s-profile')?.classList.contains('on')) renderProfileListings();
-    checkMyExpiredListings();
-
-    // Paylaşılan bir ilan linkiyle açıldıysa (?listing=ID), doğrudan o ilanı göster
-    const sharedId = new URLSearchParams(location.search).get('listing');
-    if (sharedId) {
-      const found = listings.find(l => l.id === sharedId);
-      if (found) {
-        gt('market');
-        setTimeout(() => openDetail(sharedId), 50);
-      } else {
-        showToast('❗','rgba(255,69,58,.12)','İlan Bulunamadı','Bu ilan kaldırılmış olabilir.');
-        history.replaceState(null, '', location.pathname);
-      }
-    }
-  } catch(e) {
-    listingsReady = true;
-    console.error('İlanlar yüklenemedi:', e);
-    const g = document.getElementById('lgrid');
-    if (g) g.innerHTML = `<div class="load"><div style="font-size:32px">📡</div><div>Bağlantı hatası</div></div>`;
-  }
+// KÖK NEDEN DÜZELTMESİ (Genel Performans): eskiden burada uygulama her açılışta TÜM
+// `teknohane_listings` koleksiyonunu (limitsiz) okuyan tek bir loadListings() fonksiyonu vardı —
+// 100.000+ ilan ölçeğinde felaket derecede pahalıydı. Artık HİÇBİR EKRAN tüm koleksiyonu okumuyor;
+// Pazar/Profil kendi dar kapsamlı sayfalama kaynaklarını (marketAllListings/marketMineListings/
+// marketFavListings/marketRefListings) ihtiyaç anında yükler, detay sayfası tekil doküman okumasıyla
+// (bkz. getListingById) telafi eder. Paylaşılan bir ilan linkiyle açılma (?listing=ID) durumu artık
+// burada, uygulama açılışında, doğrudan ele alınır — openDetail zaten kendi "bulunamadı" durumunu
+// nazikçe gösteriyor, ayrı bir ön-kontrol/bekleme GEREKMEZ.
+function handleSharedListingLink() {
+  const sharedId = new URLSearchParams(location.search).get('listing');
+  if (!sharedId) return;
+  gt('market');
+  setTimeout(() => openDetail(sharedId), 50);
 }
 
 // İlan süresi dolunca sahibine bildirim — GERÇEK ZAMANLI/ANLIK değil (yeni bir sunucu taraflı
 // zamanlayıcı/Cloud Function kurulmadan bu mümkün değil, bu görevin kapsamı dışı), "en geç bir
 // sonraki uygulama açılışında" tetiklenir — bu, istemci-yalnız mimariyle ulaşılabilecek en dürüst
-// yaklaşımdır. Zaten yüklü `listings` dizisi kullanılıyor — yeni bir okuma/dinleyici YOK.
+// yaklaşımdır. marketMineListings (Pazar/Profil'in "İlanlarım" kaynağı) kullanılır — henüz
+// yüklenmemişse burada bir kerelik yüklenir (TÜM koleksiyon taranmaz).
 // expiredNotified alanı aynı ilan için tekrar tekrar bildirim gönderilmesini engeller (yeniden
 // yayınlanınca renewListing() tarafından sıfırlanır, süre dolunca yeniden bildirim gidebilsin diye).
-function checkMyExpiredListings() {
-  if (!user || !listings.length) return;
-  listings
-    .filter(l => l.uid === user.uid && isListingExpired(l) && !l.expiredNotified)
+async function checkMyExpiredListings() {
+  if (!user) return;
+  if (!marketMineLoaded) await loadMarketMine();
+  marketMineListings
+    .filter(l => isListingExpired(l) && !l.expiredNotified)
     .forEach(l => {
       l.expiredNotified = true; // önce yerel olarak işaretlenir, aynı oturumda tekrar tetiklenmesin
       notifyUser(user.uid, 'listing_expired', `"${l.model}" ilanının 30 günlük süresi doldu. Yeniden yayınlamak için ilanına git.`, l.id);
@@ -6321,6 +6349,9 @@ let marketFavListings = [];
 let marketFavLoaded = false;
 let marketMineListings = [];
 let marketMineLoaded = false;
+let marketRefListings = [];
+let marketRefLoaded = false;
+let marketRefLoading = false;
 
 async function loadMarketPage(reset) {
   if (marketLoading) return;
@@ -6348,10 +6379,10 @@ async function loadMarketPage(reset) {
 
 async function loadMarketFavorites() {
   marketFavLoaded = false;
-  rlistings();
+  rlistings(); renderProfileListings(); // Pazar VE Profil > Favorilerim aynı kaynağı paylaşır
   marketFavListings = [];
   const ids = Array.from(favs);
-  if (!user || !ids.length) { marketFavLoaded = true; rlistings(); return; }
+  if (!user || !ids.length) { marketFavLoaded = true; rlistings(); renderProfileListings(); return; }
   try {
     const chunks = [];
     for (let i = 0; i < ids.length; i += 30) chunks.push(ids.slice(i, i + 30));
@@ -6359,14 +6390,40 @@ async function loadMarketFavorites() {
     results.forEach(snap => snap.docs.forEach(d => marketFavListings.push({ id: d.id, ...d.data() })));
   } catch (e) { console.error('Favoriler yüklenemedi:', e); }
   marketFavLoaded = true;
-  rlistings();
+  rlistings(); renderProfileListings();
+}
+
+// Profil > "Referanslarım" — artık TÜM ilan koleksiyonunu taramaz (bkz. toggleRef'teki
+// referredListingIds denormalizasyonu), yalnızca kendi profil dokümanımdaki küçük ID listesini
+// toplu olarak (30'luk gruplar halinde) çeker. NOT (dürüstlük): bu alan eklenmeden ÖNCE yapılmış
+// eski referanslar bu listede görünmez — geriye dönük bir taşıma betiği bu oturumun kapsamı dışında.
+async function loadMarketRefs() {
+  if (marketRefLoaded === false && marketRefLoading) return; // zaten yükleniyor — aynı anda ikinci kez tetiklenmesin
+  marketRefLoading = true;
+  marketRefLoaded = false;
+  renderProfileListings();
+  marketRefListings = [];
+  const ids = myProfileData?.referredListingIds || [];
+  if (!user || !ids.length) { marketRefLoaded = true; marketRefLoading = false; renderProfileListings(); return; }
+  try {
+    const chunks = [];
+    for (let i = 0; i < ids.length; i += 30) chunks.push(ids.slice(i, i + 30));
+    const results = await Promise.all(chunks.map(c => db.collection('teknohane_listings').where(firebase.firestore.FieldPath.documentId(), 'in', c).get()));
+    results.forEach(snap => snap.docs.forEach(d => marketRefListings.push({ id: d.id, ...d.data() })));
+  } catch (e) { console.error('Referanslar yüklenemedi:', e); }
+  marketRefLoaded = true;
+  marketRefLoading = false;
+  renderProfileListings();
+  // Profil ekranı açıksa aktivite akışı da bu veriyi kullanıyor (bkz. rprof) — ilk yüklemede eksik
+  // görünmüş olabilir, burada tam veriyle düzeltiliyor.
+  if (document.getElementById('s-profile')?.classList.contains('on')) rprof();
 }
 
 async function loadMarketMine() {
   marketMineLoaded = false;
-  rlistings();
+  rlistings(); renderProfileListings(); // Pazar VE Profil > İlanlarım aynı kaynağı paylaşır
   marketMineListings = [];
-  if (!user) { marketMineLoaded = true; rlistings(); return; }
+  if (!user) { marketMineLoaded = true; rlistings(); renderProfileListings(); return; }
   try {
     // KÖK NEDEN DÜZELTMESİ: where('uid','==')+orderBy('createdAt') composite index gerektiriyordu
     // (teknohane_listings için yalnızca approved+createdAt index'i vardı, uid+createdAt hiç yoktu —
@@ -6376,7 +6433,10 @@ async function loadMarketMine() {
       .sort((a,b) => (b.createdAt?.toDate?.()?.getTime()||0) - (a.createdAt?.toDate?.()?.getTime()||0));
   } catch (e) { console.error('İlanlarım yüklenemedi:', e); showErrorToast('İlanların yüklenemedi: ' + e.message); }
   marketMineLoaded = true;
-  rlistings();
+  rlistings(); renderProfileListings();
+  // Profil ekranı açıksa Teknohane Skoru'ndaki "İlan" sayısı da bu veriyi kullanıyor (bkz. rprof) —
+  // ilk yüklemede geçici 0 gösterilmiş olabilir, burada gerçek sayıyla düzeltiliyor.
+  if (document.getElementById('s-profile')?.classList.contains('on')) rprof();
 }
 
 // Arama kutusu her tuş vuruşunda değil, kullanıcı yazmayı kısa bir süre durdurduğunda çalışır —
@@ -6734,7 +6794,7 @@ async function submitListing() {
     };
 
     if (editingListingId) {
-      const old = listings.find(x => x.id === editingListingId);
+      const old = await getListingById(editingListingId);
       const isAdminEdit = old && old.uid !== user.uid;
       // Sahibi olmayan bir düzenleme yalnızca manageListings yetkili adminler için izinlidir —
       // Firestore Rules seviyesinde zaten isAdmin() herhangi bir ilanı güncelleyebiliyor (bkz.
@@ -6778,6 +6838,10 @@ async function submitListing() {
       // yayınlanabilir (bkz. checkMyExpiredListings/renewListing).
       data.expiresAt = firebase.firestore.Timestamp.fromDate(new Date(Date.now() + 30*24*60*60*1000));
       await db.collection('teknohane_listings').add(data);
+      // DENORMALİZASYON (Genel Performans): admin kullanıcı listesi artık ilan sayısını TÜM
+      // koleksiyonu tarayarak değil (bkz. rAdminUsers), bu sayaçtan okuyor. NOT (dürüstlük): bu alan
+      // eklenmeden ÖNCE oluşturulmuş ilanlar sayılmaz — geriye dönük taşıma bu oturumun kapsamı dışında.
+      db.collection('teknohane_users').doc(user.uid).set({ listingsCount: firebase.firestore.FieldValue.increment(1) }, { merge: true }).catch(()=>{});
       notifyAdminsNewListing(model, data.ownerName); // uygulama kapalı olsa bile ilgili adminlere anlık push
       showToast('⏳', 'rgba(255,149,0,.15)', 'İlanınız Gönderildi', 'İncelendikten sonra Pazar\'da yayınlanacaktır.');
     }
@@ -6804,8 +6868,8 @@ async function submitListing() {
   } catch(e) { showErrorToast(e.message); }
 }
 
-function editListing(id) {
-  const l = listings.find(x => x.id === id);
+async function editListing(id) {
+  const l = await getListingById(id);
   // Sahibi kendi ilanını her zaman düzenleyebilir; sahibi olmayan bir düzenleme yalnızca
   // manageListings yetkili adminler için açılır (bkz. submitListing() içindeki aynı kontrol).
   if (!l || !user || (l.uid !== user.uid && !hasPermission('manageListings'))) return;
@@ -6959,27 +7023,38 @@ function rmPhoto(idx) {
 let currentListing = null;
 let currentDetailPhotos = [];
 let openListingId = null;
+let adminListingsCache = []; // admin "İlanlar" sekmesi — bkz. loadAdminListings
 
-function openDetail(id) {
-  const cached = listings.find(l => l.id === id);
-  if (cached) { renderDetailPage(cached); return; }
-  fetchAndOpenDetail(id);
+// KÖK NEDEN DÜZELTMESİ (Genel Performans): eskiden TÜM ilan koleksiyonu tek bir global `listings`
+// dizisinde tutulup uygulama açılışında bir kerede okunuyordu — 100.000+ ilan ölçeğinde felaket
+// derecede pahalıydı. Artık HİÇBİR EKRAN tüm koleksiyonu okumuyor; her ekran kendi dar kapsamlı/
+// sayfalamalı kaynağını kullanıyor (marketAllListings/marketMineListings/marketFavListings/
+// marketRefListings/adminListingsCache). Bu fonksiyon, herhangi bir ilanı ID'sinden bulmak isteyen
+// HER YER için TEK, paylaşılan arama noktası: önce açık olan detay sayfasına, sonra zaten yüklü
+// sayfalama kaynaklarına bakar, hiçbirinde yoksa TEK bir doküman okumasıyla (koleksiyon taraması
+// DEĞİL) tamamlar — sessizce hiçbir şey bulunamadan başarısız olmaz.
+function getListingByIdSync(id) {
+  if (currentListing?.id === id) return currentListing;
+  for (const arr of [marketMineListings, marketFavListings, marketRefListings, marketAllListings, adminListingsCache]) {
+    const found = arr?.find(x => x.id === id);
+    if (found) return found;
+  }
+  return null;
 }
-
-// KÖK NEDEN DÜZELTMESİ (Genel Performans): `listings` artık TÜM koleksiyonu değil, SINIRLI sayıda
-// (en yeni) ilanı tutuyor (bkz. loadListings — önceden .limit() olmadan her açılışta TÜM koleksiyonu
-// okuyordu, 100.000+ ilan ölçeğinde felaket derecede pahalı). Sınırın dışında kalan daha eski bir
-// ilana tıklanırsa (paylaşılan link, eski bir kart, doğrudan URL) burada TEK bir doküman okumasıyla
-// (koleksiyon taraması DEĞİL) telafi edilir — daha önce olduğu gibi sessizce hiçbir şey açılmadan
-// başarısız olmaz.
-async function fetchAndOpenDetail(id) {
+async function getListingById(id) {
+  const cached = getListingByIdSync(id);
+  if (cached) return cached;
   try {
     const snap = await db.collection('teknohane_listings').doc(id).get();
-    if (!snap.exists) { showToast('❗','rgba(255,69,58,.12)','İlan Bulunamadı','Bu ilan kaldırılmış veya silinmiş olabilir.'); return; }
-    const l = { id: snap.id, ...snap.data() };
-    listings.push(l);
+    return snap.exists ? { id: snap.id, ...snap.data() } : null;
+  } catch(e) { return null; }
+}
+
+function openDetail(id) {
+  getListingById(id).then(l => {
+    if (!l) { showToast('❗','rgba(255,69,58,.12)','İlan Bulunamadı','Bu ilan kaldırılmış veya silinmiş olabilir.'); return; }
     renderDetailPage(l);
-  } catch(e) { showErrorToast('İlan yüklenemedi: ' + e.message); }
+  });
 }
 
 function renderDetailPage(l) {
@@ -7109,7 +7184,7 @@ function exitDetailPage(toMarket) {
 }
 
 async function shareListing(id) {
-  const l = listings.find(x => x.id === id);
+  const l = await getListingById(id);
   if (!l) return;
   const url = location.origin + location.pathname + '?listing=' + id;
   const text = `${l.model} - ₺${parseInt(l.price||0).toLocaleString('tr-TR')}\nTeknohane'de incele:`;
@@ -7158,7 +7233,7 @@ function copyListingId(shortId, fullId) {
 }
 
 async function toggleSold(id) {
-  const l = listings.find(x => x.id === id);
+  const l = await getListingById(id);
   if (!l || !user || l.uid !== user.uid) return;
   const newSold = !l.sold;
   try {
@@ -7176,7 +7251,7 @@ async function toggleSold(id) {
 // bir sonraki dolduğunda tekrar bildirim gidebilmesi için expiredNotified sıfırlanır. Yeniden
 // onay/moderasyon GEREKMEZ (içerik değişmedi, yalnızca görünürlük süresi uzatılıyor).
 async function renewListing(id) {
-  const l = listings.find(x => x.id === id);
+  const l = await getListingById(id);
   if (!l || !user || l.uid !== user.uid) return;
   const newExpiry = firebase.firestore.Timestamp.fromDate(new Date(Date.now() + 30*24*60*60*1000));
   try {
@@ -7192,7 +7267,7 @@ async function approveListing(id) {
   if (!user || !isAdminNow()) return;
   try {
     await db.collection('teknohane_listings').doc(id).update({ approved: true, rejected: false });
-    const l = listings.find(x => x.id === id);
+    const l = await getListingById(id);
     if (l) { l.approved = true; l.rejected = false; }
     adminLog('approve_listing', 'listing', id, l?.model || id, { approved: false }, { approved: true });
     exitDetailPage(false);
@@ -7234,7 +7309,7 @@ async function onRejectReasonChosen(code) {
 }
 
 async function rejectListing(id, reasonCode, reasonLabel, note) {
-  const l = listings.find(x => x.id === id);
+  const l = await getListingById(id);
   try {
     await db.collection('teknohane_listings').doc(id).update({
       approved: false, rejected: true, rejectReasonCode: reasonCode, rejectReasonLabel: reasonLabel, rejectNote: note || ''
@@ -7249,7 +7324,7 @@ async function rejectListing(id, reasonCode, reasonLabel, note) {
 
 async function toggleListingPaused(id) {
   if (!hasPermission('manageListings')) { showToast('⚠️','rgba(255,69,58,.15)','Yetkin Yok',''); return; }
-  const l = listings.find(x => x.id === id);
+  const l = await getListingById(id);
   if (!l) return;
   const newVal = !l.paused;
   try {
@@ -7263,7 +7338,7 @@ async function toggleListingPaused(id) {
 
 async function adminToggleSold(id) {
   if (!hasPermission('manageListings')) { showToast('⚠️','rgba(255,69,58,.15)','Yetkin Yok',''); return; }
-  const l = listings.find(x => x.id === id);
+  const l = await getListingById(id);
   if (!l) return;
   const newVal = !l.sold;
   try {
@@ -7289,6 +7364,13 @@ async function toggleRef() {
         referrers: firebase.firestore.FieldValue.arrayRemove(already)
       });
       l.referrers = refs.filter(r => r.uid !== user.uid);
+      // DENORMALİZASYON: kendi profil dokümanımda da bu ilan ID'sini tutan küçük bir dizi güncellenir
+      // (bkz. teknohane_users.referredListingIds) — Profil'in "Referanslarım" sekmesi artık TÜM ilan
+      // koleksiyonunu taramak yerine (bkz. loadMarketRefs) yalnızca bu küçük listeyi okuyabiliyor.
+      db.collection('teknohane_users').doc(user.uid).set({
+        referredListingIds: firebase.firestore.FieldValue.arrayRemove(l.id)
+      }, { merge: true }).catch(()=>{});
+      if (myProfileData) myProfileData.referredListingIds = (myProfileData.referredListingIds||[]).filter(id => id !== l.id);
     } else {
       const name = user.displayName || user.email?.split('@')[0] || 'Anonim';
       const newRef = { uid: user.uid, name, at: new Date() };
@@ -7296,10 +7378,13 @@ async function toggleRef() {
         referrers: firebase.firestore.FieldValue.arrayUnion(newRef)
       });
       l.referrers = [...refs, newRef];
+      db.collection('teknohane_users').doc(user.uid).set({
+        referredListingIds: firebase.firestore.FieldValue.arrayUnion(l.id)
+      }, { merge: true }).catch(()=>{});
+      if (myProfileData) myProfileData.referredListingIds = [...(myProfileData.referredListingIds||[]), l.id];
       notifyUser(l.uid, 'new_referrer', `${name}, "${l.model}" ilanınıza referans oldu.`, l.id, null, user.uid, name, myProfileData.photoURL);
     }
-    const idx = listings.findIndex(x => x.id === l.id);
-    if (idx > -1) listings[idx] = l;
+    syncListingFieldEverywhere(l.id, { referrers: l.referrers });
     openDetail(l.id);
   } catch(e) { showErrorToast(e.message); }
 }
@@ -7338,7 +7423,6 @@ async function detFav() {
 
 async function toggleFav(id, btn) {
   if (!user) { gt('profile'); return; }
-  const l = listings.find(x => x.id === id);
   const adding = !favs.has(id);
   if (adding) { favs.add(id); btn.classList.add('on'); } else { favs.delete(id); btn.classList.remove('on'); }
   // Hafif büyüme animasyonu + (varsa) Android titreşimi + küçük toast — yalnızca görsel/haptik geri
@@ -7356,6 +7440,7 @@ async function toggleFav(id, btn) {
     return;
   }
   startFavoritesListener(); // liste değişti — eski dinleyici kapatılıp güncel ID'lerle yeniden kurulur
+  const l = await getListingById(id); // ikon/Set zaten güncellendi — bu, arka planda sahibe bildirim için
   if (l) notifyListingOwnerOnFav(l, adding);
 }
 
@@ -7405,15 +7490,17 @@ async function delListing(id) {
 // onay sorar (bkz. bulkDeleteListings), sonra bu fonksiyonu ID başına çağırır. Tekli silme davranışı
 // birebir korunuyor.
 async function performListingDelete(id) {
-  const l = listings.find(x => x.id === id);
+  const l = await getListingById(id);
   const isAdminModeration = isAdminNow() && l && user.uid !== l.uid;
   try {
     await db.collection('teknohane_listings').doc(id).delete();
-    listings = listings.filter(x => x.id !== id);
-    // Pazar ekranının kendi sayfalamalı dizilerinden de kaldır (görsel anında güncellensin diye)
+    // Pazar/Profil'in kendi sayfalamalı dizilerinden de kaldır (görsel anında güncellensin diye)
     marketAllListings = marketAllListings.filter(x => x.id !== id);
     marketFavListings = marketFavListings.filter(x => x.id !== id);
     marketMineListings = marketMineListings.filter(x => x.id !== id);
+    marketRefListings = marketRefListings.filter(x => x.id !== id);
+    adminListingsCache = adminListingsCache.filter(x => x.id !== id);
+    if (l?.uid) db.collection('teknohane_users').doc(l.uid).set({ listingsCount: firebase.firestore.FieldValue.increment(-1) }, { merge: true }).catch(()=>{});
     if (isAdminModeration) adminLog('delete_listing', 'listing', id, l?.model || id, l, null);
     rlistings();
     if (document.getElementById('admin-mo')?.classList.contains('on')) radmin();
@@ -8284,7 +8371,15 @@ async function openPublicProfile(uid, nameHint) {
     if (pSnap.exists) presenceData = pSnap.data();
   } catch (e) {}
 
-  renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceData);
+  // Bu profildeki ilanlar — TÜM koleksiyonu taramak yerine (eski `listings` global dizisi) yalnızca
+  // bu kullanıcıya ait dar kapsamlı bir sorgu (Pazar'ın "İlanlarım" sorgusuyla birebir aynı desen).
+  let profileListings = [];
+  try {
+    const lSnap = await db.collection('teknohane_listings').where('uid', '==', uid).get();
+    profileListings = lSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (e) {}
+
+  renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceData, profileListings);
 
   // Takipçi/takip edilen sayıları — teknohane_users koleksiyonunda sorgu gerektirir,
   // ayrı ve asenkron yükleniyor ki ana profil render'ı bu sorguyu beklemek zorunda kalmasın.
@@ -8311,23 +8406,23 @@ async function openPublicProfile(uid, nameHint) {
   }
 }
 
-function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceData) {
+function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceData, profileListings) {
   const body = document.getElementById('pub-profile-body');
-  const userListings = listings.filter(l => l.uid === uid && l.approved !== false && !l.sold);
-  const soldListings = listings.filter(l => l.uid === uid && l.sold);
-  const refCount = listings.filter(l => (l.referrers||[]).some(r => r.uid === uid)).length;
+  profileListings = profileListings || [];
+  const userListings = profileListings.filter(l => l.approved !== false && !l.sold);
+  const soldListings = profileListings.filter(l => l.sold);
+  const refCount = (data.referredListingIds || []).length;
   const isTargetAdmin = !!data.isAdminPublic;
 
   let displayName = data.displayName || nameHint;
   if (!displayName) {
-    const l = listings.find(x => x.uid === uid);
-    displayName = l?.ownerName;
+    displayName = profileListings[0]?.ownerName;
   }
   displayName = displayName || 'Kullanıcı';
   const avFallback = avatarUrl(null, displayName, 256);
   const av = avatarUrl(data.photoURL, displayName, 256);
 
-  const scoreInfo = computeTeknohaneScore(uid, data);
+  const scoreInfo = computeTeknohaneScore(uid, data, profileListings);
   const teknohaneScore = scoreInfo.score;
   const scoreRingOffset = (276.5 * (1 - teknohaneScore/100)).toFixed(1);
   const BADGES_DEF = computeBadges(uid, data, isTargetAdmin, scoreInfo);
@@ -8615,21 +8710,22 @@ async function runUserSearch(query) {
 }
 
 // ADMIN PANEL
-function updateAdminStats() {
+// KÖK NEDEN DÜZELTMESİ (Genel Performans): "İlan" sayısı artık TÜM koleksiyonu okumadan tek bir
+// count() agregasyonuyla geliyor. "Satıcı" (tekil uid sayısı) ve "Fotoğraflı" (en az 1 fotoğrafı
+// olan ilan sayısı) için Firestore'da ucuz bir agregasyon karşılığı YOK (tekil sayım/OR sorgusu
+// gerektiriyor) — TÜM koleksiyonu okumaktansa dürüstçe "–" (bilinmiyor) gösterilmeye devam ediyor.
+async function updateAdminStats() {
   const ln = document.getElementById('adm-cnt-listing');
-  const sn = document.getElementById('adm-cnt-seller');
-  const pn = document.getElementById('adm-cnt-photo');
   if (!ln) return;
-  ln.textContent = listings.length;
-  sn.textContent = new Set(listings.map(l=>l.uid)).size;
-  pn.textContent = listings.filter(l=>l.photo1||l.photo2||l.photo3||l.photo4).length;
+  const snap = await db.collection('teknohane_listings').count().get().catch(()=>null);
+  ln.textContent = snap ? snap.data().count : '–';
 }
 
 function openAdmin() {
   document.getElementById('admin-mo').classList.add('on');
   document.getElementById('adm-srch').value = '';
   switchAdminTab('listings');
-  radmin();
+  if (!adminListingsCache.length) loadAdminListings(true); else radmin();
 }
 
 function switchAdminTab(tab) {
@@ -8787,17 +8883,67 @@ function updateBulkBar(containerId) {
   if (countEl) countEl.textContent = sel.size + ' seçili';
 }
 
+let adminListingsLastDoc = null;
+let adminListingsHasMore = true;
+let adminListingsPendingLoaded = false;
+
+// ÖNCEDEN radmin() filtresiz/limitsiz TÜM teknohane_listings koleksiyonunu okuyordu — 100.000+ ilan
+// ölçeğinde felaket derecede pahalıydı. Artık diğer tüm admin listeleriyle (kullanıcılar/loglar/
+// şikayetler) AYNI desende: limit(50) + "Daha Fazla Yükle" sayfalaması. EK OLARAK: onay bekleyen
+// TÜM ilanlar (ayrı, dar kapsamlı bir sorguyla, tek seferde) ilk sayfaya karışık eklenir — moderasyon
+// kuyruğu asla sayfalama arkasında kalıp gözden kaçmaz (bekleyen ilan sayısı doğası gereği sınırlı/
+// yönetilebilir olmalı, bu yüzden limit(100) güvenli bir tavan).
+async function loadAdminListings(reset) {
+  const list = document.getElementById('adm-list');
+  if (!list) return;
+  if (reset !== false) { adminListingsCache = []; adminListingsLastDoc = null; adminListingsHasMore = true; adminListingsPendingLoaded = false; }
+  if (!adminListingsCache.length) list.innerHTML = adminSkeletonHTML(6);
+  try {
+    let recentQ = db.collection('teknohane_listings').orderBy('createdAt', 'desc').limit(50);
+    if (adminListingsLastDoc) recentQ = recentQ.startAfter(adminListingsLastDoc);
+    const queries = [recentQ.get()];
+    if (!adminListingsPendingLoaded) queries.push(db.collection('teknohane_listings').where('approved', '==', false).limit(100).get());
+    const [recentSnap, pendingSnap] = await Promise.all(queries);
+    const seen = new Set(adminListingsCache.map(x => x.id));
+    if (pendingSnap) {
+      adminListingsPendingLoaded = true;
+      pendingSnap.docs.forEach(d => { if (!seen.has(d.id)) { adminListingsCache.push({ id: d.id, ...d.data() }); seen.add(d.id); } });
+    }
+    recentSnap.docs.forEach(d => { if (!seen.has(d.id)) { adminListingsCache.push({ id: d.id, ...d.data() }); seen.add(d.id); } });
+    adminListingsLastDoc = recentSnap.docs[recentSnap.docs.length - 1] || adminListingsLastDoc;
+    adminListingsHasMore = recentSnap.docs.length === 50;
+    radmin();
+    updateAdminListingsLoadMoreBtn();
+  } catch (e) {
+    console.error('İlanlar yüklenemedi:', e);
+    list.innerHTML = `<div class="no">İlanlar yüklenemedi.</div>`;
+  }
+}
+
+function updateAdminListingsLoadMoreBtn() {
+  const btn = document.getElementById('adm-list-load-more');
+  if (btn) btn.style.display = adminListingsHasMore ? 'block' : 'none';
+}
+
+// KÖK NEDEN DÜZELTMESİ (Genel Performans): eskiden bu ekran TÜM `teknohane_listings` koleksiyonunu
+// (global `listings` dizisi) okuyup filtreliyordu. Artık diğer tüm admin listeleriyle AYNI desende:
+// sınırlı sayfalama + her zaman TAM olarak yüklenen (ayrı, dar kapsamlı sorgulu) bekleyen onaylar
+// kuyruğu (bkz. loadAdminListings) — moderasyon kuyruğu asla sayfa dışında kalıp gözden kaçmaz.
+// DÜRÜST SINIR: arama kutusu artık yalnızca o an YÜKLENMİŞ sayfa içinde filtreler (Pazar'ın kendi
+// #ID araması ile AYNI, zaten var olan davranış) — TÜM koleksiyonda serbest metin araması, tam
+// koleksiyon taraması gerektirdiği için bu oturumun kapsamı dışında bırakıldı.
 function radmin() {
   const list = document.getElementById('adm-list');
   if (!list) return;
   const q = (document.getElementById('adm-srch')?.value||'').toLowerCase();
-  let items = listings.filter(l => !q || l.model?.toLowerCase().includes(q) || l.ownerName?.toLowerCase().includes(q));
+  let items = adminListingsCache.filter(l => !q || l.model?.toLowerCase().includes(q) || l.ownerName?.toLowerCase().includes(q));
   // Onay bekleyenleri en üste al
   items = [...items].sort((a,b) => {
     const aPending = a.approved === false ? 0 : 1;
     const bPending = b.approved === false ? 0 : 1;
     return aPending - bPending;
   });
+  if (!adminListingsCache.length) { list.innerHTML = adminSkeletonHTML(6); return; }
   if (!items.length) { list.innerHTML = '<div class="no">İlan bulunamadı</div>'; return; }
   const sel = bulkSelected('adm-list');
   list.innerHTML = items.map(l => {
@@ -8856,12 +9002,11 @@ async function bulkDeleteListings() {
   showToast('🗑️','rgba(255,69,58,.15)','Silindi', `${ids.length} ilan silindi.`);
 }
 
-// Bir ilan alanı adminden değiştirildiğinde, aynı ilanın olası TÜM bellek kopyalarını (listings,
-// marketAllListings, marketMineListings, marketFavListings — her biri ayrı sorgudan geldiği için
-// ayrı obje referanslarıdır) tek yerden senkronize eder; böylece Pazar ekranı yeniden yüklenmeden
-// de anında güncel görünür.
+// Bir ilan alanı adminden değiştirildiğinde, aynı ilanın olası TÜM bellek kopyalarını (her biri ayrı
+// sorgudan geldiği için ayrı obje referanslarıdır) tek yerden senkronize eder; böylece Pazar/Profil/
+// Admin ekranları yeniden yüklenmeden de anında güncel görünür.
 function syncListingFieldEverywhere(id, patch) {
-  [listings, marketAllListings, marketMineListings, marketFavListings].forEach(arr => {
+  [marketAllListings, marketMineListings, marketFavListings, marketRefListings, adminListingsCache].forEach(arr => {
     const item = arr?.find(x => x.id === id);
     if (item) Object.assign(item, patch);
   });
@@ -8871,7 +9016,7 @@ function syncListingFieldEverywhere(id, patch) {
 // birebir aynı yaklaşım), tek bir ortak yardımcı üzerinden (kod tekrarı yok).
 async function toggleListingModerationField(id, field, actionLog, onLabel, offLabel) {
   if (!hasPermission('manageListings')) { showToast('⚠️','rgba(255,69,58,.15)','Yetkin Yok',''); return; }
-  const l = listings.find(x => x.id === id);
+  const l = await getListingById(id);
   if (!l) return;
   const newVal = !l[field];
   try {
@@ -8893,7 +9038,7 @@ function toggleListingArchived(id) { toggleListingModerationField(id, 'archived'
 // mevcut bitiş tarihinden (varsa) sonrasına eklenir; yoksa bugünden başlar.
 async function extendListingDuration(id) {
   if (!hasPermission('manageListings')) { showToast('⚠️','rgba(255,69,58,.15)','Yetkin Yok',''); return; }
-  const l = listings.find(x => x.id === id);
+  const l = await getListingById(id);
   if (!l) return;
   const daysStr = await promptDialog('Kaç gün uzatılsın?', '30', { title: 'İlan Süresini Uzat', okLabel: 'Uzat' });
   if (daysStr === null) return;
@@ -9265,23 +9410,17 @@ function rAdminUsers() {
   const list = document.getElementById('adm-users-list');
   if (!list || !adminUsersCache) return;
 
-  // Her kullanıcı için ilan sayısını listings'ten hesapla (bellekte zaten var, ekstra sorgu yok)
+  // KÖK NEDEN DÜZELTMESİ (Genel Performans): ilan sayısı artık TÜM koleksiyonu taramaz — bkz.
+  // submitListing/performListingDelete'teki listingsCount denormalizasyonu. Ad için de artık TÜM
+  // ilan koleksiyonunda arama yapılmıyor — displayName her girişte zaten senkronize ediliyor
+  // (syncUserProfile), bu yüzden gerçekte hemen hiç boş olmuyor.
   const items = adminUsersCache.map(u => {
-    const userListings = listings.filter(l => l.uid === u.uid);
-    let fallbackName = u.displayName;
-    if (!fallbackName && userListings[0]) fallbackName = userListings[0].ownerName;
-    if (!fallbackName) {
-      for (const l of listings) {
-        const ref = (l.referrers||[]).find(r => r.uid === u.uid);
-        if (ref?.name) { fallbackName = ref.name; break; }
-      }
-    }
     const roleInfo = adminRolesCache[u.uid];
     return {
       ...u,
-      listingCount: userListings.length,
+      listingCount: u.listingsCount || 0,
       favCount: (u.favorites || []).length,
-      displayName: fallbackName || 'İsimsiz Kullanıcı',
+      displayName: u.displayName || 'İsimsiz Kullanıcı',
       email: u.email || '',
       role: (roleInfo && roleInfo.isActive !== false) ? roleInfo.role : null,
     };
@@ -9305,20 +9444,37 @@ function rAdminUsers() {
   updateBulkBar('adm-users-list');
 }
 
-function openUserDetail(uid) {
+// KÖK NEDEN DÜZELTMESİ (Genel Performans): eskiden bu üç liste (kendi ilanları/favorileri/referans
+// olduğu ilanlar) TÜM koleksiyonu okuyan global `listings` dizisi taranarak elde ediliyordu. Artık
+// yalnızca bu TEK kullanıcı için, dar kapsamlı sorgularla (Pazar'ın "İlanlarım"/"Favorilerim"
+// sorgularıyla birebir aynı desen) çekiliyor — admin paneli düşük trafikli olduğu için bu üç ek
+// sorgu (yalnızca bu modal açıldığında) ihmal edilebilir maliyette.
+async function fetchIdListBatch(ids) {
+  if (!ids || !ids.length) return [];
+  const chunks = [];
+  for (let i = 0; i < ids.length; i += 30) chunks.push(ids.slice(i, i + 30));
+  const results = await Promise.all(chunks.map(c => db.collection('teknohane_listings').where(firebase.firestore.FieldPath.documentId(), 'in', c).get()));
+  const out = [];
+  results.forEach(snap => snap.docs.forEach(d => out.push({ id: d.id, ...d.data() })));
+  return out;
+}
+
+async function openUserDetail(uid) {
   const u = adminUsersCache?.find(x => x.uid === uid);
   if (!u) return;
-  const userListings = listings.filter(l => l.uid === uid);
-  const favIds = u.favorites || [];
-  const favListings = listings.filter(l => favIds.includes(l.id));
-  const refListings = listings.filter(l => (l.referrers||[]).some(r => r.uid === uid));
+  document.getElementById('user-detail-body').innerHTML = `<div class="load"><div class="spin"></div></div>`;
+  document.getElementById('user-detail-mo').classList.add('on');
+
+  let userListings = [];
+  try {
+    const snap = await db.collection('teknohane_listings').where('uid', '==', uid).get();
+    userListings = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (e) {}
+  const [favListings, refListings] = await Promise.all([
+    fetchIdListBatch(u.favorites || []),
+    fetchIdListBatch(u.referredListingIds || []),
+  ]);
   let displayName = u.displayName || userListings[0]?.ownerName;
-  if (!displayName) {
-    for (const l of listings) {
-      const ref = (l.referrers||[]).find(r => r.uid === uid);
-      if (ref?.name) { displayName = ref.name; break; }
-    }
-  }
   displayName = displayName || 'İsimsiz Kullanıcı';
 
   const roleInfo = adminRolesCache[uid];
@@ -9328,7 +9484,7 @@ function openUserDetail(uid) {
   const av = avatarUrl(u.photoURL, displayName, 256);
 
   // Skor/rozet hesaplaması: profil sisteminde kullanılan aynı ortak fonksiyonlar (kod tekrarı yok)
-  const scoreInfo = computeTeknohaneScore(uid, u);
+  const scoreInfo = computeTeknohaneScore(uid, u, userListings);
   const teknohaneScore = scoreInfo.score;
   const scoreRingOffset = (276.5 * (1 - teknohaneScore/100)).toFixed(1);
   const BADGES_DEF = computeBadges(uid, u, !!u.isAdminPublic, scoreInfo);
@@ -9430,7 +9586,6 @@ function openUserDetail(uid) {
       </div>
     </div>`;
 
-  document.getElementById('user-detail-mo').classList.add('on');
   loadUserDetailExtras(uid);
 }
 
@@ -11343,7 +11498,7 @@ document.addEventListener('focusout', e => {
 // INIT
 initTheme();
 rhome();
-loadListings();
+handleSharedListingLink();
 loadSystemSettings();
 setTimeout(() => loadExtraPhones(), 3000); // arka planda, sayfa yüklenip biraz sakinleştikten sonra
 checkOnboarding();
