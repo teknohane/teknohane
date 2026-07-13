@@ -76,8 +76,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .notif-item.unread .notif-msg{font-weight:700;color:var(--text);}
 .notif-item.unread .notif-time{color:var(--cyan);font-weight:600;}
 .unread-dot{width:9px;height:9px;border-radius:50%;background:var(--cyan);flex-shrink:0;box-shadow:0 0 6px var(--cyan);}
-.notif-swipe-wrap{position:relative;overflow:hidden;}
-.notif-swipe-del{position:absolute;right:0;top:0;bottom:0;width:70px;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;}
+.notif-swipe-wrap{position:relative;overflow:hidden;max-height:160px;transition:max-height .22s ease,margin .22s ease;}
+.notif-swipe-wrap.notif-removing{max-height:0!important;margin:0!important;}
+.notif-swipe-del{position:absolute;right:0;top:0;bottom:0;width:76px;min-width:44px;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;}
+.notif-swipe-del:active{background:#d93a30;}
 .notif-swipe-wrap .notif-item{position:relative;background:var(--bg2);touch-action:pan-y;}
 .msg-bubble{border-radius:14px;position:relative;background:var(--bg2);}
 /* Sohbet ekranı: mesaj listesi tam bağımsız kayabilsin, alt input her zaman sabit kalsın */
@@ -497,6 +499,17 @@ body.tk-text-focus .det-sticky {
    sınırlı tutuldu (o ikisi her elementte "none" yapıldığında bazı sürekli çalışan/dekoratif
    animasyonlarda -örn. spinner- istenmeyen donma etkisi yaratabileceği için). */
 body.tk-text-focus * { will-change: auto !important; }
+/* İKİNCİ, DAHA GÜÇLÜ KÖK NEDEN ADAYI — user-select:none zinciri: dosyanın en üstünde (bkz. "*{...
+   user-select:none}" kuralı) SEÇİM her elementte varsayılan olarak KAPALI, yalnızca input/textarea'nın
+   KENDİSİNDE (ata zincirinde DEĞİL) tekrar açılıyor. Bu, Capacitor/Cordova tabanlı hibrit uygulamalarda
+   tekrarlayan, bilinen bir Chromium/Android WebView davranışıdır: odaklanan alan seçilebilir olsa da,
+   ata elementlerinden biri user-select:none taşıyorsa, Android'in native metin seçim ActionMode
+   araç çubuğu (Kes/Kopyala/Yapıştır/Tümünü Seç) ikonlarını dolduramıyor ve boş/varsayılan bir "T"
+   simgesi çiziyor — backdrop-filter'dan TAMAMEN BAĞIMSIZ, ayrı bir tetikleyici. Bu, hatanın neden
+   HER modalde/ekranda (hepsi aynı global user-select:none kuralını miras aldığı için) tekrarladığını
+   da açıklıyor. Çözüm: metin alanı odaklıyken, TÜM ata zincirinde user-select'i geçici olarak
+   yeniden açmak — kalıcı bir davranış değişikliği değil, yalnızca odak süresince. */
+body.tk-text-focus * { user-select: auto !important; -webkit-user-select: auto !important; }
 @keyframes detpage{from{transform:translateX(16px);opacity:0;}to{transform:translateX(0);opacity:1;}}
 .det-sheet::-webkit-scrollbar{display:none;}
 .det-sticky{position:sticky;top:0;background:rgba(7,13,26,.95);backdrop-filter:blur(12px);padding:calc(12px + var(--st)) 20px 12px;border-bottom:1px solid var(--border2);z-index:10;display:flex;align-items:center;justify-content:space-between;}
@@ -1160,6 +1173,13 @@ body.tk-maintenance #maintenance-gate{
   <div class="screen" id="s-compare">
     <div class="sc">
       <div class="sh"><span class="st">Karşılaştır</span></div>
+      <div style="display:flex;align-items:flex-start;gap:10px;background:rgba(0,212,255,.07);border:1px solid rgba(0,212,255,.22);border-radius:14px;padding:12px 14px;margin-bottom:14px">
+        <span style="font-size:18px;line-height:1">🧪</span>
+        <div>
+          <div style="font-size:12.5px;font-weight:700;color:var(--cyan)">Karşılaştırma sistemi test sürecindedir.</div>
+          <div style="font-size:11.5px;color:var(--text2);margin-top:2px;line-height:1.4">Yakında çok daha gelişmiş filtreleme ve karşılaştırma özellikleri eklenecektir.</div>
+        </div>
+      </div>
       <div class="cgrid">
         <div class="cslot" id="slot-a" onclick="opick('a')">
           <div class="cplus"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
@@ -1654,6 +1674,15 @@ body.tk-maintenance #maintenance-gate{
   <div class="ms" onclick="event.stopPropagation()" style="max-height:85vh">
     <div class="mh"></div>
     <div id="announcement-stats-body"></div>
+  </div>
+</div>
+
+<!-- GİRİŞ DUYURUSU (SPLASH) MODALI — normal .mo'lardan KASITLI olarak farklı: arka plana dokununca
+     KAPANMAZ (backdrop'ta onclick yok), yalnızca "Tamam"/"Kapat" butonuna basınca kapanır. Oturum
+     kontrolünden hemen sonra, ana ekran etkileşime açılmadan ÖNCE gösterilir (bkz. loadActiveAnnouncements). -->
+<div class="mo" id="announcement-splash-mo" style="align-items:center;justify-content:center;z-index:500">
+  <div class="ms" style="border-radius:24px;max-width:380px;width:calc(100% - 40px);max-height:80vh" onclick="event.stopPropagation()">
+    <div id="announcement-splash-body"></div>
   </div>
 </div>
 
@@ -2791,6 +2820,26 @@ function renderAnnouncementForm(a, editId) {
     <div class="fg"><label class="fl">Başlık</label><input class="fi" id="ann-title" value="${escapeHtml(a.title)}"></div>
     <div class="fg"><label class="fl">Emoji (isteğe bağlı)</label><input class="fi" id="ann-emoji" value="${escapeHtml(a.emoji)}" placeholder="🎉" maxlength="4"></div>
     <div class="fg"><label class="fl">Açıklama</label><textarea class="fi" id="ann-description" rows="3" style="resize:none;font-family:inherit">${escapeHtml(a.description)}</textarea></div>
+    <div class="fg"><label class="fl">Açıklama Biçimi (isteğe bağlı)</label>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2)"><input type="checkbox" id="ann-desc-bold" ${a.descBold?'checked':''}> Kalın</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2)"><input type="checkbox" id="ann-desc-italic" ${a.descItalic?'checked':''}> İtalik</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2)">Renk <input type="color" id="ann-desc-color" value="${a.descColor||'#c7d2e0'}" style="width:28px;height:28px;border:none;border-radius:6px;padding:0;background:none;cursor:pointer"></label>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div class="csel" data-for="ann-desc-size" data-title="Yazı Boyutu" onclick="openPicker(this)" style="flex:1;min-width:130px"><span class="csel-label"></span><svg class="csel-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+        <select id="ann-desc-size" style="display:none">
+          <option value="normal" ${(a.descSize||'normal')==='normal'?'selected':''}>Normal Boyut</option>
+          <option value="large" ${a.descSize==='large'?'selected':''}>Büyük</option>
+          <option value="xlarge" ${a.descSize==='xlarge'?'selected':''}>Çok Büyük</option>
+        </select>
+        <div class="csel" data-for="ann-desc-align" data-title="Hizalama" onclick="openPicker(this)" style="flex:1;min-width:110px"><span class="csel-label"></span><svg class="csel-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+        <select id="ann-desc-align" style="display:none">
+          <option value="left" ${(a.descAlign||'left')==='left'?'selected':''}>Sola Hizalı</option>
+          <option value="center" ${a.descAlign==='center'?'selected':''}>Ortalı</option>
+        </select>
+      </div>
+    </div>
     <div class="fg"><label class="fl">Görsel URL (isteğe bağlı)</label><input class="fi" id="ann-image" value="${escapeHtml(a.imageUrl)}"></div>
     <div class="fg"><label class="fl">Bağlantı URL (isteğe bağlı)</label><input class="fi" id="ann-link" value="${escapeHtml(a.linkUrl)}"></div>
     <div class="fg"><label class="fl">Buton Yazısı</label><input class="fi" id="ann-button-text" value="${escapeHtml(a.buttonText)||'Detay'}"></div>
@@ -2799,6 +2848,7 @@ function renderAnnouncementForm(a, editId) {
       <select id="ann-priority" style="display:none">${priorityOptions}</select>
     </div>
     <div class="fg"><label class="fl" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="ann-pinned" ${a.pinned?'checked':''}> Sabitlensin (üstte kalsın)</label></div>
+    <div class="fg"><label class="fl" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="ann-splash" ${a.displayMode==='splash'?'checked':''}> Açılışta tam ekran göster (Splash) — kullanıcı "Tamam"/"Kapat" diyene kadar ana ekrana geçemez</label></div>
 
     <div class="fg"><label class="fl">Hedef Kitle</label>
       <div class="csel" data-for="ann-audience" data-title="Hedef Kitle" onclick="openPicker(this)"><span class="csel-label"></span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
@@ -2891,6 +2941,12 @@ async function saveAnnouncement(targetStatus) {
     buttonText: document.getElementById('ann-button-text').value.trim() || 'Detay',
     priority: document.getElementById('ann-priority').value,
     pinned: document.getElementById('ann-pinned').checked,
+    displayMode: document.getElementById('ann-splash').checked ? 'splash' : 'card',
+    descBold: document.getElementById('ann-desc-bold').checked,
+    descItalic: document.getElementById('ann-desc-italic').checked,
+    descColor: document.getElementById('ann-desc-color').value,
+    descSize: document.getElementById('ann-desc-size').value,
+    descAlign: document.getElementById('ann-desc-align').value,
     audienceType,
     audienceUids: document.getElementById('ann-uids').value.split(',').map(s=>s.trim()).filter(Boolean),
     audienceUsernames: document.getElementById('ann-usernames').value.split(',').map(s=>s.trim().replace(/^@/,'')).filter(Boolean),
@@ -4652,14 +4708,34 @@ async function loadActiveAnnouncements() {
     // (durum, hedef kitle, kapatılmış mı) istemci tarafında yapılır — composite index gerekmez.
     const snap = await db.collection('teknohane_announcements').limit(50).get();
     const dismissed = getDismissedAnnouncementIds();
-    activeAnnouncementsCache = snap.docs
+    const eligible = snap.docs
       .map(d => ({ id: d.id, ...d.data() }))
       .filter(a => getAnnouncementEffectiveStatus(a) === 'published')
       .filter(a => matchesAnnouncementAudience(a))
       .filter(a => !dismissed.includes(a.id))
       .sort((a,b) => (b.pinned?1:0) - (a.pinned?1:0));
+    // GİRİŞ DUYURUSU (SPLASH): displayMode==='splash' olanlar normal kart listesine KARIŞMAZ —
+    // ana ekran yerine tam ekran gösterilir (bkz. renderSplashAnnouncement). Aynı anda birden fazla
+    // splash duyuru varsa yalnızca ilki (en önce sabitlenen/en yeni) gösterilir, kullanıcı onu
+    // kapatınca bir sonraki oturumda/yeniden yüklemede diğeri sırası gelince görünür.
+    const splash = eligible.find(a => a.displayMode === 'splash');
+    activeAnnouncementsCache = eligible.filter(a => a.displayMode !== 'splash');
     renderAnnouncementCards();
+    if (splash) renderSplashAnnouncement(splash);
   } catch(e) { console.error('Duyurular yüklenemedi:', e); }
+}
+
+// Admin'in seçtiği kalın/italik/renk/boyut/hizalama biçimini güvenli bir inline style dizesine
+// çevirir — serbest HTML/etiket ASLA kabul edilmez (yalnızca sabit bir alan kümesi), bu yüzden
+// yönetici hesabı ele geçirilse bile buradan çalıştırılabilir bir script enjekte edilemez.
+function announcementDescStyle(a) {
+  const sizeMap = { normal: '13px', large: '15px', xlarge: '18px' };
+  let s = `font-size:${sizeMap[a.descSize] || sizeMap.normal};`;
+  if (a.descBold) s += 'font-weight:700;';
+  if (a.descItalic) s += 'font-style:italic;';
+  if (a.descColor && /^#[0-9a-fA-F]{3,8}$/.test(a.descColor)) s += `color:${a.descColor};`;
+  if (a.descAlign === 'center') s += 'text-align:center;';
+  return s;
 }
 
 function renderAnnouncementCards() {
@@ -4670,12 +4746,12 @@ function renderAnnouncementCards() {
     const pm = ANNOUNCEMENT_PRIORITY_META[a.priority] || ANNOUNCEMENT_PRIORITY_META.normal;
     return `<div class="pacc-card" style="border-left:3px solid ${pm.color};background:${pm.bg};margin:12px 16px 0;position:relative" id="ann-card-${a.id}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-        <div style="font-size:14px;font-weight:700">${a.emoji||pm.icon} ${a.title||''}${a.pinned?' 📌':''}</div>
+        <div style="font-size:14px;font-weight:700">${escapeHtml(a.emoji)||pm.icon} ${escapeHtml(a.title)}${a.pinned?' 📌':''}</div>
         <span onclick="dismissAnnouncement('${a.id}')" style="cursor:pointer;color:var(--text3);font-size:16px;line-height:1;padding:2px">✕</span>
       </div>
-      ${a.imageUrl?`<img src="${a.imageUrl}" style="width:100%;border-radius:10px;margin-top:8px">`:''}
-      <div style="font-size:13px;color:var(--text2);margin-top:6px;line-height:1.5">${a.description||''}</div>
-      ${a.linkUrl?`<button class="apbtn" style="margin-top:10px" onclick="markAnnouncementRead('${a.id}');ol('${a.linkUrl}')">${a.buttonText||'Detay'}</button>`:''}
+      ${a.imageUrl?`<img src="${escapeHtml(a.imageUrl)}" style="width:100%;border-radius:10px;margin-top:8px">`:''}
+      <div style="margin-top:6px;line-height:1.5;${announcementDescStyle(a)}${a.descColor?'':'color:var(--text2)'}">${escapeHtml(a.description)}</div>
+      ${a.linkUrl?`<button class="apbtn" style="margin-top:10px" onclick="markAnnouncementRead('${a.id}');ol('${escapeJsAttr(a.linkUrl)}')">${escapeHtml(a.buttonText)||'Detay'}</button>`:''}
     </div>`;
   }).join('');
   // Görüntülenme (okundu) kaydı — kullanıcıyı bekletmeden, arka planda, sessizce.
@@ -4689,6 +4765,27 @@ function dismissAnnouncement(id) {
   renderAnnouncementCards();
   if (user) db.collection('teknohane_announcements').doc(id).collection('reads').doc(user.uid)
     .set({ dismissed: true, dismissedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }).catch(()=>{});
+}
+
+// GİRİŞ DUYURUSU (SPLASH) — kullanıcı "Tamam"/"Kapat" diyene kadar açık kalır, arka plana dokununca
+// KAPANMAZ (bkz. #announcement-splash-mo — backdrop'ta onclick yok). Kapatma, kart sistemiyle AYNI
+// dismissAnnouncement/markAnnouncementRead altyapısını kullanır — bir daha hiç kimseye görünmez
+// (localStorage'a yazılır), yeni bir duyuru oluşturulduğunda ise doğal olarak yeniden görünür hale gelir.
+function renderSplashAnnouncement(a) {
+  const body = document.getElementById('announcement-splash-body');
+  if (!body) return;
+  body.innerHTML = `
+    ${a.imageUrl?`<img src="${escapeHtml(a.imageUrl)}" style="width:100%;border-radius:16px;margin-bottom:14px">`:''}
+    <div style="font-size:17px;font-weight:800;text-align:center;margin-bottom:8px">${escapeHtml(a.emoji)||''} ${escapeHtml(a.title)}</div>
+    <div style="${announcementDescStyle(a)}${a.descColor?'':'color:var(--text2)'};text-align:${a.descAlign==='center'?'center':'left'};margin-bottom:18px">${escapeHtml(a.description)}</div>
+    ${a.linkUrl?`<button class="sbtn2" style="margin-bottom:8px" onclick="markAnnouncementRead('${a.id}');ol('${escapeJsAttr(a.linkUrl)}');closeSplashAnnouncement('${a.id}')">${escapeHtml(a.buttonText)||'Detay'}</button>`:''}
+    <button class="apbtn" style="background:var(--surf2);color:var(--text)" onclick="closeSplashAnnouncement('${a.id}')">${a.linkUrl?'Kapat':'Tamam'}</button>`;
+  document.getElementById('announcement-splash-mo').classList.add('on');
+}
+
+function closeSplashAnnouncement(id) {
+  document.getElementById('announcement-splash-mo').classList.remove('on');
+  dismissAnnouncement(id);
 }
 
 let markedReadAnnouncementIds = new Set();
@@ -5086,7 +5183,7 @@ function renderNotifGroupCard(g) {
     ? `<img src="${first.fromPhotoURL}" alt=""><span class="notif-ic-badge">${meta.ic}</span>`
     : meta.ic;
   return `<div class="notif-swipe-wrap" data-ids="${ids}">
-    <div class="notif-swipe-del">🗑️</div>
+    <div class="notif-swipe-del" onclick="event.stopPropagation();performNotifDelete(this.closest('.notif-swipe-wrap'))">🗑️</div>
     <div class="notif-item msg-in ${anyUnread?'unread':''}" onclick="clickNotifGroup('${ids}','${first.listingId||''}',${anyUnread},'${first.postId||''}','${first.type}','${first.fromUid||''}','${fromNameJs}')">
       <div class="notif-ic" style="background:${first.fromPhotoURL?'var(--surf2)':meta.bg}">${icHtml}</div>
       <div class="notif-txt" style="flex:1"><div class="notif-msg">${label}</div><div class="notif-time">${anyUnread?'<span style="color:var(--cyan);font-weight:700">Yeni · </span>':''}${time}</div></div>
@@ -5194,33 +5291,80 @@ async function openNotifications() {
 }
 
 // Bildirim öğesini sola kaydırınca silme — artık gruplanmış birden fazla ID'yi birden silebiliyor.
+// GÜVENİLİRLİK DÜZELTMESİ: eskiden TEK bir yol vardı (tam kaydırıp bırakmak) ve çöp kutusu ikonunun
+// kendisi tıklanamıyordu — bu yüzden "dokunmuyor" hissi oluşuyordu. Şimdi İKİ güvenilir yol var:
+// (1) yeterince kaydırıp bırakınca anında sil, (2) az kaydırıp bırakınca "açık" durumda kalır,
+// kullanıcı çöp kutusu ikonuna DOKUNARAK silebilir (bkz. renderNotifGroupCard'daki onclick).
+// Ayrıca dikey kaydırma ile yatay silme kaydırmasının BİRBİRİNE KARIŞMASI (yanlış swipe algısı)
+// önlenir: ilk birkaç piksellik harekette yön kilitlenir, dikey ağırlıklıysa yatay sürükleme iptal edilir.
 function attachSwipeDelete(wrap) {
   const item = wrap.querySelector('.notif-item');
-  const ids = wrap.dataset.ids.split(',');
-  let startX = 0, dx = 0, dragging = false;
+  let startX = 0, startY = 0, dx = 0, dragging = false, locked = null; // locked: 'x' | 'y' | null
+  // Satır "açık" (kaydırılmış) durumdayken bir dokunuş, gruba gitmek yerine önce satırı kapatmalı —
+  // aksi halde kullanıcı istemeden bildirime tıklamış gibi ekranın dışına atılır. Capture aşamasında
+  // dinlendiği için inline onclick (bubbling) her zaman BUNDAN SONRA çalışır, stopPropagation ile
+  // tamamen engellenebiliyor.
+  item.addEventListener('click', e => {
+    if (wrap._open) {
+      e.stopPropagation();
+      item.style.transition = 'transform .2s ease';
+      item.style.transform = 'translateX(0)';
+      wrap._open = false;
+    }
+  }, { capture: true });
   item.addEventListener('touchstart', e => {
-    startX = e.touches[0].clientX; dragging = true; item.style.transition = 'none';
+    startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+    dragging = true; locked = null; dx = 0;
+    item.style.transition = 'none';
   }, { passive: true });
   item.addEventListener('touchmove', e => {
     if (!dragging) return;
-    dx = e.touches[0].clientX - startX;
-    if (dx < 0) item.style.transform = `translateX(${dx}px)`;
+    const curX = e.touches[0].clientX, curY = e.touches[0].clientY;
+    const moveX = curX - startX, moveY = curY - startY;
+    if (!locked) {
+      if (Math.abs(moveX) < 8 && Math.abs(moveY) < 8) return; // henüz niyet net değil
+      locked = Math.abs(moveX) > Math.abs(moveY) ? 'x' : 'y';
+    }
+    if (locked !== 'x') return; // dikey kaydırma — native scroll'a bırak, kartı hareket ettirme
+    dx = Math.min(0, moveX);
+    item.style.transform = `translateX(${dx}px)`;
   }, { passive: true });
   item.addEventListener('touchend', () => {
     dragging = false;
     item.style.transition = 'transform .2s ease';
-    if (dx < -90) {
-      item.style.transform = 'translateX(-100%)';
-      item.style.opacity = '0';
-      const batch = db.batch();
-      ids.forEach(id => batch.delete(db.collection('teknohane_notifications').doc(id)));
-      batch.commit().catch(() => {});
-      notifAccumulatedDocs = notifAccumulatedDocs.filter(d => !ids.includes(d.id));
-      setTimeout(() => { renderNotifList(); }, 200);
+    if (locked !== 'x') { dx = 0; return; }
+    if (dx < -120) {
+      performNotifDelete(wrap);
+    } else if (dx < -40) {
+      item.style.transform = 'translateX(-76px)'; // "açık" durumda bırak — çöp kutusuna dokunulabilir
+      wrap._open = true;
     } else {
       item.style.transform = 'translateX(0)';
+      wrap._open = false;
     }
     dx = 0;
+  });
+}
+
+// Swipe-tam-kaydırma VEYA çöp kutusuna dokunma — HER İKİ YOLUN da çağırdığı tek, paylaşılan silme
+// fonksiyonu. Optimistic: Firestore cevabını beklemeden satır anında görsel olarak kaldırılır;
+// silme başarısız olursa (offline vb.) sessizce yok sayılmaz — kullanıcıya bildirilir ve liste
+// sunucudaki gerçek durumla yeniden senkronize edilir (rollback).
+function performNotifDelete(wrap) {
+  if (!wrap || wrap._deleting) return;
+  wrap._deleting = true;
+  const ids = wrap.dataset.ids.split(',');
+  const item = wrap.querySelector('.notif-item');
+  item.style.transition = 'transform .2s ease';
+  item.style.transform = 'translateX(-100%)';
+  wrap.classList.add('notif-removing');
+  notifAccumulatedDocs = notifAccumulatedDocs.filter(d => !ids.includes(d.id));
+  setTimeout(() => { wrap.remove(); if (!notifAccumulatedDocs.length) renderNotifList(); }, 220);
+  const batch = db.batch();
+  ids.forEach(id => batch.delete(db.collection('teknohane_notifications').doc(id)));
+  batch.commit().catch(() => {
+    showToast('⚠️', 'rgba(255,69,58,.15)', 'Silinemedi', 'Bağlantı sorunu — liste yenileniyor.');
+    loadNotifPage(true);
   });
 }
 
@@ -6249,11 +6393,24 @@ function onMarketSearchInput() {
 // aynı görünüm/davranışı, Profil'in "İlanlarım" sekmesi gibi diğer ekranların da tekrar kullanabilmesi
 // için ayrı bir fonksiyona çıkarıldı (kod tekrarı olmasın diye) — şablonun kendisi hiç değişmedi,
 // yalnızca rlistings()'in doğrudan içine yazılı olan kısım buraya taşındı.
+// İlanın kalan süresini (30 günlük yaşam döngüsü) kart üzerinde göstermek için — expiresAt YOKSA
+// (eski/süresiz ilan) null döner, kart hiçbir kalan-süre rozeti göstermez (geriye dönük uyumlu).
+function listingRemainingLabel(l) {
+  if (!l.expiresAt) return null;
+  const t = l.expiresAt.toDate ? l.expiresAt.toDate().getTime() : new Date(l.expiresAt).getTime();
+  const diffMs = t - Date.now();
+  if (diffMs <= 0) return { text: 'Süresi doldu', urgent: true };
+  if (diffMs < 24 * 60 * 60 * 1000) return { text: 'Bugün bitiyor', urgent: true };
+  const days = Math.ceil(diffMs / (24 * 60 * 60 * 1000));
+  return { text: `${days} gün kaldı`, urgent: days <= 5 };
+}
+
 function mcardHTML(l) {
   const mine = user && l.uid === user.uid;
   const fav = favs.has(l.id);
   const pending = l.approved === false;
   const isNew = l.condition === 'Sıfır';
+  const remaining = !l.sold ? listingRemainingLabel(l) : null;
   return `<div class="mcard ${l.sold?'sold':''} ${l.showcase?'showcase':''} ${l.featured?'featured':''} ${l.urgent?'urgent-listing':''}" onclick="openDetail('${l.id}')">
     <div class="mcard-row">
       <div class="mcard-photo">
@@ -6272,12 +6429,13 @@ function mcardHTML(l) {
       <div class="mcard-info">
         <div class="mcard-price"><span class="cur">₺</span>${parseInt(l.price||0).toLocaleString('tr-TR')}</div>
         <div class="mcard-title">${escapeHtml(l.model)}</div>
-        <div class="mcard-loc">📍 ${escapeHtml(l.location)||'Belirtilmedi'}${l.createdAt?.toDate?` · <span class="mcard-date">${timeAgo(l.createdAt.toDate())}</span>`:''}</div>
+        <div class="mcard-loc">📍 ${escapeHtml(l.location)||'Belirtilmedi'}${l.createdAt?.toDate?` · <span class="mcard-date">${timeAgo(l.createdAt.toDate())}</span>`:''}${remaining?` · <span class="mcard-date" style="color:${remaining.urgent?'var(--red)':'var(--text3)'}">${remaining.text}</span>`:''}</div>
         <div class="mcard-foot" onclick="event.stopPropagation()">
           ${l.ownerName?`<div class="mcard-seller" onclick="openPublicProfile('${l.uid}','${escapeJsAttr(l.ownerName)}')"><span class="mcard-seller-name">${escapeHtml(l.ownerName)}</span>${mine?'<span class="mcard-seller-me">· Siz</span>':''}</div>`:'<span></span>'}
           <div class="mcard-qa">
             ${l.phone?`<div class="mcard-qa-btn wa" onclick="ol(waListingLink('${escapeJsAttr(l.model||'')}','${escapeJsAttr(l.phone)}'))" title="WhatsApp"><svg viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.998 2C6.477 2 2 6.477 2 12c0 1.989.574 3.842 1.565 5.408L2 22l4.757-1.535A9.958 9.958 0 0 0 11.998 22c5.523 0 10-4.477 10-10S17.521 2 11.998 2z"/></svg></div>`:''}
             ${!mine && l.uid ? `<div class="mcard-qa-btn msg" onclick="openChatWith('${l.uid}','${escapeJsAttr(l.ownerName||'Kullanıcı')}','${escapeJsAttr(l.model||'')}')" title="Mesaj"><svg viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></div>` : ''}
+            ${mine&&isListingExpired(l)&&!l.sold?`<div class="mcard-qa-btn" onclick="renewListing('${l.id}')" title="Yeniden Yayınla (30 Gün)" style="color:var(--cyan)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></div>`:''}
             ${mine?`<div class="mcard-qa-btn edit" onclick="editListing('${l.id}')" title="Düzenle"><svg viewBox="0 0 24 24" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg></div>`:''}
             ${mine?`<div class="mcard-qa-btn del" onclick="delListing('${l.id}')" title="Sil"><svg viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></div>`:''}
           </div>
@@ -6803,10 +6961,31 @@ let currentDetailPhotos = [];
 let openListingId = null;
 
 function openDetail(id) {
-  currentListing = listings.find(l => l.id === id);
-  if (!currentListing) return;
+  const cached = listings.find(l => l.id === id);
+  if (cached) { renderDetailPage(cached); return; }
+  fetchAndOpenDetail(id);
+}
+
+// KÖK NEDEN DÜZELTMESİ (Genel Performans): `listings` artık TÜM koleksiyonu değil, SINIRLI sayıda
+// (en yeni) ilanı tutuyor (bkz. loadListings — önceden .limit() olmadan her açılışta TÜM koleksiyonu
+// okuyordu, 100.000+ ilan ölçeğinde felaket derecede pahalı). Sınırın dışında kalan daha eski bir
+// ilana tıklanırsa (paylaşılan link, eski bir kart, doğrudan URL) burada TEK bir doküman okumasıyla
+// (koleksiyon taraması DEĞİL) telafi edilir — daha önce olduğu gibi sessizce hiçbir şey açılmadan
+// başarısız olmaz.
+async function fetchAndOpenDetail(id) {
+  try {
+    const snap = await db.collection('teknohane_listings').doc(id).get();
+    if (!snap.exists) { showToast('❗','rgba(255,69,58,.12)','İlan Bulunamadı','Bu ilan kaldırılmış veya silinmiş olabilir.'); return; }
+    const l = { id: snap.id, ...snap.data() };
+    listings.push(l);
+    renderDetailPage(l);
+  } catch(e) { showErrorToast('İlan yüklenemedi: ' + e.message); }
+}
+
+function renderDetailPage(l) {
+  currentListing = l;
+  const id = l.id;
   const isNewOpen = openListingId !== id;
-  const l = currentListing;
   const mine = user && l.uid === user.uid;
   const isAdmin = isAdminNow();
   const pending = l.approved === false;
@@ -7142,7 +7321,16 @@ async function detFav() {
   const adding = !favs.has(id);
   if (adding) { favs.add(id); btn.classList.add('on'); btn.querySelector('.abtn-lbl').textContent='Favoride'; }
   else { favs.delete(id); btn.classList.remove('on'); btn.querySelector('.abtn-lbl').textContent='Favorile'; }
-  try { await db.collection('teknohane_users').doc(user.uid).set({favorites:[...favs]},{merge:true}); } catch(e) {}
+  try {
+    await db.collection('teknohane_users').doc(user.uid).set({favorites:[...favs]},{merge:true});
+  } catch(e) {
+    // İYİMSER GÜNCELLEME GERİ ALMA: yazma başarısız oldu (örn. çevrimdışı) — buton/Set gerçek
+    // (kaydedilmemiş) duruma geri döner, kullanıcı yanlışlıkla "favoride" sanmaz.
+    if (adding) { favs.delete(id); btn.classList.remove('on'); btn.querySelector('.abtn-lbl').textContent='Favorile'; }
+    else { favs.add(id); btn.classList.add('on'); btn.querySelector('.abtn-lbl').textContent='Favoride'; }
+    showToast('⚠️', 'rgba(255,69,58,.15)', 'Kaydedilemedi', 'Bağlantını kontrol edip tekrar dene.');
+    return;
+  }
   notifyListingOwnerOnFav(currentListing, adding);
   startFavoritesListener(); // liste değişti — eski dinleyici kapatılıp güncel ID'lerle yeniden kurulur
   rlistings();
@@ -7158,7 +7346,15 @@ async function toggleFav(id, btn) {
   btn.classList.remove('pop'); void btn.offsetWidth; btn.classList.add('pop');
   if (navigator.vibrate) navigator.vibrate(adding ? 15 : 10);
   showToast(adding?'❤️':'🤍', 'rgba(255,69,58,.12)', adding?'Favorilere eklendi':'Favorilerden kaldırıldı', '', null, 1400);
-  try { await db.collection('teknohane_users').doc(user.uid).set({favorites:[...favs]},{merge:true}); } catch(e) {}
+  try {
+    await db.collection('teknohane_users').doc(user.uid).set({favorites:[...favs]},{merge:true});
+  } catch(e) {
+    // İYİMSER GÜNCELLEME GERİ ALMA: yazma başarısız oldu — kalp ikonu ve favs Set'i gerçek duruma
+    // geri döner; kullanıcıya sessizce yanlış bir "kaydedildi" izlenimi bırakılmaz.
+    if (adding) { favs.delete(id); btn.classList.remove('on'); } else { favs.add(id); btn.classList.add('on'); }
+    showToast('⚠️', 'rgba(255,69,58,.15)', 'Kaydedilemedi', 'Bağlantını kontrol edip tekrar dene.');
+    return;
+  }
   startFavoritesListener(); // liste değişti — eski dinleyici kapatılıp güncel ID'lerle yeniden kurulur
   if (l) notifyListingOwnerOnFav(l, adding);
 }
