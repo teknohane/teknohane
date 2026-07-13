@@ -11495,6 +11495,95 @@ document.addEventListener('focusout', e => {
   }, 0);
 });
 
+// ==== GEÇİCİ HATA AYIKLAMA KONSOLU (beyaz "T" / dashboard hatası teşhisi için) ====
+// Kablo/ADB olmadan gerçek JS hatalarını doğrudan telefon ekranında görmek için eklendi. Sorun
+// teşhis edilip çözülünce bu blok BÜTÜNÜYLE kaldırılabilir — uygulamanın geri kalanına hiçbir
+// bağımlılığı yok, kendi kendine yeten (self-contained) bir IIFE.
+(function() {
+  const debugLogs = [];
+  const MAX_LOGS = 300;
+  function fmtArg(a) {
+    if (a instanceof Error) return a.stack || a.message;
+    if (typeof a === 'object') { try { return JSON.stringify(a); } catch(e) { return String(a); } }
+    return String(a);
+  }
+  function pushLog(type, args) {
+    try {
+      const msg = args.map(fmtArg).join(' ');
+      debugLogs.push(`[${new Date().toLocaleTimeString('tr-TR')}] [${type}] ${msg}`);
+      if (debugLogs.length > MAX_LOGS) debugLogs.shift();
+      const badge = document.getElementById('tk-debug-badge');
+      if (badge) badge.textContent = debugLogs.length;
+    } catch(e) {}
+  }
+  const origError = console.error;
+  console.error = function(...args) { pushLog('ERROR', args); origError.apply(console, args); };
+  const origWarn = console.warn;
+  console.warn = function(...args) { pushLog('WARN', args); origWarn.apply(console, args); };
+  window.addEventListener('error', e => {
+    pushLog('WINDOW ERROR', [`${e.message} @ ${e.filename}:${e.lineno}:${e.colno}`, e.error]);
+  });
+  window.addEventListener('unhandledrejection', e => {
+    pushLog('UNHANDLED REJECTION', [e.reason]);
+  });
+
+  function buildDebugUI() {
+    const btn = document.createElement('div');
+    btn.id = 'tk-debug-btn';
+    btn.style.cssText = 'position:fixed;bottom:80px;right:12px;z-index:99999;width:44px;height:44px;border-radius:50%;background:rgba(255,69,58,.92);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 2px 10px rgba(0,0,0,.4);';
+    btn.innerHTML = '🐞<span id="tk-debug-badge" style="position:absolute;top:-4px;right:-4px;background:#fff;color:#FF453A;border-radius:10px;font-size:10px;font-weight:800;padding:1px 5px;min-width:14px;text-align:center">0</span>';
+    document.body.appendChild(btn);
+
+    const panel = document.createElement('div');
+    panel.id = 'tk-debug-panel';
+    panel.style.cssText = 'display:none;position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,.95);flex-direction:column;padding:16px;padding-top:calc(16px + env(safe-area-inset-top));box-sizing:border-box;';
+    panel.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px">
+        <div style="color:#fff;font-weight:800;font-size:15px">🐞 Hata Kayıtları (Geçici)</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button id="tk-debug-copy" style="background:#0A84FF;color:#fff;border:none;border-radius:8px;padding:8px 10px;font-size:12px">Kopyala</button>
+          <button id="tk-debug-clear" style="background:#333;color:#fff;border:none;border-radius:8px;padding:8px 10px;font-size:12px">Temizle</button>
+          <button id="tk-debug-close" style="background:#FF453A;color:#fff;border:none;border-radius:8px;padding:8px 10px;font-size:12px">Kapat</button>
+        </div>
+      </div>
+      <div id="tk-debug-copy-status" style="color:#3DDC97;font-size:12px;margin-bottom:6px;display:none">✓ Panoya kopyalandı</div>
+      <textarea id="tk-debug-textarea" readonly style="flex:1;background:#111;color:#0f0;font-family:monospace;font-size:11px;border:1px solid #333;border-radius:8px;padding:10px;resize:none;white-space:pre-wrap"></textarea>
+      <div style="color:#888;font-size:11px;margin-top:8px">"Kopyala" butonu çalışmazsa (metin seçimi bozuksa) bu ekranın SCREENSHOT'unu alıp gönderebilirsiniz.</div>
+    `;
+    document.body.appendChild(panel);
+
+    function renderText() {
+      document.getElementById('tk-debug-textarea').value = debugLogs.length ? debugLogs.join('\n\n') : '(henüz hata yakalanmadı)';
+    }
+    btn.addEventListener('click', () => {
+      const isOpen = panel.style.display === 'flex';
+      panel.style.display = isOpen ? 'none' : 'flex';
+      if (!isOpen) renderText();
+    });
+    document.getElementById('tk-debug-close').addEventListener('click', () => { panel.style.display = 'none'; });
+    document.getElementById('tk-debug-clear').addEventListener('click', () => {
+      debugLogs.length = 0;
+      const badge = document.getElementById('tk-debug-badge');
+      if (badge) badge.textContent = '0';
+      renderText();
+    });
+    document.getElementById('tk-debug-copy').addEventListener('click', async () => {
+      const status = document.getElementById('tk-debug-copy-status');
+      try {
+        await navigator.clipboard.writeText(document.getElementById('tk-debug-textarea').value);
+        status.style.display = 'block';
+        setTimeout(() => { status.style.display = 'none'; }, 2000);
+      } catch(e) {
+        status.textContent = '⚠️ Kopyalanamadı — ekran görüntüsü alın';
+        status.style.color = '#FF9500';
+        status.style.display = 'block';
+      }
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', buildDebugUI);
+  else buildDebugUI();
+})();
+
 // INIT
 initTheme();
 rhome();
