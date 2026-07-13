@@ -449,6 +449,54 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 #report-mo,#new-post-mo,#post-detail-mo,#confirm-mo,#edit-profile-mo,#phone-verify-mo,
 #announcement-form-mo,#user-edit-mo,#ban-mo,#complaint-detail-mo,#admin-mo,#phone-edit-mo,
 #user-search-mo,#picker-mo{backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(0,0,0,.82);}
+
+/* ==== ANDROID BEYAZ "T" HATASI — KAPSAMLI/KESİN ÇÖZÜM (gerçek cihazda yukarıdaki modal-bazlı
+   düzeltme YETERSİZ kaldığı için genişletildi) ====
+   Kanıtlanan eksik: yalnızca modalin KENDİ backdrop-filter'ını kaldırmak yeterli değilmiş, çünkü
+   uygulamanın DAİMA DOM'da duran üst çubuğu (#hdr) ve alt sekme çubuğu (#tabs) da backdrop-filter
+   taşıyor — bir modal açıkken bunlar yalnızca GÖRSEL olarak örtülüyor, GPU compositing ağacından
+   ÇIKMIYOR. Android'in native metin seçim katmanı (magnifier/kopyala-yapıştır araç çubuğu), o anki
+   TÜM compositing ağacına göre konumlanıyor; ağaçta HERHANGİ bir yerde backdrop-filter/transform
+   kalması, modalin kendisinde olmasa bile, boş/varsayılan "T" katmanının çizilmesine yol açabiliyor.
+   Aynı şekilde .ms/.det-sheet'in giriş animasyonları (su/detpage) transform kullanıyor — animasyon
+   bitse de bazı WebView sürümleri elementi kendi katmanında tutmaya devam edebiliyor.
+   ÇÖZÜM — tek tek modal yamalamak yerine MİMARİ seviyede: herhangi bir input/textarea odaklandığı
+   ANDA (bkz. dosya sonundaki tek global focusin/focusout dinleyicisi), <body>'e tk-text-focus sınıfı
+   eklenir; bu sınıf aktifken uygulamadaki TÜM backdrop-filter/filter/transform/animasyon kaynağı
+   (modal olsun olmasın, #hdr/#tabs dahil) geçici olarak etkisizleştirilir. Odak kaybolunca (ve o an
+   başka hiçbir metin alanı odaklı değilse) her şey normale döner — kalıcı bir görsel değişiklik
+   YOKTUR, yalnızca kullanıcı bir metin alanına dokunduğu birkaç saniye içinde etkindir. Bu, hem
+   şu an var olan HEM gelecekte eklenecek her modal/ekran için otomatik olarak geçerlidir — yeni bir
+   modal eklendiğinde bu listeye elle eklenmesi gerekmez (bkz. body.tk-text-focus * yedek kuralı). */
+body.tk-text-focus #hdr,
+body.tk-text-focus #tabs,
+body.tk-text-focus #offline-bar,
+body.tk-text-focus .toast,
+body.tk-text-focus .mo,
+body.tk-text-focus .ms,
+body.tk-text-focus .det-sheet,
+body.tk-text-focus .mcard-cnd,
+body.tk-text-focus .mcard-fav,
+body.tk-text-focus .mcard-status-overlay,
+body.tk-text-focus .det-status-badge,
+body.tk-text-focus .pbadge-ic,
+body.tk-text-focus .pcover-edit,
+body.tk-text-focus .pc,
+body.tk-text-focus .pslot-cover,
+body.tk-text-focus .det-sticky {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  animation: none !important;
+  transform: none !important;
+  will-change: auto !important;
+}
+/* Yedek/genel kural: yukarıdaki listede olmayan, ileride eklenecek herhangi bir eleman da dahil,
+   sayfadaki HER ŞEYin transform/will-change'i metin düzenlerken etkisizleşir — yalnızca performans
+   açısından ucuz olduğu ve görsel karşılığı olmadığı için (transform:none zaten çoğu elementte
+   varsayılan durumdur) güvenle uygulanabilir. backdrop-filter/animasyon YUKARIDAKİ dar listeyle
+   sınırlı tutuldu (o ikisi her elementte "none" yapıldığında bazı sürekli çalışan/dekoratif
+   animasyonlarda -örn. spinner- istenmeyen donma etkisi yaratabileceği için). */
+body.tk-text-focus * { will-change: auto !important; }
 @keyframes detpage{from{transform:translateX(16px);opacity:0;}to{transform:translateX(0);opacity:1;}}
 .det-sheet::-webkit-scrollbar{display:none;}
 .det-sticky{position:sticky;top:0;background:rgba(7,13,26,.95);backdrop-filter:blur(12px);padding:calc(12px + var(--st)) 20px 12px;border-bottom:1px solid var(--border2);z-index:10;display:flex;align-items:center;justify-content:space-between;}
@@ -3169,7 +3217,7 @@ auth.onAuthStateChanged(u => {
 
     // UI'ı hemen güncelle, Firestore işlemlerini bekleme
     rprof();
-    if (listingsReady) rlistings();
+    if (listingsReady) { rlistings(); checkMyExpiredListings(); }
 
     // Favori/profil verisini arka planda çek ve senkronize et — UI'ı bloklamaz
     syncUserProfile(u);
@@ -4510,7 +4558,7 @@ function dismissToast(t) {
 const NOTIF_TYPE_CATEGORY = {
   new_follower: 'followers',
   new_referrer: 'referrals',
-  price_drop: 'market', listing_favorited: 'market', seller_review: 'market',
+  price_drop: 'market', listing_favorited: 'market', seller_review: 'market', listing_expired: 'market',
   post_liked: 'forum', post_comment: 'forum', comment_liked: 'forum',
   admin_notification: 'system', admin_warning: 'system', complaint_update: 'system',
   new_message: 'messages',
@@ -4929,6 +4977,7 @@ const NOTIF_ICONS = {
   admin_warning: { ic: '⚠️', bg: 'rgba(255,149,0,.15)' },
   complaint_update: { ic: '📋', bg: 'rgba(0,212,255,.12)' },
   new_message: { ic: '💬', bg: 'rgba(0,212,255,.12)' },
+  listing_expired: { ic: '⏰', bg: 'rgba(0,212,255,.12)' },
 };
 
 function subscribeNotifBadge(uid) {
@@ -5907,6 +5956,7 @@ async function loadListings() {
     rlistings();
     if (isAdminNow()) updateAdminStats();
     if (document.getElementById('s-profile')?.classList.contains('on')) renderProfileListings();
+    checkMyExpiredListings();
 
     // Paylaşılan bir ilan linkiyle açıldıysa (?listing=ID), doğrudan o ilanı göster
     const sharedId = new URLSearchParams(location.search).get('listing');
@@ -5926,6 +5976,23 @@ async function loadListings() {
     const g = document.getElementById('lgrid');
     if (g) g.innerHTML = `<div class="load"><div style="font-size:32px">📡</div><div>Bağlantı hatası</div></div>`;
   }
+}
+
+// İlan süresi dolunca sahibine bildirim — GERÇEK ZAMANLI/ANLIK değil (yeni bir sunucu taraflı
+// zamanlayıcı/Cloud Function kurulmadan bu mümkün değil, bu görevin kapsamı dışı), "en geç bir
+// sonraki uygulama açılışında" tetiklenir — bu, istemci-yalnız mimariyle ulaşılabilecek en dürüst
+// yaklaşımdır. Zaten yüklü `listings` dizisi kullanılıyor — yeni bir okuma/dinleyici YOK.
+// expiredNotified alanı aynı ilan için tekrar tekrar bildirim gönderilmesini engeller (yeniden
+// yayınlanınca renewListing() tarafından sıfırlanır, süre dolunca yeniden bildirim gidebilsin diye).
+function checkMyExpiredListings() {
+  if (!user || !listings.length) return;
+  listings
+    .filter(l => l.uid === user.uid && isListingExpired(l) && !l.expiredNotified)
+    .forEach(l => {
+      l.expiredNotified = true; // önce yerel olarak işaretlenir, aynı oturumda tekrar tetiklenmesin
+      notifyUser(user.uid, 'listing_expired', `"${l.model}" ilanının 30 günlük süresi doldu. Yeniden yayınlamak için ilanına git.`, l.id);
+      db.collection('teknohane_listings').doc(l.id).set({ expiredNotified: true }, { merge: true }).catch(()=>{});
+    });
 }
 
 // ==== DAR KAPSAMLI GERÇEK ZAMANLI DİNLEYİCİLER (yalnızca 3 tane, ihtiyaç kadar) ====
@@ -6066,6 +6133,15 @@ function isSoldExpired(l) {
   return (Date.now() - soldTime) > 24 * 60 * 60 * 1000;
 }
 
+// İlan yaşam döngüsü (30 gün) — expiresAt YENİ, katkısal bir alan (bkz. submitListing). Eski
+// ilanlarda bu alan hiç yoksa (bu özellikten önce oluşturulmuşlarsa) SÜRESİZ kabul edilir — asla
+// "süresi dolmuş" gibi yanlış/yanıltıcı şekilde gizlenmezler (geriye dönük uyumluluk).
+function isListingExpired(l) {
+  if (!l.expiresAt) return false;
+  const t = l.expiresAt.toDate ? l.expiresAt.toDate().getTime() : new Date(l.expiresAt).getTime();
+  return Date.now() > t;
+}
+
 // ==== GÖRÜNTÜLENME SAYACI — CİHAZ BAZLI TEKRAR SAYIM ENGELİ ====
 // Kök sorun: openDetail()'daki eski "isNewOpen" kontrolü yalnızca AYNI modal örneği açıkken tekrar
 // render edilmesini (örn. re-render) engelliyordu — kullanıcı detayı kapatıp saniyeler içinde tekrar
@@ -6182,7 +6258,7 @@ function mcardHTML(l) {
     <div class="mcard-row">
       <div class="mcard-photo">
         ${l.photo1?`<img src="${escapeHtml(l.photo1)}" loading="lazy" decoding="async">`:'<div class="mcard-photo-empty"><img src="teknohane.png" alt="" onerror="this.style.display=\'none\'"><span>Fotoğraf Yok</span></div>'}
-        ${(l.sold||pending)?`<div class="mcard-status-overlay"><div class="mcard-status-pill ${pending&&!l.sold?'pending':''}">${l.sold?'SATILDI':'İNCELENİYOR'}</div></div>`:''}
+        ${(l.sold||pending||isListingExpired(l))?`<div class="mcard-status-overlay"><div class="mcard-status-pill ${pending&&!l.sold?'pending':''}">${l.sold?'SATILDI':pending?'İNCELENİYOR':'SÜRESİ DOLDU'}</div></div>`:''}
         ${l.condition?`<div class="mcard-badges"><div class="mcard-cnd ${isNew?'new':'used'}">${escapeHtml(l.condition)}</div></div>`:''}
         ${(l.showcase||l.featured||l.urgent)?`<div class="mcard-tag-row">
           ${l.showcase?'<div class="mcard-tag-ic showcase-ic" title="Vitrin">📌</div>':''}
@@ -6247,7 +6323,7 @@ function rlistings() {
     || l.brandLower?.includes(q)
     || l.cityLower?.includes(q)
     || l.districtLower?.includes(q));
-  if (mktab !== 'mine') items = items.filter(l => !isSoldExpired(l) && !l.paused);
+  if (mktab !== 'mine') items = items.filter(l => !isSoldExpired(l) && !l.paused && !isListingExpired(l));
   if (filterMin) items = items.filter(l => parseInt(l.price||0) >= parseInt(filterMin));
   if (filterMax) items = items.filter(l => parseInt(l.price||0) <= parseInt(filterMax));
   if (filterBrand !== 'Tümü') items = items.filter(l => (l.model||'').toLowerCase().includes(filterBrand.toLowerCase()));
@@ -6539,6 +6615,10 @@ async function submitListing() {
       data.uid = user.uid;
       data.ownerName = user.displayName || user.email?.split('@')[0] || 'Anonim';
       data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      // İlan yaşam döngüsü: her yeni ilan 30 gün sonra otomatik olarak Pazar'dan gizlenir (bkz.
+      // isListingExpired/rlistings). Süre dolunca sahibine bildirim gider, tek tuşla yeniden
+      // yayınlanabilir (bkz. checkMyExpiredListings/renewListing).
+      data.expiresAt = firebase.firestore.Timestamp.fromDate(new Date(Date.now() + 30*24*60*60*1000));
       await db.collection('teknohane_listings').add(data);
       notifyAdminsNewListing(model, data.ownerName); // uygulama kapalı olsa bile ilgili adminlere anlık push
       showToast('⏳', 'rgba(255,149,0,.15)', 'İlanınız Gönderildi', 'İncelendikten sonra Pazar\'da yayınlanacaktır.');
@@ -6752,6 +6832,7 @@ function openDetail(id) {
     ${ps.length ? `<div class="det-photos det-anim">${ps.map((p,i)=>`<div class="det-photo-wrap"><div class="det-photo-skel" id="det-skel-${i}"></div><img class="det-photo" src="${escapeHtml(p)}" onclick="openListingGallery(currentDetailPhotos, ${i})" onload="this.classList.add('loaded');const s=document.getElementById('det-skel-${i}');if(s)s.remove();"></div>`).join('')}</div>` : `<div class="det-photos det-anim"><div class="det-photo-empty"><img src="teknohane.png" alt="" onerror="this.style.display='none'"><span>Fotoğraf Eklenmedi</span></div></div>`}
     ${pending && mine && !isAdmin ? `<div style="background:rgba(255,149,0,.12);border:1px solid rgba(255,149,0,.3);color:#FF9500;font-size:13px;font-weight:700;padding:8px 14px;border-radius:10px;margin-bottom:12px;text-align:center">⏳ İlanınız inceleniyor, onaylandığında Pazar'da görünecek</div>` : ''}
     ${pending && isAdmin ? `<div style="background:rgba(255,149,0,.12);border:1px solid rgba(255,149,0,.3);color:#FF9500;font-size:13px;font-weight:700;padding:8px 14px;border-radius:10px;margin-bottom:12px;text-align:center">⏳ Onay bekliyor</div>` : ''}
+    ${mine && isListingExpired(l) ? `<div style="background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.3);color:var(--cyan);font-size:13px;font-weight:700;padding:8px 14px;border-radius:10px;margin-bottom:12px;text-align:center">⏰ İlanının 30 günlük süresi doldu, Pazar'da artık görünmüyor. Aşağıdan yeniden yayınlayabilirsin.</div>` : ''}
     <div class="det-anim" style="animation-delay:.04s">
       <div class="det-hero-title">${escapeHtml(l.model)}</div>
       <div class="det-hero-price"><span class="cur">₺</span>${parseInt(l.price||0).toLocaleString('tr-TR')}</div>
@@ -6817,6 +6898,7 @@ function openDetail(id) {
     </div>
     ${!mine && user ? `<div style="text-align:center;margin-top:10px"><span onclick="openReportModal('listing','${l.id}','${escapeJsAttr(l.model||'İlan')}','${l.uid||''}')" style="font-size:12px;color:var(--text3);cursor:pointer;text-decoration:underline">🚩 İlanı Şikayet Et</span></div>` : ''}
     ${pending && isAdmin ? `<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px" onclick="approveListing('${l.id}')">✓ İlanı Onayla ve Yayınla</button>`:''}
+    ${mine && isListingExpired(l) ? `<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px;background:rgba(0,212,255,.12);color:var(--cyan);border:1px solid rgba(0,212,255,.3)" onclick="renewListing('${l.id}')">🔄 İlanı Yeniden Yayınla (30 Gün)</button>`:''}
     ${(mine || (isAdmin && hasPermission('manageListings')))?`<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px;background:var(--surf2);color:var(--cyan);border:1px solid var(--border2)" onclick="editListing('${l.id}')">✏️ İlanı Düzenle${mine?'':' (Admin)'}</button>`:''}
     ${mine?`<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px" onclick="toggleSold('${l.id}')">${l.sold?'↺ Satıldı İşaretini Kaldır':'✓ Satıldı Olarak İşaretle'}</button>`:''}
     <div id="det-similar"></div>`;
@@ -6908,6 +6990,22 @@ async function toggleSold(id) {
     l.soldAt = newSold ? new Date() : null;
     openDetail(id);
     rlistings();
+  } catch(e) { showErrorToast(e.message); }
+}
+
+// Süresi dolan bir ilanı sahibi tek dokunuşla yeniden yayına alır — süre 30 gün ileri atılır,
+// bir sonraki dolduğunda tekrar bildirim gidebilmesi için expiredNotified sıfırlanır. Yeniden
+// onay/moderasyon GEREKMEZ (içerik değişmedi, yalnızca görünürlük süresi uzatılıyor).
+async function renewListing(id) {
+  const l = listings.find(x => x.id === id);
+  if (!l || !user || l.uid !== user.uid) return;
+  const newExpiry = firebase.firestore.Timestamp.fromDate(new Date(Date.now() + 30*24*60*60*1000));
+  try {
+    await db.collection('teknohane_listings').doc(id).update({ expiresAt: newExpiry, expiredNotified: false });
+    syncListingFieldEverywhere(id, { expiresAt: newExpiry, expiredNotified: false });
+    openDetail(id);
+    rlistings();
+    showToast('✓', 'rgba(48,209,88,.15)', 'Yeniden Yayınlandı', `${l.model} 30 gün daha Pazar'da görünecek.`);
   } catch(e) { showErrorToast(e.message); }
 }
 
@@ -10626,7 +10724,7 @@ function renderSimilarListings(l, containerId) {
   // Öncelik sırası: aynı marka (en ağırlıklı) > aynı fiyat aralığı (±%20) > aynı şehir.
   // Tamamen bellekteki marketAllListings üzerinde — yeni Firestore okuması yok.
   const scored = marketAllListings
-    .filter(x => x.id !== l.id && !x.sold && x.approved !== false)
+    .filter(x => x.id !== l.id && !x.sold && x.approved !== false && !x.paused && !isListingExpired(x))
     .map(x => {
       let score = 0;
       const xBrand = (x.brand || (x.model||'').split(' ')[0] || '').toLowerCase();
@@ -11020,6 +11118,31 @@ function updateOnlineStatus() {
 }
 window.addEventListener('online', updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
+
+// ==== ANDROID BEYAZ "T" HATASI — GLOBAL METİN ODAĞI İZLEYİCİSİ ====
+// Bkz. CSS'teki body.tk-text-focus kuralı (üstteki "KAPSAMLI/KESİN ÇÖZÜM" yorumu). Uygulama
+// genelinde TEK bir focusin/focusout dinleyicisi (document üzerinde, event delegation) — her
+// input/textarea için ayrı ayrı dinleyici eklenmiyor, yeni bir global DEĞİŞKEN de yok, durum
+// doğrudan <body>'nin class listesinde tutuluyor. Herhangi bir metin alanı (mevcut VEYA ileride
+// eklenecek herhangi bir modal/ekrandaki) odaklandığı anda tüm uygulamadaki backdrop-filter/
+// transform/animasyon kaynakları geçici olarak etkisizleşir; odak tamamen kaybolunca geri döner.
+document.addEventListener('focusin', e => {
+  if (e.target.matches?.('input, textarea, [contenteditable]')) {
+    document.body.classList.add('tk-text-focus');
+  }
+});
+document.addEventListener('focusout', e => {
+  if (!e.target.matches?.('input, textarea, [contenteditable]')) return;
+  // Odak aynı anda BAŞKA bir metin alanına geçiyor olabilir (ör. Enter/Tab ile bir sonraki alana) —
+  // bu durumda class'ı erken kaldırıp gereksiz bir "açıp kapatma" titremesi yaratmamak için, o anda
+  // GERÇEKTEN hiçbir metin alanı odaklı değilse (bir sonraki focusin olayı işlendikten sonra) kaldırılır.
+  setTimeout(() => {
+    const active = document.activeElement;
+    if (!active || !active.matches?.('input, textarea, [contenteditable]')) {
+      document.body.classList.remove('tk-text-focus');
+    }
+  }, 0);
+});
 
 // INIT
 initTheme();
