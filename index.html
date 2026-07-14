@@ -311,6 +311,14 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .cat-sel::-webkit-scrollbar{display:none;}
 .pcat{flex:0 0 auto;padding:7px 12px;border-radius:10px;border:1px solid var(--border2);background:var(--surf2);font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;}
 .pcat.on{border-color:var(--cyan);background:var(--cdim);color:var(--cyan);}
+.reply-quote-bar{display:none;align-items:center;gap:8px;background:var(--surf2);border-left:3px solid var(--cyan);border-radius:8px;padding:8px 10px;margin-top:12px;font-size:12.5px;}
+.reply-quote-bar.on{display:flex;}
+.reply-quote-bar-body{flex:1;min-width:0;}
+.reply-quote-bar-author{color:var(--cyan);font-weight:700;margin-bottom:2px;}
+.reply-quote-bar-text{color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.reply-quote-bar-x{cursor:pointer;color:var(--text3);font-size:16px;padding:2px 6px;flex-shrink:0;}
+.comment-quote-ref{background:var(--surf);border-left:3px solid var(--border2);border-radius:6px;padding:6px 10px;margin-bottom:6px;font-size:12.5px;color:var(--text2);}
+.comment-quote-ref b{color:var(--text);}
 .comment-input-area{display:flex;gap:8px;margin-top:16px;align-items:flex-end;}
 .comment-input-area textarea{flex:1;background:var(--surf2);border:1px solid var(--border2);border-radius:12px;padding:10px 12px;color:var(--text);font-size:14px;font-family:inherit;resize:none;min-height:42px;max-height:100px;outline:none;overflow-y:auto;}
 .send-btn{width:40px;height:40px;border-radius:12px;background:var(--cyan);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -649,8 +657,8 @@ body.tk-text-focus * { user-select: auto !important; -webkit-user-select: auto !
 .mcard-info{flex:1;min-width:0;padding:7px 10px 7px 9px;display:flex;flex-direction:column;justify-content:center;}
 .mcard-price{font-size:17px;font-weight:800;color:var(--text);letter-spacing:-.3px;line-height:1.1;}
 .mcard-price .cur{font-size:12.5px;font-weight:700;color:var(--cyan);}
-.mcard-title{font-size:11.5px;font-weight:600;color:var(--text2);margin-top:2px;line-height:1.28;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-.mcard-loc{font-size:9.5px;color:var(--text3);margin-top:3px;display:flex;align-items:center;gap:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mcard-title{font-size:13px;font-weight:600;color:var(--text2);margin-top:2px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.mcard-loc{font-size:11px;color:var(--text3);margin-top:3px;display:flex;align-items:center;gap:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .mcard-date{color:var(--text3);opacity:.7;}
 .mcard-foot{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:4px;}
 .mcard-seller{display:flex;align-items:center;gap:4px;cursor:pointer;min-width:0;}
@@ -701,10 +709,10 @@ body.tk-text-focus * { user-select: auto !important; -webkit-user-select: auto !
 .det-photo-empty{grid-column:1/-1;aspect-ratio:16/9;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:var(--surf2);border-radius:12px;}
 .det-photo-empty img{width:44px;height:44px;object-fit:contain;opacity:.28;filter:grayscale(1) brightness(1.6);}
 .det-photo-empty span{font-size:11.5px;color:var(--text3);font-weight:600;}
-.det-hero-title{font-size:16px;font-weight:600;color:var(--text2);margin-bottom:4px;}
+.det-hero-title{font-size:17.5px;font-weight:600;color:var(--text2);margin-bottom:4px;}
 .det-hero-price{font-size:32px;font-weight:800;letter-spacing:-.5px;color:var(--text);margin-bottom:8px;}
 .det-hero-price .cur{color:var(--cyan);font-size:21px;font-weight:700;}
-.det-hero-stats{display:flex;gap:14px;font-size:12px;color:var(--text3);margin-bottom:12px;flex-wrap:wrap;}
+.det-hero-stats{display:flex;gap:14px;font-size:13px;color:var(--text3);margin-bottom:12px;flex-wrap:wrap;}
 .det-hero-stats span{display:flex;align-items:center;gap:4px;}
 .det-status-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
 .det-status-badge{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:20px;font-size:12.5px;font-weight:700;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid;}
@@ -727,7 +735,9 @@ body.tk-text-focus * { user-select: auto !important; -webkit-user-select: auto !
 .det-contact-btn.dc-share{background:var(--surf2);border-color:var(--border2);color:var(--text2);}
 .det-contact-btn.dc-fav{background:var(--surf2);border-color:var(--border2);color:var(--text2);}
 .det-contact-btn.dc-fav.on{background:rgba(255,69,58,.1);border-color:rgba(255,69,58,.3);color:var(--red);}
-.det-desc-text{font-size:14px;color:var(--text2);line-height:1.6;padding:14px;background:var(--surf);border-radius:14px;margin:16px 0 0;max-height:112px;overflow:hidden;position:relative;transition:max-height .25s ease;}
+.det-contact-btn.dc-fav svg{fill:none;stroke:currentColor;stroke-width:1.8;}
+.det-contact-btn.dc-fav.on svg{fill:var(--red);stroke:var(--red);}
+.det-desc-text{font-size:15.5px;color:var(--text2);line-height:1.65;padding:14px;background:var(--surf);border-radius:14px;margin:16px 0 0;max-height:112px;overflow:hidden;position:relative;transition:max-height .25s ease;}
 .det-desc-text.expanded{max-height:800px;}
 .det-desc-text.clamped::after{content:'';position:absolute;left:0;right:0;bottom:0;height:36px;background:linear-gradient(to top, var(--surf), transparent);}
 .det-desc-toggle{display:block;text-align:center;font-size:12.5px;font-weight:700;color:var(--cyan);padding:8px;cursor:pointer;}
@@ -1716,6 +1726,10 @@ body.tk-maintenance #maintenance-gate{
   <div class="ms" onclick="event.stopPropagation()" style="max-height:70vh">
     <div class="mh"></div>
     <div class="mtit" id="picker-mo-title">Seç</div>
+    <div class="sw" id="picker-search-wrap" style="display:none;margin-bottom:10px">
+      <svg class="sico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="si" type="text" id="picker-search-inp" placeholder="Ara…" oninput="filterPickerOptions(this.value)">
+    </div>
     <div id="picker-options"></div>
   </div>
 </div>
@@ -1980,6 +1994,13 @@ body.tk-maintenance #maintenance-gate{
     <div class="mh"></div>
     <div id="post-detail-body"></div>
     <div id="comments-list" style="margin-bottom:12px"></div>
+    <div class="reply-quote-bar" id="reply-quote-bar">
+      <div class="reply-quote-bar-body">
+        <div class="reply-quote-bar-author" id="reply-quote-bar-author"></div>
+        <div class="reply-quote-bar-text" id="reply-quote-bar-text"></div>
+      </div>
+      <span class="reply-quote-bar-x" onclick="cancelReplyToComment()">✕</span>
+    </div>
     <div class="comment-input-area" id="comment-input-area" style="display:none">
       <input type="file" id="cmt-photo-input" accept="image/*" style="display:none" onchange="handleCmtPhoto(this)">
       <button class="photo-add-btn" onclick="document.getElementById('cmt-photo-input').click()">
@@ -1999,6 +2020,15 @@ body.tk-maintenance #maintenance-gate{
   <div class="ms" onclick="event.stopPropagation()" style="max-height:85vh">
     <div class="mh"></div>
     <div id="pub-profile-body"></div>
+  </div>
+</div>
+
+<!-- SATICI DEĞERLENDİRMELERİ DETAY MODAL (trust-card'a tıklayınca) -->
+<div class="mo" id="seller-reviews-mo" onclick="closemo('seller-reviews-mo')">
+  <div class="ms" onclick="event.stopPropagation()" style="max-height:85vh">
+    <div class="mh"></div>
+    <div class="mtit" id="seller-reviews-mo-title">Değerlendirmeler</div>
+    <div id="seller-reviews-list"></div>
   </div>
 </div>
 
@@ -2063,6 +2093,12 @@ const auth = firebase.auth();
 auth.languageCode = 'tr'; // Telefon doğrulama SMS'i ve reCAPTCHA arayüzü Türkçe gelsin
 const db = firebase.firestore();
 const storage = firebase.storage();
+// Arka plandan dönüşte Activity yeniden yaratılıp WebView'in tüm Firestore dinleyicilerini sıfırdan
+// kurması gerektiğinde (bkz. Motorola "moto_freezer" + Android'in bellek için arka plan Activity'lerini
+// kapatması — kod hatası değil, işletim sistemi davranışı), IndexedDB önbelleği sayesinde ilk render
+// ağ beklemeden (önceki oturumdan kalan veriyle) hemen olur, taze veri arkadan gelir. Önbellek zaten
+// etkinse veya WebView bunu desteklemiyorsa sessizce yoksayılır — davranış değişmez, yalnızca hızlanır.
+db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
 
 // KÖK NEDEN DÜZELTMESİ: uygulama genelinde ~18 farklı yerde `query.count().get()` doğrudan
 // çağrılıyordu. Gerçek cihazda yakalanan hata (bkz. geçici hata konsolu): sabitlenen SDK sürümünde
@@ -2768,9 +2804,10 @@ const AUDIENCE_LABELS = {
   specific_uids: "Belirli UID'ler", specific_usernames: 'Belirli Kullanıcı Adları',
   not_banned: 'Banlı Olmayan Kullanıcılar', active_30d: 'Son 30 Gün Aktif Kullanıcılar',
 };
-// Push bildirimi büyük kitlelerde (tüm kullanıcılar / son 30 gün aktif / banlı olmayanlar) henüz
-// desteklenmiyor — gerçek toplu push için FCM Topics/Cloud Functions gerekiyor (ayrı görev).
-// Küçük, kesin listelerde (belirli UID/kullanıcı adı/rol) push GERÇEKTEN çalışıyor.
+// Büyük kitleler (tüm kullanıcılar / son 30 gün aktif / banlı olmayanlar) artık dispatchAnnouncementPushBulk
+// ile toplu push gönderiyor (bkz. Cloudflare Worker'ın `tokens` dizisi ucu). Küçük, kesin listeler
+// (belirli UID/kullanıcı adı/rol) ayrı, tek tek gönderim yoluyla (dispatchAnnouncementPush) çalışır —
+// bu sabit, hangi yolun izleneceğini belirlemeye devam ediyor.
 const LARGE_AUDIENCE_TYPES = ['all', 'active_30d', 'not_banned'];
 
 // Hazır bildirim şablonları — yalnızca FORMU önceden dolduran bir kısayol, veri modeline veya hedef
@@ -3019,16 +3056,17 @@ async function saveAnnouncement(targetStatus) {
   }
 }
 
-// Hedef kitledeki gerçek push gönderimi — MODÜLER TASARIM: İleride toplu push (FCM Topics/Cloud
-// Functions) eklendiğinde, yalnızca bu fonksiyonun İÇİ değiştirilecek, hiçbir çağıran yer
-// (saveAnnouncement) değişmeyecek. Şu an yalnızca küçük, kesin listelerde (belirli UID/kullanıcı
-// adı/rol) gerçekten push gönderiyor — büyük kitlelerde (Tümü/Son 30 gün aktif/Banlı olmayan) atlıyor.
+// Hedef kitledeki gerçek push gönderimi — MODÜLER TASARIM: küçük/kesin listelerde (belirli
+// UID/kullanıcı adı/rol) her kullanıcıya ayrı sorguyla push atar; büyük kitlelerde (Tümü/Son 30 gün
+// aktif/Banlı olmayan) dispatchAnnouncementPushBulk()'a devreder — Worker'ın artık desteklediği
+// `tokens` (dizi) ucunu kullanarak TEK istekte (Worker kendi içinde 20'şerli gruplar hâlinde,
+// paralel) onlarca/yüzlerce token'a push gönderir.
 async function dispatchAnnouncementPush(a) {
-  if (LARGE_AUDIENCE_TYPES.includes(a.audienceType)) {
-    console.info('Duyuru push\'u atlandı: büyük hedef kitle, toplu push altyapısı henüz yok.', a.audienceType);
-    return;
-  }
   try {
+    if (LARGE_AUDIENCE_TYPES.includes(a.audienceType)) {
+      await dispatchAnnouncementPushBulk(a);
+      return;
+    }
     let targetUids = [];
     if (a.audienceType === 'specific_uids') targetUids = a.audienceUids || [];
     else if (a.audienceType === 'specific_usernames') {
@@ -3041,6 +3079,38 @@ async function dispatchAnnouncementPush(a) {
     }
     targetUids.forEach(uid => sendPush(uid, a.pushTitle||a.title, a.pushMessage||a.description, a.linkUrl||'/teknohane/'));
   } catch(e) { console.error('Duyuru push gönderilemedi:', e); }
+}
+
+// Büyük hedef kitleler için toplu push. teknohane_users'ı listelemek Firestore Rules'ta yalnızca
+// adminlere açık (allow list: if isAdmin()) — bu fonksiyon zaten yalnızca sendNotifications yetkisi
+// olan bir admin duyuru yayınladığında çağrıldığı için güvenli. 'all'/'not_banned'/'active_30d' aynı
+// sorguda BİRDEN FAZLA eşitsizlik operatörü kullanamadığından (Firestore kısıtı), filtre istemci
+// tarafında uygulanır — resolveAudienceCount() zaten aynı nedenle tüm koleksiyonu taradığı için yeni
+// bir maliyet kalıbı eklenmiyor.
+async function dispatchAnnouncementPushBulk(a) {
+  const snap = await db.collection('teknohane_users').get();
+  const cutoff = new Date(Date.now() - 30*24*60*60*1000);
+  const tokens = snap.docs.map(d => d.data()).filter(u => {
+    if (!u.fcmToken) return false;
+    if (a.audienceType === 'not_banned' && u.banned === true) return false;
+    if (a.audienceType === 'active_30d') {
+      const ls = u.lastSeen?.toDate ? u.lastSeen.toDate() : null;
+      if (!ls || ls < cutoff) return false;
+    }
+    return true;
+  }).map(u => u.fcmToken);
+  if (!tokens.length) return;
+  // Worker'a tek istekte en fazla 300 token gönderilir (istek gövdesi/zaman aşımı güvenliği için) —
+  // gerekirse birden fazla isteğe bölünür; Worker kendi içinde ayrıca 20'şerli gruplar hâlinde işler.
+  const BATCH = 300;
+  const title = a.pushTitle || a.title, body = a.pushMessage || a.description, linkUrl = a.linkUrl || 'https://teknohane.github.io/teknohane/';
+  for (let i = 0; i < tokens.length; i += BATCH) {
+    fetch(PUSH_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tokens: tokens.slice(i, i + BATCH), title, body, url: linkUrl })
+    }).catch(()=>{});
+  }
 }
 
 async function resolveAudienceCount(a) {
@@ -3582,22 +3652,35 @@ function profileSkeletonHTML() {
 // KASITLI olarak eklenmedi — uydurma/sahte bir güven metriği göstermemek için (bkz. proje kuralı:
 // güven puanı yalnızca gerçek veriyle gösterilir).
 function renderTrustCardHTML(avg, count, opts) {
-  const { trustedSeller, verified, joinedYear } = opts || {};
+  const { trustedSeller, verified, joinedYear, uid, displayName } = opts || {};
   const hasRating = count > 0;
   const tags = [
     trustedSeller ? '<span class="trust-tag">🤝 Güvenilir Satıcı</span>' : '',
     verified ? '<span class="trust-tag">✓ Doğrulanmış Hesap</span>' : '',
     joinedYear ? `<span class="trust-tag muted">📅 Üye: ${joinedYear}</span>` : '',
   ].filter(Boolean).join('');
-  return `<div class="trust-card premium">
+  // Değerlendirme sayısı ARTIK tıklanabilir — kart, satıcının aldığı tüm yorum/puanları listeleyen
+  // bir modal açar (bkz. openSellerReviewsModal). Zaten var olan loadSellerReviews() yeniden kullanılır,
+  // yeni bir Firestore sorgusu/koleksiyonu eklenmedi.
+  const clickAttr = uid ? `onclick="openSellerReviewsModal('${uid}','${(displayName||'Kullanıcı').replace(/'/g,"\\'")}')" style="cursor:pointer"` : '';
+  return `<div class="trust-card premium" ${clickAttr}>
     ${hasRating ? `
       <div class="trust-stars">${'★'.repeat(Math.round(avg))}${'☆'.repeat(5-Math.round(avg))}</div>
       <div class="trust-num">${avg.toFixed(1)}<span>/5</span></div>
-      <div class="trust-count">${count} değerlendirme</div>` : `
+      <div class="trust-count">${count} değerlendirme${uid?' — Görmek için dokun':''}</div>` : `
       <div class="trust-stars" style="color:var(--text3)">☆☆☆☆☆</div>
       <div class="trust-num" style="font-size:14px;color:var(--text2)">Henüz değerlendirme yok</div>`}
     ${tags?`<div class="trust-tags">${tags}</div>`:''}
   </div>`;
+}
+
+// Değerlendirme detay modalı — trust-card'a tıklanınca açılır, loadSellerReviews() ile AYNI, zaten
+// var olan render mantığını (yıldız, yorum metni, tarih) 'seller-reviews-list' konteynerine basar.
+function openSellerReviewsModal(uid, displayName) {
+  document.getElementById('seller-reviews-mo-title').textContent = `${displayName} — Değerlendirmeler`;
+  document.getElementById('seller-reviews-list').innerHTML = `<div class="load"><div class="spin"></div></div>`;
+  document.getElementById('seller-reviews-mo').classList.add('on');
+  loadSellerReviews(uid, 'seller-reviews-list').catch(()=>{});
 }
 
 function rprof() {
@@ -3723,7 +3806,7 @@ function rprof() {
         <div class="tscore-label">Teknohane Skoru</div>
         <div class="tscore-sub">${scoreDesc}</div>
       </div>
-      <div id="my-trust-card">${renderTrustCardHTML(0, 0, { trustedSeller: myProfileData.trustedSeller, verified: user.emailVerified||myProfileData.adminVerified, joinedYear })}</div>
+      <div id="my-trust-card">${renderTrustCardHTML(0, 0, { trustedSeller: myProfileData.trustedSeller, verified: user.emailVerified||myProfileData.adminVerified, joinedYear, uid: user.uid, displayName: myProfileData.displayName||user.displayName||'Ben' })}</div>
       <div id="my-trust-reviews-raw" style="display:none"></div>
       <div class="pstats-card">
         <div class="pstat-item"><div class="pstat-num" data-target="${myListingsCount}">0</div><div class="pstat-lbl">İlan</div></div>
@@ -3857,7 +3940,7 @@ function rprof() {
     // Ek bir Firestore koleksiyonu/sorgu deseni YOK, yalnızca zaten var olan sorgu yeniden kullanılıyor.
     loadSellerReviews(user.uid, 'my-trust-reviews-raw').then(({avg,count}) => {
       const el = document.getElementById('my-trust-card');
-      if (el) el.innerHTML = renderTrustCardHTML(avg, count, { trustedSeller: myProfileData.trustedSeller, verified: user.emailVerified||myProfileData.adminVerified, joinedYear });
+      if (el) el.innerHTML = renderTrustCardHTML(avg, count, { trustedSeller: myProfileData.trustedSeller, verified: user.emailVerified||myProfileData.adminVerified, joinedYear, uid: user.uid, displayName: myProfileData.displayName||user.displayName||'Ben' });
     }).catch(()=>{});
     ensureProfileTabDataLoaded();
   } else {
@@ -4130,8 +4213,20 @@ async function sendVerificationEmail() {
 // Firestore genelinde bir array-contains sorgusu olduğu için bu gereksiz, tekrar eden bir maliyetti.
 // Artık bu iki sorgu, giriş yapan kullanıcı başına yalnızca BİR KEZ (oturum boyunca) çalışıyor.
 let profileExtrasLoadedForUid = null;
+let myFollowersCountCache = null;
 function loadProfileExtrasIfNeeded() {
-  if (!user || profileExtrasLoadedForUid === user.uid) return;
+  if (!user) return;
+  // KÖK NEDEN DÜZELTMESİ ("takipçi sayısı sürekli görünmüyor"): rprof() profil DOM'unu HER
+  // çağrıldığında (tab değişimi, küçük bir profil güncellemesi vb.) sıfırdan yeniden oluşturuyor —
+  // #my-followers-count her seferinde "…" placeholder'ına dönüyor. Ama sorgu maliyeti yüzünden bu
+  // fonksiyon oturum başına yalnızca BİR KEZ çalışacak şekilde kilitliydi — sonuç: ilk görüntülemeden
+  // sonra sayı asla geri gelmiyordu. Çözüm: sorgu gerçekten bir kez çalışır, ama sonucu bir önbellekte
+  // tutup her rprof() sonrası DOM'u o önbellekten anında (yeni bir Firestore sorgusu olmadan) doldururuz.
+  if (profileExtrasLoadedForUid === user.uid) {
+    const el = document.getElementById('my-followers-count');
+    if (el && myFollowersCountCache != null) el.textContent = myFollowersCountCache;
+    return;
+  }
   profileExtrasLoadedForUid = user.uid;
   loadActiveSessions();
   loadMyFollowersCount();
@@ -4161,8 +4256,9 @@ async function loadMyFollowersCount() {
   // count() agregasyon sorgusu — yalnızca sayı gösterilecekken tam dokümanları okumak yerine
   // (bkz. görev raporu, P2), koleksiyon büyüklüğünden bağımsız, sabit düşük maliyetli okuma.
   const count = await firestoreCount(db.collection('teknohane_users').where('followingUids', 'array-contains', user.uid));
+  myFollowersCountCache = count ?? '—';
   const el = document.getElementById('my-followers-count');
-  if (el) el.textContent = count ?? '—';
+  if (el) el.textContent = myFollowersCountCache;
 }
 
 // ==== TELEFON NUMARASI DOĞRULAMA (Firebase Phone Auth — gerçek SMS OTP akışı) ====
@@ -4677,7 +4773,7 @@ const NOTIF_TYPE_CATEGORY = {
   new_follower: 'followers',
   new_referrer: 'referrals',
   price_drop: 'market', listing_favorited: 'market', seller_review: 'market', listing_expired: 'market',
-  post_liked: 'forum', post_comment: 'forum', comment_liked: 'forum',
+  post_liked: 'forum', post_comment: 'forum', comment_liked: 'forum', comment_reply: 'forum',
   admin_notification: 'system', admin_warning: 'system', complaint_update: 'system',
   new_message: 'messages',
 };
@@ -5131,6 +5227,7 @@ const NOTIF_ICONS = {
   seller_review: { ic: '⭐', bg: 'rgba(255,204,0,.15)' },
   post_liked: { ic: '👍', bg: 'rgba(0,212,255,.12)' },
   post_comment: { ic: '📝', bg: 'rgba(0,212,255,.12)' },
+  comment_reply: { ic: '↩️', bg: 'rgba(0,212,255,.12)' },
   comment_liked: { ic: '👍', bg: 'rgba(0,212,255,.12)' },
   new_follower: { ic: '👤', bg: 'rgba(0,212,255,.12)' },
   admin_notification: { ic: '🔔', bg: 'var(--cdim)' },
@@ -5417,8 +5514,9 @@ function performNotifDelete(wrap) {
   wrap._deleting = true;
   const ids = wrap.dataset.ids.split(',');
   const item = wrap.querySelector('.notif-item');
-  item.style.transition = 'transform .2s ease';
+  item.style.transition = 'transform .22s ease, opacity .22s ease';
   item.style.transform = 'translateX(-100%)';
+  item.style.opacity = '0';
   wrap.classList.add('notif-removing');
   notifAccumulatedDocs = notifAccumulatedDocs.filter(d => !ids.includes(d.id));
   setTimeout(() => { wrap.remove(); if (!notifAccumulatedDocs.length) renderNotifList(); }, 220);
@@ -6515,8 +6613,6 @@ function mcardHTML(l) {
         <div class="mcard-foot" onclick="event.stopPropagation()">
           ${l.ownerName?`<div class="mcard-seller" onclick="openPublicProfile('${l.uid}','${escapeJsAttr(l.ownerName)}')"><span class="mcard-seller-name">${escapeHtml(l.ownerName)}</span>${mine?'<span class="mcard-seller-me">· Siz</span>':''}</div>`:'<span></span>'}
           <div class="mcard-qa">
-            ${l.phone?`<div class="mcard-qa-btn wa" onclick="ol(waListingLink('${escapeJsAttr(l.model||'')}','${escapeJsAttr(l.phone)}'))" title="WhatsApp"><svg viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.998 2C6.477 2 2 6.477 2 12c0 1.989.574 3.842 1.565 5.408L2 22l4.757-1.535A9.958 9.958 0 0 0 11.998 22c5.523 0 10-4.477 10-10S17.521 2 11.998 2z"/></svg></div>`:''}
-            ${!mine && l.uid ? `<div class="mcard-qa-btn msg" onclick="openChatWith('${l.uid}','${escapeJsAttr(l.ownerName||'Kullanıcı')}','${escapeJsAttr(l.model||'')}')" title="Mesaj"><svg viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></div>` : ''}
             ${mine&&isListingExpired(l)&&!l.sold?`<div class="mcard-qa-btn" onclick="renewListing('${l.id}')" title="Yeniden Yayınla (30 Gün)" style="color:var(--cyan)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></div>`:''}
             ${mine?`<div class="mcard-qa-btn edit" onclick="editListing('${l.id}')" title="Düzenle"><svg viewBox="0 0 24 24" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg></div>`:''}
             ${mine?`<div class="mcard-qa-btn del" onclick="delListing('${l.id}')" title="Sil"><svg viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></div>`:''}
@@ -7076,6 +7172,25 @@ function openDetail(id) {
   getListingById(id).then(l => {
     if (!l) { showToast('❗','rgba(255,69,58,.12)','İlan Bulunamadı','Bu ilan kaldırılmış veya silinmiş olabilir.'); return; }
     renderDetailPage(l);
+    // KÖK NEDEN DÜZELTMESİ ("görüntülenme sayısı çok düşük kalıyor"): getListingById önce yerel
+    // önbellekteki (marketAllListings vb. — tek seferlik, sayfalanmış bir çekimden gelen, ARTIK canlı
+    // güncellenmeyen) kopyayı döndürüyor. Bu kopyanın viewCount'u, o liste ne zaman çekildiyse o ana
+    // ait — başka kullanıcıların o andan beri yaptığı görüntülemeleri hiç yansıtmıyordu. Çözüm: sayfa
+    // önbellekten ANINDA çizilir (hız kaybı yok), ama arkadan HER ZAMAN tek bir taze doküman okuması
+    // yapılıp yalnızca oynak sayaçlar (viewCount, favoritedByUids) — kullanıcı hâlâ AYNI ilanı
+    // görüntülüyorsa — gerçek zamanlı değerle güncellenir.
+    db.collection('teknohane_listings').doc(id).get().then(snap => {
+      if (!snap.exists || !currentListing || currentListing.id !== id) return;
+      const fresh = snap.data();
+      currentListing.viewCount = fresh.viewCount || 0;
+      currentListing.favoritedByUids = fresh.favoritedByUids || [];
+      const vEl = document.querySelector('#detail-mo .det-hero-stats');
+      if (vEl) {
+        const viewSpan = Array.from(vEl.querySelectorAll('span')).find(s => s.textContent.includes('görüntülenme'));
+        if (viewSpan) viewSpan.textContent = `👁 ${currentListing.viewCount} görüntülenme`;
+      }
+      renderDetFavCount(currentListing);
+    }).catch(()=>{});
   });
 }
 
@@ -7536,6 +7651,7 @@ async function performListingDelete(id) {
 // FORUM
 let forumPosts = [];
 let currentPost = null;
+let replyingToComment = null; // {commentId, uid, authorName, bodySnippet} — bkz. startReplyToComment
 let currentPostType = 'soru';
 let currentPostCat = 'genel';
 let currentPostTags = [];
@@ -7907,6 +8023,7 @@ async function openPost(id) {
   renderPostDetail();
   document.getElementById('post-detail-mo').classList.add('on');
   cmtPhotoB64 = null;
+  cancelReplyToComment();
   const prev = document.getElementById('cmt-photo-preview');
   if (prev) { prev.style.display='none'; prev.innerHTML=''; }
   try {
@@ -7984,9 +8101,12 @@ function renderComments() {
     const ts = c.createdAt?.toDate ? timeAgo(c.createdAt.toDate()) : '';
     const authorSafe = escapeHtml(c.authorName || '—');
     const authorJs = (c.authorName||'').replace(/'/g,"\\'");
+    const quotedSafe = c.quotedText ? escapeHtml(c.quotedText) : '';
+    const quotedAuthorSafe = c.quotedAuthorName ? escapeHtml(c.quotedAuthorName) : '';
     return `<div class="comment-item ${isBest?'best':''}" id="cmt-${c.id}">
       ${isBest?'<div class="best-badge">✓ En İyi Cevap</div>':''}
       <div class="comment-author" onclick="openPublicProfile('${c.uid}','${authorJs}')" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;display:inline-block">${authorSafe}</div>
+      ${c.quotedCommentId?`<div class="comment-quote-ref" onclick="document.getElementById('cmt-${c.quotedCommentId}')?.scrollIntoView({behavior:'smooth',block:'center'})"><b>${quotedAuthorSafe}</b>: ${quotedSafe}</div>`:''}
       <div class="comment-text">${formatForumText(c.body)}</div>
       ${c.imageUrl?`<img class="comment-img" src="${c.imageUrl}" loading="lazy" decoding="async" onclick="openFullscreen('${c.imageUrl}')">` : ''}
       <div class="comment-meta">
@@ -7994,6 +8114,7 @@ function renderComments() {
           <button class="comment-like-btn ${likedC?'liked':''}" onclick="likeComment('${c.id}')">
             ♥ ${(c.likes||[]).length}
           </button>
+          ${user ? `<button class="del-comment-btn" onclick="startReplyToComment('${c.id}','${c.uid||''}','${authorJs}','${(c.body||'').slice(0,140).replace(/'/g,"\\'").replace(/"/g,'&quot;').replace(/\n/g,' ')}')">↩ Yanıtla</button>` : ''}
           ${canBest && !isBest ? `<button class="mark-best-btn" onclick="markBest('${c.id}')">✓ En İyi</button>` : ''}
           ${canBest && isBest ? `<button class="unmark-best-btn" onclick="unmarkBest('${c.id}')">↺ Geri Al</button>` : ''}
           ${isCommentOwner ? `<button class="del-comment-btn" style="color:var(--cyan)" onclick="startEditComment('${c.id}')">Düzenle</button>` : ''}
@@ -8004,6 +8125,22 @@ function renderComments() {
       </div>
     </div>`;
   }).join('');
+}
+
+// Bir yoruma alıntılı yanıt vermeye başlar: girdi kutusunun üzerinde alıntı çubuğu belirir,
+// gönderilince submitComment bu bilgiyi comment dokümanına ekler ve alıntılanan kişiye bildirim gider.
+function startReplyToComment(commentId, uid, authorName, bodySnippet) {
+  replyingToComment = { commentId, uid, authorName, bodySnippet };
+  const bar = document.getElementById('reply-quote-bar');
+  document.getElementById('reply-quote-bar-author').textContent = authorName || 'Kullanıcı';
+  document.getElementById('reply-quote-bar-text').textContent = bodySnippet || '';
+  bar.classList.add('on');
+  document.getElementById('comment-inp')?.focus();
+}
+
+function cancelReplyToComment() {
+  replyingToComment = null;
+  document.getElementById('reply-quote-bar')?.classList.remove('on');
 }
 
 // Beğeni toggle (post)
@@ -8032,6 +8169,7 @@ async function submitComment() {
   const body = inp.value.trim();
   if (!body && !cmtPhotoB64) return;
   const p = currentPost;
+  const replyingTo = replyingToComment; // submitComment sırasında değişebileceği için anlık kopya
   try {
     const cdata = {
       uid: user.uid,
@@ -8040,24 +8178,33 @@ async function submitComment() {
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
     if (cmtPhotoB64) cdata.imageUrl = cmtPhotoB64;
+    if (replyingTo) {
+      cdata.quotedCommentId = replyingTo.commentId;
+      cdata.quotedAuthorName = replyingTo.authorName || 'Kullanıcı';
+      cdata.quotedText = replyingTo.bodySnippet || '';
+    }
     const ref = await db.collection('teknohane_posts').doc(p.id).collection('comments').add(cdata);
     await db.collection('teknohane_posts').doc(p.id).update({ answerCount: firebase.firestore.FieldValue.increment(1) });
     p.answerCount = (p.answerCount||0) + 1;
     p._comments = [...(p._comments||[]), { id:ref.id, ...cdata, imageUrl:cmtPhotoB64||null, createdAt:{toDate:()=>new Date()} }];
     inp.value = ''; inp.style.height = 'auto';
     cmtPhotoB64 = null;
+    cancelReplyToComment();
     const prev = document.getElementById('cmt-photo-preview');
     if (prev) { prev.style.display='none'; prev.innerHTML=''; }
     renderPostDetail(); renderComments();
     const pi = forumPosts.findIndex(x=>x.id===p.id);
     if (pi>-1) forumPosts[pi].answerCount = p.answerCount;
     rForum();
+    const name = user.displayName || user.email?.split('@')[0] || 'Biri';
     // Konu sahibi VE konuyu takip eden herkese (kendisi hariç) bildirim gider — "Takip Et" özelliğinin
     // asıl amacı bu: bir konuya yorum geldiğinde, yalnızca sahibi değil, takip eden herkes haberdar olur.
     const notifyTargets = new Set([p.uid, ...(p.followers||[])].filter(uid => uid && uid !== user.uid));
-    if (notifyTargets.size) {
-      const name = user.displayName || user.email?.split('@')[0] || 'Biri';
-      notifyTargets.forEach(uid => notifyUser(uid, 'post_comment', `${name}, "${p.title}" gönderine yorum yaptı`, null, p.id, user.uid, name, myProfileData.photoURL));
+    notifyTargets.forEach(uid => notifyUser(uid, 'post_comment', `${name}, "${p.title}" gönderine yorum yaptı`, null, p.id, user.uid, name, myProfileData.photoURL));
+    // Alıntılanan kişiye AYRICA, daha özel bir bildirim gider ("seni yanıtladı") — konu sahibi/takipçi
+    // bildiriminden bağımsız, çünkü alıntılanan kişi bu ikisinden biri olmayabilir.
+    if (replyingTo?.uid && replyingTo.uid !== user.uid && !notifyTargets.has(replyingTo.uid)) {
+      notifyUser(replyingTo.uid, 'comment_reply', `${name} seni yanıtladı: "${p.title}"`, null, p.id, user.uid, name, myProfileData.photoURL);
     }
   } catch(e) { showErrorToast(e.message); }
 }
@@ -8504,7 +8651,7 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
       <div class="tscore-label">Teknohane Skoru</div>
     </div>` : ''}
 
-    <div id="pub-trust-card">${renderTrustCardHTML(0, 0, { trustedSeller: data.trustedSeller, verified: data.emailVerified||data.adminVerified, joinedYear })}</div>
+    <div id="pub-trust-card">${renderTrustCardHTML(0, 0, { trustedSeller: data.trustedSeller, verified: data.emailVerified||data.adminVerified, joinedYear, uid, displayName })}</div>
 
     <div class="pub-stats">
       <div class="apstat"><div class="apstat-n">${userListings.length}</div><div class="apstat-l">Aktif İlan</div></div>
@@ -8587,7 +8734,7 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
 
   loadSellerReviews(uid, 'sr-list').then(({avg,count}) => {
     const el = document.getElementById('pub-trust-card');
-    if (el) el.innerHTML = renderTrustCardHTML(avg, count, { trustedSeller: data.trustedSeller, verified: data.emailVerified||data.adminVerified, joinedYear });
+    if (el) el.innerHTML = renderTrustCardHTML(avg, count, { trustedSeller: data.trustedSeller, verified: data.emailVerified||data.adminVerified, joinedYear, uid, displayName });
   }).catch(()=>{});
 }
 
@@ -11402,7 +11549,20 @@ function checkOnboarding() {
   }
 }
 
-function ol(url) { location.href='/teknohane/go.html?url='+encodeURIComponent(url); }
+// KÖK NEDEN DÜZELTMESİ ("YouTube/sosyal medyadan dönünce uygulama takılı kalıyor"): eskiden bu
+// fonksiyon TÜM WebView'i bir ara yönlendirme sayfasına (go.html) taşıyordu; harici uygulama (YouTube
+// vb.) kapatılıp geri dönüldüğünde WebView hâlâ o ara sayfada kalıyordu — SPA'nın kendisi değil.
+// Native ortamda artık Capacitor'ın Browser eklentisi kullanılıyor: harici bağlantı, WebView'i HİÇ
+// terk etmeden, üzerine açılan ayrı bir pencerede (Chrome Custom Tabs) gösteriliyor; kapatılınca
+// doğrudan hâlâ canlı olan SPA'ya dönülüyor. Web/PWA sürümünde (Capacitor yok) eski go.html
+// yönlendirmesine güvenli şekilde düşülür.
+function ol(url) {
+  if (isNativeApp() && window.Capacitor?.Plugins?.Browser) {
+    Capacitor.Plugins.Browser.open({ url }).catch(() => { location.href = url; });
+  } else {
+    location.href = '/teknohane/go.html?url=' + encodeURIComponent(url);
+  }
+}
 
 function waListingLink(model, phone) {
   const msg = `Merhaba, Teknohane'de "${model}" ilanınızı gördüm, bilgi almak istiyorum.`;
@@ -11432,7 +11592,22 @@ function openPicker(triggerEl) {
     <div class="picker-opt${o.value===sel.value?' active':''}" onclick="choosePickerOption('${selectId}','${escapeJsAttr(o.value)}')">${o.textContent}</div>
   `).join('');
   document.getElementById('picker-mo-title').textContent = triggerEl.dataset.title || 'Seç';
+  // Arama kutusu yalnızca liste uzunsa gösterilir (ör. İl/İlçe) — "Durum" gibi 2-3 seçenekli
+  // listelerde gereksiz yer kaplamasın diye eşik konuldu. Her açılışta önceki aramadan kalan
+  // metin ve filtre sıfırlanır.
+  const searchWrap = document.getElementById('picker-search-wrap');
+  const searchInp = document.getElementById('picker-search-inp');
+  searchInp.value = '';
+  searchWrap.style.display = sel.options.length > 6 ? 'flex' : 'none';
+  document.querySelectorAll('#picker-options .picker-opt').forEach(el => el.style.display = '');
   document.getElementById('custom-picker-mo').classList.add('on');
+}
+
+function filterPickerOptions(query) {
+  const q = query.trim().toLocaleLowerCase('tr-TR');
+  document.querySelectorAll('#picker-options .picker-opt').forEach(el => {
+    el.style.display = el.textContent.toLocaleLowerCase('tr-TR').includes(q) ? '' : 'none';
+  });
 }
 
 function choosePickerOption(selectId, value) {
