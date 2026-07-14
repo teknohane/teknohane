@@ -3273,6 +3273,26 @@ async function uploadToStorage(path, blob, mimeType, onProgress) {
   return snapshot.ref.getDownloadURL();
 }
 
+// PERFORMANS DÜZELTMESİ (Madde 1 — bkz. görev raporu): ilan/forum/sohbet fotoğrafları eskiden
+// base64 olarak doğrudan Firestore dokümanına gömülüyordu (compressImg/toDataURL) — bu, her
+// sorguda MB'larca veri taşınmasına, tarayıcı önbelleğinin devre dışı kalmasına ve Firestore'un
+// ~1MB doküman boyutu sınırına yaklaşmaya zorluyordu. Artık profil/kapak fotoğrafında ZATEN
+// kanıtlanmış aynı desen (compressImageToWebP + uploadToStorage) kullanılıyor — sonuç, Firestore'a
+// yazılan küçük bir Storage URL'i, gerçek görsel ise tarayıcının HTTP/disk önbelleğinden gelir.
+async function compressAndUploadPhoto(file, pathPrefix, maxDim, quality, onProgress) {
+  const { blob, mimeType, ext } = await compressImageToWebP(file, maxDim, quality);
+  return uploadToStorage(`${pathPrefix}.${ext}`, blob, mimeType, onProgress);
+}
+
+// Bir Storage indirme URL'sini (varsa) siler — base64/boş/undefined için sessizce hiçbir şey
+// yapmaz. Fotoğraf değiştirme/kaldırma akışlarında eski dosyanın Storage'da birikmemesi için
+// (profil/kapak fotoğrafındaki AYNI temizlik prensibi).
+function deleteStorageUrlIfAny(url) {
+  if (url && typeof url === 'string' && url.includes('firebasestorage')) {
+    try { storage.refFromURL(url).delete().catch(()=>{}); } catch(e) {}
+  }
+}
+
 // Kullanıcının native (Capacitor) mi yoksa hangi tarayıcıdan bağlandığını en iyi çaba (best-effort) ile tahmin eder.
 // ==== ONLINE DURUMU (teknohane_presence koleksiyonu, kurallarda zaten hazırdı ama hiç kullanılmıyordu) ====
 // "Online" kabul edilme eşiği: son 2 dakika içinde bir heartbeat yazılmışsa.
@@ -5749,7 +5769,12 @@ function openChatThread(otherUid, otherName, prefill) {
     if (avEl) avEl.innerHTML = av ? `<img src="${av}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : (otherName || '?')[0].toUpperCase();
     const lr = c.lastRead?.[otherUid];
     currentChatOtherLastRead = lr?.toMillis ? lr.toMillis() : 0;
-    renderChatMessages();
+    // PERFORMANS DÜZELTMESİ ("okundu" güncellemesi 200 mesajı yeniden çiziyordu): bu dinleyici,
+    // sohbet dokümanındaki HERHANGİ bir değişiklikte (karşı tarafın okundu bilgisi dahil) tetiklenir
+    // — bu, tüm mesaj listesini yeniden çizmeyi (renderChatMessages) GEREKTİRMEZ, yalnızca "tik"
+    // ikonlarının güncellenmesi yeterlidir. Asıl mesaj listesi zaten ayrı bir dinleyiciden (messages
+    // koleksiyonu) geliyor ve o zaten kendi renderChatMessages()'ını çağırıyor.
+    updateChatReadTicks();
     renderChatThreadStatus(c, otherUid);
   }, () => {});
 
@@ -5797,20 +5822,33 @@ function renderChatMessages() {
     } else {
       body = escapeHtml(m.text||'');
     }
-    let statusIcon = '';
-    if (mine && !isCard) {
-      if (m._status === 'sending') statusIcon = `<div class="msg-status-sending" style="margin-left:4px"></div>`;
-      else if (m._status === 'failed') statusIcon = `<span style="color:var(--red);margin-left:4px;font-size:12px" title="Gönderilemedi">⚠️</span>`;
-      else {
-        const msgMillis = m.createdAt?.toMillis ? m.createdAt.toMillis() : 0;
-        const read = msgMillis && currentChatOtherLastRead && msgMillis <= currentChatOtherLastRead;
-        statusIcon = `<svg viewBox="0 0 16 16" width="14" height="14" style="margin-left:4px;flex-shrink:0" fill="none" stroke="${read?'#0BA84A':'currentColor'}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 8 4.5 11.5 9 5"/>${read?'<polyline points="6 8 9.5 11.5 15 5"/>':''}</svg>`;
-      }
-    }
-    const bubble = isCard ? body : `<div class="msg-bubble" style="background:${mine?'var(--cdim)':'var(--surf2)'};color:var(--text);border:${mine?'1px solid rgba(0,212,255,.35)':'1px solid transparent'};padding:${m.imageUrl||m._localImagePreview?'6px':'9px 13px'};${mine?'border-bottom-right-radius:4px':'border-bottom-left-radius:4px'};font-size:14px;line-height:1.4;word-break:break-word">${body}<div style="font-size:10px;opacity:.6;margin-top:3px;display:flex;align-items:center;justify-content:flex-end">${time}${statusIcon}</div></div>`;
+    const bubble = isCard ? body : `<div class="msg-bubble" style="background:${mine?'var(--cdim)':'var(--surf2)'};color:var(--text);border:${mine?'1px solid rgba(0,212,255,.35)':'1px solid transparent'};padding:${m.imageUrl||m._localImagePreview?'6px':'9px 13px'};${mine?'border-bottom-right-radius:4px':'border-bottom-left-radius:4px'};font-size:14px;line-height:1.4;word-break:break-word">${body}<div style="font-size:10px;opacity:.6;margin-top:3px;display:flex;align-items:center;justify-content:flex-end">${time}<span class="msg-status-icon">${(mine && !isCard) ? msgStatusIconHTML(m) : ''}</span></div></div>`;
     return `<div class="${isNew?'msg-in':''}" style="align-self:${mine?'flex-end':'flex-start'};max-width:78%" data-mid="${m.id}" onpointerdown="onMsgPointerDown(event,'${m.id}')" onpointerup="onMsgPointerUp()" onpointerleave="onMsgPointerUp()" oncontextmenu="return false">${bubble}</div>`;
   }).join('');
   box._renderedIds = newIds;
+}
+
+// Kendi mesajlarımızın durum ikonunu (gönderiliyor/başarısız/tik) üretir — renderChatMessages VE
+// updateChatReadTicks tarafından PAYLAŞILAN tek kaynak, kod tekrarı yok.
+function msgStatusIconHTML(m) {
+  if (m._status === 'sending') return `<div class="msg-status-sending" style="margin-left:4px"></div>`;
+  if (m._status === 'failed') return `<span style="color:var(--red);margin-left:4px;font-size:12px" title="Gönderilemedi">⚠️</span>`;
+  const msgMillis = m.createdAt?.toMillis ? m.createdAt.toMillis() : 0;
+  const read = msgMillis && currentChatOtherLastRead && msgMillis <= currentChatOtherLastRead;
+  return `<svg viewBox="0 0 16 16" width="14" height="14" style="margin-left:4px;flex-shrink:0" fill="none" stroke="${read?'#0BA84A':'currentColor'}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 8 4.5 11.5 9 5"/>${read?'<polyline points="6 8 9.5 11.5 15 5"/>':''}</svg>`;
+}
+
+// PERFORMANS DÜZELTMESİ ("okundu" güncellemesi 200 mesajı yeniden çiziyordu): karşı tarafın
+// lastRead bilgisi her değiştiğinde TÜM mesaj listesini yeniden çizmek yerine, yalnızca kendi
+// mesajlarımızın tik ikonunu (DOM'da zaten var olan .msg-status-icon span'ını) yerinde günceller.
+function updateChatReadTicks() {
+  const box = document.getElementById('chat-messages');
+  if (!box) return;
+  currentChatMsgs.forEach(m => {
+    if (m.senderUid !== user?.uid || m.listingId) return;
+    const el = box.querySelector(`[data-mid="${m.id}"] .msg-status-icon`);
+    if (el) el.innerHTML = msgStatusIconHTML(m);
+  });
 }
 
 function exitChatThread() {
@@ -5963,12 +6001,13 @@ async function sendChatImage(input) {
   renderChatMessages();
   scrollChatMessagesToBottom();
   try {
-    // compressImg() — Forum'daki fotoğraf gönderimiyle PAYLAŞILAN aynı sıkıştırma fonksiyonu, kod
-    // tekrarı yok. "Optimize ediliyor" hissi, mesaj balonundaki .msg-status-sending göstergesiyle veriliyor.
-    const dataUrl = await compressImg(file, 800, 0.7);
+    // PERFORMANS DÜZELTMESİ: base64/Firestore yerine Storage'a yükleme (bkz. compressAndUploadPhoto).
+    // "Optimize ediliyor/yükleniyor" hissi, mesaj balonundaki .msg-status-sending göstergesiyle veriliyor.
+    // Yol, storage.rules'ta ÖNCEDEN hazırlanmış desenle birebir eşleşmeli: chat-images/{chatId}/{uid}/{fileName}
+    const imageUrl = await compressAndUploadPhoto(file, `chat-images/${id}/${user.uid}/${Date.now()}`, 800, 0.75);
     await ref.collection('messages').add({
       senderUid: user.uid,
-      imageUrl: dataUrl,
+      imageUrl,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     localMsg._status = 'sent';
@@ -6252,6 +6291,12 @@ function clearAllListeners() {
 let prevRefCounts = {};
 let prevPrices = {};
 let editingListingId = null;
+// Yeni bir ilan henüz Firestore'da yok ama fotoğraflar seçilir seçilmez Storage'a yüklenmeye
+// başlıyor (profil/kapak fotoğrafıyla AYNI "seçince hemen yükle" deseni) — bu yüzden fotoğraf
+// yollarının kullanacağı kararlı bir ID'ye ihtiyaç var. Firestore'un kendi ID üreticisinden
+// (herhangi bir yazma yapmadan) alınır; ilan gerçekten kaydedilirken .add() kendi ID'sini üretir,
+// bu geçici ID yalnızca Storage klasör adı olarak kullanılmış olur — hiçbir çakışma riski yoktur.
+let pendingNewListingPhotoId = null;
 
 // KÖK NEDEN DÜZELTMESİ (Genel Performans): eskiden burada uygulama her açılışta TÜM
 // `teknohane_listings` koleksiyonunu (limitsiz) okuyan tek bir loadListings() fonksiyonu vardı —
@@ -6478,7 +6523,11 @@ async function loadMarketPage(reset) {
   if (reset) { marketAllListings = []; marketLastDoc = null; marketHasMore = true; }
   if (!marketHasMore) { rlistings(); return; }
   marketLoading = true;
-  rlistings(); // "yükleniyor" durumunu anında yansıt
+  // PERFORMANS DÜZELTMESİ ("Daha Fazla Yükle" tüm listeyi yeniden çiziyordu): ilk açılış/sekme
+  // değişimi (reset) hâlâ tam render gerektirir (iskelet/yükleniyor durumu), ama sayfalama
+  // (reset=false) sırasında mevcut kartlara HİÇ dokunmadan yalnızca alttaki "Daha Fazla Yükle"
+  // kontrolü güncellenir — spinner göstermek için tüm ızgarayı yeniden kurmaya gerek yok.
+  if (reset) rlistings(); else renderMarketLoadMoreControl();
   try {
     let q = db.collection('teknohane_listings').where('approved', '==', true).orderBy('createdAt', 'desc').limit(MARKET_PAGE_SIZE);
     if (marketLastDoc) q = q.startAfter(marketLastDoc);
@@ -6486,15 +6535,66 @@ async function loadMarketPage(reset) {
     const newItems = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     marketLastDoc = snap.docs[snap.docs.length - 1] || marketLastDoc;
     marketHasMore = snap.docs.length === MARKET_PAGE_SIZE;
-    marketAllListings = reset ? newItems : [...marketAllListings, ...newItems];
     marketAllLoadedOnce = true;
+    if (reset) {
+      marketAllListings = newItems;
+      rlistings();
+    } else {
+      marketAllListings = [...marketAllListings, ...newItems];
+      // Sıralama önceliği (Vitrin/Öne Çıkan üstte, satılan altta) bozulmasın diye, yeni sayfada bu
+      // özel etiketlerden biri varsa veya arama/filtre/sekme aktifse güvenli şekilde tam render'a
+      // (rlistings) düşülür — yalnızca "sade" sayfalamada (en yaygın durum) hızlı ekleme kullanılır.
+      const raw = (document.getElementById('msrch')?.value||'').trim();
+      const filtersActive = !!(raw || filterMin || filterMax || filterBrand !== 'Tümü');
+      const hasSpecial = newItems.some(l => l.showcase || l.featured || l.sold);
+      if (mktab === 'all' && !filtersActive && !hasSpecial) {
+        appendListingCards(newItems.filter(l => !isSoldExpired(l) && !l.paused && !isListingExpired(l)));
+      } else {
+        rlistings();
+      }
+    }
   } catch (e) {
     console.error('İlanlar yüklenemedi:', e);
     showToast('⚠️', 'rgba(255,69,58,.15)', 'Hata', 'İlanlar yüklenemedi.');
+    renderMarketLoadMoreControl();
   } finally {
     marketLoading = false;
-    rlistings();
+    renderMarketLoadMoreControl();
   }
+}
+
+// Pazar'ın altındaki "Daha Fazla Yükle" düğmesi/spinner'ı — tam liste render'ından AYRI bir
+// fonksiyon: sayfalama sırasında yalnızca bu küçük alan güncellenir, mevcut kartlara dokunulmaz.
+function renderMarketLoadMoreControl() {
+  const grid = document.getElementById('lgrid');
+  if (!grid) return;
+  let wrap = grid.querySelector('.market-loadmore-wrap');
+  const raw = (document.getElementById('msrch')?.value||'').trim();
+  const shouldShow = mktab === 'all' && !raw && !filterMin && !filterMax && filterBrand === 'Tümü';
+  if (!shouldShow) { wrap?.remove(); return; }
+  if (!wrap) {
+    wrap = document.createElement('div');
+    wrap.className = 'market-loadmore-wrap';
+    wrap.style.cssText = 'padding:16px;text-align:center';
+    grid.appendChild(wrap);
+  } else {
+    grid.appendChild(wrap); // her zaman en sona taşı (yeni kartlar eklenmiş olabilir)
+  }
+  if (marketLoading) wrap.innerHTML = `<div class="spin" style="margin:0 auto"></div>`;
+  else if (marketHasMore) wrap.innerHTML = `<button class="apbtn" style="width:auto;padding:10px 24px;display:inline-block" onclick="loadMarketPage(false)">Daha Fazla Yükle</button>`;
+  else wrap.innerHTML = '';
+}
+
+// Yalnızca YENİ kartları mevcut ızgaranın sonuna ekler — önceki kartlara hiç dokunulmaz, görselleri
+// (base64 veya Storage) yeniden decode edilmez. loadMarketPage()'in "sade sayfalama" hızlı yolu.
+function appendListingCards(newItems) {
+  if (!newItems.length) return;
+  const grid = document.getElementById('lgrid');
+  if (!grid) return;
+  const wrap = grid.querySelector('.market-loadmore-wrap');
+  const html = newItems.map(mcardHTML).join('');
+  if (wrap) wrap.insertAdjacentHTML('beforebegin', html);
+  else grid.insertAdjacentHTML('beforeend', html);
 }
 
 async function loadMarketFavorites() {
@@ -6671,18 +6771,7 @@ function rlistings() {
     return;
   }
   grid.innerHTML = items.map(mcardHTML).join('');
-
-  // "Tümü" sekmesinde, arama/filtre aktif değilse ve daha fazla sayfa varsa "Daha Fazla Yükle" göster.
-  if (mktab === 'all' && !q && !filterMin && !filterMax && filterBrand === 'Tümü') {
-    const btnWrap = document.createElement('div');
-    btnWrap.style.cssText = 'padding:16px;text-align:center';
-    if (marketLoading) {
-      btnWrap.innerHTML = `<div class="spin" style="margin:0 auto"></div>`;
-    } else if (marketHasMore) {
-      btnWrap.innerHTML = `<button class="apbtn" style="width:auto;padding:10px 24px;display:inline-block" onclick="loadMarketPage(false)">Daha Fazla Yükle</button>`;
-    }
-    grid.appendChild(btnWrap);
-  }
+  renderMarketLoadMoreControl();
 }
 
 function smtab(t, el) {
@@ -6843,6 +6932,7 @@ function listingFormOnChange() {
 function newListing() {
   if (!user) { gt('profile'); return; }
   editingListingId = null;
+  pendingNewListingPhotoId = db.collection('teknohane_listings').doc().id;
   ensureListingIlOptionsPopulated();
   document.getElementById('l-brand').value = '';
   document.getElementById('l-model').value = '';
@@ -7088,51 +7178,41 @@ function onPslotTap(idx) {
   if (!photos[idx]) document.getElementById('pf' + idx).click();
 }
 
-function addPhoto(idx, input) {
+async function addPhoto(idx, input) {
   const file = input.files[0];
+  input.value = '';
   if (!file) return;
   // Kaynak dosya boyutu üzerinde artık düşük/sabit bir üst sınır YOK — kullanıcı 10MB, 20MB veya
   // daha büyük bir fotoğraf seçebilir; aşağıdaki sıkıştırma adımı her zaman hedef boyuta indirger.
   // Yalnızca gerçek dünyada hiçbir telefon fotoğrafının pratikte aşamayacağı, bozuk/yanlış bir dosya
   // seçilmesine karşı güvenlik amaçlı bir üst sınır (50MB) korunur.
-  if (file.size > 50 * 1024 * 1024) { showToast('⚠️','rgba(255,69,58,.15)','Dosya Çok Büyük','Bu dosya işlenemeyecek kadar büyük.'); input.value=''; return; }
-  // Fotoğraf işlenirken (sıkıştırma tamamlanana kadar) görsel bir ilerleme göstergesi.
+  if (file.size > 50 * 1024 * 1024) { showToast('⚠️','rgba(255,69,58,.15)','Dosya Çok Büyük','Bu dosya işlenemeyecek kadar büyük.'); return; }
+  // PERFORMANS DÜZELTMESİ: eskiden burada canvas.toDataURL ile base64 üretilip doğrudan photos[idx]'e
+  // yazılıyordu (Firestore'a gömülecek şekilde). Artık compressAndUploadPhoto ile Storage'a yüklenir,
+  // photos[idx] yalnızca küçük bir indirme URL'i tutar — <img src> tarafı hiç değişmedi, bir data:
+  // URL'i veya bir https:// URL'i fark etmeksizin aynı şekilde çalışır.
   const slot = document.getElementById('ps' + idx);
-  slot.innerHTML = `<div class="pslot-processing"><div class="spin" style="width:20px;height:20px"></div><span>Fotoğraf optimize ediliyor…</span></div>`;
-
-  const img = new Image();
-  const reader = new FileReader();
-  reader.onload = e => {
-    img.onload = () => {
-      // Kaynak dosya 15-30MB de olsa buradan itibaren yalnızca kanvas boyutu (piksel sayısı) önemli
-      // — dosya boyutu değil. maxW hafifçe artırıldı (1000→1080) ve kalite eğrisi daha ince adımlarla
-      // (0.05) aşağı iniyor ki hedef boyuta ulaşırken gereğinden fazla kalite kaybedilmesin; aynı
-      // hedef bayt bütçesi (Firestore doküman boyutu sınırı gereği) korunuyor, yalnızca ona ulaşma
-      // biçimi daha kaliteli.
-      const maxW = 1080;
-      let w = img.width, h = img.height;
-      if (w > maxW) { h = h * (maxW / w); w = maxW; }
-      const canvas = document.createElement('canvas');
-      canvas.width = w; canvas.height = h;
-      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      let quality = 0.82;
-      let dataUrl = canvas.toDataURL('image/jpeg', quality);
-      while (dataUrl.length > 600 * 1024 * 1.37 && quality > 0.35) {
-        quality -= 0.05;
-        dataUrl = canvas.toDataURL('image/jpeg', quality);
-      }
-      photos[idx] = dataUrl;
-      refreshPhotoSlot(idx);
-      listingFormOnChange();
-    };
-    img.onerror = () => { refreshPhotoSlot(idx); showErrorToast('Fotoğraf işlenemedi.'); };
-    img.src = e.target.result;
-  };
-  reader.onerror = () => { refreshPhotoSlot(idx); showErrorToast('Fotoğraf okunamadı.'); };
-  reader.readAsDataURL(file);
+  slot.innerHTML = `<div class="pslot-processing"><div class="spin" style="width:20px;height:20px"></div><span id="pslot-pct-${idx}">Yükleniyor…</span></div>`;
+  const oldUrl = photos[idx];
+  try {
+    // Yol, storage.rules'ta ÖNCEDEN hazırlanmış desenle birebir eşleşmeli: listing-photos/{uid}/{listingId}/{slot}/{fileName}
+    const listingKey = editingListingId || pendingNewListingPhotoId;
+    const url = await compressAndUploadPhoto(file, `listing-photos/${user.uid}/${listingKey}/slot${idx}/original`, 1080, 0.82, pct => {
+      const pctEl = document.getElementById('pslot-pct-' + idx);
+      if (pctEl) pctEl.textContent = `Yükleniyor… %${pct}`;
+    });
+    photos[idx] = url;
+    deleteStorageUrlIfAny(oldUrl);
+    refreshPhotoSlot(idx);
+    listingFormOnChange();
+  } catch(e) {
+    refreshPhotoSlot(idx);
+    showErrorToast('Fotoğraf yüklenemedi: ' + (e.message||''));
+  }
 }
 
 function rmPhoto(idx) {
+  deleteStorageUrlIfAny(photos[idx]);
   photos[idx] = null;
   refreshPhotoSlot(idx);
   listingFormOnChange();
@@ -7631,6 +7711,9 @@ async function performListingDelete(id) {
   const isAdminModeration = isAdminNow() && l && user.uid !== l.uid;
   try {
     await db.collection('teknohane_listings').doc(id).delete();
+    // İlan silinince Storage'daki fotoğrafları da temizle — base64 kullanan eski ilanlarda bu
+    // alanlar data: URL'idir, deleteStorageUrlIfAny zaten bunları sessizce atlar.
+    [l?.photo1, l?.photo2, l?.photo3, l?.photo4].forEach(deleteStorageUrlIfAny);
     // Pazar/Profil'in kendi sayfalamalı dizilerinden de kaldır (görsel anında güncellensin diye)
     marketAllListings = marketAllListings.filter(x => x.id !== id);
     marketFavListings = marketFavListings.filter(x => x.id !== id);
@@ -7751,7 +7834,10 @@ async function loadForumPage(reset) {
   if (reset) { forumPosts = []; forumLastDoc = null; forumHasMore = true; }
   if (!forumHasMore) { rForum(); return; }
   forumLoading = true;
-  rForum(); // "yükleniyor" durumunu anında yansıt
+  // PERFORMANS DÜZELTMESİ (Pazar'daki AYNI iyileştirme — bkz. loadMarketPage): ilk açılış (reset)
+  // tam render gerektirir, ama sayfalama sırasında mevcut kartlara dokunmadan yalnızca alttaki
+  // kontrol güncellenir.
+  if (reset) rForum(); else renderForumLoadMoreControl();
   try {
     // KÖK NEDEN DÜZELTMESİ (Firebase Console'daki Indexes ekranından kanıtlandı): teknohane_posts
     // koleksiyonu için HİÇBİR composite index yok. where(eşitlik)+orderBy(farklı alan) veya
@@ -7767,17 +7853,97 @@ async function loadForumPage(reset) {
     let newItems = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.archived !== true);
     forumLastDoc = snap.docs[snap.docs.length - 1] || forumLastDoc;
     forumHasMore = snap.docs.length === 50;
-    forumPosts = reset ? newItems : [...forumPosts, ...newItems];
+    if (reset) {
+      forumPosts = newItems;
+      rForum();
+    } else {
+      forumPosts = [...forumPosts, ...newItems];
+      // "Yeni" sekmesi (kronolojik, sunucu sırasıyla birebir) dışındaki sekmeler (Popüler/Çözüldü/
+      // Takip Ettiklerim) tamamen yeniden filtreleyip sıralıyor — bu yüzden yalnızca "Yeni" sekmesinde
+      // VE yeni sayfada sabitlenmiş (pinned, başa gitmesi gereken) bir gönderi yoksa hızlı ekleme
+      // kullanılır; aksi halde güvenli şekilde tam render'a düşülür.
+      if (forumCurrentTab === 'new' && !forumSearchActive && !newItems.some(p => p.pinned)) {
+        appendForumCards(newItems);
+      } else {
+        rForum();
+      }
+    }
   } catch (e) {
     console.error('Forum yüklenemedi:', e);
     const list = document.getElementById('forum-list');
     // Kullanıcıya ham Firestore hata metni/Firebase Console linki GÖSTERİLMEZ — yalnızca konsola
     // loglanır, ekranda sade ve profesyonel bir mesaj kalır.
     list.innerHTML = `<div class="no">Konular yüklenemedi.<br><span style="font-size:11px;color:var(--text3)">Lütfen internet bağlantını kontrol edip tekrar dene.</span></div>`;
+    renderForumLoadMoreControl();
   } finally {
     forumLoading = false;
-    rForum();
+    renderForumLoadMoreControl();
   }
+}
+
+// Forum listesinin altındaki "Daha Fazla Yükle" kontrolü — tam render'dan AYRI (bkz. Pazar'daki
+// renderMarketLoadMoreControl ile aynı prensip).
+function renderForumLoadMoreControl() {
+  const list = document.getElementById('forum-list');
+  if (!list) return;
+  let wrap = list.querySelector('.forum-loadmore-wrap');
+  if (forumSearchActive) { wrap?.remove(); return; }
+  if (!wrap) {
+    wrap = document.createElement('div');
+    wrap.className = 'forum-loadmore-wrap';
+    wrap.style.cssText = 'padding:16px;text-align:center';
+    list.appendChild(wrap);
+  } else {
+    list.appendChild(wrap);
+  }
+  if (forumLoading) wrap.innerHTML = `<div class="spin" style="margin:0 auto"></div>`;
+  else if (forumHasMore) wrap.innerHTML = `<button class="apbtn" style="width:auto;padding:10px 24px;display:inline-block" onclick="loadForumPage(false)">Daha Fazla Yükle</button>`;
+  else wrap.innerHTML = '';
+}
+
+// Forum kartı HTML'ini üretir — rForum()'un içindeki şablonla BİREBİR aynı, tekilleştirmek için
+// ayrı bir fonksiyona çıkarıldı (appendForumCards de aynısını kullanabilsin diye).
+function forumPostCardHTML(p) {
+  const likeCount = p.likeCount ?? (p.likes||[]).length;
+  const ts = p.createdAt?.toDate ? timeAgo(p.createdAt.toDate()) : '';
+  const pt = POST_TYPES[p.type] || POST_TYPES.tartisma;
+  const catLabel = POST_CATS[p.category] || '';
+  const isPopular = likeCount >= 10 && !p.resolved;
+  const authorSafe = escapeHtml(p.authorName || '—');
+  const authorJs = (p.authorName||'').replace(/'/g,"\\'");
+  return `<div class="post-card" onclick="openPost('${p.id}')">
+      ${p.imageUrl ? `<div class="post-card-thumb"><img src="${p.imageUrl}" loading="lazy" decoding="async"></div>` : ''}
+      <div class="post-card-body">
+        <div class="post-badges-row">
+          ${p.pinned?'<div class="post-type-badge pinned-badge" title="Sabit">📌</div>':''}
+          ${p.featured?'<div class="post-type-badge featured-badge" title="Öne Çıkan">⭐</div>':''}
+          ${p.locked?'<div class="post-type-badge locked-badge" title="Kilitli">🔒</div>':''}
+          <div class="post-type-badge ${pt.cls}">${pt.label}</div>
+          ${catLabel?`<div class="post-cat-badge">${catLabel}</div>`:''}
+          ${p.resolved?'<div class="post-type-badge resolved-badge">✓ Çözüldü</div>':''}
+          ${isPopular?'<div class="post-type-badge popular-badge">🔥</div>':''}
+        </div>
+        <div class="post-title">${escapeHtml(p.title)}</div>
+        ${(p.tags&&p.tags.length)?`<div class="post-tags-row">${p.tags.slice(0,3).map(t=>`<span class="post-tag-chip">#${escapeHtml(t)}</span>`).join('')}</div>`:''}
+        <div class="post-meta-row">
+          <span onclick="event.stopPropagation();openPublicProfile('${p.uid}','${authorJs}')" class="post-meta-author">${authorSafe}</span>
+          <span>· ${ts}</span>
+          <span class="post-meta-stat">❤ ${likeCount}</span>
+          <span class="post-meta-stat">💬 ${p.answerCount||0}</span>
+        </div>
+      </div>
+    </div>`;
+}
+
+// Yalnızca YENİ gönderi kartlarını mevcut listenin sonuna ekler — önceki kartlara dokunulmaz.
+function appendForumCards(newItems) {
+  if (!newItems.length) return;
+  const list = document.getElementById('forum-list');
+  if (!list) return;
+  const wrap = list.querySelector('.forum-loadmore-wrap');
+  const html = newItems.map(forumPostCardHTML).join('');
+  if (wrap) wrap.insertAdjacentHTML('beforebegin', html);
+  else list.insertAdjacentHTML('beforeend', html);
 }
 
 // Forum Arama — Kullanıcı Arama'da kurduğumuz aynı dürüst desen: Firestore'un desteklediği
@@ -7831,48 +7997,19 @@ function rForum() {
   else if (forumCurrentTab === 'popular') items = [...items].sort((a,b) => (b.likeCount ?? (b.likes||[]).length) - (a.likeCount ?? (a.likes||[]).length));
   if (!items.length) { list.innerHTML = `<div class="no">${forumSearchActive?'Sonuç bulunamadı':forumCurrentTab==='resolved'?'Henüz çözülen konu yok':forumCurrentTab==='following'?'Takip ettiğin kimsenin konusu yok':'Henüz konu yok — ilk sen aç!'}</div>`; return; }
   items = [...items].sort((a,b) => (b.pinned?1:0) - (a.pinned?1:0));
-  list.innerHTML = items.map(p => {
-    const likeCount = p.likeCount ?? (p.likes||[]).length;
-    const ts = p.createdAt?.toDate ? timeAgo(p.createdAt.toDate()) : '';
-    const pt = POST_TYPES[p.type] || POST_TYPES.tartisma;
-    const catLabel = POST_CATS[p.category] || '';
-    const isPopular = likeCount >= 10 && !p.resolved; // basit, sabit eşik — Popüler rozeti (Çözüldü varsa gizlenir, rozet kirliliği olmasın)
-    const authorSafe = escapeHtml(p.authorName || '—');
-    const authorJs = (p.authorName||'').replace(/'/g,"\\'");
-    return `<div class="post-card" onclick="openPost('${p.id}')">
-      ${p.imageUrl ? `<div class="post-card-thumb"><img src="${p.imageUrl}" loading="lazy" decoding="async"></div>` : ''}
-      <div class="post-card-body">
-        <div class="post-badges-row">
-          ${p.pinned?'<div class="post-type-badge pinned-badge" title="Sabit">📌</div>':''}
-          ${p.featured?'<div class="post-type-badge featured-badge" title="Öne Çıkan">⭐</div>':''}
-          ${p.locked?'<div class="post-type-badge locked-badge" title="Kilitli">🔒</div>':''}
-          <div class="post-type-badge ${pt.cls}">${pt.label}</div>
-          ${catLabel?`<div class="post-cat-badge">${catLabel}</div>`:''}
-          ${p.resolved?'<div class="post-type-badge resolved-badge">✓ Çözüldü</div>':''}
-          ${isPopular?'<div class="post-type-badge popular-badge">🔥</div>':''}
-        </div>
-        <div class="post-title">${escapeHtml(p.title)}</div>
-        ${(p.tags&&p.tags.length)?`<div class="post-tags-row">${p.tags.slice(0,3).map(t=>`<span class="post-tag-chip">#${escapeHtml(t)}</span>`).join('')}</div>`:''}
-        <div class="post-meta-row">
-          <span onclick="event.stopPropagation();openPublicProfile('${p.uid}','${authorJs}')" class="post-meta-author">${authorSafe}</span>
-          <span>· ${ts}</span>
-          <span class="post-meta-stat">❤ ${likeCount}</span>
-          <span class="post-meta-stat">💬 ${p.answerCount||0}</span>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-  if (!forumSearchActive) {
-    const wrap = document.createElement('div');
-    wrap.style.cssText = 'padding:16px;text-align:center';
-    if (forumLoading) wrap.innerHTML = `<div class="spin" style="margin:0 auto"></div>`;
-    else if (forumHasMore) wrap.innerHTML = `<button class="apbtn" style="width:auto;padding:10px 24px;display:inline-block" onclick="loadForumPage(false)">Daha Fazla Yükle</button>`;
-    list.appendChild(wrap);
-  }
+  list.innerHTML = items.map(forumPostCardHTML).join('');
+  renderForumLoadMoreControl();
 }
 
 let npPhotoB64 = null;
 let cmtPhotoB64 = null;
+// Yorum henüz Firestore'da yok ama fotoğraf seçilir seçilmez Storage'a yükleniyor — storage.rules'ta
+// ÖNCEDEN hazırlanmış forum-comment-images/{uid}/{commentId}/{fileName} deseni {commentId} istiyor,
+// bu yüzden ID yükleme ANINDAN önce üretilip submitComment'ta gerçek doküman ID'si olarak kullanılıyor.
+let pendingCommentPhotoId = null;
+// Yeni gönderi henüz Firestore'da yok ama fotoğraf seçilir seçilmez Storage'a yükleniyor —
+// ilan fotoğraflarındaki AYNI "geçici, kararlı ID" deseni (bkz. pendingNewListingPhotoId).
+let pendingNewPostPhotoId = null;
 
 function openNewPost() {
   if (!user) { showToast('🔒','var(--cdim)','Giriş Gerekli','Konu açmak için giriş yapın.', ()=>gt('profile')); return; }
@@ -7881,6 +8018,7 @@ function openNewPost() {
   document.getElementById('np-photo-preview').innerHTML = '';
   document.getElementById('np-photo-label').textContent = 'Fotoğraf ekle';
   npPhotoB64 = null;
+  pendingNewPostPhotoId = db.collection('teknohane_posts').doc().id;
   currentPostTags = [];
   document.getElementById('np-tag-sel').innerHTML = FORUM_TAGS.map(t => `<div class="pcat" data-ptag="${t}" onclick="selPostTag('${t}',this)">${t}</div>`).join('');
   selPostType('soru', document.querySelector('[data-ptype="soru"]'));
@@ -7909,48 +8047,40 @@ function selPostCat(cat, el) {
   el?.classList.add('on');
 }
 
-// Görsel sıkıştırma yardımcısı (base64) — ilan/forum/sohbet fotoğrafları için ortak.
-function compressImg(file, maxW=900, quality=0.75) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const reader = new FileReader();
-    reader.onload = e => {
-      img.onload = () => {
-        let w = img.width, h = img.height;
-        if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        let q = quality;
-        let url = canvas.toDataURL('image/jpeg', q);
-        while (url.length > 700 * 1024 * 1.37 && q > 0.2) { q -= 0.1; url = canvas.toDataURL('image/jpeg', q); }
-        resolve(url);
-      };
-      img.onerror = reject;
-      img.src = e.target.result;
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
 async function handlePostPhoto(input) {
   const file = input.files[0];
-  if (!file) return;
-  npPhotoB64 = await compressImg(file, 900, 0.75);
-  document.getElementById('np-photo-label').textContent = '1 fotoğraf seçildi';
-  document.getElementById('np-photo-preview').innerHTML = `<img src="${npPhotoB64}" class="photo-preview-thumb">`;
   input.value = '';
+  if (!file) return;
+  // PERFORMANS DÜZELTMESİ: base64/Firestore yerine Storage'a yükleme (bkz. compressAndUploadPhoto).
+  document.getElementById('np-photo-label').textContent = 'Yükleniyor…';
+  try {
+    // Yol, storage.rules'ta ÖNCEDEN hazırlanmış desenle birebir eşleşmeli: forum-post-images/{uid}/{postId}/{fileName}
+    npPhotoB64 = await compressAndUploadPhoto(file, `forum-post-images/${user.uid}/${pendingNewPostPhotoId}/original`, 900, 0.78);
+    document.getElementById('np-photo-label').textContent = '1 fotoğraf seçildi';
+    document.getElementById('np-photo-preview').innerHTML = `<img src="${npPhotoB64}" class="photo-preview-thumb">`;
+  } catch(e) {
+    document.getElementById('np-photo-label').textContent = 'Fotoğraf ekle';
+    showErrorToast('Fotoğraf yüklenemedi: ' + (e.message||''));
+  }
 }
 
 async function handleCmtPhoto(input) {
   const file = input.files[0];
+  input.value = '';
   if (!file) return;
-  cmtPhotoB64 = await compressImg(file, 800, 0.7);
   const prev = document.getElementById('cmt-photo-preview');
   prev.style.display = 'block';
-  prev.innerHTML = `<img src="${cmtPhotoB64}" style="width:64px;height:64px;border-radius:8px;object-fit:cover">`;
-  input.value = '';
+  prev.innerHTML = `<div class="load" style="padding:8px 0"><div class="spin" style="width:20px;height:20px"></div></div>`;
+  try {
+    // Yol, storage.rules'ta ÖNCEDEN hazırlanmış desenle birebir eşleşmeli: forum-comment-images/{uid}/{commentId}/{fileName}
+    pendingCommentPhotoId = db.collection('teknohane_posts').doc(currentPost.id).collection('comments').doc().id;
+    cmtPhotoB64 = await compressAndUploadPhoto(file, `forum-comment-images/${user.uid}/${pendingCommentPhotoId}/original`, 800, 0.75);
+    prev.innerHTML = `<img src="${cmtPhotoB64}" style="width:64px;height:64px;border-radius:8px;object-fit:cover">`;
+  } catch(e) {
+    prev.style.display = 'none';
+    prev.innerHTML = '';
+    showErrorToast('Fotoğraf yüklenemedi: ' + (e.message||''));
+  }
 }
 
 async function submitPost() {
@@ -8183,12 +8313,22 @@ async function submitComment() {
       cdata.quotedAuthorName = replyingTo.authorName || 'Kullanıcı';
       cdata.quotedText = replyingTo.bodySnippet || '';
     }
-    const ref = await db.collection('teknohane_posts').doc(p.id).collection('comments').add(cdata);
+    // Fotoğraflı yorumlarda, Storage yolu zaten pendingCommentPhotoId'yi {commentId} olarak
+    // kullandığı için doküman ID'si de AYNI olmalı (add() yerine bu ID ile set()).
+    let commentId;
+    if (cmtPhotoB64 && pendingCommentPhotoId) {
+      commentId = pendingCommentPhotoId;
+      await db.collection('teknohane_posts').doc(p.id).collection('comments').doc(commentId).set(cdata);
+    } else {
+      const ref = await db.collection('teknohane_posts').doc(p.id).collection('comments').add(cdata);
+      commentId = ref.id;
+    }
     await db.collection('teknohane_posts').doc(p.id).update({ answerCount: firebase.firestore.FieldValue.increment(1) });
     p.answerCount = (p.answerCount||0) + 1;
-    p._comments = [...(p._comments||[]), { id:ref.id, ...cdata, imageUrl:cmtPhotoB64||null, createdAt:{toDate:()=>new Date()} }];
+    p._comments = [...(p._comments||[]), { id:commentId, ...cdata, imageUrl:cmtPhotoB64||null, createdAt:{toDate:()=>new Date()} }];
     inp.value = ''; inp.style.height = 'auto';
     cmtPhotoB64 = null;
+    pendingCommentPhotoId = null;
     cancelReplyToComment();
     const prev = document.getElementById('cmt-photo-preview');
     if (prev) { prev.style.display='none'; prev.innerHTML=''; }
@@ -8303,6 +8443,7 @@ async function deletePost(id) {
   const p = forumPosts.find(x => x.id === id) || adminForumPosts.find(x => x.id === id) || currentPost;
   try {
     await db.collection('teknohane_posts').doc(id).delete();
+    deleteStorageUrlIfAny(p?.imageUrl);
     forumPosts = forumPosts.filter(p => p.id !== id);
     adminForumPosts = adminForumPosts.filter(p => p.id !== id);
     closemo('post-detail-mo');
@@ -8318,6 +8459,7 @@ async function deleteComment(cid) {
   const c = (p._comments||[]).find(x => x.id === cid);
   try {
     await db.collection('teknohane_posts').doc(p.id).collection('comments').doc(cid).delete();
+    deleteStorageUrlIfAny(c?.imageUrl);
     await db.collection('teknohane_posts').doc(p.id).update({ answerCount: firebase.firestore.FieldValue.increment(-1) });
     p._comments = (p._comments||[]).filter(c => c.id !== cid);
     p.answerCount = Math.max(0, (p.answerCount||1) - 1);
@@ -10405,35 +10547,22 @@ function checkNewVideo() {
   }).catch(() => {});
 }
 
+// PERFORMANS DÜZELTMESİ (Ana Sayfa): lvids() zaten İÇERİDE lchan()'ı bekliyor (video playlist'i için
+// kanal ID'si gerekiyor) — yani bu iki çağrı hiçbir zaman gerçekten PARALEL değildi, Promise.all
+// yalnızca "ikisi de bitene kadar HİÇBİR ŞEY gösterme" anlamına geliyordu. Artık kanal bilgisi
+// (avatar/abone/izlenme) geldiği AN, video listesini beklemeden hemen çiziliyor; video listesi kendi
+// isteği tamamlanınca AYRI olarak dolduruluyor — kullanıcı ilk ağ cevabını beklerken boş ekran görmüyor.
 async function rhome() {
   const c=document.getElementById('home-c');
   try {
-    const[vids]=await Promise.all([lvids(),lchan()]);
-    allv=vids;
-    if (!lastVideoId) lastVideoId = vids[0]?.id || null;
-    const ch=cc,st=ch?.statistics||{},sn=ch?.snippet||{};
-    const f=vids[0],rest=vids.slice(1);
-    c.innerHTML=`
-      <div class="ch-hero">
-        <div class="ch-top">
-          <img class="ch-av" src="${sn.thumbnails?.high?.url||''}" alt="" onerror="this.src='teknohane.png'">
-          <div><div class="ch-n">${sn.title||'Teknohane'}</div><div class="ch-h">${YH}</div></div>
-        </div>
-        <div class="stats">
-          <div class="stat"><div class="sn">${fs(st.subscriberCount)}</div><div class="sl2">Abone</div></div>
-          <div class="stat"><div class="sn">${fv(st.viewCount)}</div><div class="sl2">İzlenme</div></div>
-          <div class="stat"><div class="sn">${parseInt(st.videoCount||0)}</div><div class="sl2">Video</div></div>
-        </div>
-      </div>
+    c.innerHTML = `
+      <div class="ch-hero" id="ch-hero-slot"><div class="load"><div class="spin"></div></div></div>
       <div class="sh"><span class="st">Son Video</span><span class="sl" onclick="ol('https://youtube.com/${YH}')">Tümü →</span></div>
-      <div class="feat" onclick="ol('${f.url}')">
-        <div class="fth"><img src="${f.thumb}" alt="${f.title}" loading="lazy"><div class="pbtm"><div class="pc"><svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg></div></div>${f.dur?`<div class="dur">${f.dur}</div>`:''}</div>
-        <div class="fi2"><div class="fbdg">Son Yüklenen</div><div class="ftit">${f.title}</div><div class="fmet"><div class="mp"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>${fv(f.views)} izlenme</div><div class="mp"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${fd(f.pub)}</div></div></div>
-      </div>
+      <div id="feat-slot"><div class="load"><div class="spin"></div></div></div>
       <div class="glow"></div>
       <div class="sh"><span class="st">Diğer Videolar</span></div>
       <div class="sw"><svg class="sico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input class="si" type="text" placeholder="Video ara…" oninput="fvid(this.value)"></div>
-      <div class="vlist" id="vlist">${rvlist(rest.slice(0,7))}</div>
+      <div class="vlist" id="vlist"></div>
       <div class="sh" style="margin-top:24px"><span class="st">📰 Teknoloji Haberleri</span></div>
       <div class="vlist" id="newslist"><div class="load"><div class="spin"></div></div></div>`;
     lnews().then(news => {
@@ -10443,6 +10572,33 @@ async function rhome() {
       const el = document.getElementById('newslist');
       if (el) el.innerHTML = '<div class="no">Haberler yüklenemedi</div>';
     });
+
+    await lchan();
+    const ch=cc,st=ch?.statistics||{},sn=ch?.snippet||{};
+    const heroSlot = document.getElementById('ch-hero-slot');
+    if (heroSlot) heroSlot.innerHTML = `
+        <div class="ch-top">
+          <img class="ch-av" src="${sn.thumbnails?.high?.url||''}" alt="" onerror="this.src='teknohane.png'">
+          <div><div class="ch-n">${sn.title||'Teknohane'}</div><div class="ch-h">${YH}</div></div>
+        </div>
+        <div class="stats">
+          <div class="stat"><div class="sn">${fs(st.subscriberCount)}</div><div class="sl2">Abone</div></div>
+          <div class="stat"><div class="sn">${fv(st.viewCount)}</div><div class="sl2">İzlenme</div></div>
+          <div class="stat"><div class="sn">${parseInt(st.videoCount||0)}</div><div class="sl2">Video</div></div>
+        </div>`;
+
+    const vids = await lvids();
+    allv=vids;
+    if (!lastVideoId) lastVideoId = vids[0]?.id || null;
+    const f=vids[0],rest=vids.slice(1);
+    const featSlot = document.getElementById('feat-slot');
+    if (featSlot) featSlot.outerHTML = `
+      <div class="feat" id="feat-slot" onclick="ol('${f.url}')">
+        <div class="fth"><img src="${f.thumb}" alt="${f.title}" loading="lazy"><div class="pbtm"><div class="pc"><svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg></div></div>${f.dur?`<div class="dur">${f.dur}</div>`:''}</div>
+        <div class="fi2"><div class="fbdg">Son Yüklenen</div><div class="ftit">${f.title}</div><div class="fmet"><div class="mp"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>${fv(f.views)} izlenme</div><div class="mp"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${fd(f.pub)}</div></div></div>
+      </div>`;
+    const vlistEl = document.getElementById('vlist');
+    if (vlistEl) vlistEl.innerHTML = rvlist(rest.slice(0,7));
   } catch(e) {
     c.innerHTML=`<div class="load"><div style="font-size:36px">📡</div><div>${e.message}</div><button class="sbtn2" style="margin-top:16px;max-width:200px" onclick="retry()">Tekrar Dene</button></div>`;
   }
@@ -11704,9 +11860,20 @@ updateOnlineStatus();
 // (checkNewVideo) değişmedi, yalnızca ne zaman çağrıldığı kısıtlandı.
 setInterval(() => { if (document.visibilityState === 'visible') checkNewVideo(); }, 3 * 60 * 1000);
 
-// 24 saati dolan "satıldı" ilanları Pazar'dan zamanında gizlemek için periyodik yeniden çizim
+// 24 saati dolan "satıldı" ilanları Pazar'dan zamanında gizlemek için periyodik kontrol.
+// PERFORMANS DÜZELTMESİ: eskiden Pazar açıkken her 5 dakikada bir KOŞULSUZ tam liste yeniden
+// çiziliyordu (çoğu zaman görünürde hiçbir şey değişmediği hâlde). Artık yalnızca görünür ilan
+// kümesi GERÇEKTEN değiştiyse (biri süresi dolup gizlenecekse) render tetiklenir.
+let marketLastVisibleIdsSig = null;
 setInterval(() => {
-  if (document.getElementById('s-market')?.classList.contains('on')) rlistings();
+  if (!document.getElementById('s-market')?.classList.contains('on')) return;
+  if (mktab !== 'all') return;
+  const raw = (document.getElementById('msrch')?.value||'').trim();
+  if (raw || filterMin || filterMax || filterBrand !== 'Tümü') return; // aktif filtre varken dokunma
+  const sig = marketAllListings.filter(l => !isSoldExpired(l) && !l.paused && !isListingExpired(l)).map(l=>l.id).join(',');
+  if (marketLastVisibleIdsSig !== null && marketLastVisibleIdsSig === sig) return;
+  marketLastVisibleIdsSig = sig;
+  rlistings();
 }, 5 * 60 * 1000);
 
 setTimeout(() => {
