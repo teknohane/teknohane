@@ -76,10 +76,14 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .notif-item.unread .notif-msg{font-weight:700;color:var(--text);}
 .notif-item.unread .notif-time{color:var(--cyan);font-weight:600;}
 .unread-dot{width:9px;height:9px;border-radius:50%;background:var(--cyan);flex-shrink:0;box-shadow:0 0 6px var(--cyan);}
-.notif-swipe-wrap{position:relative;overflow:hidden;max-height:160px;transition:max-height .22s ease,margin .22s ease;}
+.notif-swipe-wrap{position:relative;overflow:hidden;contain:paint;max-height:160px;transition:max-height .22s ease,margin .22s ease;}
 .notif-swipe-wrap.notif-removing{max-height:0!important;margin:0!important;}
-.notif-swipe-del{position:absolute;right:0;top:0;bottom:0;width:76px;min-width:44px;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;}
+.notif-swipe-del{position:absolute;right:0;top:0;bottom:0;width:76px;min-width:44px;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;opacity:0;animation:notifSwipeDelIn .01s .32s both;}
 .notif-swipe-del:active{background:#d93a30;}
+/* Liste/panel açılış animasyonu (.ms, .3s) sürerken bu kırmızı kutunun kenarları WebView'in ağır
+   compositing sırasında bir anlık sızıyordu (ekran kaydıyla doğrulandı) — kutu, açılış animasyonu
+   bitene kadar (.32s) görünmez tutulup öyle gösteriliyor; kullanıcı zaten bu kadar hızlı kaydıramaz. */
+@keyframes notifSwipeDelIn{to{opacity:1;}}
 .notif-swipe-wrap .notif-item{position:relative;background:var(--bg2);touch-action:pan-y;}
 .msg-bubble{border-radius:14px;position:relative;background:var(--bg2);}
 /* Sohbet ekranı: mesaj listesi tam bağımsız kayabilsin, alt input her zaman sabit kalsın */
@@ -1020,6 +1024,22 @@ body.tk-text-focus * { user-select: auto !important; -webkit-user-select: auto !
 .picker-opt{padding:14px 16px;font-size:15px;border-radius:12px;cursor:pointer;}
 .picker-opt:active{background:var(--surf2);}
 .picker-opt.active{color:var(--cyan);font-weight:700;background:rgba(0,212,255,.08);}
+/* Özel tarih/saat seçici (custom datetime picker) — native <input type="datetime-local">'ın bu
+   WebView'de içeriği hiç çizmeyip boş/beyaz kalması sorununu (adb ile kanıtlandı) ortadan kaldırmak
+   için, aynı .csel deseninde tamamen uygulama içi bir takvim + saat kaydırıcı. */
+.dtp-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.dtp-nav{background:var(--surf);border:1px solid var(--border2);border-radius:10px;width:36px;height:36px;color:var(--text);font-size:18px;cursor:pointer;}
+.dtp-month-label{font-size:15px;font-weight:700;}
+.dtp-weekdays{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:11px;color:var(--text3);margin-bottom:4px;}
+.dtp-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:16px;}
+.dtp-day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:10px;font-size:14px;cursor:pointer;}
+.dtp-day:active{background:var(--surf2);}
+.dtp-day.active{background:var(--cyan);color:#000;font-weight:700;}
+.dtp-day-empty{cursor:default;}
+.dtp-time-row{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:18px;}
+.dtp-time-group{display:flex;align-items:center;gap:10px;}
+.dtp-time-btn{background:var(--surf);border:1px solid var(--border2);border-radius:10px;width:36px;height:36px;color:var(--text);font-size:18px;cursor:pointer;}
+.dtp-time-val{font-size:20px;font-weight:700;min-width:34px;text-align:center;}
 .fi:focus{border-color:var(--cyan);}
 .sbtn{width:100%;background:var(--cyan);color:#000;font-size:16px;font-weight:700;padding:14px;border-radius:14px;border:none;cursor:pointer;font-family:inherit;margin-top:4px;}
 .divider{display:flex;align-items:center;gap:12px;margin:16px 0;}
@@ -1731,6 +1751,34 @@ body.tk-maintenance #maintenance-gate{
       <input class="si" type="text" id="picker-search-inp" placeholder="Ara…" oninput="filterPickerOptions(this.value)">
     </div>
     <div id="picker-options"></div>
+  </div>
+</div>
+
+<div class="mo" id="dt-picker-mo" onclick="closemo('dt-picker-mo')">
+  <div class="ms" onclick="event.stopPropagation()" style="max-height:85vh">
+    <div class="mh"></div>
+    <div class="mtit" id="dtp-title">Tarih ve Saat Seç</div>
+    <div class="dtp-header">
+      <button type="button" class="dtp-nav" onclick="dtpChangeMonth(-1)">‹</button>
+      <span class="dtp-month-label" id="dtp-month-label"></span>
+      <button type="button" class="dtp-nav" onclick="dtpChangeMonth(1)">›</button>
+    </div>
+    <div class="dtp-weekdays"><span>Pt</span><span>Sa</span><span>Ça</span><span>Pe</span><span>Cu</span><span>Ct</span><span>Pz</span></div>
+    <div class="dtp-grid" id="dtp-grid"></div>
+    <div class="dtp-time-row">
+      <div class="dtp-time-group">
+        <button type="button" class="dtp-time-btn" onclick="dtpAdjustTime('h',-1)">−</button>
+        <span class="dtp-time-val" id="dtp-hour">00</span>
+        <button type="button" class="dtp-time-btn" onclick="dtpAdjustTime('h',1)">+</button>
+      </div>
+      <span style="font-size:20px;font-weight:700">:</span>
+      <div class="dtp-time-group">
+        <button type="button" class="dtp-time-btn" onclick="dtpAdjustTime('m',-1)">−</button>
+        <span class="dtp-time-val" id="dtp-minute">00</span>
+        <button type="button" class="dtp-time-btn" onclick="dtpAdjustTime('m',1)">+</button>
+      </div>
+    </div>
+    <button class="sbtn" onclick="dtpConfirm()">Ayarla</button>
   </div>
 </div>
 
@@ -2943,7 +2991,9 @@ function renderAnnouncementForm(a, editId) {
       </select>
     </div>
     <div class="fg" id="ann-publish-date-wrap" style="display:${a.publishAt?'block':'none'}">
-      <label class="fl">Yayın Tarihi</label><input class="fi" type="datetime-local" id="ann-publish-date" value="${a.publishAt?.toDate ? toLocalDatetimeValue(a.publishAt.toDate()) : ''}">
+      <label class="fl">Yayın Tarihi</label>
+      <div class="csel" data-for="ann-publish-date" data-title="Yayın Tarihi" onclick="openDateTimePicker(this)"><span class="csel-label">${a.publishAt?.toDate ? toDtpDisplayLabel(a.publishAt.toDate()) : 'Seç'}</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+      <input type="hidden" id="ann-publish-date" value="${a.publishAt?.toDate ? toLocalDatetimeValue(a.publishAt.toDate()) : ''}">
     </div>
     <div class="fg"><label class="fl">Bitiş</label>
       <div class="csel" data-for="ann-expiry-mode" data-title="Bitiş" onclick="openPicker(this)"><span class="csel-label"></span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
@@ -2953,7 +3003,9 @@ function renderAnnouncementForm(a, editId) {
       </select>
     </div>
     <div class="fg" id="ann-expiry-date-wrap" style="display:${a.expiresAt?'block':'none'}">
-      <label class="fl">Bitiş Tarihi</label><input class="fi" type="datetime-local" id="ann-expiry-date" value="${a.expiresAt?.toDate ? toLocalDatetimeValue(a.expiresAt.toDate()) : ''}">
+      <label class="fl">Bitiş Tarihi</label>
+      <div class="csel" data-for="ann-expiry-date" data-title="Bitiş Tarihi" onclick="openDateTimePicker(this)"><span class="csel-label">${a.expiresAt?.toDate ? toDtpDisplayLabel(a.expiresAt.toDate()) : 'Seç'}</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+      <input type="hidden" id="ann-expiry-date" value="${a.expiresAt?.toDate ? toLocalDatetimeValue(a.expiresAt.toDate()) : ''}">
     </div>
 
     <div class="fg"><label class="fl" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="ann-send-push" ${a.sendPush?'checked':''} onchange="document.getElementById('ann-push-wrap').style.display=this.checked?'block':'none'"> Push bildirimi de gönderilsin</label></div>
@@ -2982,6 +3034,14 @@ function onAnnounceAudienceChange() {
 function toLocalDatetimeValue(d) {
   const pad = n => String(n).padStart(2,'0');
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+// dt-picker-mo (özel tarih/saat seçici) tetikleyicisinin ilk render'daki etiketi — DTP_MONTHS
+// dizisi dosyanın ilerisinde tanımlı olsa da bu fonksiyon yalnızca kullanıcı etkileşimiyle
+// (render sonrası) çağrıldığı için sorun teşkil etmiyor.
+function toDtpDisplayLabel(d) {
+  const pad = n => String(n).padStart(2,'0');
+  return `${pad(d.getDate())} ${DTP_MONTHS[d.getMonth()].slice(0,3)} ${d.getFullYear()}, ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 async function saveAnnouncement(targetStatus) {
@@ -5495,6 +5555,10 @@ function attachSwipeDelete(wrap) {
     startX = e.touches[0].clientX; startY = e.touches[0].clientY;
     dragging = true; locked = null; dx = 0;
     item.style.transition = 'none';
+    // Render sırasında eklenen "msg-in" giriş animasyonu (fill-mode:both) bitiminden sonra bile
+    // opacity/transform'u CSS animasyon katmanında kilitli tutuyor — bu, inline stilden öncelikli
+    // olduğu için kaydırma sırasındaki transform değişikliklerini görünmez kılabiliyordu.
+    item.classList.remove('msg-in');
   }, { passive: true });
   item.addEventListener('touchmove', e => {
     if (!dragging) return;
@@ -5534,12 +5598,30 @@ function performNotifDelete(wrap) {
   wrap._deleting = true;
   const ids = wrap.dataset.ids.split(',');
   const item = wrap.querySelector('.notif-item');
+  // KÖK NEDEN (adb logcat ile doğrulandı): satır render edilirken giriş efekti için eklenen
+  // "msg-in" class'ı (.22s cubic-bezier animasyonu, fill-mode:both) BİTTİKTEN SONRA BİLE bitiş
+  // durumunu (opacity:1, transform:none) CSS animasyon katmanında kilitli tutuyor — bu katman
+  // inline style'dan ÖNCELİKLİ olduğu için aşağıdaki transform/opacity atamalarımız tamamen
+  // görmezden geliniyordu (satır DOM'da kalıyor, inline stil doğru yazılıyor, ama ekranda hiç
+  // değişmiyordu). Silme animasyonu başlamadan önce bu class kaldırılmalı.
+  item.classList.remove('msg-in');
+  // Kaydırma nereye kadar sürüklenmiş olursa olsun (ör. tam kaydırıp ekranın dışına taşan bir
+  // dx değeri) silme animasyonu HER ZAMAN aynı, görünür bir hareketle başlasın diye önce sabit
+  // bir "açık" konuma (transition kapalıyken) sıçranıyor ve bir reflow zorlanıyor — aksi halde
+  // sürüklemenin bıraktığı konum yeni transform hedefine çok yakın/eşit kalabiliyor ve animasyon
+  // gözle görünmeden atlanmış oluyordu.
+  item.style.transition = 'none';
+  item.style.transform = 'translateX(-76px)';
+  void item.offsetWidth;
   item.style.transition = 'transform .22s ease, opacity .22s ease';
   item.style.transform = 'translateX(-100%)';
   item.style.opacity = '0';
-  wrap.classList.add('notif-removing');
   notifAccumulatedDocs = notifAccumulatedDocs.filter(d => !ids.includes(d.id));
-  setTimeout(() => { wrap.remove(); if (!notifAccumulatedDocs.length) renderNotifList(); }, 220);
+  // Yatay kayma+solma bitmeden dikey daralma (max-height) BAŞLAMASIN — ikisi aynı anda olunca kayma,
+  // hızla küçülen kırpma alanı içinde görsel olarak boğuluyor ve satır "kayıyor" değil "çöküyor" gibi
+  // algılanıyordu. Önce tamamen kaysın (.22s), SONRA boşluk kapansın (.22s) — art arda iki net adım.
+  setTimeout(() => { wrap.classList.add('notif-removing'); }, 220);
+  setTimeout(() => { wrap.remove(); if (!notifAccumulatedDocs.length) renderNotifList(); }, 440);
   const batch = db.batch();
   ids.forEach(id => batch.delete(db.collection('teknohane_notifications').doc(id)));
   batch.commit().catch(() => {
@@ -5644,7 +5726,7 @@ function subscribeChatBadge(uid) {
     .onSnapshot(snap => {
       chatListCache = snap.docs;
       let unread = 0;
-      snap.docs.forEach(d => { if ((d.data().unreadBy||[]).includes(uid)) unread++; });
+      snap.docs.forEach(d => { if (!(d.data().hiddenFor||[]).includes(uid) && (d.data().unreadBy||[]).includes(uid)) unread++; });
       const badge = document.getElementById('chat-badge');
       if (badge) {
         if (unread > 0) { badge.textContent = unread > 9 ? '9+' : unread; badge.style.display = 'flex'; }
@@ -5787,7 +5869,12 @@ function openChatThread(otherUid, otherName, prefill) {
       // "gönderiliyor" mesajları (bkz. sendChatMessage/sendChatImage) korunarak sona ekleniyor —
       // aksi halde gönderim anında mesaj kısa süreliğine listeden kaybolup tekrar belirirdi.
       const stillPending = currentChatMsgs.filter(m => m._status === 'sending' || m._status === 'failed');
-      currentChatMsgs = [...snap.docs.map(d => ({ id: d.id, ...d.data() })), ...stillPending];
+      // "Benim için sil" (bkz. deleteChatMessage): deletedFor dizisinde kendi uid'im olan mesajlar
+      // — karşı tarafta hâlâ duruyor olsa da — BENİM görünümümde hiç gösterilmez.
+      const visible = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter(m => !(m.deletedFor||[]).includes(user.uid));
+      currentChatMsgs = [...visible, ...stillPending];
       renderChatMessages();
       scrollChatMessagesToBottom();
     }, e => { console.error('Sohbet yükleme hatası:', e); });
@@ -5938,6 +6025,10 @@ async function markChatMessageSent(ref, lastMessageText, recipientUid, extra) {
     lastAt: firebase.firestore.FieldValue.serverTimestamp(),
     unreadBy: firebase.firestore.FieldValue.arrayUnion(recipientUid),
     [`unreadCount.${recipientUid}`]: firebase.firestore.FieldValue.increment(1),
+    // Sohbet daha önce "Sohbeti Sil" ile gizlenmişse (bkz. deleteChatThread), yeni bir mesaj gelince
+    // WhatsApp'takiyle aynı prensip: sohbet listesinde kendiliğinden tekrar görünür hâle gelir —
+    // hem alıcı hem (kendi gizlediği bir sohbete yazan) gönderici için.
+    hiddenFor: firebase.firestore.FieldValue.arrayRemove(recipientUid, user.uid),
     ...(extra || {})
   }, { merge: true });
   // Bildirim Merkezi'nde kalıcı "Yeni Mesaj" kaydı — daha önce yalnızca anlık push vardı (bkz. çağıran
@@ -6024,32 +6115,22 @@ async function sendChatImage(input) {
   }
 }
 
-// Bir sohbeti (tüm mesajlarıyla birlikte) güvenli şekilde siler.
-// SIRALAMA ÖNEMLİ: Mesaj silme Firestore kuralı, üst sohbet dokümanının `participants` alanını
-// okuyarak yetki kontrolü yapıyor (get() ile) — bu yüzden ÖNCE mesajlar, EN SON sohbet dokümanının
-// kendisi silinir. Tersi sırada (önce sohbet dokümanı silinirse) mesaj silme izni reddedilirdi.
-// Firestore batch'leri en fazla 500 operasyon kabul ettiği için mesajlar 450'lik güvenli gruplar
-// halinde, sırayla silinir. İşlem sırasında bir hata olursa (örn. bağlantı kopması), sohbet dokümanı
-// henüz silinmediği için sohbet listede kalmaya devam eder — kullanıcı gerçek zamanlı dinleyici
-// sayesinde tutarlı bir durum görür, "yarı silinmiş ama hâlâ görünüyor" gibi bir çelişki oluşmaz.
+// KÖK NEDEN DÜZELTMESİ ("sohbeti silince karşı taraftan da siliniyor" — mesaj silmedeki AYNI sorunun
+// çok daha büyük ölçekli hâli): sohbet dokümanı VE mesajlar alt koleksiyonu iki katılımcı arasında
+// PAYLAŞILAN — eskiden buradaki gerçek .delete() döngüsü karşı tarafın TÜM mesaj geçmişini de yok
+// ediyordu. Artık hiçbir şey silinmiyor; yalnızca sohbet dokümanına kendi uid'im hiddenFor dizisine
+// ekleniyor (bkz. renderChatList'teki filtre) — sohbet BENİM listemden kaybolur, karşı taraf hiçbir
+// şey fark etmez, mesajlar/görseller olduğu gibi Storage'da ve Firestore'da kalır. Karşı taraf (veya
+// ben) yeniden yazarsa sohbet kendiliğinden geri görünür (bkz. markChatMessageSent'teki arrayRemove).
 async function deleteChatThread(chatId) {
-  showToast('🗑️', 'rgba(255,69,58,.15)', 'Siliniyor…', 'Sohbet siliniyor, bu birkaç saniye sürebilir.');
   try {
-    const messagesRef = db.collection('teknohane_chats').doc(chatId).collection('messages');
-    while (true) {
-      const snap = await messagesRef.limit(450).get();
-      if (snap.empty) break;
-      const batch = db.batch();
-      snap.docs.forEach(d => batch.delete(d.ref));
-      await batch.commit();
-      if (snap.docs.length < 450) break; // son grup da buysa mesajlar bitmiştir
-    }
-    // Mesajların tamamı silindikten sonra, en son sohbet dokümanının kendisi silinir.
-    await db.collection('teknohane_chats').doc(chatId).delete();
-    showToast('✓', 'rgba(48,209,88,.15)', 'Silindi', 'Sohbet tamamen silindi.');
+    await db.collection('teknohane_chats').doc(chatId).update({
+      hiddenFor: firebase.firestore.FieldValue.arrayUnion(user.uid)
+    });
+    showToast('✓', 'rgba(48,209,88,.15)', 'Silindi', 'Sohbet listenden kaldırıldı.');
     return true;
   } catch(e) {
-    console.error('Sohbet silme hatası:', e);
+    console.error('Sohbet gizlenemedi:', e);
     showToast('⚠️', 'rgba(255,69,58,.15)', 'Silinemedi', 'Sohbet silinirken bir sorun oluştu, tekrar deneyebilirsin.');
     return false;
   }
@@ -6111,7 +6192,9 @@ function renderChatList() {
   if (!list || !user) return;
   if (!chatListCache.length) { list.innerHTML = `<div class="no">Henüz mesajın yok</div>`; return; }
   const forwardMsgId = document.getElementById('chat-list-mo')?._forwardMsgId;
-  const docs = [...chatListCache].sort((a, b) => {
+  // "Sohbeti Sil" (bkz. deleteChatThread) artık hiddenFor dizisine kendi uid'imi ekliyor, karşı
+  // tarafın hiçbir şeyini silmiyor — bu yüzden BENİM listemde bu sohbeti gizlemek için filtrelenir.
+  const docs = [...chatListCache].filter(d => !(d.data().hiddenFor||[]).includes(user.uid)).sort((a, b) => {
     const ta = a.data().lastAt?.toMillis ? a.data().lastAt.toMillis() : 0;
     const tb = b.data().lastAt?.toMillis ? b.data().lastAt.toMillis() : 0;
     return tb - ta;
@@ -6193,16 +6276,20 @@ function copyMsgText(msgId) {
     .catch(()=>{});
 }
 
-// Tek bir mesajı siler — sohbetin tamamını silen deleteChatThread'den FARKLI bir işlem. Firestore
-// kuralı (teknohane_chats/{id}/messages/{msgId}) sohbetteki HER İKİ katılımcının da tek tek mesaj
-// silmesine izin veriyor — bu, sohbetin tamamını silme yetkisiyle aynı, zaten var olan bir prensip;
-// burada ayrıca "yalnızca kendi mesajın" gibi yeni bir kısıtlama eklenmedi.
+// KÖK NEDEN DÜZELTMESİ ("mesaj silince karşı taraftan da siliniyor"): mesaj dokümanı sohbetin HER
+// İKİ katılımcısı arasında PAYLAŞILAN tek bir doküman — eskiden buradaki .delete() bu dokümanı
+// KALICI OLARAK yok ediyordu, yani "silme" aslında her iki tarafı da etkiliyordu. Artık gerçek
+// silme yerine yalnızca kendi uid'im deletedFor dizisine ekleniyor (bkz. storage.rules'daki YENİ
+// "yalnızca deletedFor'a dokunabilir" kuralı) — doküman olduğu gibi kalır, karşı taraf hiçbir şey
+// fark etmez, yalnızca BENİM cihazımda/görünümümde bu mesaj bir daha görünmez (bkz. renderChatMessages
+// ve mesaj dinleyicisindeki deletedFor filtresi).
 async function deleteChatMessage(msgId) {
   closemo('msg-ctx-mo');
   if (!currentChatOtherUid || !user) return;
   const id = chatIdFor(user.uid, currentChatOtherUid);
   try {
-    await db.collection('teknohane_chats').doc(id).collection('messages').doc(msgId).delete();
+    await db.collection('teknohane_chats').doc(id).collection('messages').doc(msgId)
+      .update({ deletedFor: firebase.firestore.FieldValue.arrayUnion(user.uid) });
     currentChatMsgs = currentChatMsgs.filter(m => m.id !== msgId);
     renderChatMessages();
   } catch(e) { showErrorToast(e.message); }
@@ -10240,7 +10327,8 @@ function banFormHTML(submitOnclick, submitLabel) {
     </div>
     <div class="fg" id="ban-custom-date-wrap" style="display:none">
       <label class="fl">Bitiş Tarihi</label>
-      <input class="fi" type="datetime-local" id="ban-custom-date">
+      <div class="csel" data-for="ban-custom-date" data-title="Bitiş Tarihi" onclick="openDateTimePicker(this)"><span class="csel-label">Seç</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+      <input type="hidden" id="ban-custom-date">
     </div>
     <div class="fg"><label class="fl">Sebep</label>
       <div class="csel" data-for="ban-reason-select" data-title="Ban Sebebi" onclick="openPicker(this)"><span class="csel-label">${BAN_REASONS[0].label}</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
@@ -11779,11 +11867,106 @@ function choosePickerOption(selectId, value) {
 function syncPickerTriggerLabel(selectId) {
   const sel = document.getElementById(selectId);
   const trigger = document.querySelector(`.csel[data-for="${selectId}"]`);
-  if (sel && trigger) {
+  // sel.tagName kontrolü: syncAllPickerLabels TÜM .csel tetikleyicilerini tarıyor — dt-picker-mo'nun
+  // gizli <input>'ları da .csel kullandığı için (aynı görünüm), buraya bir <select> olmadan da
+  // gelebiliyor. O durumda etiketi zaten syncDtpTriggerLabel yönetiyor, burada dokunulmamalı.
+  if (sel && trigger && sel.tagName === 'SELECT') {
     const opt = sel.options[sel.selectedIndex];
     const labelEl = trigger.querySelector('.csel-label');
     if (labelEl) labelEl.textContent = opt ? opt.textContent : '';
   }
+}
+
+// ==== ÖZEL TARİH/SAAT SEÇİCİ (Custom DateTime Picker) ====
+// KANITLANMIŞ KÖK NEDEN DÜZELTMESİ (adb logcat + ekran kaydıyla doğrulandı): native
+// <input type="datetime-local">'ın bu WebView/Chromium sürümünde açtığı takvim+saat diyaloğu
+// buton çubuğu dışında HİÇBİR içerik çizmiyor (sürekli boş/beyaz kalıyor, bir "flaş" değil,
+// diyalog açık kaldığı sürece kalıcı) — native <select>'te ve fotoğraf seçicide daha önce
+// çözülen AYNI sınıf sorun. Aynı desen: gerçek input GİZLİ bir değer deposu olarak kalıyor,
+// görsel/etkileşim tamamen uygulama içi bir takvim + saat kaydırıcıya taşınıyor.
+let dtpTargetId = null;
+let dtpViewYear = 0, dtpViewMonth = 0;
+let dtpSelDate = null; // {y, m, d}
+let dtpHour = 0, dtpMinute = 0;
+const DTP_MONTHS = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+
+function openDateTimePicker(triggerEl) {
+  const inputId = triggerEl.dataset.for;
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  dtpTargetId = inputId;
+  const current = input.value ? new Date(input.value) : new Date();
+  dtpViewYear = current.getFullYear();
+  dtpViewMonth = current.getMonth();
+  dtpSelDate = { y: dtpViewYear, m: dtpViewMonth, d: current.getDate() };
+  dtpHour = current.getHours();
+  dtpMinute = current.getMinutes();
+  document.getElementById('dtp-title').textContent = triggerEl.dataset.title || 'Tarih ve Saat Seç';
+  renderDtpCalendar();
+  renderDtpTime();
+  document.getElementById('dt-picker-mo').classList.add('on');
+}
+
+function renderDtpCalendar() {
+  document.getElementById('dtp-month-label').textContent = `${DTP_MONTHS[dtpViewMonth]} ${dtpViewYear}`;
+  const grid = document.getElementById('dtp-grid');
+  const firstDay = new Date(dtpViewYear, dtpViewMonth, 1);
+  const startOffset = (firstDay.getDay() + 6) % 7; // Pazartesi=0 tabanlı
+  const daysInMonth = new Date(dtpViewYear, dtpViewMonth + 1, 0).getDate();
+  let html = '';
+  for (let i = 0; i < startOffset; i++) html += `<div class="dtp-day dtp-day-empty"></div>`;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const isSel = dtpSelDate && dtpSelDate.y === dtpViewYear && dtpSelDate.m === dtpViewMonth && dtpSelDate.d === d;
+    html += `<div class="dtp-day${isSel ? ' active' : ''}" onclick="dtpSelectDay(${d})">${d}</div>`;
+  }
+  grid.innerHTML = html;
+}
+
+function dtpChangeMonth(delta) {
+  dtpViewMonth += delta;
+  if (dtpViewMonth < 0) { dtpViewMonth = 11; dtpViewYear--; }
+  else if (dtpViewMonth > 11) { dtpViewMonth = 0; dtpViewYear++; }
+  renderDtpCalendar();
+}
+
+function dtpSelectDay(d) {
+  dtpSelDate = { y: dtpViewYear, m: dtpViewMonth, d };
+  renderDtpCalendar();
+}
+
+function renderDtpTime() {
+  document.getElementById('dtp-hour').textContent = String(dtpHour).padStart(2, '0');
+  document.getElementById('dtp-minute').textContent = String(dtpMinute).padStart(2, '0');
+}
+
+function dtpAdjustTime(unit, delta) {
+  if (unit === 'h') dtpHour = (dtpHour + delta + 24) % 24;
+  else dtpMinute = (dtpMinute + delta + 60) % 60;
+  renderDtpTime();
+}
+
+function dtpConfirm() {
+  if (!dtpSelDate || !dtpTargetId) return;
+  const pad = n => String(n).padStart(2, '0');
+  const value = `${dtpSelDate.y}-${pad(dtpSelDate.m + 1)}-${pad(dtpSelDate.d)}T${pad(dtpHour)}:${pad(dtpMinute)}`;
+  const input = document.getElementById(dtpTargetId);
+  input.value = value;
+  input.dispatchEvent(new Event('change', { bubbles: true }));
+  syncDtpTriggerLabel(dtpTargetId);
+  closemo('dt-picker-mo');
+}
+
+// Bir tarih/saat hidden input'unun mevcut değerine göre eşleşen tetikleyicinin etiketini günceller.
+function syncDtpTriggerLabel(inputId) {
+  const input = document.getElementById(inputId);
+  const trigger = document.querySelector(`.csel[data-for="${inputId}"]`);
+  if (!input || !trigger) return;
+  const labelEl = trigger.querySelector('.csel-label');
+  if (!labelEl) return;
+  if (!input.value) { labelEl.textContent = 'Seç'; return; }
+  const d = new Date(input.value);
+  const pad = n => String(n).padStart(2, '0');
+  labelEl.textContent = `${pad(d.getDate())} ${DTP_MONTHS[d.getMonth()].slice(0,3)} ${d.getFullYear()}, ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 // Belirtilen kapsam içindeki (veya tüm sayfadaki) tüm .csel tetikleyicilerinin etiketlerini,
