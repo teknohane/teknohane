@@ -3319,7 +3319,16 @@ function compressImageToWebP(file, maxDim, quality) {
 // yönetimini ETKİLEMEZ.
 async function uploadToStorage(path, blob, mimeType, onProgress) {
   const ref = storage.ref(path);
-  const task = ref.put(blob, { contentType: mimeType || blob.type || 'application/octet-stream' });
+  // KÖK NEDEN DÜZELTMESİ: cacheControl belirtilmezse Storage nesneleri taraycıyı/CDN'i etkin
+  // biçimde önbelleklemeye yönlendirmiyor — aynı görsel her görüntülemede (liste kaydırma, aynı
+  // sohbeti/ilanı tekrar açma) TAM olarak yeniden indiriliyordu; base64/Firestore'daki (Firestore'un
+  // kendi yerel önbelleği sayesinde anında gelen) davranışa göre gerçek bir gerilemeydi. 1 gün
+  // (86400sn) seçildi: tekrarlı görüntülemelerdeki yavaşlığı ortadan kaldırırken, sabit slot
+  // yollarına (ör. listing-photos/.../slot1/original) yapılan bir fotoğraf DEĞİŞİKLİĞİNİN en fazla
+  // bir gün içinde yansımasını garanti eder (immutable/1 yıl gibi çok uzun bir süre, üzerine yazılan
+  // bu tür sabit yollarda değişiklikten sonra eski görselin uzun süre önbellekte takılı kalmasına
+  // yol açardı).
+  const task = ref.put(blob, { contentType: mimeType || blob.type || 'application/octet-stream', cacheControl: 'public, max-age=86400' });
   if (onProgress) {
     task.on('state_changed', snap => {
       if (snap.totalBytes) onProgress(Math.round(snap.bytesTransferred / snap.totalBytes * 100));
