@@ -2700,6 +2700,22 @@ function bucketByDay(timestamps) {
   return days;
 }
 
+// PERFORMANS DÜZELTMESİ ("haftalık grafik için TÜM eşleşen dokümanlar indiriliyordu"): eskiden
+// bucketByDay() bir sorgunun TÜM dokümanlarını (7 günlük aralıkta binlerce olabilir) indirip
+// istemci tarafında günlere ayırıyordu. Artık her gün için ayrı, ucuz bir count() agregasyonu
+// çalıştırılıyor — hiçbir doküman gövdesi indirilmiyor, yalnızca 7 sayı.
+async function bucketByDayCount(collectionRef, field) {
+  const now = new Date();
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+    const dayEnd = new Date(dayStart.getTime() + 24*60*60*1000);
+    days.push({ date: dayStart, dayEnd });
+  }
+  const counts = await Promise.all(days.map(d => firestoreCount(collectionRef.where(field, '>=', d.date).where(field, '<', d.dayEnd)).catch(() => 0)));
+  return days.map((d, i) => ({ date: d.date, count: counts[i] || 0 }));
+}
+
 // Hafif, saf SVG çubuk grafik — hiçbir kütüphane eklenmedi, 3 grafik de bu tek fonksiyonu kullanıyor.
 function renderWeeklyChart(dailyData, color) {
   const max = Math.max(1, ...dailyData.map(d => d.count));
@@ -2731,8 +2747,8 @@ async function loadDashboard() {
       totalComplaints, pendingComplaints, resolvedComplaints, banned, activeToday, bannedToday,
       loginsToday, messagesToday,
       totalListingsCount, pendingListingsCount, soldListingsCount, todayListingsCount,
-      recentLogsSnap, recentUsersSnap, weeklyUsersSnap, weeklyComplaintsSnap,
-      recentListingsSnap, weeklyListingsSnap, topListerSnap
+      recentLogsSnap, recentUsersSnap,
+      recentListingsSnap, topListerSnap
     ] = await Promise.all([
       safeCount(db.collection('teknohane_users')),
       safeCount(db.collection('teknohane_users').where('createdAt', '>=', todayStart)),
@@ -2756,10 +2772,7 @@ async function loadDashboard() {
       safeCount(db.collection('teknohane_listings').where('createdAt', '>=', todayStart)),
       safeGet(db.collection('admin_logs').orderBy('createdAt', 'desc').limit(20)),
       safeGet(db.collection('teknohane_users').orderBy('createdAt', 'desc').limit(10)),
-      safeGet(db.collection('teknohane_users').where('createdAt', '>=', sevenDaysAgo)),
-      safeGet(db.collection('teknohane_complaints').where('createdAt', '>=', sevenDaysAgo)),
       safeGet(db.collection('teknohane_listings').orderBy('createdAt', 'desc').limit(10)),
-      safeGet(db.collection('teknohane_listings').where('createdAt', '>=', sevenDaysAgo)),
       // "En Çok İlan Veren Kullanıcı" artık listingsCount denormalizasyonundan (bkz. submitListing/
       // performListingDelete) tek bir sıralı sorgu ile geliyor — TÜM kullanıcıları taramak YOK.
       safeGet(db.collection('teknohane_users').orderBy('listingsCount', 'desc').limit(1)),
@@ -2767,6 +2780,13 @@ async function loadDashboard() {
     // Değerlendirme sayısı — tek bir ucuz count() sorgusu (targetType 'phone'/'seller' olan yorumlar).
     // Ayrı bir composite index gerektirmiyor (tek alan 'in' sorgusu, tekli alan indeksi otomatik).
     const totalReviews = await safeCount(db.collection('teknohane_comments').where('targetType', 'in', ['phone','seller']));
+    // PERFORMANS DÜZELTMESİ: haftalık grafik verisi artık 3×7 ucuz count() agregasyonuyla geliyor
+    // (bkz. bucketByDayCount) — hiçbir doküman gövdesi indirilmiyor.
+    const [userDaily, complaintDaily, listingDaily] = await Promise.all([
+      bucketByDayCount(db.collection('teknohane_users'), 'createdAt'),
+      bucketByDayCount(db.collection('teknohane_complaints'), 'createdAt'),
+      bucketByDayCount(db.collection('teknohane_listings'), 'createdAt'),
+    ]);
 
     // NOT (dürüstlük): "Toplam Görüntülenme"/"Toplam Favori"/"En Çok Görüntülenen İlan" artık
     // gösterilmiyor — bunlar TÜM ilan koleksiyonunu toplamayı (sum) gerektiriyordu; bu SDK sürümünde
@@ -2788,11 +2808,7 @@ async function loadDashboard() {
       mostViewedListing: null,
       topLister: (topListerDoc && topListerDoc.data().listingsCount > 0) ? { uid: topListerDoc.id, name: topListerDoc.data().displayName || 'Kullanıcı', count: topListerDoc.data().listingsCount } : null,
     };
-    const charts = {
-      userDaily: bucketByDay(weeklyUsersSnap.docs.map(d => d.data().createdAt)),
-      complaintDaily: bucketByDay(weeklyComplaintsSnap.docs.map(d => d.data().createdAt)),
-      listingDaily: bucketByDay(weeklyListingsSnap.docs.map(d => d.data().createdAt)),
-    };
+    const charts = { userDaily, complaintDaily, listingDaily };
 
     renderDashboard(stats, { pendingListings, publishedListings, soldListings, todayListings, bannedToday }, recentLogs, recentUsers, recentListings, recentPosts, charts, highlights);
   } catch (e) {
@@ -2868,7 +2884,7 @@ function renderDashboard(stats, pending, recentLogs, recentUsers, recentListings
     <div class="pacc-card">
       ${recentUsers.length ? recentUsers.map(u => `
         <div class="adm-user-row" style="cursor:default">
-          ${u.photoURL?`<img class="adm-user-av" src="${escapeHtml(u.photoURL)}" alt="">`:`<div class="adm-user-av">${(u.displayName||'?')[0].toUpperCase()}</div>`}
+          ${u.photoURL?`<img class="adm-user-av" src="${escapeHtml(u.photoURL)}" alt="" loading="lazy" decoding="async">`:`<div class="adm-user-av">${(u.displayName||'?')[0].toUpperCase()}</div>`}
           <div class="adm-user-info"><div class="adm-user-name">${escapeHtml(u.displayName)||'İsimsiz'}</div><div class="adm-user-email">${u.username?'@'+escapeHtml(u.username):escapeHtml(u.email)}</div></div>
           <div style="font-size:11px;color:var(--text3);flex-shrink:0">${u.createdAt?.toDate?timeAgo(u.createdAt.toDate()):''}</div>
         </div>`).join('') : '<div class="ud-empty">Kayıt yok</div>'}
@@ -3203,8 +3219,13 @@ async function dispatchAnnouncementPush(a) {
 // sorguda BİRDEN FAZLA eşitsizlik operatörü kullanamadığından (Firestore kısıtı), filtre istemci
 // tarafında uygulanır — resolveAudienceCount() zaten aynı nedenle tüm koleksiyonu taradığı için yeni
 // bir maliyet kalıbı eklenmiyor.
+// PERFORMANS DÜZELTMESİ ("toplu push için TÜM kullanıcı koleksiyonu indiriliyordu"): eskiden
+// push token'ı olsun olmasın HERKESİN dokümanı indiriliyordu. fcmToken alanı yalnızca push'u
+// açan kullanıcılarda VAR olan (yoksa hiç yazılmayan) düz bir string olduğu için, tek-alanlı bir
+// aralık sorgusu (>'') Firestore'da otomatik indekslenir ve alanı HİÇ olmayan dokümanları zaten
+// dışarıda bırakır — yalnızca gerçekten push alabilecek kullanıcılar indirilir.
 async function dispatchAnnouncementPushBulk(a) {
-  const snap = await db.collection('teknohane_users').get();
+  const snap = await db.collection('teknohane_users').where('fcmToken', '>', '').get();
   const cutoff = new Date(Date.now() - 30*24*60*60*1000);
   const tokens = snap.docs.map(d => d.data()).filter(u => {
     if (!u.fcmToken) return false;
@@ -3553,6 +3574,7 @@ auth.onAuthStateChanged(u => {
     // Çıkışta TÜM gerçek zamanlı dinleyiciler (kendi ilanlarım, favorilerim, admin onay bekleyen)
     // eksiksiz kapatılır — bellek sızıntısı veya arka planda çalışmaya devam eden dinleyici kalmaz.
     clearAllListeners();
+    clearSessionCaches();
   }
 });
 
@@ -3746,13 +3768,18 @@ function checkBanStatus() {
 
 function animateProfileStats() {
   document.querySelectorAll('#profile-c .pstat-num').forEach(el => {
+    // PERFORMANS DÜZELTMESİ: rprof() kısa sürede art arda birden fazla kez çağrılırsa (örn. hızlı
+    // sekme geçişleri) aynı elemanda önceki animasyonun interval'ı hâlâ çalışırken yenisi başlıyor,
+    // birden fazla 30ms interval aynı anda o elemanı güncellemeye çalışıyordu. Elemanın kendi
+    // özelliğinde (_animTimer) tutulan önceki interval, yenisi başlamadan önce temizlenir.
+    if (el._animTimer) { clearInterval(el._animTimer); el._animTimer = null; }
     const target = parseInt(el.dataset.target || '0', 10);
     if (!target) { el.textContent = '0'; return; }
     let cur = 0;
     const step = Math.max(1, Math.ceil(target / 20));
-    const timer = setInterval(() => {
+    el._animTimer = setInterval(() => {
       cur += step;
-      if (cur >= target) { cur = target; clearInterval(timer); }
+      if (cur >= target) { cur = target; clearInterval(el._animTimer); el._animTimer = null; }
       el.textContent = cur;
     }, 30);
   });
@@ -3916,7 +3943,7 @@ function rprof() {
           </div>
         </div>
         <input type="file" id="cover-photo-input" accept="image/*" style="display:none" onchange="handleCoverPhoto(this)">
-        <img class="pav" src="${av}" onerror="this.onerror=null;this.src='${avFallback}'" alt="">
+        <img class="pav" src="${av}" onerror="this.onerror=null;this.src='${avFallback}'" alt="" loading="lazy" decoding="async">
         <div style="display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap">
           <span class="pname">${escapeHtml(user.displayName||'Kullanıcı')}</span>
           ${isAdmin?'<span class="admin-badge">ADMIN</span>':''}
@@ -5656,6 +5683,7 @@ function subscribeNotifBadge(uid) {
   unsubNotifBadge = db.collection('teknohane_notifications')
     .where('toUid', '==', uid)
     .where('read', '==', false)
+    .limit(50)
     .onSnapshot(snap => {
       const n = snap.size;
       const badge = document.getElementById('notif-badge');
@@ -5699,6 +5727,8 @@ let notifAccumulatedDocs = [];
 let notifLastDoc = null;
 let notifHasMore = true;
 let notifLoading = false;
+let notifLastOpenedAt = 0;
+const NOTIF_FRESH_WINDOW_MS = 15 * 1000;
 
 // Ardışık, aynı tür + aynı hedefe (ilan/gönderi) ait, aynı okunma durumuna sahip bildirimleri
 // tek bir karta indirger — "Ahmet/Mehmet/Ayşe seni takip etti" yerine "3 kişi seni takip etti".
@@ -5778,6 +5808,7 @@ function renderNotifList() {
   }
   actions.style.display = 'inline';
   loadMoreBtn.style.display = notifHasMore ? 'block' : 'none';
+  if (notifHasMore) observeLoadMoreOnScroll(loadMoreBtn, () => loadNotifPage(false));
   const groups = groupNotifDocs(notifAccumulatedDocs);
   let lastBucket = null;
   let html = '';
@@ -5853,12 +5884,20 @@ async function loadNotifCategoryCounts() {
 async function openNotifications() {
   if (!user) { gt('profile'); return; }
   document.getElementById('notif-mo').classList.add('on');
+  const wasAlreadyOnAll = notifCurrentCategory === 'all';
   notifCurrentCategory = 'all';
   document.querySelectorAll('.notif-cat-pill').forEach(el => {
     const active = el.dataset.cat === 'all';
     el.style.background = active ? 'var(--cyan)' : '';
     el.style.color = active ? '#000' : '';
   });
+  // PERFORMANS DÜZELTMESİ: modal art arda kapatılıp açılırsa (örn. kullanıcı yanlışlıkla dokunursa)
+  // eskiden her seferinde 1 sayfa bildirim + 5 count() sorgusu tekrar çalışırdı. Son açılıştan bu yana
+  // kısa bir "tazelik" penceresi geçmediyse ve zaten yüklü veri varsa, mevcut listeyle devam edilir —
+  // gerçek zamanlı rozet zaten ayrı dinleyiciyle (subscribeNotifBadge) güncel tutuluyor.
+  const isFresh = wasAlreadyOnAll && notifAccumulatedDocs.length && (Date.now() - notifLastOpenedAt) < NOTIF_FRESH_WINDOW_MS;
+  notifLastOpenedAt = Date.now();
+  if (isFresh) { renderNotifList(); return; }
   loadNotifPage(true);
   loadNotifCategoryCounts();
 }
@@ -6057,6 +6096,7 @@ function subscribeChatBadge(uid) {
   unsubChatBadge?.();
   unsubChatBadge = db.collection('teknohane_chats')
     .where('participants', 'array-contains', uid)
+    .limit(300)
     .onSnapshot(snap => {
       chatListCache = snap.docs;
       let unread = 0;
@@ -6182,7 +6222,7 @@ function openChatThread(otherUid, otherName, prefill) {
     if (!c) return;
     const av = c.avatars?.[otherUid];
     const avEl = document.getElementById('chat-thread-av');
-    if (avEl) avEl.innerHTML = av ? `<img src="${av}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : (otherName || '?')[0].toUpperCase();
+    if (avEl) avEl.innerHTML = av ? `<img src="${av}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" loading="lazy" decoding="async">` : (otherName || '?')[0].toUpperCase();
     const lr = c.lastRead?.[otherUid];
     currentChatOtherLastRead = lr?.toMillis ? lr.toMillis() : 0;
     // PERFORMANS DÜZELTMESİ ("okundu" güncellemesi 200 mesajı yeniden çiziyordu): bu dinleyici,
@@ -6214,39 +6254,93 @@ function openChatThread(otherUid, otherName, prefill) {
     }, e => { console.error('Sohbet yükleme hatası:', e); });
 }
 
-// currentChatMsgs + currentChatOtherLastRead'e göre mesaj listesini çizer (WhatsApp tarzı tik göstergesi dahil)
-// currentChatMsgs + currentChatOtherLastRead'e göre mesaj listesini çizer. Fade-in animasyonu
-// (.msg-in) yalnızca ÖNCEKİ render'da olmayan (gerçekten yeni) mesajlara uygulanır — tam liste her
-// render'da yeniden oluşturulduğu için, bu ayrım yapılmazsa okundu tiki gibi küçük bir güncellemede
-// bile TÜM sohbet yeniden "belirir" gibi görünürdü (abartılı/rahatsız edici olurdu).
+// Bir mesajın GÖRSEL olarak değişip değişmediğini tespit etmek için ucuz bir "imza" — yalnızca
+// içerik/durum alanlarını kapsar (okundu-tiki KASITLI olarak dışarıda bırakılır, o zaten ayrı bir
+// yol olan updateChatReadTicks() ile yönetiliyor). İmza değişmediyse DOM node'una hiç dokunulmaz.
+function messageSignature(m) {
+  return (m.text||'') + '|' + (m.imageUrl||'') + '|' + (m._localImagePreview||'') + '|' + (m._status||'') + '|' + (m.listingId||'');
+}
+
+// Tek bir mesaj balonunun HTML'i — renderChatMessages tarafından hem ilk çizimde hem de tekil
+// güncellemelerde (parça parça) kullanılıyor, tek bir yerde tutuluyor.
+function messageBubbleHTML(m, isNew) {
+  const mine = m.senderUid === user.uid;
+  const isCard = !!m.listingId;
+  const time = m.createdAt?.toDate ? m.createdAt.toDate().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}) : '';
+  let body;
+  if (isCard) {
+    body = chatListingCardHTML(m.listingId);
+  } else if (m.imageUrl || m._localImagePreview) {
+    const src = m.imageUrl || m._localImagePreview;
+    body = `<div style="position:relative">
+      <img src="${src}" ${m.imageUrl?`onclick="openFullscreen('${m.imageUrl}')"`:''} style="max-width:100%;border-radius:10px;display:block;cursor:${m.imageUrl?'pointer':'default'};${m._status==='sending'?'opacity:.55;filter:blur(1.5px)':''}" loading="lazy" decoding="async">
+      ${m._status==='sending'?'<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center"><div class="spin" style="width:22px;height:22px;border-width:2px"></div></div>':''}
+    </div>`;
+  } else {
+    body = escapeHtml(m.text||'');
+  }
+  const bubble = isCard ? body : `<div class="msg-bubble" style="background:${mine?'var(--cdim)':'var(--surf2)'};color:var(--text);border:${mine?'1px solid rgba(0,212,255,.35)':'1px solid transparent'};padding:${m.imageUrl||m._localImagePreview?'6px':'9px 13px'};${mine?'border-bottom-right-radius:4px':'border-bottom-left-radius:4px'};font-size:14px;line-height:1.4;word-break:break-word">${body}<div style="font-size:10px;opacity:.6;margin-top:3px;display:flex;align-items:center;justify-content:flex-end">${time}<span class="msg-status-icon">${(mine && !isCard) ? msgStatusIconHTML(m) : ''}</span></div></div>`;
+  return `<div class="${isNew?'msg-in':''}" style="align-self:${mine?'flex-end':'flex-start'};max-width:78%" data-mid="${m.id}" onpointerdown="onMsgPointerDown(event,'${m.id}')" onpointerup="onMsgPointerUp()" onpointerleave="onMsgPointerUp()" oncontextmenu="return false">${bubble}</div>`;
+}
+
+// PERFORMANS DÜZELTMESİ ("her yeni mesajda TÜM sohbet, tüm görseller dahil yeniden çiziliyordu"):
+// eskiden her çağrıda box.innerHTML = ... ile 200'e kadar mesaj balonu (ve içindeki HER görsel)
+// yok edilip yeniden yaratılıyordu — tarayıcı zaten önbellekte olan görselleri bile yeniden
+// decode/paint etmek zorunda kalıyordu. Artık her mesaj kendi "imzasıyla" (bkz. messageSignature)
+// karşılaştırılıyor: içerik/durumu değişmeyen mesajların DOM node'una HİÇ dokunulmuyor, yalnızca
+// gerçekten yeni veya değişen mesajlar için node oluşturuluyor/değiştiriliyor, sırası korunuyor,
+// artık listede olmayan mesajların node'u kaldırılıyor.
 function renderChatMessages() {
   const box = document.getElementById('chat-messages');
   if (!box) return;
-  if (!currentChatMsgs.length) { box.innerHTML = `<div class="no" style="margin:auto">Henüz mesaj yok, ilk mesajı sen yaz!</div>`; return; }
-  const prevIds = box._renderedIds || new Set();
+  if (!currentChatMsgs.length) { box.innerHTML = `<div class="no" style="margin:auto">Henüz mesaj yok, ilk mesajı sen yaz!</div>`; box._renderedIds = null; box._renderedSignatures = null; return; }
+
+  const prevIds = box._renderedIds;
+  const prevSignatures = box._renderedSignatures;
+  // İlk çizim ya da boş-durum mesajından çıkış — tek seferlik tam kuruluma düş, sonraki çağrılar
+  // parça parça güncellenir.
+  if (!prevIds || !prevSignatures || box.querySelector('.no')) {
+    const newIds = new Set(), newSignatures = new Map();
+    box.innerHTML = currentChatMsgs.map(m => {
+      newIds.add(m.id);
+      newSignatures.set(m.id, messageSignature(m));
+      return messageBubbleHTML(m, true);
+    }).join('');
+    box._renderedIds = newIds;
+    box._renderedSignatures = newSignatures;
+    return;
+  }
+
   const newIds = new Set();
-  box.innerHTML = currentChatMsgs.map(m => {
+  const newSignatures = new Map();
+  let lastNode = null;
+  currentChatMsgs.forEach(m => {
     newIds.add(m.id);
+    const sig = messageSignature(m);
+    newSignatures.set(m.id, sig);
+    let node = box.querySelector(`[data-mid="${m.id}"]`);
     const isNew = !prevIds.has(m.id);
-    const mine = m.senderUid === user.uid;
-    const isCard = !!m.listingId;
-    const time = m.createdAt?.toDate ? m.createdAt.toDate().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}) : '';
-    let body;
-    if (isCard) {
-      body = chatListingCardHTML(m.listingId);
-    } else if (m.imageUrl || m._localImagePreview) {
-      const src = m.imageUrl || m._localImagePreview;
-      body = `<div style="position:relative">
-        <img src="${src}" ${m.imageUrl?`onclick="openFullscreen('${m.imageUrl}')"`:''} style="max-width:100%;border-radius:10px;display:block;cursor:${m.imageUrl?'pointer':'default'};${m._status==='sending'?'opacity:.55;filter:blur(1.5px)':''}" loading="lazy" decoding="async">
-        ${m._status==='sending'?'<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center"><div class="spin" style="width:22px;height:22px;border-width:2px"></div></div>':''}
-      </div>`;
-    } else {
-      body = escapeHtml(m.text||'');
+    const changed = prevSignatures.get(m.id) !== sig;
+    if (!node || changed) {
+      const temp = document.createElement('div');
+      temp.innerHTML = messageBubbleHTML(m, isNew);
+      const newNode = temp.firstElementChild;
+      if (node) node.replaceWith(newNode); else { /* aşağıda doğru konuma eklenecek */ }
+      node = newNode;
     }
-    const bubble = isCard ? body : `<div class="msg-bubble" style="background:${mine?'var(--cdim)':'var(--surf2)'};color:var(--text);border:${mine?'1px solid rgba(0,212,255,.35)':'1px solid transparent'};padding:${m.imageUrl||m._localImagePreview?'6px':'9px 13px'};${mine?'border-bottom-right-radius:4px':'border-bottom-left-radius:4px'};font-size:14px;line-height:1.4;word-break:break-word">${body}<div style="font-size:10px;opacity:.6;margin-top:3px;display:flex;align-items:center;justify-content:flex-end">${time}<span class="msg-status-icon">${(mine && !isCard) ? msgStatusIconHTML(m) : ''}</span></div></div>`;
-    return `<div class="${isNew?'msg-in':''}" style="align-self:${mine?'flex-end':'flex-start'};max-width:78%" data-mid="${m.id}" onpointerdown="onMsgPointerDown(event,'${m.id}')" onpointerup="onMsgPointerUp()" onpointerleave="onMsgPointerUp()" oncontextmenu="return false">${bubble}</div>`;
-  }).join('');
+    const wantedNext = lastNode ? lastNode.nextSibling : box.firstChild;
+    if (wantedNext !== node) box.insertBefore(node, wantedNext);
+    lastNode = node;
+  });
+
+  // Artık listede olmayan (silinmiş/limitToLast dışında kalmış) eski node'ları temizle.
+  Array.from(box.children).forEach(child => {
+    const mid = child.getAttribute('data-mid');
+    if (mid && !newIds.has(mid)) child.remove();
+  });
+
   box._renderedIds = newIds;
+  box._renderedSignatures = newSignatures;
 }
 
 // Kendi mesajlarımızın durum ikonunu (gönderiliyor/başarısız/tik) üretir — renderChatMessages VE
@@ -6521,10 +6615,60 @@ function openChatList() {
   renderChatList(); // subscribeChatBadge'in zaten sürdürdüğü veriyle anında render eder, yeni sorgu açmaz
 }
 
+// Bir sohbet satırının GÖRSEL imzası — değişmeyen satırların DOM node'una hiç dokunulmaması için
+// (bkz. renderChatMessages'daki AYNI prensip).
+function chatRowSignature(c, uid) {
+  const otherUid = c.participants.find(p => p !== uid);
+  const otherName = c.names?.[otherUid] || 'Kullanıcı';
+  const otherAv = c.avatars?.[otherUid] || '';
+  const unread = (c.unreadBy||[]).includes(uid);
+  const unreadN = c.unreadCount?.[uid] || (unread ? 1 : 0);
+  const lastAtMillis = c.lastAt?.toMillis ? c.lastAt.toMillis() : 0;
+  return [otherName, otherAv, unread, unreadN, lastAtMillis, c.lastMessage||'', c.lastListingId||''].join('|');
+}
+
+function chatRowWrapHTML(d, forwardMsgId) {
+  const c = d.data();
+  const otherUid = c.participants.find(p => p !== user.uid);
+  const otherName = c.names?.[otherUid] || 'Kullanıcı';
+  const otherAv = c.avatars?.[otherUid];
+  const unread = (c.unreadBy||[]).includes(user.uid);
+  // Gerçek okunmamış SAYISI — unreadCount alanı (bkz. markChatMessageSent) mevcutsa kullanılır,
+  // eski sohbetlerde bu alan yoksa (geriye dönük uyumluluk) yalnızca "en az 1" bilgisine düşülür.
+  const unreadN = c.unreadCount?.[user.uid] || (unread ? 1 : 0);
+  const time = c.lastAt?.toDate ? fd(c.lastAt.toDate().toISOString()) : '';
+  const preview = (c.lastMessage||'').slice(0,40) + ((c.lastMessage||'').length>40?'…':'');
+  const avHtml = otherAv ? `<img src="${otherAv}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" loading="lazy" decoding="async">` : escapeHtml(otherName)[0]?.toUpperCase();
+  const listingThumb = c.lastListingId ? getListingByIdSync(c.lastListingId)?.photo1 : null;
+  const otherNameJs = otherName.replace(/'/g,"\\'");
+  const rowClick = forwardMsgId ? `forwardMsgTo('${otherUid}','${otherNameJs}')` : `openChatThread('${otherUid}','${otherNameJs}')`;
+  return `<div class="notif-swipe-wrap" data-id="${d.id}">
+    <div class="notif-swipe-del">🗑️</div>
+    <div class="chat-row ${unread?'unread':''}" onclick="${rowClick}">
+      <div class="chat-row-av">${avHtml}</div>
+      <div class="chat-row-info">
+        <div class="chat-row-top">
+          <span class="chat-row-name">${escapeHtml(otherName)}</span>
+          <span class="chat-row-time">${time}</span>
+        </div>
+        <div class="chat-row-bottom">
+          ${listingThumb?`<img class="chat-row-thumb" src="${listingThumb}" loading="lazy" decoding="async">`:''}
+          <span class="chat-row-preview">${escapeHtml(preview) || 'Sohbeti başlat'}</span>
+          ${unreadN>0?`<span class="chat-row-unread-badge">${unreadN>9?'9+':unreadN}</span>`:''}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// PERFORMANS DÜZELTMESİ ("bir sohbet güncellenince TÜM sohbet listesi yeniden çiziliyordu"): artık
+// her satır kendi imzasıyla (bkz. chatRowSignature) karşılaştırılıyor — değişmeyen satırların
+// DOM'una hiç dokunulmuyor (avatar görselleri yeniden decode edilmiyor), yalnızca değişen/yeni
+// satırlar oluşturuluyor, sıra korunuyor, artık listede olmayan sohbetlerin satırı kaldırılıyor.
 function renderChatList() {
   const list = document.getElementById('chat-list');
   if (!list || !user) return;
-  if (!chatListCache.length) { list.innerHTML = `<div class="no">Henüz mesajın yok</div>`; return; }
+  if (!chatListCache.length) { list.innerHTML = `<div class="no">Henüz mesajın yok</div>`; list._renderedIds = null; list._renderedSignatures = null; return; }
   const forwardMsgId = document.getElementById('chat-list-mo')?._forwardMsgId;
   // "Sohbeti Sil" (bkz. deleteChatThread) artık hiddenFor dizisine kendi uid'imi ekliyor, karşı
   // tarafın hiçbir şeyini silmiyor — bu yüzden BENİM listemde bu sohbeti gizlemek için filtrelenir.
@@ -6533,40 +6677,54 @@ function renderChatList() {
     const tb = b.data().lastAt?.toMillis ? b.data().lastAt.toMillis() : 0;
     return tb - ta;
   });
-  list.innerHTML = docs.map(d => {
-    const c = d.data();
-    const otherUid = c.participants.find(p => p !== user.uid);
-    const otherName = c.names?.[otherUid] || 'Kullanıcı';
-    const otherAv = c.avatars?.[otherUid];
-    const unread = (c.unreadBy||[]).includes(user.uid);
-    // Gerçek okunmamış SAYISI — unreadCount alanı (bkz. markChatMessageSent) mevcutsa kullanılır,
-    // eski sohbetlerde bu alan yoksa (geriye dönük uyumluluk) yalnızca "en az 1" bilgisine düşülür.
-    const unreadN = c.unreadCount?.[user.uid] || (unread ? 1 : 0);
-    const time = c.lastAt?.toDate ? fd(c.lastAt.toDate().toISOString()) : '';
-    const preview = (c.lastMessage||'').slice(0,40) + ((c.lastMessage||'').length>40?'…':'');
-    const avHtml = otherAv ? `<img src="${otherAv}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : escapeHtml(otherName)[0]?.toUpperCase();
-    const listingThumb = c.lastListingId ? getListingByIdSync(c.lastListingId)?.photo1 : null;
-    const otherNameJs = otherName.replace(/'/g,"\\'");
-    const rowClick = forwardMsgId ? `forwardMsgTo('${otherUid}','${otherNameJs}')` : `openChatThread('${otherUid}','${otherNameJs}')`;
-    return `<div class="notif-swipe-wrap" data-id="${d.id}">
-      <div class="notif-swipe-del">🗑️</div>
-      <div class="chat-row ${unread?'unread':''}" onclick="${rowClick}">
-        <div class="chat-row-av">${avHtml}</div>
-        <div class="chat-row-info">
-          <div class="chat-row-top">
-            <span class="chat-row-name">${escapeHtml(otherName)}</span>
-            <span class="chat-row-time">${time}</span>
-          </div>
-          <div class="chat-row-bottom">
-            ${listingThumb?`<img class="chat-row-thumb" src="${listingThumb}" loading="lazy" decoding="async">`:''}
-            <span class="chat-row-preview">${escapeHtml(preview) || 'Sohbeti başlat'}</span>
-            ${unreadN>0?`<span class="chat-row-unread-badge">${unreadN>9?'9+':unreadN}</span>`:''}
-          </div>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-  document.querySelectorAll('#chat-list .notif-swipe-wrap').forEach(wrap => attachChatSwipeDelete(wrap));
+
+  const prevIds = list._renderedIds;
+  const prevSignatures = list._renderedSignatures;
+  // forwardMsgId değiştiyse (ileri-gönder moduna girilip çıkıldıysa) TÜM satırların tıklama
+  // davranışı değişir — bu durumda güvenli şekilde tek seferlik tam kuruluma düşülür.
+  if (!prevIds || !prevSignatures || list._renderedForwardMsgId !== forwardMsgId || list.querySelector('.no')) {
+    const newIds = new Set(), newSignatures = new Map();
+    list.innerHTML = docs.map(d => {
+      newIds.add(d.id);
+      newSignatures.set(d.id, chatRowSignature(d.data(), user.uid));
+      return chatRowWrapHTML(d, forwardMsgId);
+    }).join('');
+    list._renderedIds = newIds;
+    list._renderedSignatures = newSignatures;
+    list._renderedForwardMsgId = forwardMsgId;
+    document.querySelectorAll('#chat-list .notif-swipe-wrap').forEach(wrap => attachChatSwipeDelete(wrap));
+    return;
+  }
+
+  const newIds = new Set(), newSignatures = new Map();
+  let lastNode = null;
+  docs.forEach(d => {
+    newIds.add(d.id);
+    const sig = chatRowSignature(d.data(), user.uid);
+    newSignatures.set(d.id, sig);
+    let node = list.querySelector(`.notif-swipe-wrap[data-id="${d.id}"]`);
+    const changed = prevSignatures.get(d.id) !== sig;
+    if (!node || changed) {
+      const temp = document.createElement('div');
+      temp.innerHTML = chatRowWrapHTML(d, forwardMsgId);
+      const newNode = temp.firstElementChild;
+      if (node) node.replaceWith(newNode);
+      node = newNode;
+      attachChatSwipeDelete(node);
+    }
+    const wantedNext = lastNode ? lastNode.nextSibling : list.firstChild;
+    if (wantedNext !== node) list.insertBefore(node, wantedNext);
+    lastNode = node;
+  });
+
+  Array.from(list.children).forEach(child => {
+    const id = child.getAttribute('data-id');
+    if (id && !newIds.has(id)) child.remove();
+  });
+
+  list._renderedIds = newIds;
+  list._renderedSignatures = newSignatures;
+  list._renderedForwardMsgId = forwardMsgId;
 }
 
 // ---- MESAJ ÜZERİNDE UZUN BASMA MENÜSÜ ----
@@ -6707,6 +6865,29 @@ function clearListener(key) {
 // Çıkışta (logout) veya yeniden girişte (defansif olarak) TÜM dinleyicileri eksiksiz kapatır.
 function clearAllListeners() {
   Object.keys(activeListeners).forEach(k => clearListener(k));
+}
+
+// Çıkışta (veya aynı cihazda farklı bir hesapla giriş yapılmasında) bellekte kalan hesaba-özel
+// önbellek dizileri sıfırlanır — aksi halde önceki hesabın Pazar/Admin/bildirim verileri, yeni
+// hesap giriş yapana kadar (bazı ekranlarda LoadedOnce bayrakları yüzünden hiç yenilenmeden)
+// bellekte asılı kalabilir. forumPosts/newsCache gibi HERKESE AÇIK, hesaba bağlı olmayan önbellekler
+// kasıtlı olarak buraya dahil edilmedi — onları silmek gereksiz yeniden indirmeye yol açar.
+function clearSessionCaches() {
+  marketAllListings = []; marketAllLoadedOnce = false;
+  marketFavListings = [];
+  marketMineListings = []; marketMineLoaded = false;
+  marketLastVisibleIdsSig = null;
+  adminUsersCache = null; adminUsersLastDoc = null; adminUsersHasMore = true; adminUsersSearching = false;
+  adminListingsCache = [];
+  adminRolesCache = {};
+  currentAdminTab = null;
+  usersTabLoadedOnce = forumTabLoadedOnce = logsTabLoadedOnce = false;
+  complaintsTabLoadedOnce = poolTabLoadedOnce = dashboardTabLoadedOnce = false;
+  announcementsTabLoadedOnce = false;
+  poolRequestsCache = [];
+  listingOffersCache = [];
+  notifAccumulatedDocs = []; notifLastDoc = null; notifHasMore = true; notifLastOpenedAt = 0;
+  chatListCache = [];
 }
 
 let prevRefCounts = {};
@@ -6984,6 +7165,19 @@ async function loadMarketPage(reset) {
   }
 }
 
+// PERFORMANS (IntersectionObserver): "Daha Fazla Yükle" alanı ekrana girince otomatik olarak bir
+// sonraki sayfayı tetikler — kullanıcı butona dokunmadan, tıpkı native uygulamalardaki sonsuz
+// kaydırma gibi. Buton yine de görünür/tıklanabilir kalır (yedek). triggerFn zaten kendi
+// marketLoading/forumLoading koruması içerdiği için tekrarlanan tetiklemeler güvenle no-op'tur.
+function observeLoadMoreOnScroll(wrapEl, triggerFn) {
+  if (!wrapEl || wrapEl._ioObserved) return;
+  wrapEl._ioObserved = true;
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(entry => { if (entry.isIntersecting) triggerFn(); });
+  }, { rootMargin: '400px' });
+  obs.observe(wrapEl);
+}
+
 // Pazar'ın altındaki "Daha Fazla Yükle" düğmesi/spinner'ı — tam liste render'ından AYRI bir
 // fonksiyon: sayfalama sırasında yalnızca bu küçük alan güncellenir, mevcut kartlara dokunulmaz.
 function renderMarketLoadMoreControl() {
@@ -7004,6 +7198,7 @@ function renderMarketLoadMoreControl() {
   if (marketLoading) wrap.innerHTML = `<div class="spin" style="margin:0 auto"></div>`;
   else if (marketHasMore) wrap.innerHTML = `<button class="apbtn" style="width:auto;padding:10px 24px;display:inline-block" onclick="loadMarketPage(false)">Daha Fazla Yükle</button>`;
   else wrap.innerHTML = '';
+  if (marketHasMore) observeLoadMoreOnScroll(wrap, () => loadMarketPage(false));
 }
 
 // Yalnızca YENİ kartları mevcut ızgaranın sonuna ekler — önceki kartlara hiç dokunulmaz, görselleri
@@ -7145,6 +7340,12 @@ function mcardHTML(l) {
   </div>`;
 }
 
+// Bir ilan kartının GÖRSEL imzası — Pazar sekmesine her dönüşte (veri değişmese bile) tüm
+// kartların/görsellerin DOM'da yeniden yaratılmasını önlemek için (bkz. rlistings sonundaki kontrol).
+function listingCardSignature(l) {
+  return [l.id, l.price, l.sold, l.showcase, l.featured, l.urgent, l.poolSystem, l.photo1||''].join('|');
+}
+
 function rlistings() {
   const grid = document.getElementById('lgrid');
   if (!grid) return;
@@ -7190,9 +7391,17 @@ function rlistings() {
   items = [...items].sort((a,b) => (a.sold?1:0) - (b.sold?1:0) || (b.showcase?1:0) - (a.showcase?1:0) || (b.featured?1:0) - (a.featured?1:0));
   if (!items.length) {
     grid.innerHTML = `<div class="load"><div style="font-size:40px">${mktab==='fav'?'❤️':mktab==='mine'?'📋':'📭'}</div><div>${mktab==='fav'?'Favori yok':mktab==='mine'?'Henüz ilanın yok':'Sonuç bulunamadı'}</div></div>`;
+    grid._renderedSig = null;
     return;
   }
+  // PERFORMANS DÜZELTMESİ ("Pazar sekmesine her dönüşte kartlar/görseller yeniden yaratılıyordu"):
+  // veri (ve dolayısıyla gösterilecek sonuç) bir önceki çizimle BİREBİR aynıysa DOM'a hiç
+  // dokunulmuyor — sekmeler arası gidip-gelmede veya ilan detayından geri dönüşte, önbellekte
+  // duran görseller yeniden decode/paint edilmek zorunda kalmıyor.
+  const sig = items.map(listingCardSignature).join(';;');
+  if (grid._renderedSig === sig) { renderMarketLoadMoreControl(); return; }
   grid.innerHTML = items.map(mcardHTML).join('');
+  grid._renderedSig = sig;
   renderMarketLoadMoreControl();
 }
 
@@ -7779,20 +7988,17 @@ async function getListingById(id) {
   } catch(e) { return null; }
 }
 
+// KÖK NEDEN DÜZELTMESİ ("önbellek ıskasında ayn ilan 2 kez okunuyordu"): eskiden getListingById()
+// ÖNCE (önbellek varsa) yerel kopyayı döndürüyor, SONRA openDetail HER ZAMAN (önbellek olsun
+// olmasın) İKİNCİ bir .get() ile viewCount/favorites'ı tazeliyordu — önbellek ıskasında bu, AYNI
+// dokümanın 2 kez okunması demekti. Artık iki yol ayrı: önbellekte VARSA anında çizilir + tek bir
+// tazeleme okuması yapılır (viewCount bayat olabilir); önbellekte YOKSA tek bir taze okuma
+// yeterlidir, ikinci bir tazeleme okuması YAPILMAZ (o okuma zaten maksimum güncel).
 function openDetail(id) {
-  getListingById(id).then(l => {
-    if (!l) { showToast('❗','rgba(255,69,58,.12)','İlan Bulunamadı','Bu ilan kaldırılmış veya silinmiş olabilir.'); return; }
-    renderDetailPage(l);
-    // Satıcı kendi (pazarlığa açık) ilanını görüntülüyorsa bekleyen teklifleri yükler (bkz.
-    // #det-offers-section yer tutucusu, renderDetailPage'de eklendi).
-    if (user && l.uid === user.uid && l.negotiable) loadListingOffers(id);
-    // KÖK NEDEN DÜZELTMESİ ("görüntülenme sayısı çok düşük kalıyor"): getListingById önce yerel
-    // önbellekteki (marketAllListings vb. — tek seferlik, sayfalanmış bir çekimden gelen, ARTIK canlı
-    // güncellenmeyen) kopyayı döndürüyor. Bu kopyanın viewCount'u, o liste ne zaman çekildiyse o ana
-    // ait — başka kullanıcıların o andan beri yaptığı görüntülemeleri hiç yansıtmıyordu. Çözüm: sayfa
-    // önbellekten ANINDA çizilir (hız kaybı yok), ama arkadan HER ZAMAN tek bir taze doküman okuması
-    // yapılıp yalnızca oynak sayaçlar (viewCount, favoritedByUids) — kullanıcı hâlâ AYNI ilanı
-    // görüntülüyorsa — gerçek zamanlı değerle güncellenir.
+  const cached = getListingByIdSync(id);
+  if (cached) {
+    renderDetailPage(cached);
+    if (user && cached.uid === user.uid && cached.negotiable) loadListingOffers(id);
     db.collection('teknohane_listings').doc(id).get().then(snap => {
       if (!snap.exists || !currentListing || currentListing.id !== id) return;
       const fresh = snap.data();
@@ -7805,6 +8011,15 @@ function openDetail(id) {
       }
       renderDetFavCount(currentListing);
     }).catch(()=>{});
+    return;
+  }
+  db.collection('teknohane_listings').doc(id).get().then(snap => {
+    if (!snap.exists) { showToast('❗','rgba(255,69,58,.12)','İlan Bulunamadı','Bu ilan kaldırılmış veya silinmiş olabilir.'); return; }
+    const l = { id: snap.id, ...snap.data() };
+    renderDetailPage(l);
+    if (user && l.uid === user.uid && l.negotiable) loadListingOffers(id);
+  }).catch(() => {
+    showToast('❗','rgba(255,69,58,.12)','İlan Bulunamadı','Bu ilan kaldırılmış veya silinmiş olabilir.');
   });
 }
 
@@ -8447,6 +8662,7 @@ function renderForumLoadMoreControl() {
   if (forumLoading) wrap.innerHTML = `<div class="spin" style="margin:0 auto"></div>`;
   else if (forumHasMore) wrap.innerHTML = `<button class="apbtn" style="width:auto;padding:10px 24px;display:inline-block" onclick="loadForumPage(false)">Daha Fazla Yükle</button>`;
   else wrap.innerHTML = '';
+  if (forumHasMore) observeLoadMoreOnScroll(wrap, () => loadForumPage(false));
 }
 
 // Forum kartı HTML'ini üretir — rForum()'un içindeki şablonla BİREBİR aynı, tekilleştirmek için
@@ -8736,7 +8952,7 @@ function renderPostDetail() {
       </div>
     </div>
     ${(p.tags&&p.tags.length)?`<div class="post-detail-tags">${p.tags.map(t=>`<span class="post-tag-chip">#${escapeHtml(t)}</span>`).join('')}</div>`:''}
-    ${p.imageUrl?`<img class="post-detail-img" src="${p.imageUrl}" onclick="openFullscreen('${p.imageUrl}')">` : ''}
+    ${p.imageUrl?`<img class="post-detail-img" src="${p.imageUrl}" loading="lazy" decoding="async" onclick="openFullscreen('${p.imageUrl}')">` : ''}
     <div class="post-detail-body">${formatForumText(p.body)}</div>
     <div class="post-actions" style="flex-wrap:wrap">
       <button class="like-btn ${liked?'liked':''}" onclick="likePost('${p.id}')">
@@ -9079,11 +9295,11 @@ function openListingGallery(photosArr, startIndex) {
   lgPhotos = photosArr;
   lgCurrentIndex = startIndex || 0;
   const track = document.getElementById('lg-track');
-  track.innerHTML = photosArr.map((p,i) => `<div class="lg-slide" data-idx="${i}"><img src="${p}" alt="" draggable="false"></div>`).join('');
+  track.innerHTML = photosArr.map((p,i) => `<div class="lg-slide" data-idx="${i}"><img src="${p}" alt="" draggable="false" loading="lazy" decoding="async"></div>`).join('');
   const thumbs = document.getElementById('lg-thumbs');
   if (photosArr.length > 1) {
     thumbs.style.display = 'flex';
-    thumbs.innerHTML = photosArr.map((p,i) => `<div class="lg-thumb${i===lgCurrentIndex?' active':''}" onclick="lgGoTo(${i})"><img src="${p}" alt="" draggable="false"></div>`).join('');
+    thumbs.innerHTML = photosArr.map((p,i) => `<div class="lg-thumb${i===lgCurrentIndex?' active':''}" onclick="lgGoTo(${i})"><img src="${p}" alt="" draggable="false" loading="lazy" decoding="async"></div>`).join('');
   } else {
     thumbs.style.display = 'none';
     thumbs.innerHTML = '';
@@ -9234,7 +9450,7 @@ async function openPublicProfile(uid, nameHint) {
   // bu kullanıcıya ait dar kapsamlı bir sorgu (Pazar'ın "İlanlarım" sorgusuyla birebir aynı desen).
   let profileListings = [];
   try {
-    const lSnap = await db.collection('teknohane_listings').where('uid', '==', uid).get();
+    const lSnap = await db.collection('teknohane_listings').where('uid', '==', uid).limit(100).get();
     profileListings = lSnap.docs.map(d => ({ id: d.id, ...d.data() }));
   } catch (e) {}
 
@@ -9498,7 +9714,7 @@ async function openFollowList(uid, type, name) {
       const uFollowing = (myProfileData.followingUids||[]).includes(u.uid);
       const safeName = (u.displayName||'Kullanıcı').replace(/'/g,"\\'");
       return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
-        <img src="${uav}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;cursor:pointer" onclick="closemo('followlist-mo');openPublicProfile('${u.uid}','${safeName}')">
+        <img src="${uav}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;cursor:pointer" loading="lazy" decoding="async" onclick="closemo('followlist-mo');openPublicProfile('${u.uid}','${safeName}')">
         <div style="flex:1;cursor:pointer" onclick="closemo('followlist-mo');openPublicProfile('${u.uid}','${safeName}')">
           <div style="font-size:14px;font-weight:600">${u.displayName||'Kullanıcı'}</div>
           ${u.username?`<div style="font-size:12px;color:var(--text2)">@${u.username}</div>`:''}
@@ -9553,7 +9769,7 @@ async function runUserSearch(query) {
       const u = d.data();
       const name = u.displayName || d.id || 'Kullanıcı';
       return `<div class="adm-user-row" onclick="closemo('user-search-mo');openPublicProfile('${u.uid}','${name.replace(/'/g,"\\'")}')">
-        <div class="adm-user-av">${u.photoURL?`<img src="${u.photoURL}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:name[0].toUpperCase()}</div>
+        <div class="adm-user-av">${u.photoURL?`<img src="${u.photoURL}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" loading="lazy" decoding="async">`:name[0].toUpperCase()}</div>
         <div class="adm-user-info">
           <div class="adm-user-name">${name}</div>
           <div class="adm-user-email">@${d.id}</div>
@@ -9586,7 +9802,18 @@ function openAdmin() {
   if (!adminListingsCache.length) loadAdminListings(true); else radmin();
 }
 
+// PERFORMANS DÜZELTMESİ ("admin panel sekmeleri her tıklamada baştan sorgu atıyordu"): Pazar/Forum'da
+// zaten kullanılan "bu oturumda bir kez yüklendiyse tekrar çekme" deseni buraya da uygulandı — her
+// sekme kendi *TabLoadedOnce bayrağını tutuyor. Zaten AÇIK olan bir sekmeye TEKRAR tıklamak (yani
+// aynı sekmeye ikinci kez basmak) kasıtlı bir "yenile" sinyali sayılır ve o özel durumda yeniden
+// sorgu atılır — admin verisi oturum boyunca tamamen donmuş kalmaz, istendiğinde tazelenebilir.
+let currentAdminTab = null;
+let usersTabLoadedOnce = false, forumTabLoadedOnce = false, logsTabLoadedOnce = false,
+    complaintsTabLoadedOnce = false, poolTabLoadedOnce = false, dashboardTabLoadedOnce = false,
+    announcementsTabLoadedOnce = false;
 function switchAdminTab(tab) {
+  const refresh = tab === currentAdminTab;
+  currentAdminTab = tab;
   ['listings','users','forum','logs','complaints','pool','dashboard','announcements','settings'].forEach(t => {
     document.getElementById(`adm-tab-${t}`).className = tab===t ? 'mtab on' : 'mtab off';
     document.getElementById(`admin-${t}-view`).style.display = tab===t ? 'block' : 'none';
@@ -9596,37 +9823,37 @@ function switchAdminTab(tab) {
       document.getElementById('adm-pool-list').innerHTML = '<div class="no">Bu bölümü görüntüleme yetkin yok.</div>';
       return;
     }
-    loadPoolRequests();
+    if (refresh || !poolTabLoadedOnce) { poolTabLoadedOnce = true; loadPoolRequests(); }
   }
   if (tab === 'users') {
     if (!hasPermission('manageUsers')) {
       document.getElementById('adm-users-list').innerHTML = '<div class="no">Bu bölümü görüntüleme yetkin yok.</div>';
       return;
     }
-    loadAdminUsers();
+    if (refresh || !usersTabLoadedOnce) { usersTabLoadedOnce = true; loadAdminUsers(); }
   }
-  if (tab === 'forum') loadAdminForumPosts();
+  if (tab === 'forum' && (refresh || !forumTabLoadedOnce)) { forumTabLoadedOnce = true; loadAdminForumPosts(); }
   if (tab === 'logs') {
     if (!hasPermission('viewLogs')) {
       document.getElementById('adm-logs-list').innerHTML = '<div class="no">Bu bölümü görüntüleme yetkin yok.</div>';
       return;
     }
-    loadAdminLogs(true);
+    if (refresh || !logsTabLoadedOnce) { logsTabLoadedOnce = true; loadAdminLogs(true); }
   }
   if (tab === 'complaints') {
     if (!hasPermission('manageComplaints')) {
       document.getElementById('adm-complaints-list').innerHTML = '<div class="no">Bu bölümü görüntüleme yetkin yok.</div>';
       return;
     }
-    loadComplaints(true);
+    if (refresh || !complaintsTabLoadedOnce) { complaintsTabLoadedOnce = true; loadComplaints(true); }
   }
-  if (tab === 'dashboard') loadDashboard();
+  if (tab === 'dashboard' && (refresh || !dashboardTabLoadedOnce)) { dashboardTabLoadedOnce = true; loadDashboard(); }
   if (tab === 'announcements') {
     if (!hasPermission('sendNotifications')) {
       document.getElementById('adm-announcements-list').innerHTML = '<div class="no">Bu bölümü görüntüleme yetkin yok.</div>';
       return;
     }
-    loadAdminAnnouncements();
+    if (refresh || !announcementsTabLoadedOnce) { announcementsTabLoadedOnce = true; loadAdminAnnouncements(); }
   }
   if (tab === 'settings') {
     if (!hasPermission('manageAdmins')) {
@@ -10297,7 +10524,7 @@ function rAdminUsers() {
   list.innerHTML = items.map(u => `
     <div class="adm-user-row" onclick="openUserDetail('${u.uid}')">
       <input type="checkbox" class="bulk-check" onclick="event.stopPropagation()" onchange="bulkToggle('adm-users-list','${u.uid}',this.checked)" ${sel.has(u.uid)?'checked':''}>
-      ${u.photoURL ? `<img class="adm-user-av" src="${escapeHtml(u.photoURL)}" alt="">` : `<div class="adm-user-av">${(u.displayName||'?')[0].toUpperCase()}</div>`}
+      ${u.photoURL ? `<img class="adm-user-av" src="${escapeHtml(u.photoURL)}" alt="" loading="lazy" decoding="async">` : `<div class="adm-user-av">${(u.displayName||'?')[0].toUpperCase()}</div>`}
       <div class="adm-user-info">
         <div class="adm-user-name">${escapeHtml(u.displayName)}${u.role?` <span class="admin-badge">${ROLE_LABELS[u.role]||u.role}</span>`:''}${isCurrentlyBanned(u)?' <span class="admin-badge" style="background:var(--red)">BANLI</span>':''}${u.accountDisabled?' <span class="admin-badge" style="background:var(--text3)">PASİF</span>':''}</div>
         <div class="adm-user-email">${escapeHtml(u.email)}</div>
@@ -10332,7 +10559,7 @@ async function openUserDetail(uid) {
 
   let userListings = [];
   try {
-    const snap = await db.collection('teknohane_listings').where('uid', '==', uid).get();
+    const snap = await db.collection('teknohane_listings').where('uid', '==', uid).limit(100).get();
     userListings = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   } catch (e) {}
   const [favListings, refListings] = await Promise.all([
@@ -10360,7 +10587,7 @@ async function openUserDetail(uid) {
   document.getElementById('user-detail-body').innerHTML = `
     <div class="phero" style="padding-bottom:20px">
       <div class="pcover" style="${u.coverPhotoURL?`background-image:url('${escapeHtml(u.coverPhotoURL)}');background-size:cover;background-position:center;`:''}"></div>
-      <img class="pav" src="${escapeHtml(av)}" onerror="this.onerror=null;this.src='${escapeHtml(avFallback)}'" alt="">
+      <img class="pav" src="${escapeHtml(av)}" onerror="this.onerror=null;this.src='${escapeHtml(avFallback)}'" alt="" loading="lazy" decoding="async">
       <div class="pname">${escapeHtml(displayName)}</div>
       ${u.username?`<div class="puname">@${escapeHtml(u.username)}</div>`:''}
       <div class="pemail">${escapeHtml(u.email)||'—'}</div>
@@ -11069,7 +11296,7 @@ async function openNewsArticle(idx) {
     const title = data.title || item.title;
     const img = data.image || item.image;
     document.getElementById('news-detail-body').innerHTML = `
-      ${img ? `<img class="news-cover" src="${img}" alt="">` : ''}
+      ${img ? `<img class="news-cover" src="${img}" alt="" loading="lazy" decoding="async">` : ''}
       <div class="news-art-title">${title}</div>
       <div class="news-art-meta">${data.pubDate ? fd(data.pubDate) : (item.pubDate ? fd(item.pubDate) : '')}</div>
       <div class="news-art-body">${sanitizeHtml(data.contentHtml) || `<p>${item.desc || 'İçerik yüklenemedi.'}</p>`}</div>`;
@@ -11108,8 +11335,52 @@ function checkNewVideo() {
 // yalnızca "ikisi de bitene kadar HİÇBİR ŞEY gösterme" anlamına geliyordu. Artık kanal bilgisi
 // (avatar/abone/izlenme) geldiği AN, video listesini beklemeden hemen çiziliyor; video listesi kendi
 // isteği tamamlanınca AYRI olarak dolduruluyor — kullanıcı ilk ağ cevabını beklerken boş ekran görmüyor.
+//
+// PERFORMANS DÜZELTMESİ 2 (soğuk açılışta 3 ardışık YouTube API isteği hiç önbelleklenmiyordu):
+// Son başarılı kanal/video sonucu artık localStorage'a yazılıyor. rhome() her çağrıldığında ÖNCE bu
+// önbellek varsa ANINDA (ağ beklemeden) gösterilir, ARDINDAN arka planda taze veri çekilip aynı DOM
+// sessizce güncellenir ("anında-sonra-tazele"). Ağ isteği başarısız olursa ve önbellekten zaten bir
+// şey gösterildiyse ekran hata mesajına çevrilmez — kullanıcı biraz eski ama gerçek içerikle kalır.
+const YT_CACHE_CHAN = 'tekno_yt_chan_v1';
+const YT_CACHE_VIDS = 'tekno_yt_vids_v1';
+function readYtCache(key) {
+  try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : null; } catch(e) { return null; }
+}
+function writeYtCache(key, data) {
+  try { localStorage.setItem(key, JSON.stringify(data)); } catch(e) { /* localStorage dolu/kapalı olabilir, sessizce geç */ }
+}
+function renderChannelHero(data) {
+  const heroSlot = document.getElementById('ch-hero-slot');
+  if (!heroSlot || !data) return;
+  const sn = data.sn || {}, st = data.st || {};
+  heroSlot.innerHTML = `
+      <div class="ch-top">
+        <img class="ch-av" src="${sn.thumbUrl||''}" alt="" onerror="this.src='teknohane.png'" loading="lazy" decoding="async">
+        <div><div class="ch-n">${sn.title||'Teknohane'}</div><div class="ch-h">${YH}</div></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="sn">${fs(st.subscriberCount)}</div><div class="sl2">Abone</div></div>
+        <div class="stat"><div class="sn">${fv(st.viewCount)}</div><div class="sl2">İzlenme</div></div>
+        <div class="stat"><div class="sn">${parseInt(st.videoCount||0)}</div><div class="sl2">Video</div></div>
+      </div>`;
+}
+function renderVideoSection(vids) {
+  if (!vids || !vids.length) return;
+  allv = vids;
+  if (!lastVideoId) lastVideoId = vids[0]?.id || null;
+  const f=vids[0],rest=vids.slice(1);
+  const featSlot = document.getElementById('feat-slot');
+  if (featSlot) featSlot.outerHTML = `
+    <div class="feat" id="feat-slot" onclick="ol('${f.url}')">
+      <div class="fth"><img src="${f.thumb}" alt="${f.title}" loading="lazy"><div class="pbtm"><div class="pc"><svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg></div></div>${f.dur?`<div class="dur">${f.dur}</div>`:''}</div>
+      <div class="fi2"><div class="fbdg">Son Yüklenen</div><div class="ftit">${f.title}</div><div class="fmet"><div class="mp"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>${fv(f.views)} izlenme</div><div class="mp"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${fd(f.pub)}</div></div></div>
+    </div>`;
+  const vlistEl = document.getElementById('vlist');
+  if (vlistEl) vlistEl.innerHTML = rvlist(rest.slice(0,7));
+}
 async function rhome() {
   const c=document.getElementById('home-c');
+  let renderedFromCache = false;
   try {
     c.innerHTML = `
       <div class="ch-hero" id="ch-hero-slot"><div class="load"><div class="spin"></div></div></div>
@@ -11129,34 +11400,26 @@ async function rhome() {
       if (el) el.innerHTML = '<div class="no">Haberler yüklenemedi</div>';
     });
 
+    const cachedChan = readYtCache(YT_CACHE_CHAN);
+    const cachedVids = readYtCache(YT_CACHE_VIDS);
+    if (cachedChan) { renderChannelHero(cachedChan); renderedFromCache = true; }
+    if (cachedVids && cachedVids.length) { renderVideoSection(cachedVids); renderedFromCache = true; }
+
     await lchan();
     const ch=cc,st=ch?.statistics||{},sn=ch?.snippet||{};
-    const heroSlot = document.getElementById('ch-hero-slot');
-    if (heroSlot) heroSlot.innerHTML = `
-        <div class="ch-top">
-          <img class="ch-av" src="${sn.thumbnails?.high?.url||''}" alt="" onerror="this.src='teknohane.png'">
-          <div><div class="ch-n">${sn.title||'Teknohane'}</div><div class="ch-h">${YH}</div></div>
-        </div>
-        <div class="stats">
-          <div class="stat"><div class="sn">${fs(st.subscriberCount)}</div><div class="sl2">Abone</div></div>
-          <div class="stat"><div class="sn">${fv(st.viewCount)}</div><div class="sl2">İzlenme</div></div>
-          <div class="stat"><div class="sn">${parseInt(st.videoCount||0)}</div><div class="sl2">Video</div></div>
-        </div>`;
+    const chanData = { sn: { title: sn.title, thumbUrl: sn.thumbnails?.high?.url||'' }, st: { subscriberCount: st.subscriberCount, viewCount: st.viewCount, videoCount: st.videoCount } };
+    renderChannelHero(chanData);
+    writeYtCache(YT_CACHE_CHAN, chanData);
 
     const vids = await lvids();
-    allv=vids;
-    if (!lastVideoId) lastVideoId = vids[0]?.id || null;
-    const f=vids[0],rest=vids.slice(1);
-    const featSlot = document.getElementById('feat-slot');
-    if (featSlot) featSlot.outerHTML = `
-      <div class="feat" id="feat-slot" onclick="ol('${f.url}')">
-        <div class="fth"><img src="${f.thumb}" alt="${f.title}" loading="lazy"><div class="pbtm"><div class="pc"><svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg></div></div>${f.dur?`<div class="dur">${f.dur}</div>`:''}</div>
-        <div class="fi2"><div class="fbdg">Son Yüklenen</div><div class="ftit">${f.title}</div><div class="fmet"><div class="mp"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>${fv(f.views)} izlenme</div><div class="mp"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${fd(f.pub)}</div></div></div>
-      </div>`;
-    const vlistEl = document.getElementById('vlist');
-    if (vlistEl) vlistEl.innerHTML = rvlist(rest.slice(0,7));
+    renderVideoSection(vids);
+    writeYtCache(YT_CACHE_VIDS, vids);
   } catch(e) {
-    c.innerHTML=`<div class="load"><div style="font-size:36px">📡</div><div>${e.message}</div><button class="sbtn2" style="margin-top:16px;max-width:200px" onclick="retry()">Tekrar Dene</button></div>`;
+    // Önbellekten zaten gerçek içerik gösterildiyse ekranı hata mesajına çevirme — kullanıcı
+    // biraz eski ama gerçek içerikle kalsın, sessizce yeniden denenebilir kalsın.
+    if (!renderedFromCache) {
+      c.innerHTML=`<div class="load"><div style="font-size:36px">📡</div><div>${e.message}</div><button class="sbtn2" style="margin-top:16px;max-width:200px" onclick="retry()">Tekrar Dene</button></div>`;
+    }
   }
 }
 
@@ -11928,7 +12191,7 @@ async function loadSellerCard(sellerUid, ownerName, mine, containerId) {
     // Profil fotoğrafı — zaten çekilmiş userSnap'ten, ekstra okuma yok. Uygulamanın her yerinde
     // kullanılan aynı avatarUrl() yardımcısıyla (isim bazlı yedek dahil) üretiliyor.
     const avEl = el.querySelector('.seller-card-lg-av');
-    if (avEl && u.photoURL) avEl.outerHTML = `<img class="seller-card-lg-av" src="${avatarUrl(u.photoURL, ownerName, 112)}" alt="">`;
+    if (avEl && u.photoURL) avEl.outerHTML = `<img class="seller-card-lg-av" src="${avatarUrl(u.photoURL, ownerName, 112)}" alt="" loading="lazy" decoding="async">`;
     const badges = [];
     if (u.vip) badges.push({t:'💎 VIP', trust:false});
     if (u.trustedSeller) badges.push({t:'🤝 Güvenilir Satıcı', trust:true});
@@ -12519,6 +12782,7 @@ setInterval(() => { if (document.visibilityState === 'visible') checkNewVideo();
 // kümesi GERÇEKTEN değiştiyse (biri süresi dolup gizlenecekse) render tetiklenir.
 let marketLastVisibleIdsSig = null;
 setInterval(() => {
+  if (document.visibilityState !== 'visible') return;
   if (!document.getElementById('s-market')?.classList.contains('on')) return;
   if (mktab !== 'all') return;
   const raw = (document.getElementById('msrch')?.value||'').trim();
