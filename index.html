@@ -648,6 +648,7 @@ body.tk-text-focus * { user-select: auto !important; -webkit-user-select: auto !
 .mcard-tag-ic.showcase-ic{background:rgba(175,82,222,.95);}
 .mcard-tag-ic.featured-ic{background:rgba(0,212,255,.95);}
 .mcard-tag-ic.urgent-ic{background:rgba(255,184,0,.95);}
+.mcard-tag-ic.pool-ic{background:rgba(0,122,255,.95);}
 .mcard-fav{position:absolute;bottom:5px;right:5px;width:22px;height:22px;border-radius:50%;background:rgba(8,14,26,.6);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:3;transition:transform .15s ease,background .15s ease;}
 .mcard-fav:active{transform:scale(.88);}
 .mcard-fav svg{width:11px;height:11px;stroke:#fff;fill:none;stroke-width:2;transition:all .15s ease;}
@@ -1628,10 +1629,14 @@ body.tk-maintenance #maintenance-gate{
 
     <div class="fg"><label class="fl">Açıklama <span id="l-desc-counter" style="color:var(--text3);font-weight:400">(0 / 30)</span></label><textarea class="fi" id="l-desc" placeholder="Ürün hakkında detaylı bilgi verin…" style="min-height:70px;resize:vertical;font-family:inherit" oninput="listingFormOnChange()"></textarea></div>
     <div class="fg"><label class="fl">WhatsApp Numaranız</label><input class="fi" type="tel" id="l-phone" placeholder="5XXXXXXXXX"></div>
-    <label class="fg" style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:16px">
+    <label class="fg" style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:12px">
       <input type="checkbox" id="l-pool-system" style="width:18px;height:18px;accent-color:var(--cyan);flex-shrink:0">
       <span style="font-size:13px;color:var(--text);font-weight:600">Havuz Sistemi</span>
       <span onclick="event.preventDefault();event.stopPropagation();openPoolInfo()" style="width:18px;height:18px;border-radius:50%;background:var(--surf2);color:var(--text2);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">?</span>
+    </label>
+    <label class="fg" style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:16px">
+      <input type="checkbox" id="l-negotiable" style="width:18px;height:18px;accent-color:var(--cyan);flex-shrink:0">
+      <span style="font-size:13px;color:var(--text);font-weight:600">Pazarlığa açık olsun</span>
     </label>
     <label id="l-agree-wrap" style="display:flex;align-items:flex-start;gap:10px;margin-bottom:16px;cursor:pointer">
       <input type="checkbox" id="l-agree" style="width:18px;height:18px;margin-top:1px;accent-color:var(--cyan);flex-shrink:0" onchange="listingFormOnChange()">
@@ -1800,6 +1805,34 @@ body.tk-maintenance #maintenance-gate{
   </div>
 </div>
 
+<!-- HAVUZ SİSTEMİ TALEP FORMU: alıcı iletişim bilgisi + talebini yazar, doğrudan yetkili adminlere
+     gider (bkz. submitPoolRequestForm/notifyAdminsPoolRequest); admin panelindeki "Havuz Talepleri"
+     sekmesinden yanıtlanır, yanıt alıcıya bildirim olarak ulaşır. -->
+<div class="mo" id="pool-request-mo" onclick="closemo('pool-request-mo')">
+  <div class="ms" onclick="event.stopPropagation()" style="max-height:85vh">
+    <div class="mh"></div>
+    <div class="mtit">🛡️ Havuz Sistemi ile Satın Al</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.5">Bilgilerini ve talebini yaz, yönetici ekibimiz seninle iletişime geçecek.</div>
+    <div class="fg"><label class="fl">Telefon Numaran</label><input class="fi" type="tel" id="pool-req-phone" placeholder="5XXXXXXXXX"></div>
+    <div class="fg"><label class="fl">Talebin</label><textarea class="fi" id="pool-req-message" rows="4" style="resize:vertical;font-family:inherit" placeholder="Bu ilanı Havuz Sistemi ile satın almak istiyorum…"></textarea></div>
+    <div class="aerr" id="pool-req-err"></div>
+    <button class="sbtn2" onclick="submitPoolRequestForm()">Talebi Gönder</button>
+  </div>
+</div>
+
+<!-- PAZARLIK TEKLİFİ FORMU: alıcı fiyat teklifi + isteğe bağlı mesaj yazar, doğrudan satıcıya
+     gider (bkz. submitOffer); satıcı kendi ilan detayında (det-offers-section) yanıtlar. -->
+<div class="mo" id="offer-mo" onclick="closemo('offer-mo')">
+  <div class="ms" onclick="event.stopPropagation()" style="max-height:85vh">
+    <div class="mh"></div>
+    <div class="mtit">🤝 Pazarlık Yap</div>
+    <div class="fg"><label class="fl">Teklifin (₺)</label><input class="fi" type="number" id="offer-price" placeholder="20000"></div>
+    <div class="fg"><label class="fl">Mesajın (isteğe bağlı)</label><textarea class="fi" id="offer-message" rows="3" style="resize:vertical;font-family:inherit" placeholder="Bu fiyata anlaşabilir miyiz?"></textarea></div>
+    <div class="aerr" id="offer-err"></div>
+    <button class="sbtn2" onclick="submitOffer()">Teklifi Gönder</button>
+  </div>
+</div>
+
 <!-- ŞİKAYET DETAY MODAL (admin) -->
 <div class="mo" id="complaint-detail-mo" onclick="closemo('complaint-detail-mo')">
   <div class="ms" onclick="event.stopPropagation()" style="max-height:88vh">
@@ -1886,6 +1919,7 @@ body.tk-maintenance #maintenance-gate{
       <button class="mtab off" id="adm-tab-forum" onclick="switchAdminTab('forum')">Forum</button>
       <button class="mtab off" id="adm-tab-logs" onclick="switchAdminTab('logs')">Loglar</button>
       <button class="mtab off" id="adm-tab-complaints" onclick="switchAdminTab('complaints')">Şikayetler</button>
+      <button class="mtab off" id="adm-tab-pool" onclick="switchAdminTab('pool')">Havuz Talepleri</button>
       <button class="mtab off" id="adm-tab-dashboard" onclick="switchAdminTab('dashboard')">Dashboard</button>
       <button class="mtab off" id="adm-tab-announcements" onclick="switchAdminTab('announcements')">Duyurular</button>
       <button class="mtab off" id="adm-tab-settings" onclick="switchAdminTab('settings')">Ayarlar</button>
@@ -1984,6 +2018,10 @@ body.tk-maintenance #maintenance-gate{
       </div>
       <div id="adm-complaints-list"><div class="load"><div class="spin"></div><span>Şikayetler yükleniyor…</span></div></div>
       <button class="apbtn" style="margin-top:12px;background:var(--surf2);color:var(--text)" onclick="loadComplaints(false)">Daha Fazla Yükle</button>
+    </div>
+
+    <div id="admin-pool-view" style="display:none">
+      <div id="adm-pool-list"><div class="load"><div class="spin"></div><span>Havuz talepleri yükleniyor…</span></div></div>
     </div>
   </div>
 </div>
@@ -4904,7 +4942,8 @@ const NOTIF_TYPE_CATEGORY = {
   post_liked: 'forum', post_comment: 'forum', comment_liked: 'forum', comment_reply: 'forum',
   admin_notification: 'system', admin_warning: 'system', complaint_update: 'system',
   new_message: 'messages',
-  pool_request: 'market',
+  pool_request: 'market', pool_reply: 'market',
+  offer_received: 'market', offer_response: 'market',
 };
 
 // fromUid/fromName/fromPhotoURL — OPSİYONEL aktör bilgisi (bildirimi tetikleyen kişi). Var olan
@@ -5206,17 +5245,206 @@ function openPoolInfo() {
   infoDialog(POOL_SYSTEM_INFO, '🛡️ Havuz Sistemi Nedir?');
 }
 
-// İlan detayında alıcı "Havuz Sistemi ile Satın Al" butonuna dokununca çağrılır — gerçek ödeme/para
-// tutma henüz entegre edilmediği için (bkz. POOL_SYSTEM_INFO), şu an yalnızca adminlere bir TALEP
-// bildirimi gönderir; admin bundan sonrasını alıcı/satıcıyla manuel yürütür. İleride gerçek ödeme
-// akışı eklendiğinde bu fonksiyon genişletilip bir "pool_requests" koleksiyonuna kayıt da eklenebilir.
-async function requestPoolPurchase(listingId) {
+// İlan detayında alıcı "Havuz Sistemi ile Satın Al" butonuna dokununca form açılır (bkz.
+// pool-request-mo) — telefon + talep metni teknohane_pool_requests koleksiyonuna kaydedilir VE
+// yetkili adminlere bildirilir (bkz. notifyAdminsPoolRequest). Admin panelindeki "Havuz Talepleri"
+// sekmesinden yanıtlanır (bkz. replyToPoolRequest), yanıt alıcıya bildirim olarak ulaşır. Gerçek
+// ödeme/para tutma henüz entegre edilmedi (bkz. POOL_SYSTEM_INFO) — bu, o akış eklenene kadar
+// kullanılacak bir TALEP + iletişim mekanizması.
+let poolReqTargetListingId = null;
+
+function openPoolRequestForm(listingId) {
   if (!user) { gt('profile'); return; }
+  poolReqTargetListingId = listingId;
+  document.getElementById('pool-req-phone').value = '';
+  document.getElementById('pool-req-message').value = '';
+  const err = document.getElementById('pool-req-err'); err.textContent = ''; err.classList.remove('on');
+  document.getElementById('pool-request-mo').classList.add('on');
+}
+
+async function submitPoolRequestForm() {
+  const err = document.getElementById('pool-req-err'); err.textContent = ''; err.classList.remove('on');
+  const phone = document.getElementById('pool-req-phone').value.trim();
+  const message = document.getElementById('pool-req-message').value.trim();
+  if (!phone) { err.textContent = 'Telefon numarası zorunludur.'; err.classList.add('on'); return; }
+  if (!message) { err.textContent = 'Talebini yazmalısın.'; err.classList.add('on'); return; }
+  const listingId = poolReqTargetListingId;
   const l = currentListing && currentListing.id === listingId ? currentListing : await getListingById(listingId);
   if (!l) return;
   const buyerName = myProfileData.displayName || user.displayName || user.email?.split('@')[0] || 'Bir kullanıcı';
-  await notifyAdminsPoolRequest(listingId, l.model || '', buyerName);
-  showToast('🛡️', 'rgba(0,212,255,.15)', 'Talebin İletildi', 'Yönetici ekibimiz en kısa sürede seninle iletişime geçecek.');
+  try {
+    await db.collection('teknohane_pool_requests').add({
+      listingId, listingModel: l.model || '',
+      buyerUid: user.uid, buyerName, buyerPhone: phone, buyerMessage: message,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      status: 'pending', adminReply: null, adminReplyBy: null, repliedAt: null,
+    });
+    await notifyAdminsPoolRequest(listingId, l.model || '', buyerName);
+    closemo('pool-request-mo');
+    showToast('🛡️', 'rgba(0,212,255,.15)', 'Talebin İletildi', 'Yönetici ekibimiz en kısa sürede seninle iletişime geçecek.');
+  } catch(e) { showErrorToast(e.message); }
+}
+
+// ==== ADMIN PANEL - HAVUZ TALEPLERİ ====
+let poolRequestsCache = [];
+
+async function loadPoolRequests() {
+  const list = document.getElementById('adm-pool-list');
+  if (!list || !hasPermission('manageListings')) return;
+  list.innerHTML = adminSkeletonHTML(4);
+  try {
+    const snap = await db.collection('teknohane_pool_requests').orderBy('createdAt', 'desc').limit(50).get();
+    poolRequestsCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    rPoolRequestsList();
+  } catch(e) {
+    console.error('Havuz talepleri yüklenemedi:', e);
+    const urlMatch = e.message?.match(/https:\/\/console\.firebase\.google\.com[^\s)]+/);
+    list.innerHTML = `<div class="no">Havuz talepleri yüklenemedi.<br><span style="font-size:11px;color:var(--text3)">${e.message||''}</span>${urlMatch?`<br><a href="${urlMatch[0]}" target="_blank" style="color:var(--cyan);font-size:12px">→ Eksik index'i buradan oluştur</a>`:''}</div>`;
+  }
+}
+
+function rPoolRequestsList() {
+  const list = document.getElementById('adm-pool-list');
+  if (!list) return;
+  if (!poolRequestsCache.length) { list.innerHTML = '<div class="no">Henüz havuz sistemi talebi yok.</div>'; return; }
+  // Bekleyenler önce gösterilir, sonra yanıtlananlar (her grup kendi içinde zaten createdAt desc geldi).
+  const sorted = [...poolRequestsCache].sort((a, b) => (a.status === 'pending' ? 0 : 1) - (b.status === 'pending' ? 0 : 1));
+  list.innerHTML = sorted.map(poolRequestItemHTML).join('');
+}
+
+function poolRequestItemHTML(r) {
+  const dateStr = r.createdAt?.toDate ? r.createdAt.toDate().toLocaleDateString('tr-TR',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'}) : '';
+  const isPending = r.status !== 'replied';
+  return `<div class="pacc-card" style="margin-bottom:10px">
+    <div class="pacc-row"><span class="pacc-lbl">İlan</span><span class="pacc-val" style="cursor:pointer;color:var(--cyan)" onclick="closemo('admin-mo');gt('market');openDetail('${r.listingId}')">${escapeHtml(r.listingModel)}</span></div>
+    <div class="pacc-row"><span class="pacc-lbl">Alıcı</span><span class="pacc-val">${escapeHtml(r.buyerName)}</span></div>
+    <div class="pacc-row"><span class="pacc-lbl">Telefon</span><span class="pacc-val">${escapeHtml(r.buyerPhone)}</span></div>
+    <div class="pacc-row"><span class="pacc-lbl">Talep</span><span class="pacc-val">${escapeHtml(r.buyerMessage)}</span></div>
+    <div class="pacc-row"><span class="pacc-lbl">Tarih</span><span class="pacc-val">${dateStr}</span></div>
+    <div class="pacc-row"><span class="pacc-lbl">Durum</span><span class="pacc-val" style="color:${isPending?'#FF9500':'var(--green)'}">${isPending?'Bekliyor':'Yanıtlandı'}</span></div>
+    ${!isPending ? `<div class="pacc-row"><span class="pacc-lbl">Yanıtın</span><span class="pacc-val">${escapeHtml(r.adminReply)}</span></div>` : ''}
+    ${isPending ? `
+      <textarea class="fi" id="pool-reply-${r.id}" rows="2" style="resize:vertical;font-family:inherit;margin-top:8px;width:100%;box-sizing:border-box" placeholder="Alıcıya yanıtın…"></textarea>
+      <button class="apbtn" style="margin-top:8px;background:rgba(0,212,255,.1);border-color:rgba(0,212,255,.3);color:var(--cyan)" onclick="replyToPoolRequest('${r.id}')">Yanıtla</button>
+    ` : ''}
+  </div>`;
+}
+
+async function replyToPoolRequest(requestId) {
+  const textarea = document.getElementById(`pool-reply-${requestId}`);
+  const reply = textarea?.value.trim();
+  if (!reply) { showToast('⚠️', 'rgba(255,69,58,.15)', 'Eksik', 'Yanıt metni boş olamaz.'); return; }
+  const r = poolRequestsCache.find(x => x.id === requestId);
+  if (!r) return;
+  try {
+    await db.collection('teknohane_pool_requests').doc(requestId).update({
+      status: 'replied', adminReply: reply, adminReplyBy: user.uid,
+      repliedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    await notifyUser(r.buyerUid, 'pool_reply', `Havuz Sistemi talebine yanıt geldi: ${reply}`, r.listingId, null, user.uid, myProfileData.displayName || user.displayName || null, myProfileData.photoURL);
+    r.status = 'replied'; r.adminReply = reply;
+    rPoolRequestsList();
+    showToast('✓', 'rgba(48,209,88,.15)', 'Yanıtlandı', 'Alıcıya bildirim gönderildi.');
+  } catch(e) { showErrorToast(e.message); }
+}
+
+// ==== PAZARLIK / TEKLİF S\u304?STEM\u304? ====
+// Al\u305?c\u305? "Pazarl\u305?k Yap" ile teklif g\'f6nderir (teknohane_offers'a yaz\u305?l\u305?r + sat\u305?c\u305?ya bildirilir),
+// sat\u305?c\u305? KEND\u304? ilan\u305?n\u305?n detay\u305?nda (det-offers-section) bekleyen teklifleri g\'f6r\'fcp yan\u305?tlar
+// (kabul/reddet) \f2\emdash  yan\u305?t da al\u305?c\u305?ya bildirim olarak gider.
+let offerTargetListingId = null;
+
+function openOfferForm(listingId) {
+  if (!user) { gt('profile'); return; }
+  offerTargetListingId = listingId;
+  document.getElementById('offer-price').value = '';
+  document.getElementById('offer-message').value = '';
+  const err = document.getElementById('offer-err'); err.textContent = ''; err.classList.remove('on');
+  document.getElementById('offer-mo').classList.add('on');
+}
+
+async function submitOffer() {
+  const err = document.getElementById('offer-err'); err.textContent = ''; err.classList.remove('on');
+  const price = document.getElementById('offer-price').value.trim();
+  const message = document.getElementById('offer-message').value.trim();
+  if (!price || parseInt(price) <= 0) { err.textContent = 'Geçerli bir teklif tutarı gir.'; err.classList.add('on'); return; }
+  const listingId = offerTargetListingId;
+  const l = currentListing && currentListing.id === listingId ? currentListing : await getListingById(listingId);
+  if (!l) return;
+  const buyerName = myProfileData.displayName || user.displayName || user.email?.split('@')[0] || 'Bir kullanıcı';
+  try {
+    await db.collection('teknohane_offers').add({
+      listingId, listingModel: l.model || '', sellerUid: l.uid,
+      buyerUid: user.uid, buyerName, offerPrice: parseInt(price), message,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      status: 'pending', respondedAt: null,
+    });
+    const msg = `${buyerName}, "${l.model||''}" ilanına ₺${parseInt(price).toLocaleString('tr-TR')} teklif verdi.`;
+    await notifyUser(l.uid, 'offer_received', msg, listingId, null, user.uid, buyerName, myProfileData.photoURL);
+    closemo('offer-mo');
+    showToast('🤝', 'rgba(0,212,255,.15)', 'Teklifin Gönderildi', 'Satıcı teklifini ilan sayfasında görecek.');
+  } catch(e) { showErrorToast(e.message); }
+}
+
+// Satıcı kendi (pazarlığa açık) ilanının detayını açtığında bekleyen teklifleri yükler — bkz.
+// renderDetailPage'deki #det-offers-section yer tutucusu.
+let listingOffersCache = [];
+async function loadListingOffers(listingId) {
+  const el = document.getElementById('det-offers-section');
+  if (!el) return;
+  try {
+    const snap = await db.collection('teknohane_offers').where('listingId', '==', listingId).where('sellerUid', '==', user.uid).orderBy('createdAt', 'desc').limit(30).get();
+    listingOffersCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderListingOffers();
+  } catch(e) {
+    console.error('Teklifler yüklenemedi:', e);
+  }
+}
+
+function renderListingOffers() {
+  const el = document.getElementById('det-offers-section');
+  if (!el) return;
+  if (!listingOffersCache.length) { el.innerHTML = ''; return; }
+  el.innerHTML = `<div class="pool-banner">
+    <div class="pool-banner-top"><span class="pool-badge">🤝 Gelen Teklifler (${listingOffersCache.length})</span></div>
+    ${listingOffersCache.map(offerItemHTML).join('')}
+  </div>`;
+}
+
+function offerItemHTML(o) {
+  const dateStr = o.createdAt?.toDate ? o.createdAt.toDate().toLocaleDateString('tr-TR',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'}) : '';
+  if (o.status !== 'pending') {
+    return `<div class="pacc-row" style="margin-top:8px"><span class="pacc-lbl">${escapeHtml(o.buyerName)} · ₺${o.offerPrice.toLocaleString('tr-TR')}</span><span class="pacc-val" style="color:${o.status==='accepted'?'var(--green)':'var(--red)'}">${o.status==='accepted'?'Kabul Edildi':'Reddedildi'}</span></div>`;
+  }
+  return `<div class="pacc-card" style="margin-top:8px">
+    <div class="pacc-row"><span class="pacc-lbl">Teklif Veren</span><span class="pacc-val">${escapeHtml(o.buyerName)}</span></div>
+    <div class="pacc-row"><span class="pacc-lbl">Teklif</span><span class="pacc-val">₺${o.offerPrice.toLocaleString('tr-TR')}</span></div>
+    ${o.message?`<div class="pacc-row"><span class="pacc-lbl">Mesaj</span><span class="pacc-val">${escapeHtml(o.message)}</span></div>`:''}
+    <div class="pacc-row"><span class="pacc-lbl">Tarih</span><span class="pacc-val">${dateStr}</span></div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="apbtn" style="background:rgba(48,209,88,.1);border-color:rgba(48,209,88,.3);color:var(--green);margin-top:0;flex:1" onclick="respondToOffer('${o.id}',true)">Kabul Et</button>
+      <button class="apbtn" style="background:rgba(255,69,58,.1);border-color:rgba(255,69,58,.3);color:var(--red);margin-top:0;flex:1" onclick="respondToOffer('${o.id}',false)">Reddet</button>
+    </div>
+  </div>`;
+}
+
+async function respondToOffer(offerId, accept) {
+  const o = listingOffersCache.find(x => x.id === offerId);
+  if (!o) return;
+  try {
+    await db.collection('teknohane_offers').doc(offerId).update({
+      status: accept ? 'accepted' : 'rejected',
+      respondedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    const sellerName = myProfileData.displayName || user.displayName || user.email?.split('@')[0] || 'Satıcı';
+    const msg = accept
+      ? `${sellerName}, ₺${o.offerPrice.toLocaleString('tr-TR')} teklifini kabul etti.`
+      : `${sellerName}, ₺${o.offerPrice.toLocaleString('tr-TR')} teklifini reddetti.`;
+    await notifyUser(o.buyerUid, 'offer_response', msg, o.listingId, null, user.uid, sellerName, myProfileData.photoURL);
+    o.status = accept ? 'accepted' : 'rejected';
+    renderListingOffers();
+    showToast(accept ? '✓' : '✓', accept ? 'rgba(48,209,88,.15)' : 'rgba(255,69,58,.15)', 'Yanıtlandı', 'Alıcıya bildirim gönderildi.');
+  } catch(e) { showErrorToast(e.message); }
 }
 
 // Uygulama şu an Capacitor native kabuğu (Android APK) içinde mi çalışıyor, yoksa normal tarayıcıda mı?
@@ -5406,6 +5634,9 @@ const NOTIF_ICONS = {
   new_message: { ic: '💬', bg: 'rgba(0,212,255,.12)' },
   listing_expired: { ic: '⏰', bg: 'rgba(0,212,255,.12)' },
   pool_request: { ic: '🛡️', bg: 'rgba(0,212,255,.12)' },
+  pool_reply: { ic: '🛡️', bg: 'rgba(48,209,88,.15)' },
+  offer_received: { ic: '🤝', bg: 'rgba(0,212,255,.12)' },
+  offer_response: { ic: '🤝', bg: 'rgba(48,209,88,.15)' },
 };
 
 function subscribeNotifBadge(uid) {
@@ -6875,10 +7106,11 @@ function mcardHTML(l) {
         ${l.photo1?`<img src="${escapeHtml(l.photo1)}" loading="lazy" decoding="async">`:'<div class="mcard-photo-empty"><img src="teknohane.png" alt="" onerror="this.style.display=\'none\'"><span>Fotoğraf Yok</span></div>'}
         ${(l.sold||pending||isListingExpired(l))?`<div class="mcard-status-overlay"><div class="mcard-status-pill ${pending&&!l.sold?'pending':''}">${l.sold?'SATILDI':pending?'İNCELENİYOR':'SÜRESİ DOLDU'}</div></div>`:''}
         ${l.condition?`<div class="mcard-badges"><div class="mcard-cnd ${isNew?'new':'used'}">${escapeHtml(l.condition)}</div></div>`:''}
-        ${(l.showcase||l.featured||l.urgent)?`<div class="mcard-tag-row">
+        ${(l.showcase||l.featured||l.urgent||l.poolSystem)?`<div class="mcard-tag-row">
           ${l.showcase?'<div class="mcard-tag-ic showcase-ic" title="Vitrin">📌</div>':''}
           ${l.featured?'<div class="mcard-tag-ic featured-ic" title="Öne Çıkan">⭐</div>':''}
           ${l.urgent?'<div class="mcard-tag-ic urgent-ic" title="Acil">🔥</div>':''}
+          ${l.poolSystem?'<div class="mcard-tag-ic pool-ic" title="Havuz Sistemi">🛡️</div>':''}
         </div>`:''}
         <div class="mcard-fav ${fav?'on':''}" onclick="event.stopPropagation();toggleFav('${l.id}',this)">
           <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
@@ -7210,6 +7442,7 @@ function newListing() {
   document.getElementById('l-agree-wrap').style.display = '';
   document.getElementById('l-agree').checked = false;
   document.getElementById('l-pool-system').checked = false;
+  document.getElementById('l-negotiable').checked = false;
   photos[0] = null; photos[1] = null; photos[2] = null; photos[3] = null;
   [0,1,2,3].forEach(i => { const slot = document.getElementById('ps' + i); if (slot) slot.innerHTML = renderPhotoSlotHTML(i); });
   document.getElementById('listing-mo').classList.add('on');
@@ -7267,10 +7500,21 @@ async function submitListing() {
       // requestPoolPurchase/notifyAdminsPoolRequest) — ödeme/para tutma henüz entegre değil,
       // yalnızca ilan detayında alıcıya "Havuz Sistemi ile Satın Al" butonunu göstermek için kullanılıyor.
       poolSystem: document.getElementById('l-pool-system').checked,
+      // Pazarlığa açık: işaretliyse ilan detayında alıcıya "Pazarlık Yap" butonu görünür (bkz.
+      // openOfferForm/submitOffer) — satıcı gelen teklifleri kendi ilanının detayında yanıtlar.
+      negotiable: document.getElementById('l-negotiable').checked,
     };
 
     if (editingListingId) {
-      const old = await getListingById(editingListingId);
+      // KANITLANMIŞ KÖK NEDEN DÜZELTMESİ ("fiyat düşünce favoriye alana bildirim gitmiyor"):
+      // getListingById() önce YEREL ÖNBELLEĞİ (marketMineListings/marketAllListings vb. — tek
+      // seferlik, canlı güncellenmeyen bir çekimden) döndürüyordu. favoritedByUids buradan
+      // donmuş/bayat geliyordu — biri ilan yüklendikten SONRA favorilediyse bu değişiklik hiç
+      // yansımıyor, aşağıdaki fiyat-düşüşü karşılaştırması o kişiyi hiç göremiyordu. Burada,
+      // yalnızca bu kritik karşılaştırma için, önbelleği atlayıp DOĞRUDAN taze bir Firestore
+      // okuması yapılıyor.
+      const oldSnap = await db.collection('teknohane_listings').doc(editingListingId).get();
+      const old = oldSnap.exists ? { id: oldSnap.id, ...oldSnap.data() } : null;
       const isAdminEdit = old && old.uid !== user.uid;
       // Sahibi olmayan bir düzenleme yalnızca manageListings yetkili adminler için izinlidir —
       // Firestore Rules seviyesinde zaten isAdmin() herhangi bir ilanı güncelleyebiliyor (bkz.
@@ -7337,6 +7581,7 @@ async function submitListing() {
     document.querySelector('.csel[data-for="l-ilce"] .csel-label').textContent = 'Önce il seçin';
     document.getElementById('l-agree').checked = false;
     document.getElementById('l-pool-system').checked = false;
+    document.getElementById('l-negotiable').checked = false;
     document.getElementById('detail-fields').style.display = 'none';
     document.getElementById('dt-chevron')?.parentElement?.classList.remove('open');
     listingFormOnChange();
@@ -7386,6 +7631,7 @@ async function editListing(id) {
   document.getElementById('l-battery').value = l.battery || '';
   document.getElementById('l-box').value = l.box || '';
   document.getElementById('l-pool-system').checked = !!l.poolSystem;
+  document.getElementById('l-negotiable').checked = !!l.negotiable;
   document.getElementById('l-agree').checked = true;
   document.getElementById('l-agree-wrap').style.display = 'none';
   if (l.ram || l.storage || l.color || l.warranty || l.chip || l.battery || l.box) {
@@ -7525,6 +7771,9 @@ function openDetail(id) {
   getListingById(id).then(l => {
     if (!l) { showToast('❗','rgba(255,69,58,.12)','İlan Bulunamadı','Bu ilan kaldırılmış veya silinmiş olabilir.'); return; }
     renderDetailPage(l);
+    // Satıcı kendi (pazarlığa açık) ilanını görüntülüyorsa bekleyen teklifleri yükler (bkz.
+    // #det-offers-section yer tutucusu, renderDetailPage'de eklendi).
+    if (user && l.uid === user.uid && l.negotiable) loadListingOffers(id);
     // KÖK NEDEN DÜZELTMESİ ("görüntülenme sayısı çok düşük kalıyor"): getListingById önce yerel
     // önbellekteki (marketAllListings vb. — tek seferlik, sayfalanmış bir çekimden gelen, ARTIK canlı
     // güncellenmeyen) kopyayı döndürüyor. Bu kopyanın viewCount'u, o liste ne zaman çekildiyse o ana
@@ -7596,8 +7845,15 @@ function renderDetailPage(l) {
         <span class="pool-badge">🛡️ Havuz Sistemi ile Güvenli Alışveriş</span>
         <span class="pool-info-q" onclick="openPoolInfo()">?</span>
       </div>
-      ${!mine ? `<button class="pool-buy-btn" onclick="requestPoolPurchase('${id}')">Havuz Sistemi ile Satın Al</button>` : ''}
+      ${!mine ? `<button class="pool-buy-btn" onclick="openPoolRequestForm('${id}')">Havuz Sistemi ile Satın Al</button>` : ''}
     </div>` : ''}
+    ${l.negotiable && !mine ? `<div class="pool-banner det-anim" style="animation-delay:.095s">
+      <div class="pool-banner-top">
+        <span class="pool-badge">🤝 Pazarlığa Açık</span>
+      </div>
+      <button class="pool-buy-btn" onclick="openOfferForm('${id}')">Pazarlık Yap</button>
+    </div>` : ''}
+    ${l.negotiable && mine ? `<div id="det-offers-section" class="det-anim" style="animation-delay:.095s"></div>` : ''}
     <div class="listing-id-bar det-anim" style="animation-delay:.1s">
       <div><div class="listing-id-label">İlan No</div><div class="listing-id-val">#${shortId}</div></div>
       <div style="display:flex;gap:8px">
@@ -9319,10 +9575,17 @@ function openAdmin() {
 }
 
 function switchAdminTab(tab) {
-  ['listings','users','forum','logs','complaints','dashboard','announcements','settings'].forEach(t => {
+  ['listings','users','forum','logs','complaints','pool','dashboard','announcements','settings'].forEach(t => {
     document.getElementById(`adm-tab-${t}`).className = tab===t ? 'mtab on' : 'mtab off';
     document.getElementById(`admin-${t}-view`).style.display = tab===t ? 'block' : 'none';
   });
+  if (tab === 'pool') {
+    if (!hasPermission('manageListings')) {
+      document.getElementById('adm-pool-list').innerHTML = '<div class="no">Bu bölümü görüntüleme yetkin yok.</div>';
+      return;
+    }
+    loadPoolRequests();
+  }
   if (tab === 'users') {
     if (!hasPermission('manageUsers')) {
       document.getElementById('adm-users-list').innerHTML = '<div class="no">Bu bölümü görüntüleme yetkin yok.</div>';
