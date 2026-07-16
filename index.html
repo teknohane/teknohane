@@ -741,6 +741,13 @@ body.tk-text-focus * { user-select: auto !important; -webkit-user-select: auto !
 .det-contact-btn.dc-fav.on{background:rgba(255,69,58,.1);border-color:rgba(255,69,58,.3);color:var(--red);}
 .det-contact-btn.dc-fav svg{fill:none;stroke:currentColor;stroke-width:1.8;}
 .det-contact-btn.dc-fav.on svg{fill:var(--red);stroke:var(--red);}
+/* Havuz Sistemi (escrow-benzeri güven önlemi, opsiyonel) — ilan detayında sadece ilan sahibi bunu
+   işaretlediyse görünür. Ödeme/para tutma henüz entegre değil, bkz. requestPoolPurchase. */
+.pool-banner{background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.25);border-radius:14px;padding:12px 14px;margin-bottom:12px;}
+.pool-banner-top{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.pool-badge{font-size:13px;font-weight:700;color:var(--cyan);}
+.pool-info-q{width:20px;height:20px;border-radius:50%;background:var(--surf2);color:var(--text2);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;}
+.pool-buy-btn{width:100%;background:var(--cyan);color:#000;font-size:14px;font-weight:700;padding:12px;border-radius:12px;border:none;cursor:pointer;font-family:inherit;margin-top:10px;}
 .det-desc-text{font-size:15.5px;color:var(--text2);line-height:1.65;padding:14px;background:var(--surf);border-radius:14px;margin:16px 0 0;max-height:112px;overflow:hidden;position:relative;transition:max-height .25s ease;}
 .det-desc-text.expanded{max-height:800px;}
 .det-desc-text.clamped::after{content:'';position:absolute;left:0;right:0;bottom:0;height:36px;background:linear-gradient(to top, var(--surf), transparent);}
@@ -1571,7 +1578,13 @@ body.tk-maintenance #maintenance-gate{
         </div>
       </div>
     </div>
-    <div class="fg"><label class="fl">Marka</label><input class="fi" type="text" id="l-brand" placeholder="Örn: Samsung, Apple" oninput="listingFormOnChange()" onblur="titleCaseListingField('l-brand')"></div>
+    <div class="fg"><label class="fl">Marka</label>
+      <div class="csel" data-for="l-brand" data-title="Marka Seç" onclick="openPicker(this)"><span class="csel-label">Marka Seçin</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+      <select id="l-brand" style="display:none" onchange="onListingBrandChange()"></select>
+    </div>
+    <div class="fg" id="l-brand-other-wrap" style="display:none">
+      <label class="fl">Marka (elle yazın)</label><input class="fi" type="text" id="l-brand-other" placeholder="Markanızı yazın" oninput="syncListingBrandOtherLabel();listingFormOnChange()" onblur="titleCaseListingField('l-brand-other')">
+    </div>
     <div class="fg"><label class="fl">Model</label><input class="fi" type="text" id="l-model" placeholder="Örn: Galaxy S24" oninput="listingFormOnChange()" onblur="titleCaseListingField('l-model')"></div>
     <div class="fg"><label class="fl">Fiyat (₺)</label><input class="fi" type="number" id="l-price" placeholder="25000" oninput="listingFormOnChange()"></div>
     <div class="fg"><label class="fl">Durum</label>
@@ -1615,6 +1628,11 @@ body.tk-maintenance #maintenance-gate{
 
     <div class="fg"><label class="fl">Açıklama <span id="l-desc-counter" style="color:var(--text3);font-weight:400">(0 / 30)</span></label><textarea class="fi" id="l-desc" placeholder="Ürün hakkında detaylı bilgi verin…" style="min-height:70px;resize:vertical;font-family:inherit" oninput="listingFormOnChange()"></textarea></div>
     <div class="fg"><label class="fl">WhatsApp Numaranız</label><input class="fi" type="tel" id="l-phone" placeholder="5XXXXXXXXX"></div>
+    <label class="fg" style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:16px">
+      <input type="checkbox" id="l-pool-system" style="width:18px;height:18px;accent-color:var(--cyan);flex-shrink:0">
+      <span style="font-size:13px;color:var(--text);font-weight:600">Havuz Sistemi</span>
+      <span onclick="event.preventDefault();event.stopPropagation();openPoolInfo()" style="width:18px;height:18px;border-radius:50%;background:var(--surf2);color:var(--text2);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">?</span>
+    </label>
     <label id="l-agree-wrap" style="display:flex;align-items:flex-start;gap:10px;margin-bottom:16px;cursor:pointer">
       <input type="checkbox" id="l-agree" style="width:18px;height:18px;margin-top:1px;accent-color:var(--cyan);flex-shrink:0" onchange="listingFormOnChange()">
       <span style="font-size:12px;color:var(--text2);line-height:1.5">Bu ürünün bana ait olduğunu, bilgilerin doğru olduğunu beyan ederim ve <a href="sartlar.html" target="_blank" style="color:var(--cyan)">Kullanım Şartları</a>'nı kabul ediyorum.</span>
@@ -4793,6 +4811,27 @@ function confirmDialog(message, opts) {
   });
 }
 
+// Salt-okunur, tek butonlu ("Anladım") bilgilendirme metni — confirm-mo'yu paylaşır, iptal butonu
+// gizlenir. Havuz Sistemi açıklaması gibi bir onay gerektirmeyen bilgi metinleri için kullanılır.
+function infoDialog(message, title) {
+  return new Promise(resolve => {
+    const mo = document.getElementById('confirm-mo');
+    document.getElementById('confirm-mo-title').textContent = title || 'Bilgi';
+    document.getElementById('confirm-mo-msg').textContent = message || '';
+    document.getElementById('confirm-mo-input-wrap').style.display = 'none';
+    const okBtn = document.getElementById('confirm-mo-ok');
+    const cancelBtn = document.getElementById('confirm-mo-cancel');
+    okBtn.textContent = 'Anladım';
+    okBtn.style.background = 'var(--cyan)';
+    okBtn.style.color = '#000';
+    cancelBtn.style.display = 'none';
+    const cleanup = () => { mo.classList.remove('on'); okBtn.onclick = null; mo.onclick = null; cancelBtn.style.display = ''; resolve(true); };
+    okBtn.onclick = cleanup;
+    mo.onclick = e => { if (e.target === mo) cleanup(); };
+    mo.classList.add('on');
+  });
+}
+
 function promptDialog(message, defaultValue, opts) {
   opts = opts || {};
   return new Promise(resolve => {
@@ -4865,6 +4904,7 @@ const NOTIF_TYPE_CATEGORY = {
   post_liked: 'forum', post_comment: 'forum', comment_liked: 'forum', comment_reply: 'forum',
   admin_notification: 'system', admin_warning: 'system', complaint_update: 'system',
   new_message: 'messages',
+  pool_request: 'market',
 };
 
 // fromUid/fromName/fromPhotoURL — OPSİYONEL aktör bilgisi (bildirimi tetikleyen kişi). Var olan
@@ -5138,6 +5178,47 @@ function notifyAdminsNewListing(model, ownerName) {
   notifyAdminsOfEvent('manageListings', '🟢 Yeni ilan onaya gönderildi', `${model}\nGönderen: ${ownerName}`);
 }
 
+// Havuz Sistemi talebi: notifyAdminsOfEvent yalnızca ANLIK push atar, kalıcı bir kayıt bırakmaz —
+// bu, ödeme/para tutma henüz entegre edilmediği için adminin manuel takip edebileceği bir "iş listesi"
+// gibi davranması gereken bir olay olduğundan, AYNI hedef kitleye (manageListings yetkili adminler)
+// EK olarak notifyUser ile kalıcı bir bildirim de yazılıyor (bell panelinde kalır, kaçırılmaz).
+// İleride gerçek ödeme akışı eklendiğinde bu fonksiyon, yeni durumları (ödeme alındı/onaylandı vb.)
+// bildirmek üzere genişletilebilir.
+async function notifyAdminsPoolRequest(listingId, listingModel, buyerName) {
+  const title = '🛡️ Havuz Sistemi Talebi';
+  const body = `${buyerName}, "${listingModel}" ilanı için Havuz Sistemi ile satın alma talep etti.`;
+  notifyAdminsOfEvent('manageListings', title, body, `https://teknohane.github.io/teknohane/?listing=${listingId}`);
+  try {
+    const snap = await db.collection('teknohane_admin_push_targets').limit(100).get();
+    snap.docs.forEach(d => {
+      if (d.id === user?.uid) return;
+      if (!d.data().permissions?.manageListings) return;
+      notifyUser(d.id, 'pool_request', body, listingId, null, user.uid, myProfileData.displayName || user.displayName || null, myProfileData.photoURL, true);
+    });
+  } catch(e) { /* sessizce geç — bildirim gitmese de asıl işlem akışı asla bloklanmamalı */ }
+}
+
+// Havuz Sistemi açıklaması — hem ilan formunda (satıcıya) hem ilan detayında (alıcıya) "?" ikonuna
+// dokunulduğunda gösterilir. Tek bir yerde tutulur, iki farklı metin İCAT EDİLMEZ.
+const POOL_SYSTEM_INFO = 'Havuz Sistemi, alıcı ile satıcı arasındaki güven problemini ortadan kaldırmak için tasarlanmıştır.\n\nAlıcı ödemeyi doğrudan satıcıya değil, Teknohane yönetimine gönderir. Telefon alıcıya sorunsuz şekilde ulaştıktan sonra ödeme tutarı satıcıya iletilir.\n\nBu özellik şu an için bir TALEP mekanizmasıdır — talebini ilettiğinde yönetici seninle iletişime geçip süreci birlikte yürütür.';
+
+function openPoolInfo() {
+  infoDialog(POOL_SYSTEM_INFO, '🛡️ Havuz Sistemi Nedir?');
+}
+
+// İlan detayında alıcı "Havuz Sistemi ile Satın Al" butonuna dokununca çağrılır — gerçek ödeme/para
+// tutma henüz entegre edilmediği için (bkz. POOL_SYSTEM_INFO), şu an yalnızca adminlere bir TALEP
+// bildirimi gönderir; admin bundan sonrasını alıcı/satıcıyla manuel yürütür. İleride gerçek ödeme
+// akışı eklendiğinde bu fonksiyon genişletilip bir "pool_requests" koleksiyonuna kayıt da eklenebilir.
+async function requestPoolPurchase(listingId) {
+  if (!user) { gt('profile'); return; }
+  const l = currentListing && currentListing.id === listingId ? currentListing : await getListingById(listingId);
+  if (!l) return;
+  const buyerName = myProfileData.displayName || user.displayName || user.email?.split('@')[0] || 'Bir kullanıcı';
+  await notifyAdminsPoolRequest(listingId, l.model || '', buyerName);
+  showToast('🛡️', 'rgba(0,212,255,.15)', 'Talebin İletildi', 'Yönetici ekibimiz en kısa sürede seninle iletişime geçecek.');
+}
+
 // Uygulama şu an Capacitor native kabuğu (Android APK) içinde mi çalışıyor, yoksa normal tarayıcıda mı?
 function isNativeApp() {
   return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
@@ -5324,6 +5405,7 @@ const NOTIF_ICONS = {
   complaint_update: { ic: '📋', bg: 'rgba(0,212,255,.12)' },
   new_message: { ic: '💬', bg: 'rgba(0,212,255,.12)' },
   listing_expired: { ic: '⏰', bg: 'rgba(0,212,255,.12)' },
+  pool_request: { ic: '🛡️', bg: 'rgba(0,212,255,.12)' },
 };
 
 function subscribeNotifBadge(uid) {
@@ -6968,6 +7050,90 @@ const TR_IL_ILCE = {
 };
 const TR_IL_LIST = Object.keys(TR_IL_ILCE);
 
+// İlan Ver formundaki Marka seçicisi için kapsamlı telefon markası listesi — dünya genelinde satılmış/
+// satılan hemen hemen tüm markaları kapsar (küresel, Çin, Hindistan, Türk yerli markaları dahil).
+// Listede olmayan gerçekten nadir bir marka için son seçenek "Diğer" ile elle yazılabiliyor.
+const PHONE_BRANDS = [
+  'Apple','Samsung','Xiaomi','Redmi','POCO','Huawei','Honor','OPPO','vivo','iQOO','OnePlus','realme',
+  'Motorola','Nokia','Sony','LG','Google','Asus','Nothing','Lenovo','ZTE','Nubia','RedMagic',
+  'Alcatel','TCL','BlackBerry','HTC','Meizu','Infinix','Tecno','itel','Gionee','Coolpad','LeEco','Smartisan','Black Shark',
+  'Sharp','Panasonic','Kyocera','Fujitsu','NEC','Toshiba',
+  'Casper','General Mobile','Reeder','Vestel','Monster','Turkcell',
+  'Fairphone','Doogee','Ulefone','Blackview','Cubot','Oukitel','Umidigi','Wiko',
+  'Micromax','Lava','Karbonn','Intex','iBall','Xolo','Spice','Videocon','Jio','Comio',
+  'BLU','Cat','Vertu','Gigaset','Emporia','Doro','BQ','Prestigio','Philips','Archos',
+  'Palm','Essential','Razer','Meitu','360','Elephone','Homtom','Leagoo','AGM','Bluboo','Vernee','Vsmart',
+  'Positivo','Multilaser','Pantech','Freetel','Rakuten','Innos','Konka','Haier','Hisense','Skyworth',
+  'Land Rover','Hummer','Conquest','Casio','BenQ-Siemens','Sagem','Siemens','Sendo',
+  'Diğer',
+];
+
+// Marka <select>'inin seçeneklerini bir kez doldurur (idempotent) — İl picker'ıyla AYNI desen.
+function ensureListingBrandOptionsPopulated() {
+  const sel = document.getElementById('l-brand');
+  if (!sel || sel.dataset.filled) return;
+  sel.innerHTML = '<option value=""></option>' + PHONE_BRANDS.map(b => `<option value="${b}">${b}</option>`).join('');
+  sel.dataset.filled = '1';
+}
+
+// "Diğer" seçilince elle-yazım yedek alanını açar/kapatır — picker'dan seçim yapıldığında tetiklenir.
+// (Normal marka seçimlerinde tetikleyici etiketi zaten choosePickerOption'ın çağırdığı
+// syncPickerTriggerLabel ile doğru ayarlanıyor — burada yalnızca "Diğer" durumu özel işleniyor.)
+function onListingBrandChange() {
+  const sel = document.getElementById('l-brand');
+  const isOther = sel.value === 'Diğer';
+  document.getElementById('l-brand-other-wrap').style.display = isOther ? 'block' : 'none';
+  if (isOther) syncListingBrandOtherLabel();
+  listingFormOnChange();
+}
+
+// "Diğer" seçiliyken tetikleyici etikette "Diğer" değil, elle yazılan GERÇEK marka adı gösterilsin diye
+// hem seçim anında hem kullanıcı yazarken (oninput) çağrılır.
+function syncListingBrandOtherLabel() {
+  const labelEl = document.querySelector('.csel[data-for="l-brand"] .csel-label');
+  if (labelEl) labelEl.textContent = document.getElementById('l-brand-other')?.value.trim() || 'Diğer';
+}
+
+// Formda GERÇEKTEN kullanılacak marka değeri — "Diğer" seçiliyse elle yazılan metin, değilse
+// picker'dan seçilen değer. listingFormOnChange/submitListing tarafından ortak kullanılır.
+function getListingBrandValue() {
+  const sel = document.getElementById('l-brand');
+  if (!sel) return '';
+  if (sel.value === 'Diğer') return document.getElementById('l-brand-other')?.value.trim() || '';
+  return sel.value.trim();
+}
+
+// Bir marka string'ini (Firestore'dan gelen ya da boş) picker'a geri yükler — listede varsa doğrudan
+// seçilir, yoksa (eski serbest-metin ilan ya da listede olmayan nadir marka) "Diğer" seçilip elle-yazım
+// alanına konur. newListing/editListing tarafından kullanılır.
+function setListingBrandValue(brandValue) {
+  const sel = document.getElementById('l-brand');
+  const otherWrap = document.getElementById('l-brand-other-wrap');
+  const otherInp = document.getElementById('l-brand-other');
+  const labelEl = document.querySelector('.csel[data-for="l-brand"] .csel-label');
+  if (!sel) return;
+  const found = brandValue && Array.from(sel.options).some(o => o.value === brandValue);
+  if (found) {
+    sel.value = brandValue;
+    otherWrap.style.display = 'none';
+    otherInp.value = '';
+    if (labelEl) labelEl.textContent = brandValue;
+  } else if (brandValue) {
+    // Listede olmayan bir marka (eski serbest-metin ilan / nadir marka) — "Diğer" seçilir ama
+    // tetikleyici etikette "Diğer" DEĞİL, gerçek marka adı gösterilir (bkz. syncPickerTriggerLabel'daki
+    // sel.value!=='Diğer' koruması — bu buton etiketini ezip "Diğer" yazmasını engelliyor).
+    sel.value = 'Diğer';
+    otherWrap.style.display = 'block';
+    otherInp.value = brandValue;
+    if (labelEl) labelEl.textContent = brandValue;
+  } else {
+    sel.value = '';
+    otherWrap.style.display = 'none';
+    otherInp.value = '';
+    if (labelEl) labelEl.textContent = 'Marka Seçin';
+  }
+}
+
 // İl <select>'inin seçeneklerini bir kez doldurur (idempotent — birden fazla çağrılırsa yeniden doldurmaz).
 function ensureListingIlOptionsPopulated() {
   const ilSel = document.getElementById('l-il');
@@ -7009,7 +7175,7 @@ function listingFormOnChange() {
   const descCounterEl = document.getElementById('l-desc-counter');
   if (descCounterEl) { descCounterEl.textContent = `(${descLen} / 30)`; descCounterEl.style.color = descLen >= 30 ? 'var(--green)' : 'var(--text3)'; }
 
-  const brand = document.getElementById('l-brand')?.value.trim();
+  const brand = getListingBrandValue();
   const modelOnly = document.getElementById('l-model')?.value.trim();
   const price = document.getElementById('l-price')?.value.trim();
   const il = document.getElementById('l-il')?.value;
@@ -7030,7 +7196,8 @@ function newListing() {
   editingListingId = null;
   pendingNewListingPhotoId = db.collection('teknohane_listings').doc().id;
   ensureListingIlOptionsPopulated();
-  document.getElementById('l-brand').value = '';
+  ensureListingBrandOptionsPopulated();
+  setListingBrandValue('');
   document.getElementById('l-model').value = '';
   document.getElementById('l-price').value = '';
   document.getElementById('l-desc').value = '';
@@ -7042,6 +7209,7 @@ function newListing() {
   document.querySelector('#listing-mo .sbtn2').textContent = 'İlanı Yayınla';
   document.getElementById('l-agree-wrap').style.display = '';
   document.getElementById('l-agree').checked = false;
+  document.getElementById('l-pool-system').checked = false;
   photos[0] = null; photos[1] = null; photos[2] = null; photos[3] = null;
   [0,1,2,3].forEach(i => { const slot = document.getElementById('ps' + i); if (slot) slot.innerHTML = renderPhotoSlotHTML(i); });
   document.getElementById('listing-mo').classList.add('on');
@@ -7051,7 +7219,7 @@ function newListing() {
 async function submitListing() {
   if (!user) return;
   if (systemSettings.listingsDisabled && !editingListingId) { showToast('⚠️','rgba(255,69,58,.15)','Kapalı','Yeni ilan ekleme şu anda geçici olarak kapalı.'); return; }
-  const brand = document.getElementById('l-brand').value.trim();
+  const brand = getListingBrandValue();
   const modelOnly = document.getElementById('l-model').value.trim();
   const model = [brand, modelOnly].filter(Boolean).join(' ').trim();
   const price = document.getElementById('l-price').value.trim();
@@ -7095,6 +7263,10 @@ async function submitListing() {
       chip: document.getElementById('l-chip').value.trim(),
       battery: document.getElementById('l-battery').value.trim(),
       box: document.getElementById('l-box').value.trim(),
+      // Havuz Sistemi: satıcının opsiyonel olarak işaretlediği güven-önlemi bayrağı (bkz.
+      // requestPoolPurchase/notifyAdminsPoolRequest) — ödeme/para tutma henüz entegre değil,
+      // yalnızca ilan detayında alıcıya "Havuz Sistemi ile Satın Al" butonunu göstermek için kullanılıyor.
+      poolSystem: document.getElementById('l-pool-system').checked,
     };
 
     if (editingListingId) {
@@ -7157,12 +7329,14 @@ async function submitListing() {
     document.querySelector('#listing-mo .mtit').textContent = 'İlan Ver';
     document.querySelector('#listing-mo .sbtn2').textContent = 'İlanı Yayınla';
     document.getElementById('l-agree-wrap').style.display = '';
-    ['l-brand','l-model','l-price','l-desc','l-phone','l-ram','l-storage','l-color','l-warranty','l-chip','l-battery','l-box'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    setListingBrandValue('');
+    ['l-model','l-price','l-desc','l-phone','l-ram','l-storage','l-color','l-warranty','l-chip','l-battery','l-box'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
     document.getElementById('l-il').value = '';
     document.getElementById('l-ilce').innerHTML = '<option value=""></option>';
     document.querySelector('.csel[data-for="l-il"] .csel-label').textContent = 'İl Seçin';
     document.querySelector('.csel[data-for="l-ilce"] .csel-label').textContent = 'Önce il seçin';
     document.getElementById('l-agree').checked = false;
+    document.getElementById('l-pool-system').checked = false;
     document.getElementById('detail-fields').style.display = 'none';
     document.getElementById('dt-chevron')?.parentElement?.classList.remove('open');
     listingFormOnChange();
@@ -7179,13 +7353,15 @@ async function editListing(id) {
   if (!l || !user || (l.uid !== user.uid && !hasPermission('manageListings'))) return;
   editingListingId = id;
   ensureListingIlOptionsPopulated();
+  ensureListingBrandOptionsPopulated();
   document.querySelector('#listing-mo .mtit').textContent = l.uid === user.uid ? 'İlanı Düzenle' : `İlanı Düzenle (Admin — ${l.ownerName||'başka kullanıcı'})`;
   document.querySelector('#listing-mo .sbtn2').textContent = 'Değişiklikleri Kaydet';
-  // Mevcut ilanlarda ayrı "marka" alanı hiç olmadığı için (tek parça "model" string'i vardı),
-  // geriye dönük uyumluluk gereği mevcut değer olduğu gibi Model alanına konur, Marka alanı
-  // kullanıcının tamamlaması için boş bırakılır — veri kaybı ya da yanlış tahmin riski yok.
-  document.getElementById('l-brand').value = '';
-  document.getElementById('l-model').value = l.model || '';
+  // Yeni ilanlarda brand ayrı bir alan olarak kaydediliyor (bkz. submitListing) — varsa doğrudan
+  // kullanılır (picker'da yoksa "Diğer" + elle-yazım alanına düşer, bkz. setListingBrandValue).
+  // Eski ilanlarda (brand alanı hiç yokken tek parça "model" string'i vardı) geriye dönük uyumluluk
+  // gereği Marka boş bırakılıp mevcut değer olduğu gibi Model alanına konur.
+  setListingBrandValue(l.brand || '');
+  document.getElementById('l-model').value = l.brand ? (l.modelName || l.model || '') : (l.model || '');
   document.getElementById('l-price').value = l.price || '';
   document.getElementById('l-cond').value = l.condition || 'Sıfır';
   document.getElementById('l-origin').value = l.origin || 'Yurtiçi';
@@ -7209,6 +7385,7 @@ async function editListing(id) {
   document.getElementById('l-chip').value = l.chip || '';
   document.getElementById('l-battery').value = l.battery || '';
   document.getElementById('l-box').value = l.box || '';
+  document.getElementById('l-pool-system').checked = !!l.poolSystem;
   document.getElementById('l-agree').checked = true;
   document.getElementById('l-agree-wrap').style.display = 'none';
   if (l.ram || l.storage || l.color || l.warranty || l.chip || l.battery || l.box) {
@@ -7414,6 +7591,13 @@ function renderDetailPage(l) {
       ${l.origin?`<div class="det-status-badge st-info">${escapeHtml(l.origin)}</div>`:''}
       ${l.location?`<div class="det-status-badge st-info">📍 ${escapeHtml(l.location)}</div>`:''}
     </div>
+    ${l.poolSystem ? `<div class="pool-banner det-anim" style="animation-delay:.09s">
+      <div class="pool-banner-top">
+        <span class="pool-badge">🛡️ Havuz Sistemi ile Güvenli Alışveriş</span>
+        <span class="pool-info-q" onclick="openPoolInfo()">?</span>
+      </div>
+      ${!mine ? `<button class="pool-buy-btn" onclick="requestPoolPurchase('${id}')">Havuz Sistemi ile Satın Al</button>` : ''}
+    </div>` : ''}
     <div class="listing-id-bar det-anim" style="animation-delay:.1s">
       <div><div class="listing-id-label">İlan No</div><div class="listing-id-val">#${shortId}</div></div>
       <div style="display:flex;gap:8px">
@@ -10713,131 +10897,130 @@ function retry() { vc=null;cc=null;cid=null;newsCache=null;document.getElementBy
 const PHONES=[
   {brand:'Apple',name:'iPhone 16 Pro Max',price:'₺99.999',ram:'8GB',storage:'256GB',chip:'A18 Pro',cam:'48+48+12MP',bat:'4685mAh',scr:'6.9" 120Hz',wt:'227g',os:'iOS 18',cimriUrl:'https://www.cimri.com/cep-telefonlari/en-ucuz-apple-iphone-16-pro-max-256gb-siyah-titanyum-fiyatlari,2389290790',yr:2024},
   {brand:'Apple',name:'iPhone 16 Pro',price:'₺89.999',ram:'8GB',storage:'128GB',chip:'A18 Pro',cam:'48+48+12MP',bat:'3582mAh',scr:'6.3" 120Hz',wt:'199g',os:'iOS 18',yr:2024},
-  {brand:'Apple',name:'iPhone 16 Plus',price:'₺74.999',ram:'8GB',storage:'128GB',chip:'A18',cam:'48+12MP',bat:'4674mAh',scr:'6.7" 60Hz',wt:'203g',os:'iOS 18',yr:2024},
+  {brand:'Apple',name:'iPhone 16 Plus',price:'₺74.999',ram:'8GB',storage:'128GB',chip:'A18',cam:'48+12MP',bat:'4674mAh',scr:'6.7" 60Hz',wt:'199g',os:'iOS 18',yr:2024},
   {brand:'Apple',name:'iPhone 16',price:'₺62.499',ram:'8GB',storage:'128GB',chip:'A18',cam:'48+12MP',bat:'3561mAh',scr:'6.1" 60Hz',wt:'170g',os:'iOS 18',cimriUrl:'https://www.cimri.com/cep-telefonlari/en-ucuz-apple-iphone-16-5g-128gb-fiyatlari,a2314921069',yr:2024},
-  {brand:'Apple',name:'iPhone 15 Pro Max',price:'₺84.999',ram:'8GB',storage:'256GB',chip:'A17 Pro',cam:'48+12+12MP',bat:'4422mAh',scr:'6.7" 120Hz',wt:'221g',os:'iOS 18',yr:2023},
+  {brand:'Apple',name:'iPhone 15 Pro Max',price:'₺84.999',ram:'8GB',storage:'256GB',chip:'A17 Pro',cam:'48+12+12MP',bat:'4441mAh',scr:'6.7" 120Hz',wt:'221g',os:'iOS 18',yr:2023},
   {brand:'Apple',name:'iPhone 15 Pro',price:'₺69.999',ram:'8GB',storage:'128GB',chip:'A17 Pro',cam:'48+12+12MP',bat:'3274mAh',scr:'6.1" 120Hz',wt:'187g',os:'iOS 18',yr:2023},
   {brand:'Apple',name:'iPhone 15',price:'₺44.999',ram:'6GB',storage:'128GB',chip:'A16',cam:'48+12MP',bat:'3349mAh',scr:'6.1" 60Hz',wt:'171g',os:'iOS 18',yr:2023},
   {brand:'Apple',name:'iPhone 14',price:'₺34.999',ram:'6GB',storage:'128GB',chip:'A15',cam:'12+12MP',bat:'3279mAh',scr:'6.1" 60Hz',wt:'172g',os:'iOS 17',yr:2022},
   {brand:'Apple',name:'iPhone SE 3',price:'₺24.999',ram:'4GB',storage:'64GB',chip:'A15',cam:'12MP',bat:'2018mAh',scr:'4.7" 60Hz',wt:'144g',os:'iOS 17',yr:2022},
-  {brand:'Samsung',name:'Galaxy S25 Ultra',price:'₺83.499',ram:'12GB',storage:'256GB',chip:'SD 8 Elite for Galaxy',cam:'200+50+10+10MP',bat:'5000mAh',scr:'6.9" 120Hz',wt:'218g',os:'Android 15',cimriUrl:'https://www.cimri.com/cep-telefonlari/en-ucuz-samsung-galaxy-s25-ultra-256gb-12gb-ram-fiyatlari,a2432333010',yr:2025},
+  {brand:'Samsung',name:'Galaxy S25 Ultra',price:'₺83.499',ram:'12GB',storage:'256GB',chip:'SD 8 Elite for Galaxy',cam:'200+50+10+50MP',bat:'5000mAh',scr:'6.9" 120Hz',wt:'218g',os:'Android 15',cimriUrl:'https://www.cimri.com/cep-telefonlari/en-ucuz-samsung-galaxy-s25-ultra-256gb-12gb-ram-fiyatlari,a2432333010',yr:2025},
   {brand:'Samsung',name:'Galaxy S25+',price:'₺69.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite for Galaxy',cam:'50+12+10MP',bat:'4900mAh',scr:'6.7" 120Hz',wt:'190g',os:'Android 15',yr:2025},
-  {brand:'Samsung',name:'Galaxy S25',price:'₺54.999',ram:'12GB',storage:'128GB',chip:'SD 8 Elite',cam:'50+12+10MP',bat:'4000mAh',scr:'6.2" 120Hz',wt:'162g',os:'Android 15',yr:2025},
-  {brand:'Samsung',name:'Galaxy S24 Ultra',price:'₺84.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 3',cam:'200+50+10+12MP',bat:'5000mAh',scr:'6.8" 120Hz',wt:'232g',os:'Android 15',yr:2024},
+  {brand:'Samsung',name:'Galaxy S25',price:'₺54.999',ram:'12GB',storage:'128GB',chip:'SD 8 Elite for Galaxy',cam:'50+12+10MP',bat:'4000mAh',scr:'6.2" 120Hz',wt:'162g',os:'Android 15',yr:2025},
+  {brand:'Samsung',name:'Galaxy S24 Ultra',price:'₺84.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 3',cam:'200+12+10+50MP',bat:'5000mAh',scr:'6.8" 120Hz',wt:'232g',os:'Android 15',yr:2024},
   {brand:'Samsung',name:'Galaxy S24+',price:'₺59.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 3',cam:'50+12+10MP',bat:'4900mAh',scr:'6.7" 120Hz',wt:'196g',os:'Android 15',yr:2024},
   {brand:'Samsung',name:'Galaxy S24',price:'₺44.999',ram:'8GB',storage:'128GB',chip:'Exynos 2400',cam:'50+12+10MP',bat:'4000mAh',scr:'6.2" 120Hz',wt:'167g',os:'Android 15',yr:2024},
   {brand:'Samsung',name:'Galaxy Z Fold 6',price:'₺129.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 3',cam:'50+12+10MP',bat:'4400mAh',scr:'7.6" 120Hz',wt:'239g',os:'Android 14',yr:2024},
   {brand:'Samsung',name:'Galaxy Z Flip 6',price:'₺64.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 3',cam:'50+12MP',bat:'4000mAh',scr:'6.7" 120Hz',wt:'187g',os:'Android 14',yr:2024},
   {brand:'Samsung',name:'Galaxy A55',price:'₺24.999',ram:'8GB',storage:'128GB',chip:'Exynos 1480',cam:'50+12+5MP',bat:'5000mAh',scr:'6.6" 120Hz',wt:'213g',os:'Android 14',yr:2024},
-  {brand:'Samsung',name:'Galaxy A35',price:'₺18.999',ram:'6GB',storage:'128GB',chip:'Exynos 1380',cam:'50+8+5MP',bat:'5000mAh',scr:'6.6" 120Hz',wt:'210g',os:'Android 14',yr:2024},
-  {brand:'Samsung',name:'Galaxy A16',price:'₺9.999',ram:'4GB',storage:'128GB',chip:'Dimensity 6300',cam:'50+5+2MP',bat:'5000mAh',scr:'6.7" 90Hz',wt:'200g',os:'Android 14',yr:2024},
-  {brand:'Xiaomi',name:'15 Ultra',price:'₺84.999',ram:'16GB',storage:'512GB',chip:'SD 8 Elite',cam:'50+50+50+200MP',bat:'6000mAh',scr:'6.73" 120Hz',wt:'229g',os:'Android 15',yr:2025},
-  {brand:'Xiaomi',name:'15 Pro',price:'₺64.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite',cam:'50+50+50MP',bat:'6100mAh',scr:'6.73" 120Hz',wt:'215g',os:'Android 15',yr:2025},
-  {brand:'Xiaomi',name:'15',price:'₺49.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite',cam:'50+50+50MP',bat:'5400mAh',scr:'6.36" 120Hz',wt:'189g',os:'Android 15',yr:2025},
-  {brand:'Xiaomi',name:'14 Ultra',price:'₺69.999',ram:'16GB',storage:'512GB',chip:'SD 8 Gen 3',cam:'50+50+50+50MP',bat:'5300mAh',scr:'6.73" 120Hz',wt:'229g',os:'Android 14',yr:2024},
-  {brand:'Xiaomi',name:'14T Pro',price:'₺44.999',ram:'12GB',storage:'256GB',chip:'Dimensity 9300+',cam:'50+50+50MP',bat:'5000mAh',scr:'6.67" 144Hz',wt:'209g',os:'Android 14',yr:2024},
-  {brand:'Xiaomi',name:'14T',price:'₺32.999',ram:'12GB',storage:'256GB',chip:'Dimensity 8300-Ultra',cam:'50+50+12MP',bat:'5000mAh',scr:'6.67" 144Hz',wt:'193g',os:'Android 14',yr:2024},
-  {brand:'Xiaomi',name:'Redmi Note 14 Pro+',price:'₺22.999',ram:'12GB',storage:'256GB',chip:'SD 7s Gen 3',cam:'200+8+2MP',bat:'6200mAh',scr:'6.67" 120Hz',wt:'204g',os:'Android 14',yr:2024},
-  {brand:'Xiaomi',name:'Redmi Note 14 Pro',price:'₺17.999',ram:'8GB',storage:'256GB',chip:'Dimensity 7300-Ultra',cam:'200+8+2MP',bat:'5500mAh',scr:'6.67" 120Hz',wt:'190g',os:'Android 14',yr:2024},
-  {brand:'Xiaomi',name:'POCO F6 Pro',price:'₺29.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 2',cam:'50+8+2MP',bat:'5000mAh',scr:'6.67" 144Hz',wt:'209g',os:'Android 14',yr:2024},
-  {brand:'Xiaomi',name:'POCO X6 Pro',price:'₺19.999',ram:'12GB',storage:'256GB',chip:'Dimensity 8300-Ultra',cam:'64+8+2MP',bat:'5000mAh',scr:'6.67" 144Hz',wt:'186g',os:'Android 14',yr:2024},
-  {brand:'Google',name:'Pixel 9 Pro XL',price:'₺99.999',ram:'16GB',storage:'128GB',chip:'Tensor G4',cam:'50+48+48MP',bat:'5060mAh',scr:'6.8" 120Hz',wt:'221g',os:'Android 15',yr:2024},
-  {brand:'Google',name:'Pixel 9 Pro',price:'₺79.999',ram:'16GB',storage:'128GB',chip:'Tensor G4',cam:'50+48+48MP',bat:'4700mAh',scr:'6.3" 120Hz',wt:'199g',os:'Android 15',yr:2024},
-  {brand:'Google',name:'Pixel 9',price:'₺49.999',ram:'12GB',storage:'128GB',chip:'Tensor G4',cam:'50+48MP',bat:'4700mAh',scr:'6.3" 120Hz',wt:'198g',os:'Android 15',yr:2024},
-  {brand:'Google',name:'Pixel 8a',price:'₺34.999',ram:'8GB',storage:'128GB',chip:'Tensor G3',cam:'64+13MP',bat:'4492mAh',scr:'6.1" 120Hz',wt:'188g',os:'Android 15',yr:2024},
+  {brand:'Samsung',name:'Galaxy A35',price:'₺18.999',ram:'6GB',storage:'128GB',chip:'Exynos 1380',cam:'50+8+5MP',bat:'5000mAh',scr:'6.6" 120Hz',wt:'209g',os:'Android 14',yr:2024},
+  {brand:'Samsung',name:'Galaxy A16',price:'₺9.999',ram:'4GB',storage:'128GB',chip:'Exynos 1330',cam:'50+5+2MP',bat:'5000mAh',scr:'6.7" 90Hz',wt:'200g',os:'Android 14',yr:2024},
+  {brand:'Xiaomi',name:'15 Ultra',price:'₺84.999',ram:'16GB',storage:'512GB',chip:'SD 8 Elite',cam:'50+50+50+200MP',bat:'5410mAh',scr:'6.73" 120Hz',wt:'229g',os:'Android 15',yr:2025},
+  {brand:'Xiaomi',name:'15 Pro',price:'₺64.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite',cam:'50+50+50MP',bat:'6100mAh',scr:'6.73" 120Hz',wt:'213g',os:'Android 15',yr:2024},
+  {brand:'Xiaomi',name:'15',price:'₺49.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite',cam:'50+50+50MP',bat:'5240mAh',scr:'6.36" 120Hz',wt:'189g',os:'Android 15',yr:2024},
+  {brand:'Xiaomi',name:'14 Ultra',price:'₺69.999',ram:'16GB',storage:'512GB',chip:'SD 8 Gen 3',cam:'50+50+50+50MP',bat:'5000mAh',scr:'6.73" 120Hz',wt:'220g',os:'Android 14',yr:2024},
+  {brand:'Xiaomi',name:'14T Pro',price:'₺44.999',ram:'12GB',storage:'256GB',chip:'Dimensity 9300+',cam:'50+50+12MP',bat:'5000mAh',scr:'6.67" 144Hz',wt:'209g',os:'Android 14',yr:2024},
+  {brand:'Xiaomi',name:'14T',price:'₺32.999',ram:'12GB',storage:'256GB',chip:'Dimensity 8300-Ultra',cam:'50+50+12MP',bat:'5000mAh',scr:'6.67" 144Hz',wt:'195g',os:'Android 14',yr:2024},
+  {brand:'Xiaomi',name:'Redmi Note 14 Pro+',price:'₺22.999',ram:'12GB',storage:'256GB',chip:'SD 7s Gen 3',cam:'200+8+2MP',bat:'6200mAh',scr:'6.67" 120Hz',wt:'205g',os:'Android 14',yr:2025},
+  {brand:'Xiaomi',name:'Redmi Note 14 Pro',price:'₺17.999',ram:'8GB',storage:'256GB',chip:'Dimensity 7300-Ultra',cam:'200+8+2MP',bat:'5110mAh',scr:'6.67" 120Hz',wt:'190g',os:'Android 14',yr:2025},
+  {brand:'Xiaomi',name:'POCO F6 Pro',price:'₺29.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 2',cam:'50+8+2MP',bat:'5000mAh',scr:'6.67" 120Hz',wt:'209g',os:'Android 14',yr:2024},
+  {brand:'Xiaomi',name:'POCO X6 Pro',price:'₺19.999',ram:'12GB',storage:'256GB',chip:'Dimensity 8300-Ultra',cam:'64+8+2MP',bat:'5000mAh',scr:'6.67" 120Hz',wt:'186g',os:'Android 14',yr:2024},
+  {brand:'Google',name:'Pixel 9 Pro XL',price:'₺99.999',ram:'16GB',storage:'128GB',chip:'Tensor G4',cam:'50+48+48MP',bat:'5060mAh',scr:'6.8" 120Hz',wt:'221g',os:'Android 14',yr:2024},
+  {brand:'Google',name:'Pixel 9 Pro',price:'₺79.999',ram:'16GB',storage:'128GB',chip:'Tensor G4',cam:'50+48+48MP',bat:'4700mAh',scr:'6.3" 120Hz',wt:'199g',os:'Android 14',yr:2024},
+  {brand:'Google',name:'Pixel 9',price:'₺49.999',ram:'12GB',storage:'128GB',chip:'Tensor G4',cam:'50+48MP',bat:'4700mAh',scr:'6.3" 120Hz',wt:'198g',os:'Android 14',yr:2024},
+  {brand:'Google',name:'Pixel 8a',price:'₺34.999',ram:'8GB',storage:'128GB',chip:'Tensor G3',cam:'64+13MP',bat:'4492mAh',scr:'6.1" 120Hz',wt:'188g',os:'Android 14',yr:2024},
   {brand:'OnePlus',name:'13',price:'₺54.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite',cam:'50+50+50MP',bat:'6000mAh',scr:'6.82" 120Hz',wt:'210g',os:'Android 15',yr:2025},
-  {brand:'OnePlus',name:'12',price:'₺44.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 3',cam:'50+48+64MP',bat:'5400mAh',scr:'6.82" 120Hz',wt:'220g',os:'Android 15',yr:2024},
-  {brand:'OnePlus',name:'Nord 4',price:'₺19.999',ram:'8GB',storage:'256GB',chip:'SD 7+ Gen 3',cam:'50+8MP',bat:'5500mAh',scr:'6.74" 120Hz',wt:'187g',os:'Android 14',yr:2024},
-  {brand:'Nothing',name:'Phone (3a) Pro',price:'₺24.999',ram:'12GB',storage:'256GB',chip:'SD 7s Gen 3',cam:'50+50+50MP',bat:'5000mAh',scr:'6.77" 120Hz',wt:'201g',os:'Android 15',yr:2025},
+  {brand:'OnePlus',name:'12',price:'₺44.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 3',cam:'50+48+64MP',bat:'5400mAh',scr:'6.82" 120Hz',wt:'220g',os:'Android 14',yr:2024},
+  {brand:'OnePlus',name:'Nord 4',price:'₺19.999',ram:'8GB',storage:'256GB',chip:'SD 7+ Gen 3',cam:'50+8MP',bat:'5500mAh',scr:'6.74" 120Hz',wt:'199g',os:'Android 14',yr:2024},
+  {brand:'Nothing',name:'Phone (3a) Pro',price:'₺24.999',ram:'12GB',storage:'256GB',chip:'SD 7s Gen 3',cam:'50+50+8MP',bat:'5000mAh',scr:'6.77" 120Hz',wt:'211g',os:'Android 15',yr:2025},
   {brand:'Nothing',name:'Phone (3a)',price:'₺19.999',ram:'8GB',storage:'128GB',chip:'SD 7s Gen 3',cam:'50+50+8MP',bat:'5000mAh',scr:'6.77" 120Hz',wt:'201g',os:'Android 15',yr:2025},
   {brand:'Nothing',name:'Phone (2a)',price:'₺14.999',ram:'8GB',storage:'128GB',chip:'Dimensity 7200 Pro',cam:'50+50MP',bat:'5000mAh',scr:'6.7" 120Hz',wt:'190g',os:'Android 14',yr:2024},
   {brand:'Sony',name:'Xperia 1 VI',price:'₺74.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 3',cam:'52+12+12MP',bat:'5000mAh',scr:'6.5" 120Hz',wt:'192g',os:'Android 14',yr:2024},
-  {brand:'Sony',name:'Xperia 5 VI',price:'₺54.999',ram:'8GB',storage:'128GB',chip:'SD 8 Gen 3',cam:'48+12MP',bat:'5000mAh',scr:'6.1" 120Hz',wt:'182g',os:'Android 14',yr:2024},
-  {brand:'Motorola',name:'Edge 50 Ultra',price:'₺34.999',ram:'12GB',storage:'512GB',chip:'SD 8s Gen 3',cam:'50+50+64MP',bat:'4500mAh',scr:'6.7" 144Hz',wt:'171g',os:'Android 14',yr:2024},
+  {brand:'Motorola',name:'Edge 50 Ultra',price:'₺34.999',ram:'12GB',storage:'512GB',chip:'SD 8s Gen 3',cam:'50+50+64MP',bat:'4500mAh',scr:'6.7" 144Hz',wt:'197g',os:'Android 14',yr:2024},
   {brand:'Motorola',name:'Edge 50 Pro',price:'₺24.999',ram:'12GB',storage:'256GB',chip:'SD 7 Gen 3',cam:'50+13+10MP',bat:'4500mAh',scr:'6.7" 144Hz',wt:'186g',os:'Android 14',yr:2024},
   {brand:'realme',name:'GT 7 Pro',price:'₺39.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite',cam:'50+50+8MP',bat:'6500mAh',scr:'6.78" 120Hz',wt:'223g',os:'Android 15',yr:2025},
-  {brand:'ASUS',name:'ROG Phone 9 Pro',price:'₺89.999',ram:'24GB',storage:'1TB',chip:'SD 8 Elite',cam:'50+13+32MP',bat:'5800mAh',scr:'6.78" 165Hz',wt:'246g',os:'Android 15',yr:2024},
+  {brand:'ASUS',name:'ROG Phone 9 Pro',price:'₺89.999',ram:'24GB',storage:'1TB',chip:'SD 8 Elite',cam:'50+13+32MP',bat:'5800mAh',scr:'6.78" 185Hz',wt:'227g',os:'Android 15',yr:2024},
   {brand:'ASUS',name:'Zenfone 11 Ultra',price:'₺44.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 3',cam:'50+13+32MP',bat:'5500mAh',scr:'6.78" 144Hz',wt:'224g',os:'Android 14',yr:2024},
-  {brand:'Honor',name:'Magic 7 Pro',price:'₺54.999',ram:'12GB',storage:'512GB',chip:'SD 8 Elite',cam:'50+200+40MP',bat:'5270mAh',scr:'6.8" 120Hz',wt:'225g',os:'Android 15',yr:2024},
-  {brand:'vivo',name:'X200 Pro',price:'₺64.999',ram:'16GB',storage:'512GB',chip:'SD 8 Elite',cam:'50+200+50MP',bat:'6000mAh',scr:'6.78" 120Hz',wt:'229g',os:'Android 15',yr:2024},
+  {brand:'Honor',name:'Magic 7 Pro',price:'₺54.999',ram:'12GB',storage:'512GB',chip:'SD 8 Elite',cam:'50+200+50MP',bat:'5270mAh',scr:'6.8" 120Hz',wt:'225g',os:'Android 15',yr:2024},
+  {brand:'vivo',name:'X200 Pro',price:'₺64.999',ram:'16GB',storage:'512GB',chip:'Dimensity 9400',cam:'50+200+50MP',bat:'6000mAh',scr:'6.78" 120Hz',wt:'223g',os:'Android 15',yr:2024},
   // VİVO devam
   {brand:'vivo',name:'X300 Pro',price:'₺69.999',ram:'16GB',storage:'512GB',chip:'Dimensity 9500',cam:'50+200+50MP',bat:'6510mAh',scr:'6.78" 120Hz',wt:'226g',os:'Android 16',yr:2025},
-  {brand:'vivo',name:'X300',price:'₺52.999',ram:'12GB',storage:'256GB',chip:'Dimensity 9500',cam:'50+50+50MP',bat:'6040mAh',scr:'6.31" 120Hz',wt:'186g',os:'Android 16',yr:2025},
-  {brand:'vivo',name:'X200 Pro mini',price:'₺54.999',ram:'12GB',storage:'256GB',chip:'Dimensity 9400',cam:'50+200+50MP',bat:'5700mAh',scr:'6.31" 120Hz',wt:'205g',os:'Android 15',yr:2025},
+  {brand:'vivo',name:'X300',price:'₺52.999',ram:'12GB',storage:'256GB',chip:'Dimensity 9500',cam:'200+50+50MP',bat:'6040mAh',scr:'6.31" 120Hz',wt:'190g',os:'Android 16',yr:2025},
+  {brand:'vivo',name:'X200 Pro mini',price:'₺54.999',ram:'12GB',storage:'256GB',chip:'Dimensity 9400',cam:'50+50+50MP',bat:'5700mAh',scr:'6.31" 120Hz',wt:'187g',os:'Android 15',yr:2025},
   {brand:'vivo',name:'X100 Pro',price:'₺49.999',ram:'12GB',storage:'256GB',chip:'Dimensity 9300',cam:'50+50+50MP',bat:'5400mAh',scr:'6.78" 120Hz',wt:'221g',os:'Android 14',yr:2023},
-  {brand:'vivo',name:'V40 Pro',price:'₺24.999',ram:'12GB',storage:'256GB',chip:'SD 7 Gen 3',cam:'50+50+8MP',bat:'5500mAh',scr:'6.78" 120Hz',wt:'190g',os:'Android 14',yr:2024},
-  {brand:'vivo',name:'V30',price:'₺19.999',ram:'8GB',storage:'256GB',chip:'SD 7 Gen 3',cam:'50+50MP',bat:'5000mAh',scr:'6.78" 120Hz',wt:'186g',os:'Android 14',yr:2024},
-  {brand:'vivo',name:'Y300 Pro',price:'₺14.999',ram:'8GB',storage:'256GB',chip:'SD 4 Gen 2',cam:'50+2MP',bat:'6500mAh',scr:'6.67" 120Hz',wt:'185g',os:'Android 14',yr:2024},
-  {brand:'vivo',name:'Y200',price:'₺9.999',ram:'8GB',storage:'128GB',chip:'SD 4 Gen 2',cam:'50MP',bat:'5500mAh',scr:'6.67" 120Hz',wt:'186g',os:'Android 14',yr:2023},
+  {brand:'vivo',name:'V40 Pro',price:'₺24.999',ram:'12GB',storage:'256GB',chip:'Dimensity 9200+',cam:'50+50+50MP',bat:'5500mAh',scr:'6.78" 120Hz',wt:'190g',os:'Android 14',yr:2024},
+  {brand:'vivo',name:'V30',price:'₺19.999',ram:'8GB',storage:'256GB',chip:'SD 7 Gen 3',cam:'50+50+2MP',bat:'5000mAh',scr:'6.78" 120Hz',wt:'186g',os:'Android 14',yr:2024},
+  {brand:'vivo',name:'Y300 Pro',price:'₺14.999',ram:'8GB',storage:'256GB',chip:'SD 6 Gen 1',cam:'50+2MP',bat:'6500mAh',scr:'6.77" 120Hz',wt:'194g',os:'Android 14',yr:2024},
+  {brand:'vivo',name:'Y200e',price:'₺9.999',ram:'8GB',storage:'128GB',chip:'SD 4 Gen 2',cam:'50+2MP',bat:'5000mAh',scr:'6.67" 120Hz',wt:'186g',os:'Android 14',yr:2024},
   // APPLE - eksik modeller
-  {brand:'Apple',name:'iPhone 17 Pro Max',price:'₺113.999',ram:'12GB',storage:'256GB',chip:'A19 Pro',cam:'48+48+12MP',bat:'4900mAh',scr:'6.9" 120Hz',wt:'230g',os:'iOS 19',cimriUrl:'https://www.cimri.com/cep-telefonlari/en-ucuz-apple-iphone-17-pro-max-256gb-kozmik-turuncu-fiyatlari,2508499467',yr:2025},
-  {brand:'Apple',name:'iPhone 17 Pro',price:'₺99.999',ram:'12GB',storage:'256GB',chip:'A19 Pro',cam:'48+48+12MP',bat:'3700mAh',scr:'6.3" 120Hz',wt:'201g',os:'iOS 19',cimriUrl:'https://www.cimri.com/cep-telefonlari/en-ucuz-apple-iphone-17-pro-fiyatlari,a2393572198',yr:2025},
-  {brand:'Apple',name:'iPhone 17',price:'₺72.999',ram:'8GB',storage:'256GB',chip:'A19',cam:'48+12MP',bat:'3700mAh',scr:'6.3" 120Hz',wt:'177g',os:'iOS 19',cimriUrl:'https://www.cimri.com/cep-telefonlari/en-ucuz-apple-iphone-17-fiyatlari,a2393572193',yr:2025},
-  {brand:'Apple',name:'iPhone Air',price:'₺79.999',ram:'8GB',storage:'256GB',chip:'A19 Pro',cam:'48MP',bat:'3149mAh',scr:'6.5" 120Hz',wt:'145g',os:'iOS 19',yr:2025},
-  {brand:'Apple',name:'iPhone 14 Plus',price:'₺39.999',ram:'6GB',storage:'128GB',chip:'A15',cam:'12+12MP',bat:'4325mAh',scr:'6.7" 60Hz',wt:'203g',os:'iOS 18',yr:2022},
-  {brand:'Apple',name:'iPhone 13',price:'₺29.999',ram:'4GB',storage:'128GB',chip:'A15',cam:'12+12MP',bat:'3240mAh',scr:'6.1" 60Hz',wt:'174g',os:'iOS 17',yr:2021},
+  {brand:'Apple',name:'iPhone 17 Pro Max',price:'₺113.999',ram:'12GB',storage:'256GB',chip:'A19 Pro',cam:'48+48+48MP',bat:'4823mAh',scr:'6.9" 120Hz',wt:'233g',os:'iOS 26',cimriUrl:'https://www.cimri.com/cep-telefonlari/en-ucuz-apple-iphone-17-pro-max-256gb-kozmik-turuncu-fiyatlari,2508499467',yr:2025},
+  {brand:'Apple',name:'iPhone 17 Pro',price:'₺99.999',ram:'12GB',storage:'256GB',chip:'A19 Pro',cam:'48+48+48MP',bat:'3998mAh',scr:'6.3" 120Hz',wt:'206g',os:'iOS 26',cimriUrl:'https://www.cimri.com/cep-telefonlari/en-ucuz-apple-iphone-17-pro-fiyatlari,a2393572198',yr:2025},
+  {brand:'Apple',name:'iPhone 17',price:'₺72.999',ram:'8GB',storage:'256GB',chip:'A19',cam:'48+48MP',bat:'3692mAh',scr:'6.3" 120Hz',wt:'177g',os:'iOS 26',cimriUrl:'https://www.cimri.com/cep-telefonlari/en-ucuz-apple-iphone-17-fiyatlari,a2393572193',yr:2025},
+  {brand:'Apple',name:'iPhone Air',price:'₺79.999',ram:'12GB',storage:'256GB',chip:'A19 Pro',cam:'48MP',bat:'3149mAh',scr:'6.5" 120Hz',wt:'165g',os:'iOS 26',yr:2025},
+  {brand:'Apple',name:'iPhone 14 Plus',price:'₺39.999',ram:'6GB',storage:'128GB',chip:'A15',cam:'12+12MP',bat:'4325mAh',scr:'6.7" 60Hz',wt:'203g',os:'iOS 16',yr:2022},
+  {brand:'Apple',name:'iPhone 13',price:'₺29.999',ram:'4GB',storage:'128GB',chip:'A15',cam:'12+12MP',bat:'3240mAh',scr:'6.1" 60Hz',wt:'174g',os:'iOS 15',yr:2021},
   // SAMSUNG - eksik modeller
-  {brand:'Samsung',name:'Galaxy S26 Ultra',price:'₺119.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite Gen 2',cam:'200+50+50+50MP',bat:'5500mAh',scr:'6.9" 120Hz',wt:'215g',os:'Android 16',yr:2026},
-  {brand:'Samsung',name:'Galaxy S26',price:'₺59.999',ram:'12GB',storage:'256GB',chip:'Exynos 2600',cam:'50+12+10MP',bat:'4300mAh',scr:'6.3" 120Hz',wt:'165g',os:'Android 16',cimriUrl:'https://www.cimri.com/cep-telefonlari/en-ucuz-samsung-galaxy-s26-fiyatlari,a2433067945',yr:2026},
-  {brand:'Samsung',name:'Galaxy Z Fold 7',price:'₺139.999',ram:'16GB',storage:'256GB',chip:'SD 8 Elite',cam:'200+12+10MP',bat:'4400mAh',scr:'8" 120Hz',wt:'215g',os:'Android 15',yr:2025},
-  {brand:'Samsung',name:'Galaxy Z Flip 7',price:'₺69.999',ram:'12GB',storage:'256GB',chip:'Exynos 2500',cam:'50+12MP',bat:'4300mAh',scr:'6.9" 120Hz',wt:'188g',os:'Android 15',yr:2025},
+  {brand:'Samsung',name:'Galaxy S26 Ultra',price:'₺119.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite Gen 5',cam:'200+10+50+50MP',bat:'5000mAh',scr:'6.9" 120Hz',wt:'215g',os:'Android 16',yr:2026},
+  {brand:'Samsung',name:'Galaxy S26',price:'₺59.999',ram:'12GB',storage:'256GB',chip:'Exynos 2600',cam:'50+12+10MP',bat:'4300mAh',scr:'6.3" 120Hz',wt:'167g',os:'Android 16',cimriUrl:'https://www.cimri.com/cep-telefonlari/en-ucuz-samsung-galaxy-s26-fiyatlari,a2433067945',yr:2026},
+  {brand:'Samsung',name:'Galaxy Z Fold 7',price:'₺139.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite',cam:'200+12+10MP',bat:'4400mAh',scr:'8" 120Hz',wt:'215g',os:'Android 16',yr:2025},
+  {brand:'Samsung',name:'Galaxy Z Flip 7',price:'₺69.999',ram:'12GB',storage:'256GB',chip:'Exynos 2500',cam:'50+12MP',bat:'4300mAh',scr:'6.9" 120Hz',wt:'188g',os:'Android 16',yr:2025},
   {brand:'Samsung',name:'Galaxy A56',price:'₺28.999',ram:'8GB',storage:'256GB',chip:'Exynos 1580',cam:'50+12+5MP',bat:'5000mAh',scr:'6.7" 120Hz',wt:'198g',os:'Android 15',yr:2025},
   {brand:'Samsung',name:'Galaxy A36',price:'₺21.999',ram:'8GB',storage:'128GB',chip:'SD 6 Gen 3',cam:'50+8+5MP',bat:'5000mAh',scr:'6.7" 120Hz',wt:'195g',os:'Android 15',yr:2025},
-  {brand:'Samsung',name:'Galaxy A26',price:'₺16.999',ram:'8GB',storage:'128GB',chip:'Exynos 1380',cam:'50+8+2MP',bat:'5000mAh',scr:'6.7" 90Hz',wt:'200g',os:'Android 15',yr:2025},
-  {brand:'Samsung',name:'Galaxy A06',price:'₺7.999',ram:'4GB',storage:'64GB',chip:'Helio G85',cam:'50+2MP',bat:'5000mAh',scr:'6.7" 90Hz',wt:'192g',os:'Android 14',yr:2024},
+  {brand:'Samsung',name:'Galaxy A26',price:'₺16.999',ram:'8GB',storage:'256GB',chip:'Exynos 1380',cam:'50+8+2MP',bat:'5000mAh',scr:'6.7" 120Hz',wt:'200g',os:'Android 15',yr:2025},
+  {brand:'Samsung',name:'Galaxy A06',price:'₺7.999',ram:'4GB',storage:'64GB',chip:'Helio G85',cam:'50+2MP',bat:'5000mAh',scr:'6.7" 60Hz',wt:'189g',os:'Android 14',yr:2024},
   {brand:'Samsung',name:'Galaxy M35',price:'₺17.999',ram:'8GB',storage:'128GB',chip:'Exynos 1380',cam:'50+8+2MP',bat:'6000mAh',scr:'6.6" 120Hz',wt:'222g',os:'Android 14',yr:2024},
   // XIAOMI - eksik modeller
-  {brand:'Xiaomi',name:'16 Pro',price:'₺59.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite Gen 2',cam:'50+50+50MP',bat:'6100mAh',scr:'6.3" 120Hz',wt:'190g',os:'Android 16',yr:2025},
-  {brand:'Xiaomi',name:'15T Pro',price:'₺44.999',ram:'12GB',storage:'256GB',chip:'Dimensity 9400+',cam:'50+50+50MP',bat:'5500mAh',scr:'6.83" 144Hz',wt:'200g',os:'Android 15',yr:2025},
-  {brand:'Xiaomi',name:'Redmi Note 15 Pro+',price:'₺24.999',ram:'12GB',storage:'256GB',chip:'Dimensity 8400-Ultra',cam:'200+8+2MP',bat:'6500mAh',scr:'6.83" 120Hz',wt:'209g',os:'Android 15',yr:2025},
-  {brand:'Xiaomi',name:'Redmi 15C',price:'₺10.599',ram:'4GB',storage:'128GB',chip:'Helio G92-Ultra',cam:'50MP',bat:'6000mAh',scr:'6.9" 120Hz',wt:'212g',os:'Android 15',cimriUrl:'https://www.cimri.com/cep-telefonlari/en-ucuz-xiaomi-redmi-15c-fiyatlari,2479895569',yr:2025},
-  {brand:'Xiaomi',name:'POCO F7',price:'₺27.999',ram:'12GB',storage:'256GB',chip:'SD 8s Gen 3',cam:'50+8MP',bat:'6500mAh',scr:'6.83" 120Hz',wt:'196g',os:'Android 15',yr:2025},
+  {brand:'Xiaomi',name:'17 Pro',price:'₺59.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite Gen 5',cam:'50+50+50MP',bat:'6300mAh',scr:'6.3" 120Hz',wt:'192g',os:'Android 16',yr:2025},
+  {brand:'Xiaomi',name:'15T Pro',price:'₺44.999',ram:'12GB',storage:'256GB',chip:'Dimensity 9400+',cam:'50+50+12MP',bat:'5500mAh',scr:'6.83" 144Hz',wt:'210g',os:'Android 15',yr:2025},
+  {brand:'Xiaomi',name:'Redmi Note 15 Pro+',price:'₺24.999',ram:'12GB',storage:'256GB',chip:'SD 7s Gen 4',cam:'200+8+2MP',bat:'6500mAh',scr:'6.83" 120Hz',wt:'207g',os:'Android 15',yr:2025},
+  {brand:'Xiaomi',name:'Redmi 15C',price:'₺10.599',ram:'4GB',storage:'128GB',chip:'Helio G81 Ultra',cam:'50MP',bat:'6000mAh',scr:'6.9" 120Hz',wt:'205g',os:'Android 15',cimriUrl:'https://www.cimri.com/cep-telefonlari/en-ucuz-xiaomi-redmi-15c-fiyatlari,2479895569',yr:2025},
+  {brand:'Xiaomi',name:'POCO F7',price:'₺27.999',ram:'12GB',storage:'256GB',chip:'SD 8s Gen 4',cam:'50+8MP',bat:'6500mAh',scr:'6.83" 120Hz',wt:'216g',os:'Android 15',yr:2025},
   {brand:'Xiaomi',name:'POCO X7 Pro',price:'₺18.999',ram:'12GB',storage:'256GB',chip:'Dimensity 8400-Ultra',cam:'50+8MP',bat:'6000mAh',scr:'6.67" 120Hz',wt:'196g',os:'Android 15',yr:2025},
   // GOOGLE - eksik modeller
-  {brand:'Google',name:'Pixel 10 Pro XL',price:'₺109.999',ram:'16GB',storage:'256GB',chip:'Tensor G5',cam:'50+48+48MP',bat:'5200mAh',scr:'6.8" 120Hz',wt:'220g',os:'Android 16',yr:2025},
-  {brand:'Google',name:'Pixel 10 Pro',price:'₺84.999',ram:'16GB',storage:'128GB',chip:'Tensor G5',cam:'50+48+48MP',bat:'4870mAh',scr:'6.3" 120Hz',wt:'203g',os:'Android 16',yr:2025},
-  {brand:'Google',name:'Pixel 10',price:'₺54.999',ram:'12GB',storage:'128GB',chip:'Tensor G5',cam:'48+13MP',bat:'4970mAh',scr:'6.3" 120Hz',wt:'204g',os:'Android 16',yr:2025},
-  {brand:'Google',name:'Pixel 9a',price:'₺29.999',ram:'8GB',storage:'128GB',chip:'Tensor G4',cam:'48+13MP',bat:'5100mAh',scr:'6.3" 60Hz',wt:'186g',os:'Android 15',yr:2025},
+  {brand:'Google',name:'Pixel 10 Pro XL',price:'₺109.999',ram:'16GB',storage:'256GB',chip:'Tensor G5',cam:'50+48+48MP',bat:'5200mAh',scr:'6.8" 120Hz',wt:'232g',os:'Android 16',yr:2025},
+  {brand:'Google',name:'Pixel 10 Pro',price:'₺84.999',ram:'16GB',storage:'128GB',chip:'Tensor G5',cam:'50+48+48MP',bat:'4870mAh',scr:'6.3" 120Hz',wt:'207g',os:'Android 16',yr:2025},
+  {brand:'Google',name:'Pixel 10',price:'₺54.999',ram:'12GB',storage:'128GB',chip:'Tensor G5',cam:'48+13+10.8MP',bat:'4970mAh',scr:'6.3" 120Hz',wt:'204g',os:'Android 16',yr:2025},
+  {brand:'Google',name:'Pixel 9a',price:'₺29.999',ram:'8GB',storage:'128GB',chip:'Tensor G4',cam:'48+13MP',bat:'5100mAh',scr:'6.3" 120Hz',wt:'186g',os:'Android 15',yr:2025},
   // ONEPLUS - eksik modeller
   {brand:'OnePlus',name:'15',price:'₺59.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite Gen 2',cam:'50+50+50MP',bat:'7300mAh',scr:'6.78" 165Hz',wt:'214g',os:'Android 16',yr:2025},
   {brand:'OnePlus',name:'13R',price:'₺34.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 3',cam:'50+8MP',bat:'6000mAh',scr:'6.78" 120Hz',wt:'206g',os:'Android 15',yr:2025},
   {brand:'OnePlus',name:'13T',price:'₺37.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite',cam:'50+50MP',bat:'6260mAh',scr:'6.32" 120Hz',wt:'192g',os:'Android 15',yr:2025},
   {brand:'OnePlus',name:'Nord 5',price:'₺22.999',ram:'8GB',storage:'256GB',chip:'SD 8s Gen 3',cam:'50+8MP',bat:'5800mAh',scr:'6.83" 144Hz',wt:'185g',os:'Android 15',yr:2025},
   // OPPO - eksik modeller
-  {brand:'OPPO',name:'Find X9 Pro',price:'₺69.999',ram:'16GB',storage:'512GB',chip:'Dimensity 9500',cam:'50+50+200MP',bat:'7500mAh',scr:'6.78" 120Hz',wt:'220g',os:'Android 16',yr:2025},
-  {brand:'OPPO',name:'Find X9',price:'₺54.999',ram:'12GB',storage:'256GB',chip:'Dimensity 9500',cam:'50+50+50MP',bat:'7025mAh',scr:'6.59" 120Hz',wt:'200g',os:'Android 16',yr:2025},
-  {brand:'OPPO',name:'Reno 14 Pro',price:'₺27.999',ram:'12GB',storage:'256GB',chip:'Dimensity 8450',cam:'50+50+8MP',bat:'6200mAh',scr:'6.83" 120Hz',wt:'196g',os:'Android 15',yr:2025},
-  {brand:'OPPO',name:'A5 Pro',price:'₺12.999',ram:'8GB',storage:'256GB',chip:'Dimensity 7300',cam:'50+2MP',bat:'6000mAh',scr:'6.67" 120Hz',wt:'195g',os:'Android 15',yr:2025},
+  {brand:'OPPO',name:'Find X9 Pro',price:'₺69.999',ram:'16GB',storage:'512GB',chip:'Dimensity 9500',cam:'50+50+200MP',bat:'7500mAh',scr:'6.78" 120Hz',wt:'224g',os:'Android 16',yr:2025},
+  {brand:'OPPO',name:'Find X9',price:'₺54.999',ram:'12GB',storage:'256GB',chip:'Dimensity 9500',cam:'50+50+50MP',bat:'7025mAh',scr:'6.59" 120Hz',wt:'203g',os:'Android 16',yr:2025},
+  {brand:'OPPO',name:'Reno 14 Pro',price:'₺27.999',ram:'12GB',storage:'256GB',chip:'Dimensity 8450',cam:'50+50+50MP',bat:'6200mAh',scr:'6.83" 120Hz',wt:'201g',os:'Android 15',yr:2025},
+  {brand:'OPPO',name:'A5 Pro',price:'₺12.999',ram:'8GB',storage:'256GB',chip:'Dimensity 6300',cam:'50+2MP',bat:'5800mAh',scr:'6.67" 120Hz',wt:'194g',os:'Android 15',yr:2025},
   // NOTHING - eksik
   {brand:'Nothing',name:'Phone (3)',price:'₺37.999',ram:'12GB',storage:'256GB',chip:'SD 8s Gen 4',cam:'50+50+50MP',bat:'5150mAh',scr:'6.67" 120Hz',wt:'218g',os:'Android 15',yr:2025},
   // HONOR - eksik
-  {brand:'Honor',name:'Magic 8 Pro',price:'₺59.999',ram:'16GB',storage:'512GB',chip:'SD 8 Elite Gen 2',cam:'50+200+50MP',bat:'7200mAh',scr:'6.83" 120Hz',wt:'226g',os:'Android 16',yr:2025},
-  {brand:'Honor',name:'400 Pro',price:'₺32.999',ram:'12GB',storage:'256GB',chip:'SD 8s Gen 3',cam:'200+50+12MP',bat:'5300mAh',scr:'6.78" 120Hz',wt:'190g',os:'Android 15',yr:2025},
+  {brand:'Honor',name:'Magic 8 Pro',price:'₺59.999',ram:'16GB',storage:'512GB',chip:'SD 8 Elite Gen 5',cam:'50+200+50MP',bat:'7200mAh',scr:'6.71" 120Hz',wt:'219g',os:'Android 16',yr:2025},
+  {brand:'Honor',name:'400 Pro',price:'₺32.999',ram:'12GB',storage:'256GB',chip:'SD 8 Gen 3',cam:'200+50+12MP',bat:'5300mAh',scr:'6.78" 120Hz',wt:'205g',os:'Android 15',yr:2025},
   // realme - eksik
-  {brand:'realme',name:'GT 8 Pro',price:'₺44.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite Gen 2',cam:'50+50+200MP',bat:'7000mAh',scr:'6.79" 144Hz',wt:'212g',os:'Android 16',yr:2025},
-  {brand:'realme',name:'14 Pro+',price:'₺19.999',ram:'12GB',storage:'256GB',chip:'SD 6 Gen 4',cam:'50+8MP',bat:'6000mAh',scr:'6.83" 120Hz',wt:'196g',os:'Android 15',yr:2025},
+  {brand:'realme',name:'GT 8 Pro',price:'₺44.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite Gen 5',cam:'50+50+200MP',bat:'7000mAh',scr:'6.79" 144Hz',wt:'218g',os:'Android 16',yr:2025},
+  {brand:'realme',name:'14 Pro+',price:'₺19.999',ram:'12GB',storage:'256GB',chip:'SD 7s Gen 3',cam:'50+50+8MP',bat:'6000mAh',scr:'6.83" 120Hz',wt:'194g',os:'Android 15',yr:2025},
   // HUAWEI - eksik
-  {brand:'Huawei',name:'Mate 70 Pro',price:'₺79.999',ram:'16GB',storage:'512GB',chip:'Kirin 9020',cam:'50+40+12MP',bat:'5500mAh',scr:'6.71" 120Hz',wt:'213g',os:'HarmonyOS 5',yr:2024},
-  {brand:'Huawei',name:'Pura 80 Ultra',price:'₺94.999',ram:'16GB',storage:'512GB',chip:'Kirin 9020',cam:'50+50+12MP',bat:'5170mAh',scr:'6.8" 120Hz',wt:'226g',os:'HarmonyOS 5',yr:2025},
+  {brand:'Huawei',name:'Mate 70 Pro',price:'₺79.999',ram:'16GB',storage:'512GB',chip:'Kirin 9020',cam:'50+40+48MP',bat:'5500mAh',scr:'6.9" 120Hz',wt:'221g',os:'HarmonyOS 5',yr:2024},
+  {brand:'Huawei',name:'Pura 80 Ultra',price:'₺94.999',ram:'16GB',storage:'512GB',chip:'Kirin 9020',cam:'50+40+50+12.5MP',bat:'5170mAh',scr:'6.8" 120Hz',wt:'234g',os:'HarmonyOS 5',yr:2025},
   // SONY - eksik
-  {brand:'Sony',name:'Xperia 1 VII',price:'₺79.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite',cam:'48+12+12MP',bat:'5000mAh',scr:'6.5" 120Hz',wt:'190g',os:'Android 15',yr:2025},
+  {brand:'Sony',name:'Xperia 1 VII',price:'₺79.999',ram:'12GB',storage:'256GB',chip:'SD 8 Elite',cam:'48+48+12MP',bat:'5000mAh',scr:'6.5" 120Hz',wt:'197g',os:'Android 15',yr:2025},
   // MOTOROLA - eksik
-  {brand:'Motorola',name:'Edge 60 Pro',price:'₺27.999',ram:'12GB',storage:'256GB',chip:'Dimensity 7400',cam:'50+10+13MP',bat:'6000mAh',scr:'6.7" 120Hz',wt:'175g',os:'Android 15',yr:2025},
+  {brand:'Motorola',name:'Edge 60 Pro',price:'₺27.999',ram:'12GB',storage:'256GB',chip:'Dimensity 8350',cam:'50+50+10MP',bat:'6000mAh',scr:'6.7" 120Hz',wt:'186g',os:'Android 15',yr:2025},
   {brand:'Motorola',name:'Razr 60 Ultra',price:'₺64.999',ram:'16GB',storage:'512GB',chip:'SD 8 Elite',cam:'50+50MP',bat:'4700mAh',scr:'7" 165Hz',wt:'199g',os:'Android 15',yr:2025},
-  {brand:'Motorola',name:'Moto G96',price:'₺13.999',ram:'8GB',storage:'256GB',chip:'SD 6s Gen 3',cam:'50+8MP',bat:'6000mAh',scr:'6.67" 120Hz',wt:'178g',os:'Android 15',yr:2025},
+  {brand:'Motorola',name:'Moto G96',price:'₺13.999',ram:'8GB',storage:'256GB',chip:'SD 7s Gen 2',cam:'50+8MP',bat:'5500mAh',scr:'6.67" 144Hz',wt:'178g',os:'Android 15',yr:2025},
   // ASUS - eksik
   {brand:'ASUS',name:'ROG Phone 10',price:'₺99.999',ram:'24GB',storage:'1TB',chip:'SD 8 Elite Gen 2',cam:'50+50+32MP',bat:'6000mAh',scr:'6.78" 185Hz',wt:'225g',os:'Android 16',yr:2025},
   // EK GERÇEK MODELLER (bütçe/orta segment çeşitliliği için)
-  {brand:'Apple',name:'iPhone 16e',price:'₺44.999',ram:'8GB',storage:'128GB',chip:'A18',cam:'48MP',bat:'3961mAh',scr:'6.1" 60Hz',wt:'167g',os:'iOS 18',yr:2025},
-  {brand:'Samsung',name:'Galaxy S24 FE',price:'₺34.999',ram:'8GB',storage:'128GB',chip:'Exynos 2400e',cam:'50+12+8MP',bat:'4700mAh',scr:'6.7" 120Hz',wt:'190g',os:'Android 14',yr:2024},
-  {brand:'Samsung',name:'Galaxy XCover 7',price:'₺19.999',ram:'6GB',storage:'128GB',chip:'Exynos 1380',cam:'50+8MP',bat:'4050mAh',scr:'6.6" 90Hz',wt:'216g',os:'Android 14',yr:2024},
-  {brand:'Xiaomi',name:'Poco M7 Pro',price:'₺11.999',ram:'8GB',storage:'256GB',chip:'Dimensity 7025-Ultra',cam:'50+2MP',bat:'5110mAh',scr:'6.67" 120Hz',wt:'190g',os:'Android 15',yr:2025},
-  {brand:'Xiaomi',name:'Redmi 14C',price:'₺7.999',ram:'4GB',storage:'128GB',chip:'Helio G81-Ultra',cam:'32MP',bat:'5160mAh',scr:'6.88" 90Hz',wt:'196g',os:'Android 14',yr:2024},
+  {brand:'Apple',name:'iPhone 16e',price:'₺44.999',ram:'8GB',storage:'128GB',chip:'A18',cam:'48MP',bat:'4005mAh',scr:'6.1" 60Hz',wt:'167g',os:'iOS 18',yr:2025},
+  {brand:'Samsung',name:'Galaxy S24 FE',price:'₺34.999',ram:'8GB',storage:'128GB',chip:'Exynos 2400e',cam:'50+12+8MP',bat:'4700mAh',scr:'6.7" 120Hz',wt:'213g',os:'Android 14',yr:2024},
+  {brand:'Samsung',name:'Galaxy XCover 7',price:'₺19.999',ram:'6GB',storage:'128GB',chip:'Dimensity 6100+',cam:'50MP',bat:'4050mAh',scr:'6.6" 60Hz',wt:'240g',os:'Android 14',yr:2024},
+  {brand:'Xiaomi',name:'Poco M7 Pro',price:'₺11.999',ram:'8GB',storage:'256GB',chip:'Dimensity 7025-Ultra',cam:'50+2MP',bat:'5110mAh',scr:'6.67" 120Hz',wt:'190g',os:'Android 14',yr:2024},
+  {brand:'Xiaomi',name:'Redmi 14C',price:'₺7.999',ram:'4GB',storage:'128GB',chip:'Helio G81-Ultra',cam:'50+2MP',bat:'5160mAh',scr:'6.88" 120Hz',wt:'211g',os:'Android 14',yr:2024},
   {brand:'Infinix',name:'Zero 40 Pro',price:'₺16.999',ram:'12GB',storage:'256GB',chip:'Dimensity 8300-Ultra',cam:'50+50MP',bat:'5200mAh',scr:'6.78" 144Hz',wt:'188g',os:'Android 15',yr:2024},
-  {brand:'Infinix',name:'Note 50',price:'₺10.999',ram:'8GB',storage:'256GB',chip:'Helio G100-Ultra',cam:'108MP',bat:'5500mAh',scr:'6.78" 120Hz',wt:'190g',os:'Android 15',yr:2024},
-  {brand:'Tecno',name:'Camon 40 Pro',price:'₺13.999',ram:'8GB',storage:'256GB',chip:'Dimensity 7300',cam:'50+50MP',bat:'5200mAh',scr:'6.78" 120Hz',wt:'188g',os:'Android 15',yr:2024},
-  {brand:'ZTE',name:'Nubia Z70 Ultra',price:'₺54.999',ram:'16GB',storage:'512GB',chip:'SD 8 Elite',cam:'50+50+50MP',bat:'6150mAh',scr:'6.85" 120Hz',wt:'223g',os:'Android 15',yr:2024},
-  {brand:'Huawei',name:'Nova 13',price:'₺29.999',ram:'12GB',storage:'256GB',chip:'Snapdragon 6 Gen 1',cam:'50+8MP',bat:'5200mAh',scr:'6.71" 120Hz',wt:'184g',os:'HarmonyOS 4.2',yr:2024},
+  {brand:'Infinix',name:'Note 50',price:'₺10.999',ram:'8GB',storage:'256GB',chip:'Helio G100 Ultimate',cam:'50+2MP',bat:'5200mAh',scr:'6.78" 144Hz',wt:'199g',os:'Android 15',yr:2025},
+  {brand:'Tecno',name:'Camon 40 Pro',price:'₺13.999',ram:'12GB',storage:'256GB',chip:'Dimensity 7300',cam:'50+50MP',bat:'5200mAh',scr:'6.78" 144Hz',wt:'179g',os:'Android 15',yr:2025},
+  {brand:'ZTE',name:'Nubia Z70 Ultra',price:'₺54.999',ram:'16GB',storage:'512GB',chip:'SD 8 Elite',cam:'50+50+64MP',bat:'6150mAh',scr:'6.85" 144Hz',wt:'228g',os:'Android 15',yr:2024},
+  {brand:'Huawei',name:'Nova 13',price:'₺29.999',ram:'12GB',storage:'256GB',chip:'Snapdragon 6 Gen 1',cam:'50+8MP',bat:'5000mAh',scr:'6.71" 120Hz',wt:'195g',os:'HarmonyOS 4.2',yr:2024},
 ];
 PHONES.forEach(p => { p.id = (p.brand + '-' + p.name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); });
 
@@ -11879,7 +12062,10 @@ function syncPickerTriggerLabel(selectId) {
   // sel.tagName kontrolü: syncAllPickerLabels TÜM .csel tetikleyicilerini tarıyor — dt-picker-mo'nun
   // gizli <input>'ları da .csel kullandığı için (aynı görünüm), buraya bir <select> olmadan da
   // gelebiliyor. O durumda etiketi zaten syncDtpTriggerLabel yönetiyor, burada dokunulmamalı.
-  if (sel && trigger && sel.tagName === 'SELECT') {
+  // sel.value!=='Diğer' koruması: l-brand (Marka) picker'ında "Diğer" seçiliyken etiket elle yazılan
+  // GERÇEK marka adını göstermeli (bkz. setListingBrandValue) — burada "Diğer" seçeneğinin kendi
+  // metniyle ezilmemeli.
+  if (sel && trigger && sel.tagName === 'SELECT' && sel.value !== 'Diğer') {
     const opt = sel.options[sel.selectedIndex];
     const labelEl = trigger.querySelector('.csel-label');
     if (labelEl) labelEl.textContent = opt ? opt.textContent : '';
