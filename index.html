@@ -5392,19 +5392,31 @@ let listingOffersCache = [];
 async function loadListingOffers(listingId) {
   const el = document.getElementById('det-offers-section');
   if (!el) return;
+  // KÖK NEDEN DÜZELTMESİ ("satıcının teklife yanıt verebileceği alan yok"): sorgu eskiden
+  // orderBy('createdAt') da içeriyordu — iki eşitlik filtresi (listingId, sellerUid) + farklı bir
+  // alanda orderBy, Firestore'da MANUEL oluşturulması gereken bir "composite index" gerektirir;
+  // bu index yoksa sorgu FAILED_PRECONDITION hatasıyla başarısız oluyordu ve bölüm sessizce boş
+  // kalıyordu (sanki hiç yokmuş gibi görünüyordu). orderBy kaldırıldı, sıralama istemci tarafında
+  // yapılıyor — artık hiçbir manuel index gerekmiyor.
+  el.innerHTML = `<div class="load"><div class="spin"></div><span>Teklifler yükleniyor…</span></div>`;
   try {
-    const snap = await db.collection('teknohane_offers').where('listingId', '==', listingId).where('sellerUid', '==', user.uid).orderBy('createdAt', 'desc').limit(30).get();
-    listingOffersCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const snap = await db.collection('teknohane_offers').where('listingId', '==', listingId).where('sellerUid', '==', user.uid).limit(30).get();
+    listingOffersCache = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
     renderListingOffers();
   } catch(e) {
     console.error('Teklifler yüklenemedi:', e);
+    el.innerHTML = `<div class="no">Teklifler yüklenemedi.<br><span style="font-size:11px;color:var(--text3)">${e.message||''}</span></div>`;
   }
 }
 
 function renderListingOffers() {
   const el = document.getElementById('det-offers-section');
   if (!el) return;
-  if (!listingOffersCache.length) { el.innerHTML = ''; return; }
+  if (!listingOffersCache.length) {
+    el.innerHTML = `<div class="pool-banner"><div class="pool-banner-top"><span class="pool-badge">🤝 Gelen Teklifler</span></div><div style="font-size:12px;color:var(--text3);margin-top:6px">Henüz teklif yok.</div></div>`;
+    return;
+  }
   el.innerHTML = `<div class="pool-banner">
     <div class="pool-banner-top"><span class="pool-badge">🤝 Gelen Teklifler (${listingOffersCache.length})</span></div>
     ${listingOffersCache.map(offerItemHTML).join('')}
