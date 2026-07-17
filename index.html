@@ -1214,7 +1214,7 @@ body.tk-maintenance #maintenance-gate{
       <div style="display:flex;align-items:flex-start;gap:10px;background:rgba(0,212,255,.07);border:1px solid rgba(0,212,255,.22);border-radius:14px;padding:12px 14px;margin-bottom:14px">
         <span style="font-size:18px;line-height:1">🧪</span>
         <div>
-          <div style="font-size:12.5px;font-weight:700;color:var(--cyan)">Karşılaştırma sistemi test sürecindedir.</div>
+          <div style="font-size:12.5px;font-weight:700;color:var(--cyan)">Karşılaştırma sistemi sürekli geliştiriliyor.</div>
           <div style="font-size:11.5px;color:var(--text2);margin-top:2px;line-height:1.4">Yakında çok daha gelişmiş filtreleme ve karşılaştırma özellikleri eklenecektir.</div>
         </div>
       </div>
@@ -2493,7 +2493,7 @@ function renderComplaintPreviewSkeleton(c) {
   if (c.type === 'listing') {
     const l = getListingByIdSync(c.targetId);
     if (l) return `<div class="pcol-current">
-      <div class="pcol-current-ic">${l.photo1?`<img src="${escapeHtml(l.photo1)}" style="width:100%;height:100%;object-fit:cover;border-radius:12px" loading="lazy" decoding="async">`:'📱'}</div>
+      <div class="pcol-current-ic">${l.photo1?`<img src="${escapeHtml(l.photo1)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:12px" loading="lazy" decoding="async">`:'📱'}</div>
       <div><div class="pcol-current-name">${escapeHtml(l.model)}</div><div class="pcol-current-tag">₺${parseInt(l.price||0).toLocaleString('tr-TR')}</div></div>
     </div>`;
     return `<div class="ud-empty">${escapeHtml(c.targetLabel)} (ilan bulunamadı — silinmiş olabilir)</div>`;
@@ -2519,7 +2519,7 @@ async function loadComplaintUserPreview(uid) {
     const scoreInfo = computeTeknohaneScore(uid, u, new Array(listingsCountVal || 0));
     const av = avatarUrl(u.photoURL, u.displayName, 128);
     el.innerHTML = `<div class="pcol-current">
-      <img src="${escapeHtml(av)}" style="width:40px;height:40px;border-radius:50%;object-fit:cover">
+      <img src="${escapeHtml(av)}" alt="" style="width:40px;height:40px;border-radius:50%;object-fit:cover">
       <div><div class="pcol-current-name">${escapeHtml(u.displayName)||'Kullanıcı'}</div><div class="pcol-current-tag">Teknohane Skoru: ${scoreInfo.score}</div></div>
     </div>`;
   } catch(e) { el.innerHTML = '<div class="ud-empty">Yüklenemedi</div>'; }
@@ -2899,13 +2899,13 @@ function renderDashboard(stats, pending, recentLogs, recentUsers, recentListings
         </div>`).join('') : '<div class="ud-empty">İlan yok</div>'}
     </div>
 
-    <div class="psec-title">💬 Son Forum Gönderileri</div>
+    <div class="psec-title">💬 Son Forum Konuları</div>
     <div class="pacc-card">
       ${recentPosts.length ? recentPosts.map(p => `
         <div class="ud-item" onclick="closemo('admin-mo');openPost('${p.id}')">
-          <span class="ud-item-name">${escapeHtml(p.title)||'Gönderi'}</span>
+          <span class="ud-item-name">${escapeHtml(p.title)||'Konu'}</span>
           <span class="ud-item-meta">${escapeHtml(p.authorName)||'—'} · ${p.createdAt?.toDate?timeAgo(p.createdAt.toDate()):''}</span>
-        </div>`).join('') : '<div class="ud-empty">Gönderi yok</div>'}
+        </div>`).join('') : '<div class="ud-empty">Konu yok</div>'}
     </div>
 
     <div class="psec-title">⚡ Hızlı İşlemler</div>
@@ -3184,7 +3184,7 @@ async function saveAnnouncement(targetStatus) {
     loadAdminAnnouncements();
     showToast('✓', 'rgba(48,209,88,.15)', targetStatus==='draft'?'Taslak Kaydedildi':'Yayınlandı', title);
   } catch(e) {
-    err.textContent = 'Hata: ' + e.message; err.classList.add('on');
+    err.textContent = firebaseErrorToTurkish(e) || 'Bir şeyler ters gitti, lütfen tekrar dene.'; err.classList.add('on');
   }
 }
 
@@ -3867,6 +3867,12 @@ function rprof() {
   }
   const isAdmin = isAdminNow();
   if (user) {
+    // GÜVENLİK AĞI ("beyaz/donuk ekran" riski): bu blok skor/rozet/aktivite gibi ağır senkron
+    // hesaplamalar yapıp SONUNDA tek seferde c.innerHTML yazıyor — hesaplama sırasında beklenmedik
+    // bir veri şekli (örn. eski bir dokümanda eksik alan) hata fırlatırsa, try/catch OLMADAN ekran
+    // kalıcı olarak bir önceki iskelet/spinner durumunda donup kalırdı. Artık hata olursa en azından
+    // "tekrar dene" seçeneği olan bir durum gösteriliyor.
+    try {
     const avFallback = avatarUrl(null, myProfileData.displayName||user.displayName||user.email, 256);
     const av = avatarUrl(myProfileData.photoURL, myProfileData.displayName||user.displayName||user.email, 256);
     const hasVerifiedPhoneNumber = !!myProfileData.phoneNumber;
@@ -4062,6 +4068,7 @@ function rprof() {
         <div class="pacc-row"><span class="pacc-lbl">Kullanılan Cihaz</span><span class="pacc-val">${myProfileData.lastLoginDevice || detectDeviceLabel()}</span></div>
         <div class="pacc-row"><span class="pacc-lbl">Aktif Oturumlar</span><span class="pacc-val" id="pacc-sessions-count">Yükleniyor…</span></div>
         <button class="apbtn" style="margin-top:12px;background:rgba(255,69,58,.08);border-color:rgba(255,69,58,.25);color:var(--red)" onclick="auth.signOut()">Oturumu Kapat</button>
+        <button class="apbtn" style="margin-top:8px;background:transparent;border-color:rgba(255,69,58,.2);color:var(--red);font-size:12px;padding:8px" onclick="deleteMyAccount()">Hesabımı Kalıcı Olarak Sil</button>
       </div>
       ${isAdmin?`<div class="apanel">
         <div class="aptit"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#FFBE3C" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Yönetici Paneli</div>
@@ -4115,6 +4122,10 @@ function rprof() {
       if (el) el.innerHTML = renderTrustCardHTML(avg, count, { trustedSeller: myProfileData.trustedSeller, verified: user.emailVerified||myProfileData.adminVerified, joinedYear, uid: user.uid, displayName: myProfileData.displayName||user.displayName||'Ben' });
     }).catch(()=>{});
     ensureProfileTabDataLoaded();
+    } catch(e) {
+      console.error('Profil render hatası:', e);
+      c.innerHTML = `<div class="load" style="padding:60px 24px"><div style="font-size:36px">📡</div><div>Profil yüklenirken bir sorun oluştu.</div><button class="sbtn2" style="margin-top:16px;max-width:200px" onclick="rprof()">Tekrar Dene</button></div>`;
+    }
   } else {
     c.innerHTML = `
       <div class="awrap">
@@ -4374,7 +4385,7 @@ async function sendVerificationEmail() {
     await user.sendEmailVerification();
     showToast('✓', 'rgba(48,209,88,.15)', 'Gönderildi', 'Doğrulama e-postası gönderildi, gelen kutunu kontrol et.');
   } catch (e) {
-    showToast('⚠️','rgba(255,69,58,.15)','Hata','E-posta gönderilemedi: ' + (e.message || ''));
+    showErrorToast(e, 'E-posta gönderilemedi.');
   }
 }
 
@@ -4469,7 +4480,7 @@ async function sendPhoneVerificationCode() {
     document.getElementById('pv-step-code').style.display = 'block';
     showToast('✓', 'rgba(48,209,88,.15)', 'Kod Gönderildi', 'SMS ile gelen 6 haneli kodu gir.');
   } catch (e) {
-    err.textContent = 'Kod gönderilemedi: ' + (e.message || 'bilinmeyen hata');
+    err.textContent = firebaseErrorToTurkish(e) || 'Kod gönderilemedi, tekrar dene.';
     err.classList.add('on');
   }
 }
@@ -4502,7 +4513,7 @@ async function confirmPhoneVerificationCode() {
     rprof();
     showToast('✓', 'rgba(48,209,88,.15)', 'Doğrulandı', 'Telefon numaran başarıyla doğrulandı.');
   } catch (e) {
-    err.textContent = 'Kod hatalı veya süresi doldu: ' + (e.message || '');
+    err.textContent = firebaseErrorToTurkish(e) || 'Kod hatalı veya süresi doldu.';
     err.classList.add('on');
   }
 }
@@ -4553,6 +4564,7 @@ async function saveProfileInfo() {
     return;
   }
   if (bio.length > 150) { err.textContent = 'Biyografi en fazla 150 karakter olabilir'; err.classList.add('on'); return; }
+  if (!guardSubmit('profile')) return;
 
   try {
     const oldUsername = (myProfileData.username || '').toLowerCase();
@@ -4591,8 +4603,8 @@ async function saveProfileInfo() {
     showToast('✓', 'rgba(48,209,88,.15)', 'Profil Güncellendi', 'Bilgilerin kaydedildi.');
   } catch(e) {
     if (e.message === 'TAKEN') { err.textContent = 'Bu kullanıcı adı zaten alınmış'; err.classList.add('on'); }
-    else { err.textContent = 'Hata: ' + e.message; err.classList.add('on'); }
-  }
+    else { err.textContent = firebaseErrorToTurkish(e) || 'Bir şeyler ters gitti, lütfen tekrar dene.'; err.classList.add('on'); }
+  } finally { releaseSubmit('profile'); }
 }
 
 function openPhoneEdit() {
@@ -4679,11 +4691,13 @@ async function savePreviousPhoneEditInline(id) {
 }
 
 async function saveCurrentPhoneDirect(phone) {
-  await db.collection('teknohane_users').doc(user.uid).set({ currentPhone: phone }, { merge: true });
-  myProfileData.currentPhone = phone;
-  renderPhoneEditModal();
-  rprof();
-  showToast('✓', 'rgba(48,209,88,.15)', 'Kaydedildi', 'Telefon bilgisi güncellendi.');
+  try {
+    await db.collection('teknohane_users').doc(user.uid).set({ currentPhone: phone }, { merge: true });
+    myProfileData.currentPhone = phone;
+    renderPhoneEditModal();
+    rprof();
+    showToast('✓', 'rgba(48,209,88,.15)', 'Kaydedildi', 'Telefon bilgisi güncellendi.');
+  } catch(e) { showErrorToast(e); }
 }
 
 async function saveCurrentPhone() {
@@ -4694,11 +4708,13 @@ async function saveCurrentPhone() {
 }
 
 async function removeCurrentPhone() {
-  await db.collection('teknohane_users').doc(user.uid).set({ currentPhone: firebase.firestore.FieldValue.delete() }, { merge: true });
-  myProfileData.currentPhone = null;
-  renderPhoneEditModal();
-  rprof();
-  showToast('✓', 'rgba(48,209,88,.15)', 'Kaydedildi', 'Şu anki telefon kaldırıldı.');
+  try {
+    await db.collection('teknohane_users').doc(user.uid).set({ currentPhone: firebase.firestore.FieldValue.delete() }, { merge: true });
+    myProfileData.currentPhone = null;
+    renderPhoneEditModal();
+    rprof();
+    showToast('✓', 'rgba(48,209,88,.15)', 'Kaydedildi', 'Şu anki telefon kaldırıldı.');
+  } catch(e) { showErrorToast(e); }
 }
 
 async function addPreviousPhone() {
@@ -4706,30 +4722,36 @@ async function addPreviousPhone() {
   const model = document.getElementById('pp-model').value.trim();
   if (!brand || !model) { showToast('⚠️','rgba(255,69,58,.15)','Eksik Bilgi','Marka ve model alanlarını doldur.'); return; }
   const phone = { id: 'p' + Date.now(), brand, model };
-  await db.collection('teknohane_users').doc(user.uid).set({ previousPhones: firebase.firestore.FieldValue.arrayUnion(phone) }, { merge: true });
-  myProfileData.previousPhones = [...(myProfileData.previousPhones||[]), phone];
-  renderPhoneEditModal();
-  rprof();
-  showToast('✓', 'rgba(48,209,88,.15)', 'Kaydedildi', 'Telefon koleksiyonuna eklendi.');
+  try {
+    await db.collection('teknohane_users').doc(user.uid).set({ previousPhones: firebase.firestore.FieldValue.arrayUnion(phone) }, { merge: true });
+    myProfileData.previousPhones = [...(myProfileData.previousPhones||[]), phone];
+    renderPhoneEditModal();
+    rprof();
+    showToast('✓', 'rgba(48,209,88,.15)', 'Kaydedildi', 'Telefon koleksiyonuna eklendi.');
+  } catch(e) { showErrorToast(e); }
 }
 
 async function removePreviousPhone(id) {
   const phone = (myProfileData.previousPhones||[]).find(p => p.id === id);
   if (!phone) return;
-  await db.collection('teknohane_users').doc(user.uid).set({ previousPhones: firebase.firestore.FieldValue.arrayRemove(phone) }, { merge: true });
-  myProfileData.previousPhones = (myProfileData.previousPhones||[]).filter(p => p.id !== id);
-  renderPhoneEditModal();
-  rprof();
-  showToast('✓', 'rgba(48,209,88,.15)', 'Kaydedildi', 'Telefon koleksiyonundan kaldırıldı.');
+  try {
+    await db.collection('teknohane_users').doc(user.uid).set({ previousPhones: firebase.firestore.FieldValue.arrayRemove(phone) }, { merge: true });
+    myProfileData.previousPhones = (myProfileData.previousPhones||[]).filter(p => p.id !== id);
+    renderPhoneEditModal();
+    rprof();
+    showToast('✓', 'rgba(48,209,88,.15)', 'Kaydedildi', 'Telefon koleksiyonundan kaldırıldı.');
+  } catch(e) { showErrorToast(e); }
 }
 
 async function savePreviousPhoneEdit(id, brand, model) {
   const list = (myProfileData.previousPhones||[]).map(p => p.id === id ? { ...p, brand, model } : p);
-  await db.collection('teknohane_users').doc(user.uid).set({ previousPhones: list }, { merge: true });
-  myProfileData.previousPhones = list;
-  renderPhoneEditModal();
-  rprof();
-  showToast('✓', 'rgba(48,209,88,.15)', 'Kaydedildi', 'Telefon bilgisi güncellendi.');
+  try {
+    await db.collection('teknohane_users').doc(user.uid).set({ previousPhones: list }, { merge: true });
+    myProfileData.previousPhones = list;
+    renderPhoneEditModal();
+    rprof();
+    showToast('✓', 'rgba(48,209,88,.15)', 'Kaydedildi', 'Telefon bilgisi güncellendi.');
+  } catch(e) { showErrorToast(e); }
 }
 
 async function markPreviousAsCurrent(id) {
@@ -4739,12 +4761,14 @@ async function markPreviousAsCurrent(id) {
   let newPrevious = (myProfileData.previousPhones||[]).filter(p => p.id !== id);
   if (oldCurrent) newPrevious = [...newPrevious, { id: 'p' + Date.now(), brand: oldCurrent.brand, model: oldCurrent.model }];
   const newCurrent = { brand: phone.brand, model: phone.model };
-  await db.collection('teknohane_users').doc(user.uid).set({ currentPhone: newCurrent, previousPhones: newPrevious }, { merge: true });
-  myProfileData.currentPhone = newCurrent;
-  myProfileData.previousPhones = newPrevious;
-  renderPhoneEditModal();
-  rprof();
-  showToast('✓', 'rgba(48,209,88,.15)', 'Kaydedildi', 'Şu anki telefonun güncellendi.');
+  try {
+    await db.collection('teknohane_users').doc(user.uid).set({ currentPhone: newCurrent, previousPhones: newPrevious }, { merge: true });
+    myProfileData.currentPhone = newCurrent;
+    myProfileData.previousPhones = newPrevious;
+    renderPhoneEditModal();
+    rprof();
+    showToast('✓', 'rgba(48,209,88,.15)', 'Kaydedildi', 'Şu anki telefonun güncellendi.');
+  } catch(e) { showErrorToast(e); }
 }
 
 // Tek bir gizlilik ayarını açıp kapatır, getPrivacy() ile aynı varsayılanları kullanarak Firestore'a yazar.
@@ -4752,10 +4776,12 @@ async function togglePrivacySetting(key) {
   if (!user) return;
   const current = getPrivacy(myProfileData);
   const updated = { ...current, [key]: !current[key] };
-  await db.collection('teknohane_users').doc(user.uid).set({ privacy: updated }, { merge: true });
-  myProfileData.privacy = updated;
-  rprof();
-  showToast('✓', 'rgba(48,209,88,.15)', 'Kaydedildi', 'Gizlilik ayarın güncellendi.');
+  try {
+    await db.collection('teknohane_users').doc(user.uid).set({ privacy: updated }, { merge: true });
+    myProfileData.privacy = updated;
+    rprof();
+    showToast('✓', 'rgba(48,209,88,.15)', 'Kaydedildi', 'Gizlilik ayarın güncellendi.');
+  } catch(e) { showErrorToast(e); }
 }
 
 async function changePassword() {
@@ -4768,6 +4794,7 @@ async function changePassword() {
   if (!cur || !n1 || !n2) { errEl.textContent = 'Tüm alanları doldurun'; errEl.classList.add('on'); return; }
   if (n1.length < 6) { errEl.textContent = 'Yeni şifre en az 6 karakter olmalı'; errEl.classList.add('on'); return; }
   if (n1 !== n2) { errEl.textContent = 'Yeni şifreler eşleşmiyor'; errEl.classList.add('on'); return; }
+  if (!guardSubmit('changePassword')) return;
   try {
     const cred = firebase.auth.EmailAuthProvider.credential(user.email, cur);
     await user.reauthenticateWithCredential(cred);
@@ -4777,9 +4804,49 @@ async function changePassword() {
     document.getElementById('ep-new-pass2').value = '';
     showToast('✓', 'rgba(48,209,88,.15)', 'Şifre Güncellendi', 'Yeni şifrenle giriş yapabilirsin.');
   } catch(ex) {
-    errEl.textContent = (ex.code === 'auth/invalid-credential' || ex.code === 'auth/wrong-password') ? 'Mevcut şifre yanlış' : ex.message;
+    errEl.textContent = (ex.code === 'auth/invalid-credential' || ex.code === 'auth/wrong-password') ? 'Mevcut şifre yanlış' : (firebaseErrorToTurkish(ex) || 'Bir şeyler ters gitti, lütfen tekrar dene.');
     errEl.classList.add('on');
-  }
+  } finally { releaseSubmit('changePassword'); }
+}
+
+// ÖZELLİK EKLENDİ (yayın öncesi tarama, "Yüksek" öncelik): self-servis hesap silme — mağaza
+// politikaları genellikle hesap oluşturmaya izin veren uygulamalarda uygulama içi bir silme yolu
+// şart koşuyor, bu daha önce hiç yoktu. Kapsam: hesabın (Firebase Auth) ve profilinin (teknohane_users)
+// kalıcı silinmesi + admin ekibinin bildirim alması — ilan/gönderi/yorum gibi ikincil içeriklerin tam
+// temizliği, veri bütünlüğü riski taşıyan geniş kapsamlı bir istemci-taraflı zincirleme silme yerine
+// bilinçli olarak admin ekibine bırakıldı (yaygın, politika uyumlu bir yaklaşım).
+async function deleteMyAccount() {
+  if (!user) return;
+  const ok = await confirmDialog(
+    'Hesabın ve profil bilgilerin kalıcı olarak silinecek. İlanların/gönderilerin ayrıca kaldırılması için destek ekibimize ulaşabilirsin. Bu işlem GERİ ALINAMAZ.',
+    { title: 'Hesabımı Sil', okLabel: 'Devam Et', cancelLabel: 'Vazgeç', danger: true }
+  );
+  if (!ok) return;
+  const password = await promptDialog(
+    'Güvenlik için mevcut şifreni gir.',
+    '',
+    { title: 'Şifreni Doğrula', okLabel: 'Hesabı Sil', placeholder: 'Şifren', type: 'password' }
+  );
+  if (!password) return;
+  if (!guardSubmit('deleteAccount')) return;
+  try {
+    const cred = firebase.auth.EmailAuthProvider.credential(user.email, password);
+    await user.reauthenticateWithCredential(cred);
+    const uid = user.uid;
+    await db.collection('teknohane_account_deletion_requests').add({
+      uid, email: user.email, displayName: user.displayName || '',
+      requestedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).catch(()=>{});
+    await db.collection('teknohane_users').doc(uid).delete().catch(()=>{});
+    await user.delete();
+    showToast('✓', 'rgba(48,209,88,.15)', 'Hesabın Silindi', 'Görüşmek üzere.');
+  } catch(e) {
+    if (e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password') {
+      showToast('⚠️','rgba(255,69,58,.15)','Hata','Şifre yanlış, hesabın silinmedi.');
+    } else {
+      showErrorToast(e, 'Hesap silinemedi.');
+    }
+  } finally { releaseSubmit('deleteAccount'); }
 }
 
 function satab(t, el) {
@@ -4908,6 +4975,7 @@ function promptDialog(message, defaultValue, opts) {
     inputWrap.style.display = 'block';
     input.value = defaultValue || '';
     input.placeholder = opts.placeholder || '';
+    input.type = opts.type || 'text';
     const okBtn = document.getElementById('confirm-mo-ok');
     const cancelBtn = document.getElementById('confirm-mo-cancel');
     okBtn.textContent = opts.okLabel || 'Tamam';
@@ -4923,8 +4991,44 @@ function promptDialog(message, defaultValue, opts) {
 }
 
 // alert('Hata: ...') deseninin standart, tutarlı toast karşılığı
-function showErrorToast(message) {
-  showToast('⚠️', 'rgba(255,69,58,.15)', 'Hata', message || 'Bir şeyler ters gitti.');
+// GÜVENİLİRLİK/PROFESYONELLİK DÜZELTMESİ: eskiden showErrorToast'a çoğu yerde doğrudan e.message
+// geçiliyordu — Firestore/Auth'un İngilizce/teknik ham metni ("Missing or insufficient permissions",
+// "Firebase: Error (auth/network-request-failed).") kullanıcıya olduğu gibi gösteriliyordu. Artık
+// bilinen Firebase hata kodları Türkçe, anlaşılır mesajlara çevriliyor; tanınmayan bir hata için ham
+// metin yerine güvenli bir genel mesaj (veya çağıranın verdiği fallback) gösteriliyor.
+const FIREBASE_ERROR_TR = {
+  'permission-denied': 'Bu işlem için yetkin yok.',
+  'unavailable': 'Sunucuya ulaşılamıyor, internet bağlantını kontrol et.',
+  'not-found': 'Aradığın kayıt bulunamadı.',
+  'already-exists': 'Bu kayıt zaten mevcut.',
+  'resource-exhausted': 'Çok fazla istek gönderildi, birazdan tekrar dene.',
+  'unauthenticated': 'Bu işlem için giriş yapmalısın.',
+  'deadline-exceeded': 'İşlem zaman aşımına uğradı, tekrar dene.',
+  'cancelled': 'İşlem iptal edildi.',
+  'auth/network-request-failed': 'İnternet bağlantını kontrol et.',
+  'auth/too-many-requests': 'Çok fazla deneme yapıldı, birazdan tekrar dene.',
+  'auth/user-disabled': 'Bu hesap devre dışı bırakılmış.',
+  'auth/requires-recent-login': 'Bu işlem için tekrar giriş yapman gerekiyor.',
+  'auth/wrong-password': 'Şifre yanlış.',
+  'auth/invalid-credential': 'E-posta veya şifre yanlış.',
+  'auth/user-not-found': 'Bu e-posta ile kayıtlı bir hesap bulunamadı.',
+  'auth/email-already-in-use': 'Bu e-posta zaten kayıtlı.',
+  'auth/weak-password': 'Şifre çok zayıf, en az 6 karakter kullan.',
+  'auth/invalid-email': 'Geçersiz e-posta adresi.',
+};
+function firebaseErrorToTurkish(e) {
+  const code = e?.code || '';
+  const msg = e?.message || String(e || '');
+  if (FIREBASE_ERROR_TR[code]) return FIREBASE_ERROR_TR[code];
+  const authMatch = msg.match(/auth\/[a-z-]+/);
+  if (authMatch && FIREBASE_ERROR_TR[authMatch[0]]) return FIREBASE_ERROR_TR[authMatch[0]];
+  if (/network/i.test(msg)) return 'İnternet bağlantını kontrol et.';
+  if (/permission|insufficient/i.test(msg)) return 'Bu işlem için yetkin yok.';
+  return null; // tanınmayan hata — çağıran taraf fallback göstersin
+}
+function showErrorToast(err, fallback) {
+  const message = (typeof err === 'string') ? err : (firebaseErrorToTurkish(err) || fallback || 'Bir şeyler ters gitti, lütfen tekrar dene.');
+  showToast('⚠️', 'rgba(255,69,58,.15)', 'Hata', message);
 }
 
 // Premium, abartısız dokunma geri bildirimi (ripple) — herhangi bir butona onpointerdown="spawnRipple(event,this)"
@@ -4946,7 +5050,11 @@ function showToast(icon, iconBg, title, desc, onClick, duration) {
   if (!wrap) return;
   const t = document.createElement('div');
   t.className = 'toast';
-  t.innerHTML = `<div class="toast-ic" style="background:${iconBg}">${icon}</div><div class="toast-txt"><div class="toast-t">${title}</div><div class="toast-d">${desc}</div></div>`;
+  // GÜVENLİK DÜZELTMESİ: title/desc bazı çağrı noktalarında kullanıcı-kontrollü veri taşıyor (örn.
+  // ilan modeli, referans veren kişinin adı) — hiçbir çağıran taraf gerçek HTML biçimlendirmesi
+  // beklemediği için (kontrol edildi) burada TEK noktadan escapeHtml uygulanması hem güvenli hem
+  // her yeni çağrı noktasını otomatik korur.
+  t.innerHTML = `<div class="toast-ic" style="background:${iconBg}">${icon}</div><div class="toast-txt"><div class="toast-t">${escapeHtml(title)}</div><div class="toast-d">${escapeHtml(desc)}</div></div>`;
   if (onClick) t.onclick = () => { onClick(); dismissToast(t); };
   else t.onclick = () => dismissToast(t);
   wrap.appendChild(t);
@@ -4958,6 +5066,19 @@ function dismissToast(t) {
   t.classList.add('out');
   setTimeout(() => t.remove(), 250);
 }
+
+// ÇİFT GÖNDERİM KORUMASI: ilan/gönderi/teklif/yorum/talep gibi ana gönderim fonksiyonlarının hiçbiri
+// gönderim sırasında butonu devre dışı bırakmıyordu — hızlı çift dokunma (mobilde sık görülür) aynı
+// kaydın iki kez oluşmasına yol açabiliyordu. Anahtar bazlı, tek noktadan tüm gönderim fonksiyonları
+// için kullanılan basit bir kilit: guardSubmit() zaten devam eden bir gönderim varsa false döner,
+// çağıran taraf bu durumda hiçbir şey yapmadan çıkar.
+const _submitGuards = new Set();
+function guardSubmit(key) {
+  if (_submitGuards.has(key)) return false;
+  _submitGuards.add(key);
+  return true;
+}
+function releaseSubmit(key) { _submitGuards.delete(key); }
 
 // Kalıcı bildirim oluşturur (Firestore'a yazılır, kullanıcı çevrimdışıyken bile daha sonra görebilir)
 // Bildirim türünü (type) kategoriye eşler — Bildirim Merkezi 2.0'ın filtreleme ve okunmadı
@@ -5102,7 +5223,7 @@ function renderAnnouncementCards() {
         <div style="font-size:14px;font-weight:700">${escapeHtml(a.emoji)||pm.icon} ${escapeHtml(a.title)}${a.pinned?' 📌':''}</div>
         <span onclick="dismissAnnouncement('${a.id}')" style="cursor:pointer;color:var(--text3);font-size:16px;line-height:1;padding:2px">✕</span>
       </div>
-      ${a.imageUrl?`<img src="${escapeHtml(a.imageUrl)}" style="width:100%;border-radius:10px;margin-top:8px">`:''}
+      ${a.imageUrl?`<img src="${escapeHtml(a.imageUrl)}" alt="Duyuru görseli" style="width:100%;border-radius:10px;margin-top:8px">`:''}
       <div style="margin-top:6px;line-height:1.5;${announcementDescStyle(a)}${a.descColor?'':'color:var(--text2)'}">${escapeHtml(a.description)}</div>
       ${a.linkUrl?`<button class="apbtn" style="margin-top:10px" onclick="markAnnouncementRead('${a.id}');ol('${escapeJsAttr(a.linkUrl)}')">${escapeHtml(a.buttonText)||'Detay'}</button>`:''}
     </div>`;
@@ -5128,7 +5249,7 @@ function renderSplashAnnouncement(a) {
   const body = document.getElementById('announcement-splash-body');
   if (!body) return;
   body.innerHTML = `
-    ${a.imageUrl?`<img src="${escapeHtml(a.imageUrl)}" style="width:100%;border-radius:16px;margin-bottom:14px">`:''}
+    ${a.imageUrl?`<img src="${escapeHtml(a.imageUrl)}" alt="Duyuru görseli" style="width:100%;border-radius:16px;margin-bottom:14px">`:''}
     <div style="font-size:17px;font-weight:800;text-align:center;margin-bottom:8px">${escapeHtml(a.emoji)||''} ${escapeHtml(a.title)}</div>
     <div style="${announcementDescStyle(a)}${a.descColor?'':'color:var(--text2)'};text-align:${a.descAlign==='center'?'center':'left'};margin-bottom:18px">${escapeHtml(a.description)}</div>
     ${a.linkUrl?`<button class="sbtn2" style="margin-bottom:8px" onclick="markAnnouncementRead('${a.id}');ol('${escapeJsAttr(a.linkUrl)}');closeSplashAnnouncement('${a.id}')">${escapeHtml(a.buttonText)||'Detay'}</button>`:''}
@@ -5316,6 +5437,7 @@ async function submitPoolRequestForm() {
   const l = currentListing && currentListing.id === listingId ? currentListing : await getListingById(listingId);
   if (!l) return;
   const buyerName = myProfileData.displayName || user.displayName || user.email?.split('@')[0] || 'Bir kullanıcı';
+  if (!guardSubmit('poolRequest')) return;
   try {
     await db.collection('teknohane_pool_requests').add({
       listingId, listingModel: l.model || '',
@@ -5326,7 +5448,7 @@ async function submitPoolRequestForm() {
     await notifyAdminsPoolRequest(listingId, l.model || '', buyerName);
     closemo('pool-request-mo');
     showToast('🛡️', 'rgba(0,212,255,.15)', 'Talebin İletildi', 'Yönetici ekibimiz en kısa sürede seninle iletişime geçecek.');
-  } catch(e) { showErrorToast(e.message); }
+  } catch(e) { showErrorToast(e); } finally { releaseSubmit('poolRequest'); }
 }
 
 // ==== ADMIN PANEL - HAVUZ TALEPLERİ ====
@@ -5389,7 +5511,7 @@ async function replyToPoolRequest(requestId) {
     r.status = 'replied'; r.adminReply = reply;
     rPoolRequestsList();
     showToast('✓', 'rgba(48,209,88,.15)', 'Yanıtlandı', 'Alıcıya bildirim gönderildi.');
-  } catch(e) { showErrorToast(e.message); }
+  } catch(e) { showErrorToast(e); }
 }
 
 // ==== PAZARLIK / TEKLİF S\u304?STEM\u304? ====
@@ -5416,6 +5538,7 @@ async function submitOffer() {
   const l = currentListing && currentListing.id === listingId ? currentListing : await getListingById(listingId);
   if (!l) return;
   const buyerName = myProfileData.displayName || user.displayName || user.email?.split('@')[0] || 'Bir kullanıcı';
+  if (!guardSubmit('offer')) return;
   try {
     await db.collection('teknohane_offers').add({
       listingId, listingModel: l.model || '', sellerUid: l.uid,
@@ -5427,7 +5550,7 @@ async function submitOffer() {
     await notifyUser(l.uid, 'offer_received', msg, listingId, null, user.uid, buyerName, myProfileData.photoURL);
     closemo('offer-mo');
     showToast('🤝', 'rgba(0,212,255,.15)', 'Teklifin Gönderildi', 'Satıcı teklifini ilan sayfasında görecek.');
-  } catch(e) { showErrorToast(e.message); }
+  } catch(e) { showErrorToast(e); } finally { releaseSubmit('offer'); }
 }
 
 // Satıcı kendi (pazarlığa açık) ilanının detayını açtığında bekleyen teklifleri yükler — bkz.
@@ -5500,7 +5623,7 @@ async function respondToOffer(offerId, accept) {
     o.status = accept ? 'accepted' : 'rejected';
     renderListingOffers();
     showToast(accept ? '✓' : '✓', accept ? 'rgba(48,209,88,.15)' : 'rgba(255,69,58,.15)', 'Yanıtlandı', 'Alıcıya bildirim gönderildi.');
-  } catch(e) { showErrorToast(e.message); }
+  } catch(e) { showErrorToast(e); }
 }
 
 // Uygulama şu an Capacitor native kabuğu (Android APK) içinde mi çalışıyor, yoksa normal tarayıcıda mı?
@@ -5559,7 +5682,7 @@ async function setupPushNative(silent) {
     await PushNotifications.register();
   } catch(e) {
     console.error('Native push kurulum hatası:', e);
-    if (!silent) showErrorToast('Bildirimler açılamadı: ' + e.message);
+    if (!silent) showErrorToast(e, 'Bildirimler açılamadı.');
   }
 }
 
@@ -5605,7 +5728,7 @@ async function setupPushWeb(silent) {
     else console.log('Push token sessizce senkronize edildi.');
   } catch(e) {
     console.error('Push kurulum hatası:', e);
-    if (!silent) showErrorToast('Bildirimler açılamadı: ' + e.message);
+    if (!silent) showErrorToast(e, 'Bildirimler açılamadı.');
   }
 }
 
@@ -6160,7 +6283,7 @@ async function openChatWith(otherUid, otherName, listingCtx) {
   if (!otherUid || otherUid === user.uid) return;
   try {
     await ensureChatDoc(otherUid, otherName);
-  } catch(e) { showErrorToast(e.message); return; }
+  } catch(e) { showErrorToast(e); return; }
   openChatThread(otherUid, otherName, listingCtx ? `${listingCtx} ilanınız hakkında yazıyorum, ` : '');
 }
 
@@ -6239,7 +6362,7 @@ function openChatThread(otherUid, otherName, prefill) {
     if (!c) return;
     const av = c.avatars?.[otherUid];
     const avEl = document.getElementById('chat-thread-av');
-    if (avEl) avEl.innerHTML = av ? `<img src="${av}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" loading="lazy" decoding="async">` : (otherName || '?')[0].toUpperCase();
+    if (avEl) avEl.innerHTML = av ? `<img src="${av}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%" loading="lazy" decoding="async">` : (otherName || '?')[0].toUpperCase();
     const lr = c.lastRead?.[otherUid];
     currentChatOtherLastRead = lr?.toMillis ? lr.toMillis() : 0;
     // PERFORMANS DÜZELTMESİ ("okundu" güncellemesi 200 mesajı yeniden çiziyordu): bu dinleyici,
@@ -6290,7 +6413,7 @@ function messageBubbleHTML(m, isNew) {
   } else if (m.imageUrl || m._localImagePreview) {
     const src = m.imageUrl || m._localImagePreview;
     body = `<div style="position:relative">
-      <img src="${src}" ${m.imageUrl?`onclick="openFullscreen('${m.imageUrl}')"`:''} style="max-width:100%;border-radius:10px;display:block;cursor:${m.imageUrl?'pointer':'default'};${m._status==='sending'?'opacity:.55;filter:blur(1.5px)':''}" loading="lazy" decoding="async">
+      <img src="${src}" alt="Gönderilen fotoğraf" ${m.imageUrl?`onclick="openFullscreen('${m.imageUrl}')"`:''} style="max-width:100%;border-radius:10px;display:block;cursor:${m.imageUrl?'pointer':'default'};${m._status==='sending'?'opacity:.55;filter:blur(1.5px)':''}" loading="lazy" decoding="async">
       ${m._status==='sending'?'<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center"><div class="spin" style="width:22px;height:22px;border-width:2px"></div></div>':''}
     </div>`;
   } else {
@@ -6312,6 +6435,11 @@ function renderChatMessages() {
   if (!box) return;
   if (!currentChatMsgs.length) { box.innerHTML = `<div class="no" style="margin:auto">Henüz mesaj yok, ilk mesajı sen yaz!</div>`; box._renderedIds = null; box._renderedSignatures = null; return; }
 
+  // GÜVENLİK AĞI ("beyaz/donuk ekran" riski): önceden burada try/catch yoktu — listede TEK bir
+  // mesaj messageBubbleHTML'de beklenmedik bir alanla patlarsa (örn. ileride eklenecek yeni bir
+  // mesaj tipi), box.innerHTML atamasının tamamı iptal olur ve ekran kalıcı olarak iskelet/önceki
+  // durumda donup kalırdı. Artık hata olursa en azından "tekrar dene" seçeneği gösteriliyor.
+  try {
   const prevIds = box._renderedIds;
   const prevSignatures = box._renderedSignatures;
   // İlk çizim ya da boş-durum mesajından çıkış — tek seferlik tam kuruluma düş, sonraki çağrılar
@@ -6358,6 +6486,11 @@ function renderChatMessages() {
 
   box._renderedIds = newIds;
   box._renderedSignatures = newSignatures;
+  } catch(e) {
+    console.error('Sohbet mesajları render hatası:', e);
+    box.innerHTML = `<div class="no" style="margin:auto">Mesajlar gösterilirken bir sorun oluştu.<br><span style="font-size:12px;color:var(--text3);cursor:pointer;text-decoration:underline" onclick="renderChatMessages()">Tekrar dene</span></div>`;
+    box._renderedIds = null; box._renderedSignatures = null;
+  }
 }
 
 // Kendi mesajlarımızın durum ikonunu (gönderiliyor/başarısız/tik) üretir — renderChatMessages VE
@@ -6401,7 +6534,7 @@ function chatListingCardHTML(listingId) {
   if (!l) return `<div class="chat-listing-card" onclick="exitChatThread();gt('market');setTimeout(()=>openDetail('${listingId}'),50)"><div class="chat-listing-card-info"><div class="chat-listing-card-title">İlanı görüntülemek için dokun</div></div></div>`;
   const cityLabel = l.city || (l.location||'').split(',')[0] || 'Belirtilmedi';
   return `<div class="chat-listing-card" onclick="exitChatThread();gt('market');setTimeout(()=>openDetail('${l.id}'),50)">
-    ${l.photo1?`<img class="chat-listing-card-thumb" src="${l.photo1}" loading="lazy" decoding="async">`:'<div class="chat-listing-card-thumb" style="display:flex;align-items:center;justify-content:center;font-size:20px">📱</div>'}
+    ${l.photo1?`<img class="chat-listing-card-thumb" src="${l.photo1}" alt="" loading="lazy" decoding="async">`:'<div class="chat-listing-card-thumb" style="display:flex;align-items:center;justify-content:center;font-size:20px">📱</div>'}
     <div class="chat-listing-card-info">
       <div class="mcard-price" style="font-size:15px">₺${parseInt(l.price||0).toLocaleString('tr-TR')}</div>
       <div class="chat-listing-card-title">${escapeHtml(l.model||'')}</div>
@@ -6423,7 +6556,7 @@ async function openChatListingPicker() {
   const mine = marketMineListings.filter(l => !l.sold && l.approved !== false);
   list.innerHTML = mine.length ? mine.map(l => `
     <div class="clp-row" onclick="sendChatListingCard('${l.id}')">
-      ${l.photo1?`<img class="clp-thumb" src="${l.photo1}" loading="lazy" decoding="async">`:'<div class="clp-thumb" style="display:flex;align-items:center;justify-content:center;font-size:18px">📱</div>'}
+      ${l.photo1?`<img class="clp-thumb" src="${l.photo1}" alt="" loading="lazy" decoding="async">`:'<div class="clp-thumb" style="display:flex;align-items:center;justify-content:center;font-size:18px">📱</div>'}
       <div class="clp-info">
         <div class="clp-title">${escapeHtml(l.model||'')}</div>
         <div class="clp-price">₺${parseInt(l.price||0).toLocaleString('tr-TR')}</div>
@@ -6450,7 +6583,7 @@ async function sendChatListingCard(listingId) {
   } catch(e) {
     localMsg._status = 'failed';
     renderChatMessages();
-    showErrorToast(e.message);
+    showErrorToast(e);
   }
 }
 
@@ -6517,7 +6650,7 @@ async function sendChatMessage() {
   } catch(e) {
     localMsg._status = 'failed';
     renderChatMessages();
-    showErrorToast(e.message);
+    showErrorToast(e);
   }
 }
 
@@ -6554,7 +6687,7 @@ async function sendChatImage(input) {
   } catch(e) {
     localMsg._status = 'failed';
     renderChatMessages();
-    showErrorToast(e.message);
+    showErrorToast(e);
   } finally {
     URL.revokeObjectURL(localPreview);
   }
@@ -6594,24 +6727,32 @@ function attachChatSwipeDelete(wrap) {
     dx = e.touches[0].clientX - startX;
     if (dx < 0) item.style.transform = `translateX(${dx}px)`;
   }, { passive: true });
-  item.addEventListener('touchend', () => {
+  item.addEventListener('touchend', async () => {
     dragging = false;
     item.style.transition = 'transform .2s ease';
     if (dx < -90) {
-      item.style.transform = 'translateX(-100%)';
-      item.style.opacity = '0';
-      deleteChatThread(chatId).then(ok => {
-        if (ok) {
-          wrap.remove();
-          if (!document.querySelector('#chat-list .notif-swipe-wrap')) {
-            document.getElementById('chat-list').innerHTML = `<div class="no">Henüz mesajın yok</div>`;
+      // UX/TUTARLILIK DÜZELTMESİ: eskiden kaydırma eşiği geçilir geçilmez, onay istenmeden sohbet
+      // siliniyordu — uygulamanın geri kalanındaki TÜM diğer silme akışlarının (ilan, gönderi, yorum,
+      // duyuru) aksine, tek istisnaydı. Önce eski konumuna döner, onay alınırsa asıl silme animasyonu
+      // ve işlem gerçekleşir; vazgeçilirse hiçbir şey olmamış gibi yerinde kalır.
+      item.style.transform = 'translateX(0)';
+      const ok = await confirmDialog('Bu sohbeti listenden kaldırmak istiyor musun?', { title: 'Sohbeti Sil', okLabel: 'Sil', cancelLabel: 'Vazgeç' });
+      if (ok) {
+        item.style.transform = 'translateX(-100%)';
+        item.style.opacity = '0';
+        deleteChatThread(chatId).then(ok2 => {
+          if (ok2) {
+            wrap.remove();
+            if (!document.querySelector('#chat-list .notif-swipe-wrap')) {
+              document.getElementById('chat-list').innerHTML = `<div class="no">Henüz mesajın yok</div>`;
+            }
+          } else {
+            // Silme başarısız oldu — öğeyi geri getir, kullanıcıya yanlış bir "silindi" izlenimi verilmesin.
+            item.style.transform = 'translateX(0)';
+            item.style.opacity = '1';
           }
-        } else {
-          // Silme başarısız oldu — öğeyi geri getir, kullanıcıya yanlış bir "silindi" izlenimi verilmesin.
-          item.style.transform = 'translateX(0)';
-          item.style.opacity = '1';
-        }
-      });
+        });
+      }
     } else {
       item.style.transform = 'translateX(0)';
     }
@@ -6655,7 +6796,7 @@ function chatRowWrapHTML(d, forwardMsgId) {
   const unreadN = c.unreadCount?.[user.uid] || (unread ? 1 : 0);
   const time = c.lastAt?.toDate ? fd(c.lastAt.toDate().toISOString()) : '';
   const preview = (c.lastMessage||'').slice(0,40) + ((c.lastMessage||'').length>40?'…':'');
-  const avHtml = otherAv ? `<img src="${otherAv}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" loading="lazy" decoding="async">` : escapeHtml(otherName)[0]?.toUpperCase();
+  const avHtml = otherAv ? `<img src="${otherAv}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%" loading="lazy" decoding="async">` : escapeHtml(otherName)[0]?.toUpperCase();
   const listingThumb = c.lastListingId ? getListingByIdSync(c.lastListingId)?.photo1 : null;
   const otherNameJs = otherName.replace(/'/g,"\\'");
   const rowClick = forwardMsgId ? `forwardMsgTo('${otherUid}','${otherNameJs}')` : `openChatThread('${otherUid}','${otherNameJs}')`;
@@ -6669,7 +6810,7 @@ function chatRowWrapHTML(d, forwardMsgId) {
           <span class="chat-row-time">${time}</span>
         </div>
         <div class="chat-row-bottom">
-          ${listingThumb?`<img class="chat-row-thumb" src="${listingThumb}" loading="lazy" decoding="async">`:''}
+          ${listingThumb?`<img class="chat-row-thumb" src="${listingThumb}" alt="" loading="lazy" decoding="async">`:''}
           <span class="chat-row-preview">${escapeHtml(preview) || 'Sohbeti başlat'}</span>
           ${unreadN>0?`<span class="chat-row-unread-badge">${unreadN>9?'9+':unreadN}</span>`:''}
         </div>
@@ -6770,7 +6911,6 @@ function openMsgContextMenu(msgId) {
   const rows = [];
   if (isText) rows.push(`<div class="mi" onclick="copyMsgText('${msgId}')"><div class="mil"><div class="mico" style="background:rgba(0,212,255,.1)">📋</div><div class="mlbl">Kopyala</div></div></div>`);
   rows.push(`<div class="mi" onclick="openForwardChatPicker('${msgId}')"><div class="mil"><div class="mico" style="background:rgba(0,212,255,.1)">↪️</div><div class="mlbl">İlet</div></div></div>`);
-  rows.push(`<div class="mi" onclick="favoriteChatMessage('${msgId}')"><div class="mil"><div class="mico" style="background:rgba(255,214,10,.12)">⭐</div><div class="mlbl">Favorilere Kaydet</div></div></div>`);
   rows.push(`<div class="mi" onclick="deleteChatMessage('${msgId}')"><div class="mil"><div class="mico" style="background:rgba(255,69,58,.1)">🗑️</div><div class="mlbl" style="color:var(--red)">Sil</div></div></div>`);
   document.getElementById('msg-ctx-body').innerHTML = rows.join('');
   document.getElementById('msg-ctx-mo').classList.add('on');
@@ -6795,32 +6935,15 @@ function copyMsgText(msgId) {
 async function deleteChatMessage(msgId) {
   closemo('msg-ctx-mo');
   if (!currentChatOtherUid || !user) return;
+  const ok = await confirmDialog('Bu mesajı kendi tarafında silmek istiyor musun?', { title: 'Mesajı Sil', okLabel: 'Sil', cancelLabel: 'Vazgeç' });
+  if (!ok) return;
   const id = chatIdFor(user.uid, currentChatOtherUid);
   try {
     await db.collection('teknohane_chats').doc(id).collection('messages').doc(msgId)
       .update({ deletedFor: firebase.firestore.FieldValue.arrayUnion(user.uid) });
     currentChatMsgs = currentChatMsgs.filter(m => m.id !== msgId);
     renderChatMessages();
-  } catch(e) { showErrorToast(e.message); }
-}
-
-// "Favorilere Kaydet" — ALTYAPI HAZIR. Kod, mesaj dokümanına favoritedBy alanı yazmayı dener; ancak
-// mevcut Firestore kuralları messages alt koleksiyonunda yalnızca read/create/delete tanımlıyor,
-// bir "allow update" yok — bu yüzden bu yazma şu an izin hatasıyla reddedilir (bkz. görev sonu raporu).
-// Ayrı bir favoriler ekranı bu görevin kapsamında değil; kurallara ileride
-// allow update: if ... affectedKeys().hasOnly(['favoritedBy']) eklendiğinde bu fonksiyon kod
-// değişikliği gerektirmeden çalışmaya başlar.
-async function favoriteChatMessage(msgId) {
-  closemo('msg-ctx-mo');
-  if (!currentChatOtherUid || !user) return;
-  const id = chatIdFor(user.uid, currentChatOtherUid);
-  try {
-    await db.collection('teknohane_chats').doc(id).collection('messages').doc(msgId)
-      .update({ favoritedBy: firebase.firestore.FieldValue.arrayUnion(user.uid) });
-    showToast('⭐','rgba(255,214,10,.12)','Kaydedildi','Mesaj favorilere eklendi.');
-  } catch(e) {
-    showToast('⏳','rgba(255,214,10,.12)','Yakında','Favoriler özelliği yakında aktif olacak.');
-  }
+  } catch(e) { showErrorToast(e); }
 }
 
 // Mesaj iletme — mevcut sohbet listesi ekranı (#chat-list-mo / renderChatList) "iletme modu"
@@ -6858,7 +6981,7 @@ async function forwardMsgTo(targetUid, targetName) {
       await markChatMessageSent(ref, m.text, targetUid, { lastListingId: firebase.firestore.FieldValue.delete() });
     }
     showToast('↪️','rgba(0,212,255,.12)','İletildi','Mesaj iletildi.');
-  } catch(e) { showErrorToast(e.message); }
+  } catch(e) { showErrorToast(e); }
 }
 
 // ---- ÇEVRİMİÇİ / TOPLAM KULLANICI SAYACI ----
@@ -7284,7 +7407,7 @@ async function loadMarketMine() {
     const snap = await db.collection('teknohane_listings').where('uid', '==', user.uid).get();
     marketMineListings = snap.docs.map(d => ({ id: d.id, ...d.data() }))
       .sort((a,b) => (b.createdAt?.toDate?.()?.getTime()||0) - (a.createdAt?.toDate?.()?.getTime()||0));
-  } catch (e) { console.error('İlanlarım yüklenemedi:', e); showErrorToast('İlanların yüklenemedi: ' + e.message); }
+  } catch (e) { console.error('İlanlarım yüklenemedi:', e); showErrorToast(e, 'İlanların yüklenemedi.'); }
   marketMineLoaded = true;
   rlistings(); renderProfileListings();
   // Profil ekranı açıksa Teknohane Skoru'ndaki "İlan" sayısı da bu veriyi kullanıyor (bkz. rprof) —
@@ -7381,6 +7504,10 @@ function rlistings() {
     return;
   }
 
+  // GÜVENLİK AĞI ("beyaz/donuk ekran" riski): önceden try/catch yoktu — filtreleme/sıralama/kart
+  // üretimi sırasında beklenmedik bir veri şekli hata fırlatırsa, grid yukarıdaki "Yükleniyor…"
+  // iskeletinde kalıcı olarak donup kalırdı. Artık hata olursa en azından "tekrar dene" gösteriliyor.
+  try {
   // ID araması: #XXXXXX veya sadece 6 büyük harf/rakam — yalnızca o an yüklenmiş sayfa içinde arar
   // (tam koleksiyon araması bu aşamanın kapsamı dışında, karar verildiği gibi).
   const idMatch = raw.match(/^#?([A-Za-z0-9]{6})$/);
@@ -7420,6 +7547,11 @@ function rlistings() {
   grid.innerHTML = items.map(mcardHTML).join('');
   grid._renderedSig = sig;
   renderMarketLoadMoreControl();
+  } catch(e) {
+    console.error('İlan listesi render hatası:', e);
+    grid.innerHTML = `<div class="load"><div style="font-size:36px">📡</div><div>İlanlar gösterilirken bir sorun oluştu.</div><button class="sbtn2" style="margin-top:16px;max-width:200px" onclick="rlistings()">Tekrar Dene</button></div>`;
+    grid._renderedSig = null;
+  }
 }
 
 function smtab(t, el) {
@@ -7709,7 +7841,10 @@ async function submitListing() {
   if (!il) { showToast('⚠️','rgba(255,69,58,.15)','Eksik Bilgi','İl alanı zorunludur.'); return; }
   if (photoCount < 3) { showToast('⚠️','rgba(255,69,58,.15)','Eksik Fotoğraf', `En az 3 fotoğraf eklemelisiniz (şu an ${photoCount}).`); return; }
   if (desc.length < 30) { showToast('⚠️','rgba(255,69,58,.15)','Açıklama Çok Kısa', `Açıklama en az 30 karakter olmalı (şu an ${desc.length}).`); return; }
+  const phone = normalizeTrPhone(document.getElementById('l-phone').value);
+  if (phone.length !== 10 || phone[0] !== '5') { showToast('⚠️','rgba(255,69,58,.15)','Geçersiz Numara','WhatsApp numarasını 5XXXXXXXXX biçiminde, 10 haneli gir.'); return; }
   if (!editingListingId && !document.getElementById('l-agree').checked) { showToast('⚠️','rgba(255,69,58,.15)','Onay Gerekli','Devam etmek için onay kutusunu işaretlemelisiniz.'); return; }
+  if (!guardSubmit('listing')) return;
   try {
     const data = {
       model, price,
@@ -7726,7 +7861,7 @@ async function submitListing() {
       origin: document.getElementById('l-origin').value,
       location,
       desc: document.getElementById('l-desc').value.trim(),
-      phone: document.getElementById('l-phone').value.trim(),
+      phone,
       ram: document.getElementById('l-ram').value.trim(),
       storage: document.getElementById('l-storage').value.trim(),
       color: document.getElementById('l-color').value.trim(),
@@ -7826,7 +7961,7 @@ async function submitListing() {
     // "İlanlarım" sekmesi artık ayrı yüklendiği için, bir sonraki girişte güncel veriyi çeksin diye işaretlenir.
     marketMineLoaded = false;
     if (mktab === 'mine') loadMarketMine();
-  } catch(e) { showErrorToast(e.message); }
+  } catch(e) { showErrorToast(e); } finally { releaseSubmit('listing'); }
 }
 
 async function editListing(id) {
@@ -7900,7 +8035,7 @@ const photos = [null, null, null, null];
 function renderPhotoSlotHTML(idx) {
   const p = photos[idx];
   if (!p) return `<svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>Ekle</span><input type="file" id="pf${idx}" accept="image/*" style="display:none" onchange="addPhoto(${idx},this)">`;
-  return `<img src="${p}">${idx===0?'<div class="pslot-cover">Kapak</div>':''}<div class="pslot-x" onclick="rmPhoto(${idx});event.stopPropagation()">×</div><input type="file" id="pf${idx}" accept="image/*" style="display:none" onchange="addPhoto(${idx},this)">`;
+  return `<img src="${p}" alt="Yüklenen fotoğraf">${idx===0?'<div class="pslot-cover">Kapak</div>':''}<div class="pslot-x" onclick="rmPhoto(${idx});event.stopPropagation()">×</div><input type="file" id="pf${idx}" accept="image/*" style="display:none" onchange="addPhoto(${idx},this)">`;
 }
 function refreshPhotoSlot(idx) {
   const slot = document.getElementById('ps' + idx);
@@ -7964,7 +8099,7 @@ async function addPhoto(idx, input) {
     listingFormOnChange();
   } catch(e) {
     refreshPhotoSlot(idx);
-    showErrorToast('Fotoğraf yüklenemedi: ' + (e.message||''));
+    showErrorToast(e, 'Fotoğraf yüklenemedi.');
   }
 }
 
@@ -8244,7 +8379,7 @@ async function toggleSold(id) {
     l.soldAt = newSold ? new Date() : null;
     openDetail(id);
     rlistings();
-  } catch(e) { showErrorToast(e.message); }
+  } catch(e) { showErrorToast(e); }
 }
 
 // Süresi dolan bir ilanı sahibi tek dokunuşla yeniden yayına alır — süre 30 gün ileri atılır,
@@ -8260,7 +8395,7 @@ async function renewListing(id) {
     openDetail(id);
     rlistings();
     showToast('✓', 'rgba(48,209,88,.15)', 'Yeniden Yayınlandı', `${l.model} 30 gün daha Pazar'da görünecek.`);
-  } catch(e) { showErrorToast(e.message); }
+  } catch(e) { showErrorToast(e); }
 }
 
 async function approveListing(id) {
@@ -8276,7 +8411,7 @@ async function approveListing(id) {
     showToast('✓', 'rgba(48,209,88,.15)', 'İlan Onaylandı', `${l?.model||'İlan'} artık Pazar'da görünüyor.`);
   } catch(e) {
     adminLog('approve_listing', 'listing', id, id, null, null, 'error: ' + e.message);
-    showErrorToast(e.message);
+    showErrorToast(e);
   }
 }
 
@@ -8386,7 +8521,7 @@ async function toggleRef() {
     }
     syncListingFieldEverywhere(l.id, { referrers: l.referrers });
     openDetail(l.id);
-  } catch(e) { showErrorToast(e.message); }
+  } catch(e) { showErrorToast(e); }
 }
 
 // Uzun ilan açıklamalarında "Devamını Oku" / "Daralt" geçişi — yalnızca görsel, veri değişmiyor.
@@ -8696,7 +8831,7 @@ function forumPostCardHTML(p) {
   const authorSafe = escapeHtml(p.authorName || '—');
   const authorJs = (p.authorName||'').replace(/'/g,"\\'");
   return `<div class="post-card" onclick="openPost('${p.id}')">
-      ${p.imageUrl ? `<div class="post-card-thumb"><img src="${p.imageUrl}" loading="lazy" decoding="async"></div>` : ''}
+      ${p.imageUrl ? `<div class="post-card-thumb"><img src="${p.imageUrl}" alt="" loading="lazy" decoding="async"></div>` : ''}
       <div class="post-card-body">
         <div class="post-badges-row">
           ${p.pinned?'<div class="post-type-badge pinned-badge" title="Sabit">📌</div>':''}
@@ -8841,10 +8976,10 @@ async function handlePostPhoto(input) {
     // Yol, storage.rules'ta ÖNCEDEN hazırlanmış desenle birebir eşleşmeli: forum-post-images/{uid}/{postId}/{fileName}
     npPhotoB64 = await compressAndUploadPhoto(file, `forum-post-images/${user.uid}/${pendingNewPostPhotoId}/original`, 900, 0.78);
     document.getElementById('np-photo-label').textContent = '1 fotoğraf seçildi';
-    document.getElementById('np-photo-preview').innerHTML = `<img src="${npPhotoB64}" class="photo-preview-thumb">`;
+    document.getElementById('np-photo-preview').innerHTML = `<img src="${npPhotoB64}" alt="Yüklenen fotoğraf" class="photo-preview-thumb">`;
   } catch(e) {
     document.getElementById('np-photo-label').textContent = 'Fotoğraf ekle';
-    showErrorToast('Fotoğraf yüklenemedi: ' + (e.message||''));
+    showErrorToast(e, 'Fotoğraf yüklenemedi.');
   }
 }
 
@@ -8859,11 +8994,11 @@ async function handleCmtPhoto(input) {
     // Yol, storage.rules'ta ÖNCEDEN hazırlanmış desenle birebir eşleşmeli: forum-comment-images/{uid}/{commentId}/{fileName}
     pendingCommentPhotoId = db.collection('teknohane_posts').doc(currentPost.id).collection('comments').doc().id;
     cmtPhotoB64 = await compressAndUploadPhoto(file, `forum-comment-images/${user.uid}/${pendingCommentPhotoId}/original`, 800, 0.75);
-    prev.innerHTML = `<img src="${cmtPhotoB64}" style="width:64px;height:64px;border-radius:8px;object-fit:cover">`;
+    prev.innerHTML = `<img src="${cmtPhotoB64}" alt="Yüklenen fotoğraf" style="width:64px;height:64px;border-radius:8px;object-fit:cover">`;
   } catch(e) {
     prev.style.display = 'none';
     prev.innerHTML = '';
-    showErrorToast('Fotoğraf yüklenemedi: ' + (e.message||''));
+    showErrorToast(e, 'Fotoğraf yüklenemedi.');
   }
 }
 
@@ -8873,6 +9008,12 @@ async function submitPost() {
   const title = document.getElementById('np-title').value.trim();
   const body = document.getElementById('np-body').value.trim();
   if (!title) { showToast('⚠️','rgba(255,69,58,.15)','Eksik Bilgi','Başlık zorunlu.'); return; }
+  if (title.length < 4) { showToast('⚠️','rgba(255,69,58,.15)','Başlık Çok Kısa','Başlık en az 4 karakter olmalı.'); return; }
+  // TUTARLILIK DÜZELTMESİ: eskiden gövde tamamen boş bırakılabiliyordu (ilan formu 30 karakter
+  // açıklama zorunlu tutarken forum gönderisinde hiç kontrol yoktu) — bu, içeriksiz/spam konuların
+  // önüne geçmek için minimum bir eşik ekliyor; ilan formu kadar sıkı değil (forum sorusu kısa olabilir).
+  if (body.length < 10) { showToast('⚠️','rgba(255,69,58,.15)','İçerik Çok Kısa','Gönderi içeriği en az 10 karakter olmalı.'); return; }
+  if (!guardSubmit('post')) return;
   try {
     const data = {
       type: currentPostType,
@@ -8913,7 +9054,7 @@ async function submitPost() {
     rForum();
 
     showToast('✅','rgba(48,209,88,.15)','Konu Yayınlandı','Konunuz foruma eklendi.');
-  } catch(e) { showErrorToast(e.message); }
+  } catch(e) { showErrorToast(e); } finally { releaseSubmit('post'); }
 }
 
 async function openPost(id) {
@@ -8972,7 +9113,7 @@ function renderPostDetail() {
       </div>
     </div>
     ${(p.tags&&p.tags.length)?`<div class="post-detail-tags">${p.tags.map(t=>`<span class="post-tag-chip">#${escapeHtml(t)}</span>`).join('')}</div>`:''}
-    ${p.imageUrl?`<img class="post-detail-img" src="${p.imageUrl}" loading="lazy" decoding="async" onclick="openFullscreen('${p.imageUrl}')">` : ''}
+    ${p.imageUrl?`<img class="post-detail-img" src="${p.imageUrl}" alt="Gönderi görseli" loading="lazy" decoding="async" onclick="openFullscreen('${p.imageUrl}')">` : ''}
     <div class="post-detail-body">${formatForumText(p.body)}</div>
     <div class="post-actions" style="flex-wrap:wrap">
       <button class="like-btn ${liked?'liked':''}" onclick="likePost('${p.id}')">
@@ -8989,7 +9130,7 @@ function renderPostDetail() {
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51L8.59 10.49"/></svg>
       </button>
       ${canDelete?`<button class="del-post-btn" onclick="deletePost('${p.id}')"><svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>Sil</button>`:''}
-      ${user && user.uid!==p.uid?`<span onclick="openReportModal('forum_post','${p.id}','${(p.title||'Gönderi').replace(/'/g,"\\'").replace(/"/g,'&quot;')}','${p.uid||''}')" style="font-size:11px;color:var(--text3);cursor:pointer;text-decoration:underline;margin-left:auto">🚩 Şikayet Et</span>`:''}
+      ${user && user.uid!==p.uid?`<span onclick="openReportModal('forum_post','${p.id}','${(p.title||'Konu').replace(/'/g,"\\'").replace(/"/g,'&quot;')}','${p.uid||''}')" style="font-size:11px;color:var(--text3);cursor:pointer;text-decoration:underline;margin-left:auto">🚩 Şikayet Et</span>`:''}
     </div>`;
   document.getElementById('comment-input-area').style.display = user ? 'flex' : 'none';
   document.getElementById('comment-inp').value = '';
@@ -9022,7 +9163,7 @@ function renderComments() {
       <div class="comment-author" onclick="openPublicProfile('${c.uid}','${authorJs}')" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;display:inline-block">${authorSafe}</div>
       ${c.quotedCommentId?`<div class="comment-quote-ref" onclick="document.getElementById('cmt-${c.quotedCommentId}')?.scrollIntoView({behavior:'smooth',block:'center'})"><b>${quotedAuthorSafe}</b>: ${quotedSafe}</div>`:''}
       <div class="comment-text">${formatForumText(c.body)}</div>
-      ${c.imageUrl?`<img class="comment-img" src="${c.imageUrl}" loading="lazy" decoding="async" onclick="openFullscreen('${c.imageUrl}')">` : ''}
+      ${c.imageUrl?`<img class="comment-img" src="${c.imageUrl}" alt="Yorum görseli" loading="lazy" decoding="async" onclick="openFullscreen('${c.imageUrl}')">` : ''}
       <div class="comment-meta">
         <div class="comment-actions">
           <button class="comment-like-btn ${likedC?'liked':''}" onclick="likeComment('${c.id}')">
@@ -9074,7 +9215,7 @@ async function likePost(id) {
       const name = user.displayName || user.email?.split('@')[0] || 'Biri';
       notifyUser(p.uid, 'post_liked', `${name}, "${p.title}" gönderini beğendi`, null, p.id, user.uid, name, myProfileData.photoURL);
     }
-  } catch(e) {}
+  } catch(e) { showErrorToast(e, 'Beğeni kaydedilemedi.'); }
 }
 
 async function submitComment() {
@@ -9084,6 +9225,7 @@ async function submitComment() {
   if (!body && !cmtPhotoB64) return;
   const p = currentPost;
   const replyingTo = replyingToComment; // submitComment sırasında değişebileceği için anlık kopya
+  if (!guardSubmit('comment')) return;
   try {
     const cdata = {
       uid: user.uid,
@@ -9130,7 +9272,7 @@ async function submitComment() {
     if (replyingTo?.uid && replyingTo.uid !== user.uid && !notifyTargets.has(replyingTo.uid)) {
       notifyUser(replyingTo.uid, 'comment_reply', `${name} seni yanıtladı: "${p.title}"`, null, p.id, user.uid, name, myProfileData.photoURL);
     }
-  } catch(e) { showErrorToast(e.message); }
+  } catch(e) { showErrorToast(e); } finally { releaseSubmit('comment'); }
 }
 
 // "Takip Et": konuya yeni yorum geldiğinde bildirim almak için. followers[] alanı, konu oluşturulurken
@@ -9147,7 +9289,7 @@ async function toggleThreadFollow(id) {
     p.followers = isFollowing ? (p.followers||[]).filter(u=>u!==user.uid) : [...(p.followers||[]), user.uid];
     renderPostDetail();
     showToast(isFollowing?'🔕':'🔔', isFollowing?'var(--surf2)':'rgba(0,212,255,.15)', isFollowing?'Takipten Çıkıldı':'Takip Ediliyor', isFollowing?'':'Bu konuya yeni yorum gelince bildirim alacaksın.');
-  } catch(e) { showErrorToast(e.message); }
+  } catch(e) { showErrorToast(e); }
 }
 
 // Paylaş: Pazar'daki shareListing() ile aynı üç kademeli düşüş deseni (native paylaşım eklentisi →
@@ -9193,7 +9335,7 @@ async function likeComment(cid) {
       const name = user.displayName || user.email?.split('@')[0] || 'Biri';
       notifyUser(c.uid, 'comment_liked', `${name}, yorumunu beğendi`, null, p.id, user.uid, name, myProfileData.photoURL);
     }
-  } catch(e) {}
+  } catch(e) { showErrorToast(e, 'Beğeni kaydedilemedi.'); }
 }
 
 // En iyi cevap seç
@@ -9298,7 +9440,7 @@ async function saveCommentEdit(cid) {
     if (c) { c.body = newBody; c.edited = true; }
     cancelEditComment(cid);
     renderComments();
-  } catch(e) { showErrorToast('Kaydedilemedi: ' + e.message); }
+  } catch(e) { showErrorToast(e, 'Kaydedilemedi.'); }
 }
 
 // Tam ekran görsel
@@ -9564,7 +9706,7 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
         <button class="sbtn2" style="width:auto;padding:9px 16px" onclick="shareProfile('${uid}','${displayName.replace(/'/g,"\\'")}')">🔗 Profilimi Paylaş</button>
         <button class="sbtn2" style="width:auto;padding:9px 16px;background:var(--surf2);color:var(--text)" onclick="document.getElementById('pub-qr-wrap').style.display=document.getElementById('pub-qr-wrap').style.display==='none'?'block':'none'">📱 QR Kod</button>
       </div>
-      <div id="pub-qr-wrap" style="display:none;margin-top:16px"><img src="${qrUrl}" style="width:140px;height:140px;border-radius:12px;border:1px solid var(--border)"></div>`}
+      <div id="pub-qr-wrap" style="display:none;margin-top:16px"><img src="${qrUrl}" alt="Profil QR kodu" style="width:140px;height:140px;border-radius:12px;border:1px solid var(--border)"></div>`}
     </div>
 
     ${!privacy.hideScore ? `
@@ -9628,10 +9770,10 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
       <div class="ud-section-title">Aktif İlanlar</div>
       ${userListings.length ? userListings.map(l => `
         <div class="pub-listing-card" onclick="closemo('pub-profile-mo');openDetail('${l.id}')">
-          <div class="pub-listing-img">${l.photo1 ? `<img src="${l.photo1}" style="width:100%;height:100%;border-radius:8px;object-fit:cover" loading="lazy" decoding="async">` : '📱'}</div>
+          <div class="pub-listing-img">${l.photo1 ? `<img src="${l.photo1}" alt="" style="width:100%;height:100%;border-radius:8px;object-fit:cover" loading="lazy" decoding="async">` : '📱'}</div>
           <div class="pub-listing-info">
-            <div class="pub-listing-model">${l.model}</div>
-            <div class="pub-listing-price">₺${parseInt(l.price||0).toLocaleString('tr-TR')} · ${l.condition}</div>
+            <div class="pub-listing-model">${escapeHtml(l.model)}</div>
+            <div class="pub-listing-price">₺${parseInt(l.price||0).toLocaleString('tr-TR')} · ${escapeHtml(l.condition)}</div>
           </div>
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text3)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
         </div>`).join('') : '<div class="ud-empty">Aktif ilan yok</div>'}
@@ -9641,9 +9783,9 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
       <div class="ud-section-title">Satılan İlanlar</div>
       ${soldListings.map(l => `
         <div class="pub-listing-card" onclick="closemo('pub-profile-mo');openDetail('${l.id}')" style="opacity:.6">
-          <div class="pub-listing-img">${l.photo1 ? `<img src="${l.photo1}" style="width:100%;height:100%;border-radius:8px;object-fit:cover" loading="lazy" decoding="async">` : '📱'}</div>
+          <div class="pub-listing-img">${l.photo1 ? `<img src="${l.photo1}" alt="" style="width:100%;height:100%;border-radius:8px;object-fit:cover" loading="lazy" decoding="async">` : '📱'}</div>
           <div class="pub-listing-info">
-            <div class="pub-listing-model">${l.model} ✓</div>
+            <div class="pub-listing-model">${escapeHtml(l.model)} ✓</div>
             <div class="pub-listing-price">₺${parseInt(l.price||0).toLocaleString('tr-TR')}</div>
           </div>
         </div>`).join('')}
@@ -9736,7 +9878,7 @@ async function openFollowList(uid, type, name) {
       const uFollowing = (myProfileData.followingUids||[]).includes(u.uid);
       const safeName = (u.displayName||'Kullanıcı').replace(/'/g,"\\'");
       return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
-        <img src="${uav}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;cursor:pointer" loading="lazy" decoding="async" onclick="closemo('followlist-mo');openPublicProfile('${u.uid}','${safeName}')">
+        <img src="${uav}" alt="" style="width:44px;height:44px;border-radius:50%;object-fit:cover;cursor:pointer" loading="lazy" decoding="async" onclick="closemo('followlist-mo');openPublicProfile('${u.uid}','${safeName}')">
         <div style="flex:1;cursor:pointer" onclick="closemo('followlist-mo');openPublicProfile('${u.uid}','${safeName}')">
           <div style="font-size:14px;font-weight:600">${u.displayName||'Kullanıcı'}</div>
           ${u.username?`<div style="font-size:12px;color:var(--text2)">@${u.username}</div>`:''}
@@ -9791,7 +9933,7 @@ async function runUserSearch(query) {
       const u = d.data();
       const name = u.displayName || d.id || 'Kullanıcı';
       return `<div class="adm-user-row" onclick="closemo('user-search-mo');openPublicProfile('${u.uid}','${name.replace(/'/g,"\\'")}')">
-        <div class="adm-user-av">${u.photoURL?`<img src="${u.photoURL}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" loading="lazy" decoding="async">`:name[0].toUpperCase()}</div>
+        <div class="adm-user-av">${u.photoURL?`<img src="${u.photoURL}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%" loading="lazy" decoding="async">`:name[0].toUpperCase()}</div>
         <div class="adm-user-info">
           <div class="adm-user-name">${name}</div>
           <div class="adm-user-email">@${d.id}</div>
@@ -10065,7 +10207,7 @@ function radmin() {
     return `
     <div class="adm-row" style="${pending?'border:1px solid rgba(255,149,0,.35);background:rgba(255,149,0,.05)':''}" onclick="openDetail('${l.id}')">
       <input type="checkbox" class="bulk-check" onclick="event.stopPropagation()" onchange="bulkToggle('adm-list','${l.id}',this.checked)" ${sel.has(l.id)?'checked':''}>
-      ${l.photo1 ? `<img src="${escapeHtml(l.photo1)}" loading="lazy" decoding="async">` : `<div style="width:44px;height:44px;border-radius:8px;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">📱</div>`}
+      ${l.photo1 ? `<img src="${escapeHtml(l.photo1)}" alt="" loading="lazy" decoding="async">` : `<div style="width:44px;height:44px;border-radius:8px;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">📱</div>`}
       <div class="adm-info">
         <div class="adm-model">${l.showcase?'📌 ':''}${l.featured?'⭐ ':''}${l.urgent?'🔥 ':''}${l.archived?'🗄️ ':''}${l.sold?'✅ ':''}${l.paused?'⏸️ ':''}${escapeHtml(l.model)||'—'}${pending?' <span style="color:#FF9500;font-size:10px;font-weight:700">⏳ ONAY BEKLİYOR</span>':''}${l.rejected?' <span style="color:var(--red);font-size:10px;font-weight:700">✕ REDDEDİLDİ</span>':''}</div>
         <div class="adm-meta">₺${parseInt(l.price||0).toLocaleString('tr-TR')} · ${escapeHtml(l.ownerName)||'Anonim'}</div>
@@ -10348,7 +10490,7 @@ function renderAdminCommentsList() {
     const complaintCount = complaintsPageCache.filter(x => x.type === 'comment' && x.targetId === c.id).length;
     return `<div class="adm-row" style="flex-direction:column;align-items:flex-start;gap:6px">
       <div style="font-size:12px;color:var(--text);width:100%">${escapeHtml((c.body||'').slice(0,120))}${(c.body||'').length>120?'…':''}${c.hidden?' <span style="color:var(--red);font-size:10px">(GİZLİ)</span>':''}</div>
-      <div style="font-size:11px;color:var(--text3)">${escapeHtml(c.authorName)||'—'} · ${post?.title?('"'+escapeHtml(post.title.slice(0,25))+'"'):'Gönderi'} · ${c.createdAt?.toDate?timeAgo(c.createdAt.toDate()):''} · ${(c.likes||[]).length} beğeni${complaintCount?` · ⚠️ ${complaintCount} şikayet`:''}</div>
+      <div style="font-size:11px;color:var(--text3)">${escapeHtml(c.authorName)||'—'} · ${post?.title?('"'+escapeHtml(post.title.slice(0,25))+'"'):'Konu'} · ${c.createdAt?.toDate?timeAgo(c.createdAt.toDate()):''} · ${(c.likes||[]).length} beğeni${complaintCount?` · ⚠️ ${complaintCount} şikayet`:''}</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         <span class="pcompl-pill" style="cursor:pointer" onclick="editAdminComment('${c.postId}','${c.id}')">Düzenle</span>
         <span class="pcompl-pill" style="cursor:pointer" onclick="toggleCommentHidden('${c.postId}','${c.id}')">${c.hidden?'Göster':'Gizle'}</span>
@@ -10816,7 +10958,7 @@ async function saveUserEdit(uid) {
     rAdminUsers();
     showToast('✓','rgba(48,209,88,.15)','Kaydedildi','Kullanıcı bilgileri güncellendi.');
   } catch(e) {
-    err.textContent = 'Hata: ' + e.message; err.classList.add('on');
+    err.textContent = firebaseErrorToTurkish(e) || 'Bir şeyler ters gitti, lütfen tekrar dene.'; err.classList.add('on');
   }
 }
 
@@ -11002,7 +11144,7 @@ async function submitReport() {
     closemo('report-mo');
     showToast('✓', 'rgba(48,209,88,.15)', 'Şikayet Alındı', 'Bildirimin için teşekkürler, ekibimiz inceleyecek.');
   } catch(e) {
-    err.textContent = 'Gönderilemedi: ' + e.message; err.classList.add('on');
+    err.textContent = firebaseErrorToTurkish(e) || 'Gönderilemedi, tekrar dene.'; err.classList.add('on');
   }
 }
 
@@ -11159,7 +11301,7 @@ async function applyBan(uid) {
     showToast('✓', 'rgba(48,209,88,.15)', 'Banlandı', `${targetName} kullanıcısı banlandı.`);
   } catch(e) {
     adminLog('ban_user', 'user', uid, targetName, oldVal, null, 'error: ' + e.message);
-    document.getElementById('ban-err').textContent = 'Hata: ' + e.message;
+    document.getElementById('ban-err').textContent = firebaseErrorToTurkish(e) || 'Bir şeyler ters gitti, lütfen tekrar dene.';
     document.getElementById('ban-err').classList.add('on');
   }
 }
@@ -11192,7 +11334,7 @@ async function applyBulkBan() {
     rAdminUsers();
     showToast('✓', 'rgba(48,209,88,.15)', 'Banlandı', `${uids.length} kullanıcı banlandı.`);
   } catch(e) {
-    document.getElementById('ban-err').textContent = 'Hata: ' + e.message;
+    document.getElementById('ban-err').textContent = firebaseErrorToTurkish(e) || 'Bir şeyler ters gitti, lütfen tekrar dene.';
     document.getElementById('ban-err').classList.add('on');
   }
 }
@@ -12134,7 +12276,7 @@ async function submitPhoneReview(side) {
     prRating[side] = 0;
     document.querySelectorAll(`#pr-stars-${side} span`).forEach(el => el.textContent = '☆');
     loadPhoneReviews(phone.id, `pr-list-${side}`);
-  } catch(e) { showErrorToast(e.message); }
+  } catch(e) { showErrorToast(e); }
 }
 
 async function deletePhoneReview(commentId, phoneId, containerId) {
@@ -12142,7 +12284,7 @@ async function deletePhoneReview(commentId, phoneId, containerId) {
   try {
     await db.collection('teknohane_comments').doc(commentId).delete();
     loadPhoneReviews(phoneId, containerId);
-  } catch(e) { showErrorToast(e.message); }
+  } catch(e) { showErrorToast(e); }
 }
 
 // ---- SATICI PUANLAMA SİSTEMİ ----
@@ -12260,7 +12402,7 @@ function renderSimilarListings(l, containerId) {
     <div class="similar-row">
       ${scored.map(s => `
         <div class="similar-card" onclick="event.stopPropagation();openDetail('${s.id}')">
-          <div class="similar-card-photo">${s.photo1?`<img src="${escapeHtml(s.photo1)}" loading="lazy" decoding="async">`:'📱'}</div>
+          <div class="similar-card-photo">${s.photo1?`<img src="${escapeHtml(s.photo1)}" alt="" loading="lazy" decoding="async">`:'📱'}</div>
           <div class="similar-card-title">${escapeHtml(s.model)}</div>
           <div class="similar-card-price">₺${parseInt(s.price||0).toLocaleString('tr-TR')}</div>
         </div>`).join('')}
@@ -12354,7 +12496,7 @@ async function submitSellerReview(sellerUid) {
     // yüzden burada fromUid/fromPhotoURL DE geçilmiyor, aksi halde profil fotoğrafı anonimliği bozardı.
     notifyUser(sellerUid, 'seller_review', `Birisi seni ${submittedRating}★ ile değerlendirdi`, null);
     showToast('⭐', 'rgba(255,204,0,.15)', 'Puanın Kaydedildi', 'Satıcı değerlendirmen için teşekkürler.');
-  } catch(e) { showErrorToast(e.message); }
+  } catch(e) { showErrorToast(e); }
 }
 
 async function deleteSellerReview(commentId, sellerUid, containerId) {
@@ -12362,7 +12504,7 @@ async function deleteSellerReview(commentId, sellerUid, containerId) {
   try {
     await db.collection('teknohane_comments').doc(commentId).delete();
     loadSellerReviews(sellerUid, containerId);
-  } catch(e) { showErrorToast(e.message); }
+  } catch(e) { showErrorToast(e); }
 }
 
 // PULL TO REFRESH
@@ -12560,6 +12702,17 @@ function ol(url) {
   }
 }
 
+// GÜVENLİK/İŞLEVSELLİK DÜZELTMESİ: İlan formu telefon alanını hiç doğrulamıyordu — boş, kısa veya
+// hatalı biçimli (boşluklu, +90'lı, başında 0'lı) numaralar kabul edilip doğrudan wa.me linkine
+// gömülüyordu, bu da alıcının "WhatsApp'tan Yaz" butonuna bastığında sohbetin hiç açılmamasına veya
+// yanlış numaraya gitmesine yol açıyordu. Kullanıcının +90/0/boşluk/tire ile yazması da toleransla
+// karşılanıp temiz 10 haneli GSM numarasına indirgeniyor.
+function normalizeTrPhone(raw) {
+  let d = (raw || '').replace(/\D/g, '');
+  if (d.startsWith('90') && d.length === 12) d = d.slice(2);
+  if (d.startsWith('0') && d.length === 11) d = d.slice(1);
+  return d;
+}
 function waListingLink(model, phone) {
   const msg = `Merhaba, Teknohane'de "${model}" ilanınızı gördüm, bilgi almak istiyorum.`;
   return `https://wa.me/90${phone}?text=${encodeURIComponent(msg)}`;
@@ -12815,6 +12968,39 @@ async function tkReconcileContentSlot() {
   } catch(e) {}
 }
 
+// Açık bir modal (.mo.on — uygulamadaki TÜM modaller bu ortak sınıfı paylaşıyor) veya kullanıcının
+// aktif yazdığı bir metin alanı varsa, WebView'i o an yeniden yüklemek GÜVENLİ DEĞİL — form verisi
+// kaybolur, kullanıcı ekranın aniden "sıfırlandığını" görür (bkz. tkScheduleContentSwitch).
+function isSafeToReloadContent() {
+  if (document.querySelector('.mo.on')) return false;
+  const ae = document.activeElement;
+  if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable)) return false;
+  return true;
+}
+
+// KÖK NEDEN DÜZELTMESİ ("beyaz ekran hatası bazı sahnelerde"): WebView.setServerBasePath çağrısı
+// WebView'i ANINDA yeniden yüklüyor — hangi ekranda/ne zaman tetikleneceği ağ hızına bağlı olduğu için
+// RASTGELE bir anda (form doldururken, bir modal açıkken) kullanıcıyı kesintiye uğratıyordu. Artık
+// hemen uygulanmıyor: güvenli bir an (açık modal/aktif yazı alanı yok) beklenip UYGULANIYOR; güvenli
+// an hemen gelmezse ya periyodik kontrol (8sn'de bir, ~30dk) ya da uygulamanın arka plana atılması
+// (görünürlük her zaman güvenlidir — kullanıcı zaten ekrana bakmıyor) tetikleyici olarak kullanılıyor.
+function tkScheduleContentSwitch(plainDirPath) {
+  const apply = () => {
+    Capacitor.Plugins.WebView.setServerBasePath({ path: plainDirPath });
+    Capacitor.Plugins.WebView.persistServerBasePath().catch(()=>{});
+  };
+  if (isSafeToReloadContent()) { apply(); return; }
+  let attempts = 0;
+  const onVisibilityHidden = () => { if (document.visibilityState === 'hidden') { cleanup(); apply(); } };
+  const timer = setInterval(() => {
+    attempts++;
+    if (isSafeToReloadContent()) { cleanup(); apply(); }
+    else if (attempts > 225) { clearInterval(timer); } // ~30dk sonra periyodik denemeyi bırak, arka plana atılmayı beklemeye devam et
+  }, 8000);
+  function cleanup() { clearInterval(timer); document.removeEventListener('visibilitychange', onVisibilityHidden); }
+  document.addEventListener('visibilitychange', onVisibilityHidden);
+}
+
 async function tkCheckForContentUpdate() {
   if (!isNativeApp() || !window.Capacitor?.Plugins?.Filesystem || !window.Capacitor?.Plugins?.WebView) return;
   const last = Number(localStorage.getItem('tk_last_update_check') || 0);
@@ -12850,8 +13036,7 @@ async function tkCheckForContentUpdate() {
     localStorage.setItem('tk_pending_content_hash', hashHex);
     localStorage.setItem('tk_pending_slot', slot);
     const { uri } = await Capacitor.Plugins.Filesystem.getUri({ path: `content/${slot}`, directory: 'DATA' });
-    await Capacitor.Plugins.WebView.setServerBasePath({ path: uri.replace(/^file:\/\//, '') });
-    Capacitor.Plugins.WebView.persistServerBasePath().catch(()=>{});
+    tkScheduleContentSwitch(uri.replace(/^file:\/\//, ''));
   } catch(e) {}
 }
 
