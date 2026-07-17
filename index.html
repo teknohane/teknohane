@@ -12953,13 +12953,20 @@ document.addEventListener('focusout', e => {
 // olan yuvaya yazılmaz, hep kullanılmayan yuvaya yazılıp doğrulanır; hash ise yalnızca BİR SONRAKİ
 // soğuk açılışta, geçişin gerçekten oldu mu diye bakılarak kalıcı sayılır — uygulama tam bu geçiş
 // anında kapatılsa bile kendi kendini onaran bir tasarım.
+// KÖK NEDEN DÜZELTMESİ (kanıtlanmış, gerçek cihaz logcat'iyle doğrulandı): getServerBasePath()
+// bazen SONUNDA eğik çizgili bir yol döndürüyor (örn. ".../content/a/"), bazen çizgisiz — çıplak
+// .endsWith('/content/a') bu durumda SESSİZCE yanlış sonuç veriyordu (hem yuva değişimi onayı hem
+// PNG kontrolü hiç tetiklenmiyordu). Artık tüm yol karşılaştırmaları buradan geçiyor, sondaki
+// eğik çizgi(ler) önce temizleniyor.
+function tkNormalizePath(p) { return (p || '').replace(/\/+$/, ''); }
+
 async function tkReconcileContentSlot() {
   if (!isNativeApp() || !window.Capacitor?.Plugins?.WebView) return;
   try {
     await Capacitor.Plugins.WebView.persistServerBasePath().catch(()=>{});
     const pendingSlot = localStorage.getItem('tk_pending_slot');
     if (pendingSlot) {
-      const cur = (await Capacitor.Plugins.WebView.getServerBasePath())?.path || '';
+      const cur = tkNormalizePath((await Capacitor.Plugins.WebView.getServerBasePath())?.path);
       if (cur.endsWith(`/content/${pendingSlot}`)) {
         localStorage.setItem('tk_content_hash', localStorage.getItem('tk_pending_content_hash') || '');
       }
@@ -12978,7 +12985,7 @@ async function tkReconcileContentSlot() {
     // hash'inden bağımsız olarak, saat sınırına takılmadan, dosyayı BİR KEZ yeniden indirip üzerine yazar.
     const TK_ASSET_VERSION = '2'; // teknohane.png JPEG->PNG düzeltmesi — bunu değiştirirseniz artırın
     if (window.Capacitor?.Plugins?.Filesystem && localStorage.getItem('tk_asset_version') !== TK_ASSET_VERSION) {
-      const curPath = (await Capacitor.Plugins.WebView.getServerBasePath())?.path || '';
+      const curPath = tkNormalizePath((await Capacitor.Plugins.WebView.getServerBasePath())?.path);
       const activeSlot = curPath.endsWith('/content/a') ? 'a' : curPath.endsWith('/content/b') ? 'b' : null;
       if (activeSlot) {
         await tkStageBinaryAssetToSlot('teknohane.png', activeSlot);
@@ -13069,7 +13076,7 @@ async function tkCheckForContentUpdate() {
   if (hashHex === localStorage.getItem('tk_content_hash')) return; // değişiklik yok
 
   try {
-    const cur = (await Capacitor.Plugins.WebView.getServerBasePath())?.path || '';
+    const cur = tkNormalizePath((await Capacitor.Plugins.WebView.getServerBasePath())?.path);
     const slot = cur.endsWith('/content/a') ? 'b' : 'a';
     await Capacitor.Plugins.Filesystem.writeFile({ path: `content/${slot}/index.html`, data: html, directory: 'DATA', encoding: 'utf8', recursive: true });
     if (offlineHtml) await Capacitor.Plugins.Filesystem.writeFile({ path: `content/${slot}/offline.html`, data: offlineHtml, directory: 'DATA', encoding: 'utf8', recursive: true });
