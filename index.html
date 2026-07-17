@@ -8166,7 +8166,10 @@ function exitDetailPage(toMarket) {
 async function shareListing(id) {
   const l = await getListingById(id);
   if (!l) return;
-  const url = location.origin + location.pathname + '?listing=' + id;
+  // Sabit köken kullanılıyor (location.origin DEĞİL) — native uygulamada artık yerel pakete
+  // (https://localhost) göre çalışıyoruz, paylaşılan linkin uygulaması olmayan biri için de
+  // AÇILABİLİR olması gerekiyor (bkz. profil paylaşımındaki aynı sabit desen).
+  const url = 'https://teknohane.github.io/teknohane/?listing=' + id;
   const text = `${l.model} - ₺${parseInt(l.price||0).toLocaleString('tr-TR')}\nTeknohane'de incele:`;
   // Native Capacitor Share eklentisi varsa (Kamera'da kullandığımız aynı özellik algılama deseni)
   // Android'in sistem paylaşım menüsünü doğrudan onunla açıyoruz — yoksa navigator.share zaten
@@ -9136,7 +9139,9 @@ async function toggleThreadFollow(id) {
 async function shareForumPost(id) {
   const p = currentPost?.id === id ? currentPost : forumPosts.find(x => x.id === id);
   if (!p) return;
-  const url = location.origin + location.pathname + '?post=' + id;
+  // Sabit köken (bkz. shareListing'deki aynı gerekçe) — location.origin native uygulamada
+  // artık https://localhost, paylaşılan link herkes için açılabilir olmalı.
+  const url = 'https://teknohane.github.io/teknohane/?post=' + id;
   const text = `${p.title}\nTeknohane Forum'da incele:`;
   if (isNativeApp() && window.Capacitor?.Plugins?.Share) {
     try { await Capacitor.Plugins.Share.share({ title: p.title, text, url, dialogTitle: 'Konuyu Paylaş' }); return; }
@@ -12763,7 +12768,79 @@ document.addEventListener('focusout', e => {
   }, 0);
 });
 
+// ==== YEREL PAKET + ARKA PLANDA İÇERİK GÜNCELLEME (Madde 7 — performans raporu) ====
+// Kök neden: uygulama eskiden capacitor.config.json'daki server.url ile her soğuk açılışta
+// ~800KB'lık bu dosyayı CANLI olarak GitHub Pages'ten indiriyordu — yavaş VE internetsizken
+// tamamen açılmıyordu. Artık server.url YOK; uygulama APK içine gömülü yerel kopyadan (anında,
+// internetsiz) açılıyor. Yayın alışkanlığı (index.html'i GitHub Pages'e push et, yeni AAB gerekmez)
+// bu iki fonksiyonla korunuyor: arka planda canlı index.html kontrol edilir, değiştiyse indirilir
+// ve Capacitor'ın yerleşik WebView.setServerBasePath/persistServerBasePath mekanizmasıyla cihaza
+// kaydedilir — sonraki soğuk açılışlarda native Bridge bunu otomatik yükler.
+//
+// Neden iki ayrı yuva (a/b, "blue-green")? setServerBasePath çağrısı native tarafta WebView'i ANINDA
+// yeniden yüklüyor; bu yeniden yükleme ile await sonrası JS kodunun (persistServerBasePath, hash'i
+// kalıcı işaretleme) çalışıp çalışmayacağı garanti değil (yarış durumu). Bu yüzden: asla o an CANLI
+// olan yuvaya yazılmaz, hep kullanılmayan yuvaya yazılıp doğrulanır; hash ise yalnızca BİR SONRAKİ
+// soğuk açılışta, geçişin gerçekten oldu mu diye bakılarak kalıcı sayılır — uygulama tam bu geçiş
+// anında kapatılsa bile kendi kendini onaran bir tasarım.
+async function tkReconcileContentSlot() {
+  if (!isNativeApp() || !window.Capacitor?.Plugins?.WebView) return;
+  try {
+    await Capacitor.Plugins.WebView.persistServerBasePath().catch(()=>{});
+    const pendingSlot = localStorage.getItem('tk_pending_slot');
+    if (!pendingSlot) return;
+    const cur = (await Capacitor.Plugins.WebView.getServerBasePath())?.path || '';
+    if (cur.endsWith(`/content/${pendingSlot}`)) {
+      localStorage.setItem('tk_content_hash', localStorage.getItem('tk_pending_content_hash') || '');
+    }
+    localStorage.removeItem('tk_pending_content_hash');
+    localStorage.removeItem('tk_pending_slot');
+  } catch(e) {}
+}
+
+async function tkCheckForContentUpdate() {
+  if (!isNativeApp() || !window.Capacitor?.Plugins?.Filesystem || !window.Capacitor?.Plugins?.WebView) return;
+  const last = Number(localStorage.getItem('tk_last_update_check') || 0);
+  if (Date.now() - last < 3600000) return; // saatte en fazla 1 kontrol
+  localStorage.setItem('tk_last_update_check', String(Date.now()));
+  let html, offlineHtml;
+  try {
+    // offline.html GitHub Pages'te YAYINLANMIYOR (yalnızca APK'ya gömülü statik bir hata sayfası,
+    // içeriği hemen hemen hiç değişmiyor) — bu yüzden GÖRECELİ (relative) bir istekle uygulamanın
+    // O AN aktif olan yerel köküne (ilk kurulumda gömülü assets, sonraki kurulumlarda önceki yuva)
+    // sorulur; böylece kullanıcının bunu ayrıca GitHub Pages'e yayınlamasına hiç gerek kalmaz.
+    const [r1, r2] = await Promise.all([
+      fetch('https://teknohane.github.io/teknohane/index.html', { cache: 'no-store' }),
+      fetch('offline.html', { cache: 'no-store' })
+    ]);
+    if (!r1.ok) return;
+    html = await r1.text();
+    offlineHtml = r2.ok ? await r2.text() : null;
+  } catch(e) { return; } // internet yok/hata — sessizce mevcut yerel içerikle devam edilir
+
+  if (html.length < 300000 || !html.includes('<title>Teknohane')) return; // bozuk/eksik yanıta karşı
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(html));
+  const hashHex = [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2,'0')).join('');
+  if (hashHex === localStorage.getItem('tk_content_hash')) return; // değişiklik yok
+
+  try {
+    const cur = (await Capacitor.Plugins.WebView.getServerBasePath())?.path || '';
+    const slot = cur.endsWith('/content/a') ? 'b' : 'a';
+    await Capacitor.Plugins.Filesystem.writeFile({ path: `content/${slot}/index.html`, data: html, directory: 'DATA', encoding: 'utf8', recursive: true });
+    if (offlineHtml) await Capacitor.Plugins.Filesystem.writeFile({ path: `content/${slot}/offline.html`, data: offlineHtml, directory: 'DATA', encoding: 'utf8', recursive: true });
+    const info = await Capacitor.Plugins.Filesystem.stat({ path: `content/${slot}/index.html`, directory: 'DATA' });
+    if (info.type !== 'file' || info.size < 300000) return; // yazım doğrulaması başarısız
+    localStorage.setItem('tk_pending_content_hash', hashHex);
+    localStorage.setItem('tk_pending_slot', slot);
+    const { uri } = await Capacitor.Plugins.Filesystem.getUri({ path: `content/${slot}`, directory: 'DATA' });
+    await Capacitor.Plugins.WebView.setServerBasePath({ path: uri.replace(/^file:\/\//, '') });
+    Capacitor.Plugins.WebView.persistServerBasePath().catch(()=>{});
+  } catch(e) {}
+}
+
 // INIT
+tkReconcileContentSlot();
+tkCheckForContentUpdate();
 initTheme();
 rhome();
 handleSharedListingLink();
