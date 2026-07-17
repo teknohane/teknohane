@@ -5002,7 +5002,7 @@ async function notifyUser(toUid, type, message, listingId, postId, fromUid, from
     });
   } catch(e) { /* sessizce geç */ }
   if (!skipPush && !systemSettings.notificationsDisabled) {
-    sendPush(toUid, 'Teknohane', message, listingId ? `/teknohane/?listing=${listingId}` : (postId ? `/teknohane/?post=${postId}` : '/teknohane/'));
+    sendPush(toUid, 'Teknohane', message, notifTargetUrl(type, listingId, postId, fromUid));
   }
 }
 
@@ -5152,7 +5152,20 @@ function markAnnouncementRead(id) {
 // ---- UYGULAMA KAPALIYKEN BİLDİRİM (PUSH / FCM) ----
 // Hedef kullanıcının kayıtlı FCM token'ını bulup Cloudflare Worker üzerinden push gönderir.
 // Kullanıcının bildirim izni yoksa veya token'ı yoksa sessizce hiçbir şey yapmaz.
-// Bir push bildirimi URL'sinden (?listing=/?post=/?profile=) hedefi çözüp doğru ekrana yönlendirir.
+// Bildirim hedef URL'si — HEM push bildirimi (native, navigateFromNotificationUrl) HEM uygulama içi
+// bildirim listesi tıklaması (clickNotifGroup zaten kendi mantığıyla çalışıyor) AYNI hedefe gitsin diye
+// TEK noktadan üretiliyor. KÖK NEDEN DÜZELTMESİ: sohbet mesajı push'ları (sendChat*) eskiden sabit
+// '/teknohane/' gönderiyordu — hangi sohbetin açılacağı bilgisi hiç taşınmıyordu, bu yüzden bir sohbet
+// bildirimine dokunmak uygulamayı sadece ana ekrana açıyordu, ilgili sohbete GÖTÜRMÜYORDU.
+function notifTargetUrl(type, listingId, postId, fromUid) {
+  if (listingId) return `/teknohane/?listing=${listingId}`;
+  if (postId) return `/teknohane/?post=${postId}`;
+  if (type === 'new_message' && fromUid) return `/teknohane/?chat=${fromUid}`;
+  if (type === 'new_follower' && fromUid) return `/teknohane/?profile=${fromUid}`;
+  return '/teknohane/';
+}
+
+// Bir push bildirimi URL'sinden (?listing=/?post=/?profile=/?chat=) hedefi çözüp doğru ekrana yönlendirir.
 // Uygulama soğuk başlatılmışsa (bildirime dokunularak açıldıysa) veri henüz gelmemiş olabilir —
 // bu durumda sınırlı sayıda (sürekli değil) yeniden dener, sonra vazgeçer.
 function navigateFromNotificationUrl(url, attempt) {
@@ -5163,6 +5176,7 @@ function navigateFromNotificationUrl(url, attempt) {
     const listingId = u.searchParams.get('listing');
     const postId = u.searchParams.get('post');
     const profileUid = u.searchParams.get('profile');
+    const chatUid = u.searchParams.get('chat');
     if (listingId) {
       // openDetail artık kendi tekil-doküman fallback'ini yapıyor (bkz. getListingById) — bellekte
       // hazır olsun olmasın, TEKRARLI SORGULAMA (retry-polling) GEREKMEDEN doğrudan çağrılabilir.
@@ -5170,6 +5184,9 @@ function navigateFromNotificationUrl(url, attempt) {
     } else if (postId) {
       if (!forumPosts.length && attempt < 10) { setTimeout(() => navigateFromNotificationUrl(url, attempt+1), 400); return; }
       gt('community'); openPost(postId);
+    } else if (chatUid) {
+      if (!user && attempt < 10) { setTimeout(() => navigateFromNotificationUrl(url, attempt+1), 400); return; }
+      openChatWith(chatUid, '');
     } else if (profileUid) {
       if (!user && attempt < 10) { setTimeout(() => navigateFromNotificationUrl(url, attempt+1), 400); return; }
       openPublicProfile(profileUid);
@@ -6429,7 +6446,7 @@ async function sendChatListingCard(listingId) {
     renderChatMessages();
     await markChatMessageSent(ref, '📎 İlan paylaştı', currentChatOtherUid, { lastListingId: listingId });
     const myName = user.displayName || user.email?.split('@')[0] || 'Biri';
-    sendPush(currentChatOtherUid, myName, '📎 Bir ilan paylaştı', '/teknohane/');
+    sendPush(currentChatOtherUid, myName, '📎 Bir ilan paylaştı', notifTargetUrl('new_message', null, null, user.uid));
   } catch(e) {
     localMsg._status = 'failed';
     renderChatMessages();
@@ -6496,7 +6513,7 @@ async function sendChatMessage() {
     renderChatMessages();
     await markChatMessageSent(ref, text, currentChatOtherUid, { lastListingId: firebase.firestore.FieldValue.delete() });
     const myName = user.displayName || user.email?.split('@')[0] || 'Biri';
-    sendPush(currentChatOtherUid, myName, text, '/teknohane/');
+    sendPush(currentChatOtherUid, myName, text, notifTargetUrl('new_message', null, null, user.uid));
   } catch(e) {
     localMsg._status = 'failed';
     renderChatMessages();
@@ -6533,7 +6550,7 @@ async function sendChatImage(input) {
     renderChatMessages();
     await markChatMessageSent(ref, '📷 Fotoğraf', currentChatOtherUid, { lastListingId: firebase.firestore.FieldValue.delete() });
     const myName = user.displayName || user.email?.split('@')[0] || 'Biri';
-    sendPush(currentChatOtherUid, myName, '📷 Fotoğraf gönderdi', '/teknohane/');
+    sendPush(currentChatOtherUid, myName, '📷 Fotoğraf gönderdi', notifTargetUrl('new_message', null, null, user.uid));
   } catch(e) {
     localMsg._status = 'failed';
     renderChatMessages();
