@@ -6362,7 +6362,7 @@ function openChatThread(otherUid, otherName, prefill) {
     if (!c) return;
     const av = c.avatars?.[otherUid];
     const avEl = document.getElementById('chat-thread-av');
-    if (avEl) avEl.innerHTML = av ? `<img src="${av}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%" loading="lazy" decoding="async">` : (otherName || '?')[0].toUpperCase();
+    if (avEl) avEl.innerHTML = av ? `<img src="${escapeHtml(av)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${escapeJsAttr(avatarUrl(null, otherName, 96))}'">` : (otherName || '?')[0].toUpperCase();
     const lr = c.lastRead?.[otherUid];
     currentChatOtherLastRead = lr?.toMillis ? lr.toMillis() : 0;
     // PERFORMANS DÜZELTMESİ ("okundu" güncellemesi 200 mesajı yeniden çiziyordu): bu dinleyici,
@@ -6796,7 +6796,7 @@ function chatRowWrapHTML(d, forwardMsgId) {
   const unreadN = c.unreadCount?.[user.uid] || (unread ? 1 : 0);
   const time = c.lastAt?.toDate ? fd(c.lastAt.toDate().toISOString()) : '';
   const preview = (c.lastMessage||'').slice(0,40) + ((c.lastMessage||'').length>40?'…':'');
-  const avHtml = otherAv ? `<img src="${otherAv}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%" loading="lazy" decoding="async">` : escapeHtml(otherName)[0]?.toUpperCase();
+  const avHtml = otherAv ? `<img src="${escapeHtml(otherAv)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${escapeJsAttr(avatarUrl(null, otherName, 96))}'">` : escapeHtml(otherName)[0]?.toUpperCase();
   const listingThumb = c.lastListingId ? getListingByIdSync(c.lastListingId)?.photo1 : null;
   const otherNameJs = otherName.replace(/'/g,"\\'");
   const rowClick = forwardMsgId ? `forwardMsgTo('${otherUid}','${otherNameJs}')` : `openChatThread('${otherUid}','${otherNameJs}')`;
@@ -13001,6 +13001,28 @@ function tkScheduleContentSwitch(plainDirPath) {
   document.addEventListener('visibilitychange', onVisibilityHidden);
 }
 
+// KÖK NEDEN DÜZELTMESİ ("uygulama logosu kırık görünüyor"): WebViewLocalServer bir içerik yuvasına
+// (content/a veya content/b) geçtiğinde, o yuvada FİZİKSEL OLARAK BULUNMAYAN her dosya için bundled
+// assets'e GERİ DÜŞMÜYOR (WebViewLocalServer.java'da doğrulandı) — yalnızca index.html/offline.html
+// her yuvaya kopyalanıyordu, teknohane.png gibi statik görseller hiç kopyalanmadığı için ilk arka
+// plan güncellemesinden sonra kalıcı olarak kırık görünüyordu. Bu yardımcı, ikili (binary) bir
+// varlığı GitHub Pages'ten (yerel kökten DEĞİL — o da henüz eksik olabilir, tavşan-yumurta sorunu)
+// indirip her yeni yuvaya da kopyalar.
+async function tkStageBinaryAssetToSlot(relPath, slot) {
+  try {
+    const res = await fetch(`https://teknohane.github.io/teknohane/${relPath}`, { cache: 'no-store' });
+    if (!res.ok) return;
+    const blob = await res.blob();
+    const b64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+    await Capacitor.Plugins.Filesystem.writeFile({ path: `content/${slot}/${relPath}`, data: b64, directory: 'DATA', recursive: true });
+  } catch(e) {}
+}
+
 async function tkCheckForContentUpdate() {
   if (!isNativeApp() || !window.Capacitor?.Plugins?.Filesystem || !window.Capacitor?.Plugins?.WebView) return;
   const last = Number(localStorage.getItem('tk_last_update_check') || 0);
@@ -13031,6 +13053,7 @@ async function tkCheckForContentUpdate() {
     const slot = cur.endsWith('/content/a') ? 'b' : 'a';
     await Capacitor.Plugins.Filesystem.writeFile({ path: `content/${slot}/index.html`, data: html, directory: 'DATA', encoding: 'utf8', recursive: true });
     if (offlineHtml) await Capacitor.Plugins.Filesystem.writeFile({ path: `content/${slot}/offline.html`, data: offlineHtml, directory: 'DATA', encoding: 'utf8', recursive: true });
+    await tkStageBinaryAssetToSlot('teknohane.png', slot);
     const info = await Capacitor.Plugins.Filesystem.stat({ path: `content/${slot}/index.html`, directory: 'DATA' });
     if (info.type !== 'file' || info.size < 300000) return; // yazım doğrulaması başarısız
     localStorage.setItem('tk_pending_content_hash', hashHex);
