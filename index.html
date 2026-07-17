@@ -12958,13 +12958,33 @@ async function tkReconcileContentSlot() {
   try {
     await Capacitor.Plugins.WebView.persistServerBasePath().catch(()=>{});
     const pendingSlot = localStorage.getItem('tk_pending_slot');
-    if (!pendingSlot) return;
-    const cur = (await Capacitor.Plugins.WebView.getServerBasePath())?.path || '';
-    if (cur.endsWith(`/content/${pendingSlot}`)) {
-      localStorage.setItem('tk_content_hash', localStorage.getItem('tk_pending_content_hash') || '');
+    if (pendingSlot) {
+      const cur = (await Capacitor.Plugins.WebView.getServerBasePath())?.path || '';
+      if (cur.endsWith(`/content/${pendingSlot}`)) {
+        localStorage.setItem('tk_content_hash', localStorage.getItem('tk_pending_content_hash') || '');
+      }
+      localStorage.removeItem('tk_pending_content_hash');
+      localStorage.removeItem('tk_pending_slot');
     }
-    localStorage.removeItem('tk_pending_content_hash');
-    localStorage.removeItem('tk_pending_slot');
+    // KÖK NEDEN DÜZELTMESİ ("logo kalıcı olarak kırık kalıyordu, yeniden kurulum bile çözmüyordu"):
+    // teknohane.png gibi statik varlıkların yuvaya kopyalanması eskiden YALNIZCA index.html'in hash'i
+    // DEĞİŞTİĞİNDE tetiklenen tkCheckForContentUpdate() içindeydi. Bir kullanıcı, bu varlık-kopyalama
+    // mantığı henüz YOKKEN gömülmüş eski bir APK'dan başlarsa: eski kod önce çalışır, yeni index.html'e
+    // geçer (hash farklı olduğu için), ama PNG'yi kopyalamayı hiç bilmez; geçişten SONRA devreye giren
+    // yeni kod ise "az önce kontrol edildi" saatlik sınırına takılıp bir daha hiç kontrol etmez — sonuç,
+    // hiçbir zaman düzelmeyen kalıcı bir eksiklik. DOSYA VARLIĞINI kontrol etmek YETERSİZ: yuvada zaten
+    // (eski, bozuk içerikli) bir teknohane.png bulunabilir. Bunun yerine ayrı bir SÜRÜM işaretçisi
+    // tutulur — bu sabit her artırıldığında (varlık gerçekten değiştiğinde), TÜM kullanıcılar html
+    // hash'inden bağımsız olarak, saat sınırına takılmadan, dosyayı BİR KEZ yeniden indirip üzerine yazar.
+    const TK_ASSET_VERSION = '2'; // teknohane.png JPEG->PNG düzeltmesi — bunu değiştirirseniz artırın
+    if (window.Capacitor?.Plugins?.Filesystem && localStorage.getItem('tk_asset_version') !== TK_ASSET_VERSION) {
+      const curPath = (await Capacitor.Plugins.WebView.getServerBasePath())?.path || '';
+      const activeSlot = curPath.endsWith('/content/a') ? 'a' : curPath.endsWith('/content/b') ? 'b' : null;
+      if (activeSlot) {
+        await tkStageBinaryAssetToSlot('teknohane.png', activeSlot);
+        localStorage.setItem('tk_asset_version', TK_ASSET_VERSION);
+      }
+    }
   } catch(e) {}
 }
 
