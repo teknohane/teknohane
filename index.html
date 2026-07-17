@@ -13084,8 +13084,12 @@ async function tkCheckForContentUpdate() {
 }
 
 // INIT
-tkReconcileContentSlot();
-tkCheckForContentUpdate();
+// KÖK NEDEN DÜZELTMESİ: bu ikisi eskiden birbirini beklemeden (await'siz) art arda çağrılıyordu —
+// aynı anda çalışabildikleri için ikisi de teknohane.png gibi AYNI dosyaya eş zamanlı yazmaya
+// kalkışabiliyordu (bir yazma tamamlanmadan diğeri başlayınca yarım/bozuk dosya riski). Artık
+// tkReconcileContentSlot ÖNCE bitirilip (durum netleşince) tkCheckForContentUpdate SONRA başlıyor —
+// geri kalan INIT (rhome() vb.) bunları beklemeden, olduğu gibi hemen devam ediyor.
+(async () => { await tkReconcileContentSlot(); tkCheckForContentUpdate(); })();
 initTheme();
 rhome();
 handleSharedListingLink();
