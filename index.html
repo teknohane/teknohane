@@ -13,16 +13,19 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<!-- Firebase SDK betikleri gövdenin sonunda SIRALI (async/defer'sız) yükleniyor çünkü her biri
-     bir öncekine bağımlı (firestore-compat, app-compat'ın initializeApp'ini gerektirir) — sıralamayı
-     BOZMADAN, yalnızca bu 5 dosyanın ağ isteğinin, tarayıcı HTML'in o satırına fiilen ulaşmadan ÖNCE,
-     mümkün olduğunca erken (head ayrıştırılırken) başlamasını sağlıyor. Çalıştırma sırası/zamanı
-     DEĞİŞMEDİ, yalnızca byte'lar daha erken önbelleğe alınmış oluyor. -->
-<link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js">
-<link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js">
-<link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js">
-<link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js">
-<link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js">
+<!-- KÖK NEDEN DÜZELTMESİ ("ilk açılış hâlâ yavaş"): bu 5 Firebase SDK dosyası daha önce HER soğuk
+     açılışta gstatic.com'dan ağ üzerinden çekiliyordu — madde 7'de uygulama tamamen yerel/gömülü
+     içerikten çalışacak şekilde değiştirilse bile bu 5 betik hâlâ ağa bağımlı kalıyordu ve betik
+     etiketleri sırayla/engelleyici olduğu için (her biri bir öncekine bağımlı), tarayıcı bunları
+     bitirmeden gövdenin geri kalanını çalıştırmıyordu — soğuk açılışta gerçek, ölçülebilir bir
+     gecikme kaynağıydı. Artık bu 5 dosya APK içine gömülü/yerel olarak servis ediliyor, ağ isteği
+     hiç yok. ÖNEMLİ: index.html GitHub Pages'e yayınlanırken bu 5 .js dosyası da AYNI klasöre birlikte
+     yüklenmeli — aksi halde web (GitHub Pages) sürümü bozulur. -->
+<link rel="preload" as="script" href="firebase-app-compat.js">
+<link rel="preload" as="script" href="firebase-auth-compat.js">
+<link rel="preload" as="script" href="firebase-firestore-compat.js">
+<link rel="preload" as="script" href="firebase-messaging-compat.js">
+<link rel="preload" as="script" href="firebase-storage-compat.js">
 <!-- Google Fonts artık ENGELLEYİCİ (render-blocking) değil: standart "preload + onload'da
      stylesheet'e çevir" deseni. Sonuç aynı (DM Sans uygulanır), yalnızca ilk boyama stylesheet
      ağ isteğini beklemek zorunda kalmıyor. <noscript> JS kapalıyken eski (engelleyici ama
@@ -2178,11 +2181,11 @@ body.tk-maintenance #maintenance-gate{
      kırıldığı v11 eşiğinin ALTINDA kalınıyor (telefon doğrulama akışına dokunmaya gerek kalmadı).
      Ayrıca her sayaç artık firestoreCount() güvenlik ağından geçiyor — count() ileride yine
      kullanılamaz hale gelirse sessizce "–" göstermek yerine normal bir okumaya düşer. -->
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
+<script src="firebase-app-compat.js"></script>
+<script src="firebase-auth-compat.js"></script>
+<script src="firebase-firestore-compat.js"></script>
+<script src="firebase-messaging-compat.js"></script>
+<script src="firebase-storage-compat.js"></script>
 <script>
 firebase.initializeApp({
   apiKey:"AIzaSyADpIRNLQEIer_gplTgwKi_EKkfcyrYoqY",
