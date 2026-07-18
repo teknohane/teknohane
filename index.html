@@ -1476,7 +1476,6 @@ body.tk-maintenance #maintenance-gate{
       <span class="pcompl-pill notif-cat-pill" data-cat="referrals" onclick="setNotifCategory('referrals')">Referanslar<span class="notif-cat-dot" data-cat-dot="referrals"></span></span>
       <span class="pcompl-pill notif-cat-pill" data-cat="market" onclick="setNotifCategory('market')">Pazar<span class="notif-cat-dot" data-cat-dot="market"></span></span>
       <span class="pcompl-pill notif-cat-pill" data-cat="forum" onclick="setNotifCategory('forum')">Forum<span class="notif-cat-dot" data-cat-dot="forum"></span></span>
-      <span class="pcompl-pill notif-cat-pill" data-cat="messages" onclick="setNotifCategory('messages')">Mesajlar<span class="notif-cat-dot" data-cat-dot="messages"></span></span>
       <span class="pcompl-pill notif-cat-pill" data-cat="system" onclick="setNotifCategory('system')">Sistem<span class="notif-cat-dot" data-cat-dot="system"></span></span>
     </div>
     <div id="notif-list"></div>
@@ -2195,6 +2194,10 @@ firebase.initializeApp({
 });
 const auth = firebase.auth();
 auth.languageCode = 'tr'; // Telefon doğrulama SMS'i ve reCAPTCHA arayüzü Türkçe gelsin
+// Oturumun cihaz kapatılıp bir süre sonra tekrar açıldığında kapanmış görünmesi (kalıcılık modu
+// bazı Android WebView'lerde varsayılan olarak belirsiz kalabiliyor) sorununu önlemek için kalıcılık
+// modu açıkça LOCAL (indexedDB tabanlı, oturum kapatılana kadar kalıcı) olarak zorlanıyor.
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
 const db = firebase.firestore();
 const storage = firebase.storage();
 // Arka plandan dönüşte Activity yeniden yaratılıp WebView'in tüm Firestore dinleyicilerini sıfırdan
@@ -4480,6 +4483,8 @@ async function sendPhoneVerificationCode() {
     document.getElementById('pv-step-code').style.display = 'block';
     showToast('✓', 'rgba(48,209,88,.15)', 'Kod Gönderildi', 'SMS ile gelen 6 haneli kodu gir.');
   } catch (e) {
+    // Gerçek hata kodu logcat'te görülebilsin diye (bkz. tanı notu) — teşhis amaçlı, kalıcı.
+    console.error('Telefon doğrulama kodu gönderilemedi:', e?.code, e?.message, e);
     err.textContent = firebaseErrorToTurkish(e) || 'Kod gönderilemedi, tekrar dene.';
     err.classList.add('on');
   }
@@ -5860,7 +5865,7 @@ const NOTIF_GROUP_LABELS = {
   comment_liked: n => `${n} kişi yorumunu beğendi`,
   post_comment: (n, name) => name ? `${name}, ${n} yorum yaptı` : `${n} kişi yorum yaptı`,
 };
-const NOTIF_CATEGORY_LIST = ['followers', 'referrals', 'market', 'forum', 'system', 'messages'];
+const NOTIF_CATEGORY_LIST = ['followers', 'referrals', 'market', 'forum', 'system'];
 
 let notifCurrentCategory = 'all';
 let notifAccumulatedDocs = [];
@@ -6445,11 +6450,16 @@ function renderChatMessages() {
   // İlk çizim ya da boş-durum mesajından çıkış — tek seferlik tam kuruluma düş, sonraki çağrılar
   // parça parça güncellenir.
   if (!prevIds || !prevSignatures || box.querySelector('.no')) {
+    // KÖK NEDEN DÜZELTMESİ ("sohbete girince sürekli alttan yeni mesaj geliyormuş hissi"): burada
+    // isNew=true verilirse, sohbeti ilk açışta geçmişteki 200 mesajın TAMAMI aynı anda "yeni mesaj"
+    // giriş animasyonuyla (fade+slide+scale) çizilir — kullanıcı bunu mesajların hâlâ yükleniyormuş
+    // gibi algılıyordu. İlk (toplu) çizimde animasyon YOK; yalnızca ondan SONRA gelen gerçek yeni
+    // mesajlar (aşağıdaki parça parça güncelleme dalı) animasyonlu görünür.
     const newIds = new Set(), newSignatures = new Map();
     box.innerHTML = currentChatMsgs.map(m => {
       newIds.add(m.id);
       newSignatures.set(m.id, messageSignature(m));
-      return messageBubbleHTML(m, true);
+      return messageBubbleHTML(m, false);
     }).join('');
     box._renderedIds = newIds;
     box._renderedSignatures = newSignatures;
@@ -6609,13 +6619,10 @@ async function markChatMessageSent(ref, lastMessageText, recipientUid, extra) {
     hiddenFor: firebase.firestore.FieldValue.arrayRemove(recipientUid, user.uid),
     ...(extra || {})
   }, { merge: true });
-  // Bildirim Merkezi'nde kalıcı "Yeni Mesaj" kaydı — daha önce yalnızca anlık push vardı (bkz. çağıran
-  // fonksiyonlardaki sendPush), uygulama kapalıyken/başka ekrandayken gelen mesaj Bildirimler'de hiç
-  // görünmüyordu. skipPush=true: push zaten çağıran fonksiyonda özel metinle (📷/📎 dahil) ayrıca
-  // gönderiliyor, burada ikinci kez atılmasın diye.
-  const senderName = user.displayName || user.email?.split('@')[0] || 'Biri';
-  const preview = lastMessageText.split('\n')[0].slice(0, 60);
-  notifyUser(recipientUid, 'new_message', `${senderName}: ${preview}`, null, null, user.uid, senderName, myProfileData.photoURL, true);
+  // NOT: Yeni mesajlar için Bildirim Merkezi'nde KALICI bir kayıt bilerek OLUŞTURULMUYOR — mesajlar
+  // yalnızca mesaj kutusunda (sohbet listesi/unreadCount) görünmeli, Bildirimler sekmesinde ayrıca
+  // görünmesi kullanıcı için kafa karıştırıcıydı. Anlık push bildirimi (bkz. çağıran fonksiyonlardaki
+  // sendPush) ayrıca ve bağımsız olarak gönderiliyor, bu davranış değişmedi.
 }
 
 async function sendChatMessage() {
