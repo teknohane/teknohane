@@ -4060,11 +4060,6 @@ function rprof() {
         <div class="psec-title">🔒 Güvenlik</div>
         <div class="pacc-row"><span class="pacc-lbl">E-posta Doğrulama</span><span class="pacc-val"${user.emailVerified?' style="color:#3DDC97"':''}>${user.emailVerified?'✓ Doğrulandı':'Doğrulanmadı'}</span></div>
         ${!user.emailVerified?`<button class="apbtn" onclick="sendVerificationEmail()" style="margin:4px 0 12px">Doğrulama E-postası Gönder</button>`:''}
-        <div class="pacc-row"><span class="pacc-lbl">Telefon Doğrulama</span><span class="pacc-val"${hasVerifiedPhoneNumber?' style="color:#3DDC97"':' style="cursor:pointer;color:var(--cyan)" onclick="openPhoneVerify()"'}>${hasVerifiedPhoneNumber?'✓ '+myProfileData.phoneNumber:'Doğrula'}</span></div>
-        ${hasVerifiedPhoneNumber?`<div style="display:flex;gap:8px;margin:4px 0 12px">
-          <button class="apbtn" style="flex:1;padding:10px;font-size:13px" onclick="openPhoneVerify()">Değiştir</button>
-          <button class="apbtn" style="flex:1;padding:10px;font-size:13px;background:rgba(255,69,58,.08);border-color:rgba(255,69,58,.25);color:var(--red)" onclick="removeVerifiedPhoneNumber()">Kaldır</button>
-        </div>`:''}
         <div class="pacc-row"><span class="pacc-lbl">Şifre</span><span class="pacc-val" style="cursor:pointer;color:var(--cyan)" onclick="openEditProfile()">Değiştir</span></div>
         <div class="pacc-row"><span class="pacc-lbl">Durum</span><span class="pacc-val" style="color:#3DDC97">● Çevrimiçi</span></div>
         <div class="pacc-row"><span class="pacc-lbl">Son Giriş</span><span class="pacc-val">${lastSignIn?timeAgo(lastSignIn):'Henüz veri bulunmuyor'}</span></div>
@@ -4463,14 +4458,14 @@ function openPhoneVerify() {
   setTimeout(() => {
     try {
       if (pvRecaptchaVerifier) pvRecaptchaVerifier.clear();
-      // KÖK NEDEN DÜZELTMESİ (gerçek cihazda logcat ile doğrulandı — auth/invalid-app-credential):
-      // invisible reCAPTCHA, Android WebView içindeki çapraz-kaynaklı (google.com) iframe'in
-      // requestStorageAccess() çağrısını kullanıcı jesti OLMADAN tetikliyor ve "Permission denied"
-      // ile reddediliyor, bu da Firebase'e geçersiz/süresi dolmuş reCAPTCHA token'ı olarak yansıyor.
-      // Görünür (normal) checkbox'a geçildi: kullanıcı doğrudan reCAPTCHA iframe'i İÇİNDE tıklayınca
-      // storage access isteği gerçek bir kullanıcı jestiyle yapılıyor ve izin veriliyor.
-      pvRecaptchaVerifier = new firebase.auth.RecaptchaVerifier('pv-recaptcha', { size: 'normal' });
-      pvRecaptchaVerifier.render();
+      // TANI NOTU (gerçek cihazda logcat ile doğrulandı): reCAPTCHA'nın google.com iframe'i
+      // requestStorageAccess() ile "Permission denied" alıyor ve Firebase bunu auth/invalid-
+      // app-credential olarak reddediyor — hem invisible hem de normal (görünür, kullanıcı
+      // tıklamalı) boyutta AYNI şekilde başarısız oluyor (ikisi de gerçek cihazda test edildi).
+      // Yani sorun captcha'nın görünürlüğü/kullanıcı jesti DEĞİL, WebView'in bu iframe'e üçüncü
+      // taraf depolama erişimini yapısal olarak reddetmesi — bkz. proje notu (Firebase Phone
+      // Auth için App Check/Play Integrity veya özel SMS OTP akışına geçiş gerekiyor).
+      pvRecaptchaVerifier = new firebase.auth.RecaptchaVerifier('pv-recaptcha', { size: 'invisible' });
     } catch (e) { console.error('reCAPTCHA başlatılamadı:', e); }
   }, 200);
 }
