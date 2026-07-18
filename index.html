@@ -11390,6 +11390,7 @@ async function removeBan(uid) {
 // zamana bağlı sabit bir sayıda kalıyor. API anahtarı da artık istemci kodunda AÇIKÇA görünmüyor,
 // yalnızca Worker ortam değişkeninde.
 const YT_API = 'https://teknohane-youtube.yusuf-aykac.workers.dev/'; // ⚠️ Worker'ı deploy ettikten sonra kendi adresinle değiştir
+const YH='@teknohaane'; // yalnızca ekranda gösterilen/link üretiminde kullanılan herkese açık kanal adı — API anahtarı DEĞİL, worker'a taşınmadı
 let cid=null,vc=null,cc=null;
 
 const fv=n=>{n=parseInt(n)||0;if(n>=1e6)return(n/1e6).toFixed(1).replace('.0','')+'M';if(n>=1000)return(n/1000).toFixed(0)+'B';return''+n;};
