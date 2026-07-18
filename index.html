@@ -13,19 +13,22 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<!-- KÖK NEDEN DÜZELTMESİ ("ilk açılış hâlâ yavaş"): bu 5 Firebase SDK dosyası daha önce HER soğuk
-     açılışta gstatic.com'dan ağ üzerinden çekiliyordu — madde 7'de uygulama tamamen yerel/gömülü
-     içerikten çalışacak şekilde değiştirilse bile bu 5 betik hâlâ ağa bağımlı kalıyordu ve betik
-     etiketleri sırayla/engelleyici olduğu için (her biri bir öncekine bağımlı), tarayıcı bunları
-     bitirmeden gövdenin geri kalanını çalıştırmıyordu — soğuk açılışta gerçek, ölçülebilir bir
-     gecikme kaynağıydı. Artık bu 5 dosya APK içine gömülü/yerel olarak servis ediliyor, ağ isteği
-     hiç yok. ÖNEMLİ: index.html GitHub Pages'e yayınlanırken bu 5 .js dosyası da AYNI klasöre birlikte
-     yüklenmeli — aksi halde web (GitHub Pages) sürümü bozulur. -->
-<link rel="preload" as="script" href="firebase-app-compat.js">
-<link rel="preload" as="script" href="firebase-auth-compat.js">
-<link rel="preload" as="script" href="firebase-firestore-compat.js">
-<link rel="preload" as="script" href="firebase-messaging-compat.js">
-<link rel="preload" as="script" href="firebase-storage-compat.js">
+<!-- NOT (geri alındı — canlı ortamda bozulmaya yol açtı): bu 5 Firebase SDK dosyasını APK içine
+     gömülü/yerel dosyalardan servis etmeyi denedik (soğuk açılışı hızlandırmak için). Ancak: Play
+     Store'daki ESKİ sürümler, arka planda yeni index.html'e geçerken yalnızca index.html/offline.html/
+     teknohane.png'yi yeni içerik yuvasına kopyalayan ESKİ bir mantıkla çalışıyor — bu 5 yeni dosyayı
+     hiç kopyalamadığı için yeni yuvada 404 oluyorlardı, `firebase` tanımsız kalıyordu, ve TÜM sayfa
+     JavaScript'i sessizce çöküp sonsuza kadar "Yükleniyor" durumunda kilitleniyordu (gerçek cihazda,
+     canlı ortamda yaşandı — bkz. tkCheckForContentUpdate/tkReconcileContentSlot'taki güncellenmiş
+     asset listesi, bu ileride tekrar denenirse gereken düzeltme zaten kodda hazır). Bu yüzden şimdilik
+     gstatic.com CDN'ine geri dönüldü — yerel barındırma, ancak asset-kopyalama mantığının BAŞTAN doğru
+     olduğu YENİ bir AAB ile (mevcut Play Store kullanıcıları bu riskli ara geçişi hiç yaşamadan)
+     tekrar denenmeli. -->
+<link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js">
+<link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js">
+<link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js">
+<link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js">
+<link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js">
 <!-- Google Fonts artık ENGELLEYİCİ (render-blocking) değil: standart "preload + onload'da
      stylesheet'e çevir" deseni. Sonuç aynı (DM Sans uygulanır), yalnızca ilk boyama stylesheet
      ağ isteğini beklemek zorunda kalmıyor. <noscript> JS kapalıyken eski (engelleyici ama
@@ -2181,11 +2184,11 @@ body.tk-maintenance #maintenance-gate{
      kırıldığı v11 eşiğinin ALTINDA kalınıyor (telefon doğrulama akışına dokunmaya gerek kalmadı).
      Ayrıca her sayaç artık firestoreCount() güvenlik ağından geçiyor — count() ileride yine
      kullanılamaz hale gelirse sessizce "–" göstermek yerine normal bir okumaya düşer. -->
-<script src="firebase-app-compat.js"></script>
-<script src="firebase-auth-compat.js"></script>
-<script src="firebase-firestore-compat.js"></script>
-<script src="firebase-messaging-compat.js"></script>
-<script src="firebase-storage-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
 <script>
 firebase.initializeApp({
   apiKey:"AIzaSyADpIRNLQEIer_gplTgwKi_EKkfcyrYoqY",
