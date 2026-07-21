@@ -1320,6 +1320,9 @@ body.tk-maintenance #maintenance-gate{
         <div class="user-search-btn" onclick="openUserSearch()" title="Kullanıcı ara">
           <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         </div>
+        <div class="user-search-btn" onclick="openSavedSearches()" title="Kayıtlı aramalarım">
+          <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </div>
       </div>
       <div class="filter-panel" id="filter-panel">
         <label class="fl" style="margin-bottom:8px;display:block">Fiyat Aralığı (₺)</label>
@@ -1330,10 +1333,15 @@ body.tk-maintenance #maintenance-gate{
         </div>
         <label class="fl" style="margin-bottom:8px;display:block">Marka</label>
         <div class="filter-brands" id="filter-brands"></div>
+        <label class="fl" style="margin:14px 0 8px;display:block">Durum</label>
+        <div class="filter-brands" id="filter-conditions"></div>
+        <label class="fl" style="margin:14px 0 8px;display:block">Sırala</label>
+        <div class="filter-brands" id="filter-sort"></div>
         <div class="filter-actions">
           <button class="filter-apply" onclick="applyFilters()">Uygula</button>
           <button class="filter-clear" onclick="clearFilters()">Temizle</button>
         </div>
+        <button class="apbtn" onclick="saveCurrentSearch()" style="margin-top:8px;color:var(--cyan)">🔔 Bu Aramayı Kaydet — Yeni İlan Gelince Haber Ver</button>
       </div>
       <div class="mtabs">
         <button class="mtab on" onclick="smtab('all',this)">Tümü</button>
@@ -1555,7 +1563,7 @@ body.tk-maintenance #maintenance-gate{
     <div class="mh"></div>
     <div class="mtit">İlan Ver</div>
     <div class="fg">
-      <label class="fl">Fotoğraflar <span id="l-photo-counter" style="color:var(--text3);font-weight:400">(0 / 4)</span></label>
+      <label class="fl">Fotoğraflar <span id="l-photo-counter" style="color:var(--text3);font-weight:400">(0 / 8)</span></label>
       <div id="l-photo-hint" style="font-size:11.5px;color:#FF9500;margin-top:4px">En az 3 fotoğraf eklemelisiniz.</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px">
         <div class="pslot" id="ps0" onclick="onPslotTap(0)" onpointerdown="onPslotPointerDown(0)" onpointerup="onPslotPointerUp()" onpointerleave="onPslotPointerUp()">
@@ -1577,6 +1585,36 @@ body.tk-maintenance #maintenance-gate{
           <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
           <span>Ekle</span>
           <input type="file" id="pf3" accept="image/*" style="display:none" onchange="addPhoto(3,this)">
+        </div>
+        <div class="pslot" id="ps4" onclick="onPslotTap(4)" onpointerdown="onPslotPointerDown(4)" onpointerup="onPslotPointerUp()" onpointerleave="onPslotPointerUp()">
+          <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <span>Ekle</span>
+          <input type="file" id="pf4" accept="image/*" style="display:none" onchange="addPhoto(4,this)">
+        </div>
+        <div class="pslot" id="ps5" onclick="onPslotTap(5)" onpointerdown="onPslotPointerDown(5)" onpointerup="onPslotPointerUp()" onpointerleave="onPslotPointerUp()">
+          <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <span>Ekle</span>
+          <input type="file" id="pf5" accept="image/*" style="display:none" onchange="addPhoto(5,this)">
+        </div>
+        <div class="pslot" id="ps6" onclick="onPslotTap(6)" onpointerdown="onPslotPointerDown(6)" onpointerup="onPslotPointerUp()" onpointerleave="onPslotPointerUp()">
+          <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <span>Ekle</span>
+          <input type="file" id="pf6" accept="image/*" style="display:none" onchange="addPhoto(6,this)">
+        </div>
+        <div class="pslot" id="ps7" onclick="onPslotTap(7)" onpointerdown="onPslotPointerDown(7)" onpointerup="onPslotPointerUp()" onpointerleave="onPslotPointerUp()">
+          <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <span>Ekle</span>
+          <input type="file" id="pf7" accept="image/*" style="display:none" onchange="addPhoto(7,this)">
+        </div>
+      </div>
+    </div>
+    <div class="fg">
+      <label class="fl">Video (isteğe bağlı — cihazın çalıştığını göster)</label>
+      <div id="l-video-wrap">
+        <div class="pslot" id="l-video-slot" onclick="document.getElementById('l-video-input').click()" style="width:100%;height:100px">
+          <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+          <span>Video Ekle (max 30MB)</span>
+          <input type="file" id="l-video-input" accept="video/*" style="display:none" onchange="addListingVideo(this)">
         </div>
       </div>
     </div>
@@ -1607,6 +1645,7 @@ body.tk-maintenance #maintenance-gate{
         <select id="l-ilce" style="display:none"><option value=""></option></select>
       </div>
     </div>
+    <div class="fg"><label class="fl">Mahalle/Semt <span style="color:var(--text3);font-weight:400">(isteğe bağlı)</span></label><input class="fi" type="text" id="l-mahalle" placeholder="Örn: Bağdat Caddesi"></div>
 
     <div class="detail-toggle" onclick="toggleDetailFields()">
       <span>Detaylı Teknik Bilgiler</span>
@@ -1841,6 +1880,17 @@ body.tk-maintenance #maintenance-gate{
   </div>
 </div>
 
+<!-- REKABET ANALİZİ EKLENTİSİ (Sahibinden karşılaştırması — kayıtlı arama/fiyat alarmı): kullanıcı
+     Pazar filtre kriterlerini kaydeder, bu kritere uyan yeni bir ilan onaylandığında bildirim alır
+     (bkz. saveCurrentSearch/checkSavedSearchMatches). -->
+<div class="mo" id="saved-searches-mo" onclick="closemo('saved-searches-mo')">
+  <div class="ms" onclick="event.stopPropagation()" style="max-height:85vh">
+    <div class="mh"></div>
+    <div class="mtit">🔔 Kayıtlı Aramalarım</div>
+    <div id="saved-searches-list"></div>
+  </div>
+</div>
+
 <!-- ŞİKAYET DETAY MODAL (admin) -->
 <div class="mo" id="complaint-detail-mo" onclick="closemo('complaint-detail-mo')">
   <div class="ms" onclick="event.stopPropagation()" style="max-height:88vh">
@@ -1865,6 +1915,14 @@ body.tk-maintenance #maintenance-gate{
     </div>
     <div class="fg"><label class="fl">Ek Açıklama (isteğe bağlı)</label>
       <textarea class="fi" id="report-description" rows="3" style="resize:none;font-family:inherit" placeholder="Şikayetinle ilgili detay verebilirsin..."></textarea>
+    </div>
+    <div class="fg">
+      <label class="fl">Ekran Görüntüsü / Kanıt (isteğe bağlı)</label>
+      <div class="pslot" id="report-photo-slot" onclick="document.getElementById('report-photo-input').click()" style="width:88px;height:88px">
+        <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        <span>Ekle</span>
+        <input type="file" id="report-photo-input" accept="image/*" style="display:none" onchange="onReportPhotoSelected(this)">
+      </div>
     </div>
     <div class="aerr" id="report-err"></div>
     <button class="sbtn2" onclick="submitReport()">Şikayeti Gönder</button>
@@ -2603,6 +2661,7 @@ function renderComplaintDetail(id, c) {
       <div class="pacc-row"><span class="pacc-lbl">Şikayet Eden</span><span class="pacc-val">${escapeHtml(c.reporterName)||'—'}</span></div>
       <div class="pacc-row"><span class="pacc-lbl">Sebep</span><span class="pacc-val">${escapeHtml(c.reasonLabel)||'—'}</span></div>
       ${c.description?`<div class="pacc-row"><span class="pacc-lbl">Açıklama</span><span class="pacc-val" style="text-align:right;max-width:60%">${escapeHtml(c.description)}</span></div>`:''}
+      ${c.evidenceUrl?`<div class="pacc-row" style="align-items:center"><span class="pacc-lbl">Kanıt</span><img src="${escapeHtml(c.evidenceUrl)}" alt="Kanıt fotoğrafı" onclick="openFullscreen('${escapeJsAttr(c.evidenceUrl)}')" style="width:64px;height:64px;object-fit:cover;border-radius:10px;cursor:pointer" loading="lazy" decoding="async"></div>`:''}
       <div class="pacc-row"><span class="pacc-lbl">Tarih</span><span class="pacc-val">${when}</span></div>
       <div class="pacc-row"><span class="pacc-lbl">Öncelik</span><span class="pacc-val">
         <div class="csel" data-for="cmp-priority-select" data-title="Öncelik" onclick="openPicker(this)" style="width:auto;padding:4px 8px;font-size:12px;display:inline-flex"><span class="csel-label">${{low:'Düşük',normal:'Normal',high:'Yüksek',critical:'Kritik'}[c.priority||'normal']}</span><svg class="csel-arrow" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:4px"><polyline points="6 9 12 15 18 9"/></svg></div>
@@ -5134,6 +5193,8 @@ const NOTIF_TYPE_CATEGORY = {
   new_follower: 'followers',
   new_referrer: 'referrals',
   price_drop: 'market', listing_favorited: 'market', seller_review: 'market', listing_expired: 'market',
+  listing_approved: 'market', listing_rejected: 'market', saved_search_match: 'market',
+  listing_question: 'market', listing_question_answered: 'market',
   post_liked: 'forum', post_comment: 'forum', comment_liked: 'forum', comment_reply: 'forum',
   admin_notification: 'system', admin_warning: 'system', complaint_update: 'system',
   new_message: 'messages',
@@ -5673,6 +5734,88 @@ async function respondToOffer(offerId, accept) {
   } catch(e) { showErrorToast(e); }
 }
 
+// REKABET ANALİZİ EKLENTİSİ (Sahibinden karşılaştırması — herkese açık Soru & Cevap): telefon/
+// elektronik ilanlarında tekrar eden sorular (garanti durumu, batarya sağlığı, kutu var mı vb.)
+// özel mesaja gitmek yerine ilan sayfasında herkese açık soruluyor — aynı soru tekrar tekrar özelden
+// sorulmasın diye. Yalnızca ilan SAHİBİ yanıtlayabilir (bkz. firestore.rules — update yalnızca
+// answer/answeredAt alanlarıyla sınırlı). Yeni bir sürekli dinleyici DEĞİL, ilan açıldığında tek
+// seferlik bir alt koleksiyon okuması.
+let listingQuestionsCache = [];
+let listingQuestionsMine = false;
+async function loadListingQuestions(listingId, mine) {
+  const el = document.getElementById('det-qa-section');
+  if (!el) return;
+  listingQuestionsMine = mine;
+  el.innerHTML = `<div class="ref-box"><div class="ref-head"><span class="ref-count">💬 Soru & Cevap</span></div><div class="load" style="padding:16px 0"><div class="spin"></div></div></div>`;
+  try {
+    const snap = await db.collection('teknohane_listings').doc(listingId).collection('questions').limit(50).get();
+    listingQuestionsCache = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a,b) => (b.createdAt?.toMillis?.()||0) - (a.createdAt?.toMillis?.()||0));
+    renderListingQuestions(listingId);
+  } catch(e) {
+    console.error('Sorular yüklenemedi:', e);
+    el.innerHTML = `<div class="ref-box"><div class="ref-head"><span class="ref-count">💬 Soru & Cevap</span></div><div class="no" style="padding:10px 0">Yüklenemedi</div></div>`;
+  }
+}
+
+function renderListingQuestions(listingId) {
+  const el = document.getElementById('det-qa-section');
+  if (!el) return;
+  const askBoxHtml = user ? `
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <input class="fi" type="text" id="qa-input-${listingId}" placeholder="Bir soru sor…" style="flex:1">
+      <button class="apbtn" style="width:auto;margin-top:0;padding:0 16px" onclick="submitListingQuestion('${listingId}')">Sor</button>
+    </div>` : '';
+  const itemsHtml = listingQuestionsCache.length ? listingQuestionsCache.map(q => `
+    <div class="pacc-card" style="margin-top:8px">
+      <div class="pacc-row"><span class="pacc-lbl">${escapeHtml(q.name)||'Kullanıcı'}</span></div>
+      <div style="font-size:13px;margin:2px 0 6px">${escapeHtml(q.question)}</div>
+      ${q.answer
+        ? `<div style="font-size:13px;color:var(--cyan);background:var(--cdim);border-radius:8px;padding:8px 10px">↳ ${escapeHtml(q.answer)}</div>`
+        : (listingQuestionsMine
+            ? `<div style="display:flex;gap:8px;margin-top:4px"><input class="fi" type="text" id="qa-answer-${q.id}" placeholder="Yanıtla…" style="flex:1"><button class="apbtn" style="width:auto;margin-top:0;padding:0 14px" onclick="answerListingQuestion('${listingId}','${q.id}')">Yanıtla</button></div>`
+            : `<div style="font-size:12px;color:var(--text3)">Henüz yanıtlanmadı</div>`)}
+    </div>`).join('') : '<div class="ref-empty">Henüz soru yok, ilk soruyu sen sor.</div>';
+  el.innerHTML = `<div class="ref-box"><div class="ref-head"><span class="ref-count">💬 Soru & Cevap (${listingQuestionsCache.length})</span></div>${itemsHtml}${askBoxHtml}</div>`;
+}
+
+async function submitListingQuestion(listingId) {
+  if (!user) { gt('profile'); return; }
+  const input = document.getElementById(`qa-input-${listingId}`);
+  const question = (input?.value || '').trim();
+  if (!question) return;
+  if (!guardSubmit('listingQuestion')) return;
+  try {
+    await db.collection('teknohane_listings').doc(listingId).collection('questions').add({
+      uid: user.uid, name: myProfileData.displayName || user.displayName || user.email?.split('@')[0] || 'Kullanıcı',
+      question, answer: null, answeredAt: null,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    if (input) input.value = '';
+    const l = currentListing && currentListing.id === listingId ? currentListing : await getListingById(listingId);
+    if (l?.uid && l.uid !== user.uid) notifyUser(l.uid, 'listing_question', `"${l.model}" ilanına yeni bir soru soruldu.`, listingId);
+    loadListingQuestions(listingId, listingQuestionsMine);
+    showToast('✓', 'rgba(48,209,88,.15)', 'Soru Gönderildi', 'Satıcı yanıtladığında görebileceksin.');
+  } catch(e) { showErrorToast(e); } finally { releaseSubmit('listingQuestion'); }
+}
+
+async function answerListingQuestion(listingId, qId) {
+  const input = document.getElementById(`qa-answer-${qId}`);
+  const answer = (input?.value || '').trim();
+  if (!answer) return;
+  try {
+    await db.collection('teknohane_listings').doc(listingId).collection('questions').doc(qId).update({
+      answer, answeredAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    const q = listingQuestionsCache.find(x => x.id === qId);
+    if (q?.uid) {
+      const l = currentListing && currentListing.id === listingId ? currentListing : await getListingById(listingId);
+      notifyUser(q.uid, 'listing_question_answered', `"${l?.model||'İlan'}" ilanına sorduğun soru yanıtlandı.`, listingId);
+    }
+    loadListingQuestions(listingId, listingQuestionsMine);
+  } catch(e) { showErrorToast(e); }
+}
+
 // Uygulama şu an Capacitor native kabuğu (Android APK) içinde mi çalışıyor, yoksa normal tarayıcıda mı?
 function isNativeApp() {
   return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
@@ -5859,6 +6002,11 @@ const NOTIF_ICONS = {
   complaint_update: { ic: '📋', bg: 'rgba(0,212,255,.12)' },
   new_message: { ic: '💬', bg: 'rgba(0,212,255,.12)' },
   listing_expired: { ic: '⏰', bg: 'rgba(0,212,255,.12)' },
+  listing_approved: { ic: '✅', bg: 'rgba(48,209,88,.15)' },
+  listing_rejected: { ic: '❌', bg: 'rgba(255,69,58,.15)' },
+  saved_search_match: { ic: '🔔', bg: 'rgba(0,212,255,.12)' },
+  listing_question: { ic: '💬', bg: 'rgba(0,212,255,.12)' },
+  listing_question_answered: { ic: '↩️', bg: 'rgba(48,209,88,.15)' },
   pool_request: { ic: '🛡️', bg: 'rgba(0,212,255,.12)' },
   pool_reply: { ic: '🛡️', bg: 'rgba(48,209,88,.15)' },
   offer_received: { ic: '🤝', bg: 'rgba(0,212,255,.12)' },
@@ -7213,8 +7361,14 @@ function startAdminPendingListener() {
 }
 
 let filterMin = '', filterMax = '', filterBrand = 'Tümü';
+// REKABET ANALİZİ DÜZELTMESİ (Sahibinden karşılaştırması): fiyat/marka filtresi zaten vardı, buna
+// "Durum" (Sıfır/Az Kullanılmış/İkinci El) filtresi ve kullanıcı seçimli sıralama (en yeni/fiyat
+// artan/fiyat azalan) eklendi — ikisi de tamamen istemci tarafında, ek Firestore okuması yok.
+let filterCondition = 'Tümü', filterSort = 'yeni';
 
 const MARKET_BRANDS = ['Tümü','Apple','Samsung','Xiaomi','Google','OnePlus','OPPO','vivo','Nothing','Sony','Motorola','realme','ASUS','Huawei','Honor'];
+const MARKET_CONDITIONS = ['Tümü','Sıfır','Az Kullanılmış','İkinci El'];
+const MARKET_SORTS = [{v:'yeni',l:'En Yeni'},{v:'price_asc',l:'Fiyat: Artan'},{v:'price_desc',l:'Fiyat: Azalan'}];
 
 function toggleFilterPanel() {
   const panel = document.getElementById('filter-panel');
@@ -7224,6 +7378,12 @@ function toggleFilterPanel() {
   if (!isOpen && !document.getElementById('filter-brands').children.length) {
     document.getElementById('filter-brands').innerHTML = MARKET_BRANDS.map(b =>
       `<button class="bf ${b===filterBrand?'on':'off'}" onclick="setFilterBrand('${b}',this)">${b}</button>`
+    ).join('');
+    document.getElementById('filter-conditions').innerHTML = MARKET_CONDITIONS.map(c =>
+      `<button class="bf ${c===filterCondition?'on':'off'}" onclick="setFilterCondition('${c}',this)">${c}</button>`
+    ).join('');
+    document.getElementById('filter-sort').innerHTML = MARKET_SORTS.map(s =>
+      `<button class="bf ${s.v===filterSort?'on':'off'}" onclick="setFilterSort('${s.v}',this)">${s.l}</button>`
     ).join('');
     document.getElementById('f-min').value = filterMin;
     document.getElementById('f-max').value = filterMax;
@@ -7235,23 +7395,108 @@ function setFilterBrand(b, el) {
   document.querySelectorAll('#filter-brands .bf').forEach(x => x.className = x.textContent.trim()===b ? 'bf on' : 'bf off');
 }
 
+function setFilterCondition(c, el) {
+  filterCondition = c;
+  document.querySelectorAll('#filter-conditions .bf').forEach(x => x.className = x.textContent.trim()===c ? 'bf on' : 'bf off');
+}
+
+function setFilterSort(v, el) {
+  filterSort = v;
+  document.querySelectorAll('#filter-sort .bf').forEach(x => x.className = (x===el) ? 'bf on' : 'bf off');
+}
+
 function applyFilters() {
   filterMin = document.getElementById('f-min').value;
   filterMax = document.getElementById('f-max').value;
-  const hasActive = filterMin || filterMax || filterBrand !== 'Tümü';
+  const hasActive = filterMin || filterMax || filterBrand !== 'Tümü' || filterCondition !== 'Tümü' || filterSort !== 'yeni';
   document.getElementById('filter-toggle').classList.toggle('active', !!hasActive);
   document.getElementById('filter-panel').classList.remove('on');
   rlistings();
 }
 
 function clearFilters() {
-  filterMin = ''; filterMax = ''; filterBrand = 'Tümü';
+  filterMin = ''; filterMax = ''; filterBrand = 'Tümü'; filterCondition = 'Tümü'; filterSort = 'yeni';
   document.getElementById('f-min').value = '';
   document.getElementById('f-max').value = '';
   document.querySelectorAll('#filter-brands .bf').forEach(x => x.className = x.textContent.trim()==='Tümü' ? 'bf on' : 'bf off');
+  document.querySelectorAll('#filter-conditions .bf').forEach(x => x.className = x.textContent.trim()==='Tümü' ? 'bf on' : 'bf off');
+  document.querySelectorAll('#filter-sort .bf').forEach(x => x.className = x.textContent.trim()==='En Yeni' ? 'bf on' : 'bf off');
   document.getElementById('filter-toggle').classList.remove('active');
   document.getElementById('filter-panel').classList.remove('on');
   rlistings();
+}
+
+// REKABET ANALİZİ EKLENTİSİ (Sahibinden karşılaştırması — kayıtlı arama/fiyat alarmı): kullanıcı
+// şu anki filtre kriterlerini (marka/fiyat aralığı/durum) kaydedebilir; bu kritere uyan bir ilan
+// onaylandığında (bkz. approveListing → checkSavedSearchMatches) bildirim alır. Yeni bir sürekli
+// dinleyici (onSnapshot) YOK — eşleşme kontrolü yalnızca bir ilan onaylandığı ANDA, tek seferlik bir
+// koleksiyon okumasıyla yapılır.
+async function saveCurrentSearch() {
+  if (!user) { gt('profile'); return; }
+  const min = document.getElementById('f-min').value;
+  const max = document.getElementById('f-max').value;
+  const brand = filterBrand;
+  const condition = filterCondition;
+  if (!min && !max && brand === 'Tümü' && condition === 'Tümü') {
+    showToast('⚠️','rgba(255,69,58,.15)','Kriter Seç','Kaydetmek için en az bir filtre (fiyat/marka/durum) seçmelisin.');
+    return;
+  }
+  try {
+    await db.collection('teknohane_saved_searches').add({
+      uid: user.uid, brand, condition,
+      minPrice: min ? parseInt(min) : null, maxPrice: max ? parseInt(max) : null,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    showToast('🔔','rgba(0,212,255,.15)','Arama Kaydedildi','Bu kritere uyan yeni bir ilan gelince haber vereceğiz.');
+  } catch(e) { showErrorToast(e); }
+}
+
+async function openSavedSearches() {
+  if (!user) { gt('profile'); return; }
+  const list = document.getElementById('saved-searches-list');
+  list.innerHTML = `<div class="load"><div class="spin"></div></div>`;
+  document.getElementById('saved-searches-mo').classList.add('on');
+  try {
+    const snap = await db.collection('teknohane_saved_searches').where('uid', '==', user.uid).limit(30).get();
+    const items = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a,b) => (b.createdAt?.toMillis?.()||0) - (a.createdAt?.toMillis?.()||0));
+    if (!items.length) { list.innerHTML = `<div class="no">Henüz kayıtlı arama yok.</div>`; return; }
+    list.innerHTML = items.map(s => {
+      const parts = [];
+      if (s.brand && s.brand !== 'Tümü') parts.push(s.brand);
+      if (s.condition && s.condition !== 'Tümü') parts.push(s.condition);
+      if (s.minPrice) parts.push(`min ₺${s.minPrice.toLocaleString('tr-TR')}`);
+      if (s.maxPrice) parts.push(`max ₺${s.maxPrice.toLocaleString('tr-TR')}`);
+      return `<div class="pacc-row"><span class="pacc-lbl">${escapeHtml(parts.join(' · ')||'Tüm ilanlar')}</span><span class="pacc-val" style="color:var(--red);cursor:pointer" onclick="deleteSavedSearch('${s.id}')">Sil</span></div>`;
+    }).join('');
+  } catch(e) {
+    list.innerHTML = `<div class="no">Yüklenemedi.<br><span style="font-size:11px;color:var(--text3)">${e.message||''}</span></div>`;
+  }
+}
+
+async function deleteSavedSearch(id) {
+  try {
+    await db.collection('teknohane_saved_searches').doc(id).delete();
+    openSavedSearches();
+  } catch(e) { showErrorToast(e); }
+}
+
+// İlan onaylandığında (bkz. approveListing) çağrılır — bu kritere uyan kayıtlı aramaları bulup
+// sahiplerine tek seferlik bildirim gönderir. Sürekli bir dinleyici değil, tek seferlik bir okuma.
+async function checkSavedSearchMatches(l) {
+  try {
+    const snap = await db.collection('teknohane_saved_searches').limit(200).get();
+    const price = parseInt(l.price || 0);
+    snap.docs.forEach(d => {
+      const s = d.data();
+      if (s.uid === l.uid) return;
+      if (s.brand && s.brand !== 'Tümü' && !(l.model||'').toLowerCase().includes(s.brand.toLowerCase())) return;
+      if (s.condition && s.condition !== 'Tümü' && l.condition !== s.condition) return;
+      if (s.minPrice && price < s.minPrice) return;
+      if (s.maxPrice && price > s.maxPrice) return;
+      notifyUser(s.uid, 'saved_search_match', `Kaydettiğin aramaya uygun yeni bir ilan var: "${l.model}" — ₺${price.toLocaleString('tr-TR')}`, l.id);
+    });
+  } catch(e) { console.error('Kayıtlı arama eşleşmesi kontrol edilemedi:', e); }
 }
 
 // Satıldı olarak işaretlenen bir ilan 24 saatten eskiyse true döner (Pazar'dan gizlenmeli)
@@ -7336,7 +7581,7 @@ async function loadMarketPage(reset) {
       // özel etiketlerden biri varsa veya arama/filtre/sekme aktifse güvenli şekilde tam render'a
       // (rlistings) düşülür — yalnızca "sade" sayfalamada (en yaygın durum) hızlı ekleme kullanılır.
       const raw = (document.getElementById('msrch')?.value||'').trim();
-      const filtersActive = !!(raw || filterMin || filterMax || filterBrand !== 'Tümü');
+      const filtersActive = !!(raw || filterMin || filterMax || filterBrand !== 'Tümü' || filterCondition !== 'Tümü' || filterSort !== 'yeni');
       const hasSpecial = newItems.some(l => l.showcase || l.featured || l.sold);
       if (mktab === 'all' && !filtersActive && !hasSpecial) {
         appendListingCards(newItems.filter(l => !isSoldExpired(l) && !l.paused && !isListingExpired(l)));
@@ -7374,7 +7619,7 @@ function renderMarketLoadMoreControl() {
   if (!grid) return;
   let wrap = grid.querySelector('.market-loadmore-wrap');
   const raw = (document.getElementById('msrch')?.value||'').trim();
-  const shouldShow = mktab === 'all' && !raw && !filterMin && !filterMax && filterBrand === 'Tümü';
+  const shouldShow = mktab === 'all' && !raw && !filterMin && !filterMax && filterBrand === 'Tümü' && filterCondition === 'Tümü' && filterSort === 'yeni';
   if (!shouldShow) { wrap?.remove(); return; }
   if (!wrap) {
     wrap = document.createElement('div');
@@ -7574,14 +7819,20 @@ function rlistings() {
     || l.model?.toLowerCase().includes(q)
     || l.brandLower?.includes(q)
     || l.cityLower?.includes(q)
-    || l.districtLower?.includes(q));
+    || l.districtLower?.includes(q)
+    || l.neighborhoodLower?.includes(q));
   if (mktab !== 'mine') items = items.filter(l => !isSoldExpired(l) && !l.paused && !isListingExpired(l));
   if (filterMin) items = items.filter(l => parseInt(l.price||0) >= parseInt(filterMin));
   if (filterMax) items = items.filter(l => parseInt(l.price||0) <= parseInt(filterMax));
   if (filterBrand !== 'Tümü') items = items.filter(l => (l.model||'').toLowerCase().includes(filterBrand.toLowerCase()));
-  // Sıralama önceliği: Satılanlar en alta, ardından Vitrin > Öne Çıkan > diğerleri. Tamamen istemci
-  // tarafında (zaten yüklenmiş sayfa üzerinde) — composite index gerektirmez.
-  items = [...items].sort((a,b) => (a.sold?1:0) - (b.sold?1:0) || (b.showcase?1:0) - (a.showcase?1:0) || (b.featured?1:0) - (a.featured?1:0));
+  if (filterCondition !== 'Tümü') items = items.filter(l => l.condition === filterCondition);
+  // Sıralama: kullanıcı açıkça fiyat sıralaması seçtiyse (filterSort), Vitrin/Öne Çıkan önceliği
+  // yerine doğrudan fiyata göre sıralanır — satılanlar yine de en altta kalır. Varsayılan ("yeni")
+  // durumda önceki davranış (Vitrin > Öne Çıkan > diğerleri, zaten en yeniden eskiye gelen sorgu
+  // sırası üzerine) korunur. Tamamen istemci tarafında — composite index gerektirmez.
+  if (filterSort === 'price_asc') items = [...items].sort((a,b) => (a.sold?1:0) - (b.sold?1:0) || parseInt(a.price||0) - parseInt(b.price||0));
+  else if (filterSort === 'price_desc') items = [...items].sort((a,b) => (a.sold?1:0) - (b.sold?1:0) || parseInt(b.price||0) - parseInt(a.price||0));
+  else items = [...items].sort((a,b) => (a.sold?1:0) - (b.sold?1:0) || (b.showcase?1:0) - (a.showcase?1:0) || (b.featured?1:0) - (a.featured?1:0));
   if (!items.length) {
     grid.innerHTML = `<div class="load"><div style="font-size:40px">${mktab==='fav'?'❤️':mktab==='mine'?'📋':'📭'}</div><div>${mktab==='fav'?'Favori yok':mktab==='mine'?'Henüz ilanın yok':'Sonuç bulunamadı'}</div></div>`;
     grid._renderedSig = null;
@@ -7818,7 +8069,7 @@ function titleCaseListingField(id) {
 function listingFormOnChange() {
   const photoCount = photos.filter(Boolean).length;
   const counterEl = document.getElementById('l-photo-counter');
-  if (counterEl) counterEl.textContent = `(${photoCount} / 4)`;
+  if (counterEl) counterEl.textContent = `(${photoCount} / ${photos.length})`;
   const hintEl = document.getElementById('l-photo-hint');
   if (hintEl) hintEl.style.display = photoCount >= 3 ? 'none' : 'block';
 
@@ -7854,6 +8105,7 @@ function newListing() {
   document.getElementById('l-desc').value = '';
   document.getElementById('l-il').value = '';
   document.getElementById('l-ilce').innerHTML = '<option value=""></option>';
+  document.getElementById('l-mahalle').value = '';
   document.querySelector('.csel[data-for="l-il"] .csel-label').textContent = 'İl Seçin';
   document.querySelector('.csel[data-for="l-ilce"] .csel-label').textContent = 'Önce il seçin';
   document.querySelector('#listing-mo .mtit').textContent = 'İlan Ver';
@@ -7862,8 +8114,10 @@ function newListing() {
   document.getElementById('l-agree').checked = false;
   document.getElementById('l-pool-system').checked = false;
   document.getElementById('l-negotiable').checked = false;
-  photos[0] = null; photos[1] = null; photos[2] = null; photos[3] = null;
-  [0,1,2,3].forEach(i => { const slot = document.getElementById('ps' + i); if (slot) slot.innerHTML = renderPhotoSlotHTML(i); });
+  photos.forEach((_, i) => { photos[i] = null; });
+  photos.forEach((_, i) => { const slot = document.getElementById('ps' + i); if (slot) slot.innerHTML = renderPhotoSlotHTML(i); });
+  listingVideoUrl = null;
+  renderListingVideoSlot();
   document.getElementById('listing-mo').classList.add('on');
   listingFormOnChange();
 }
@@ -7877,6 +8131,7 @@ async function submitListing() {
   const price = document.getElementById('l-price').value.trim();
   const il = document.getElementById('l-il').value;
   const ilce = document.getElementById('l-ilce').value;
+  const mahalle = document.getElementById('l-mahalle').value.trim();
   const location = [il, ilce].filter(Boolean).join(', ');
   const desc = document.getElementById('l-desc').value.trim();
   const photoCount = photos.filter(Boolean).length;
@@ -7903,6 +8158,12 @@ async function submitListing() {
       // panelindeki her yer bu iki alanı olduğu gibi okumaya devam ediyor. Bu yüzden eski ilanlarda
       // hiç var olmayan brand/modelName/city/district alanları hiçbir mevcut ekranı bozmuyor.
       brand, modelName: modelOnly, city: il, district: ilce || '',
+      // REKABET ANALİZİ EKLENTİSİ (Sahibinden karşılaştırması — üç seviyeli konum): tam bir
+      // il/ilçe/mahalle picker'ı için TÜM Türkiye'nin (~32.000 mahalle) doğru/güncel bir veri
+      // setini elle hazırlamak gerçekçi değildi (yanlış/eksik veri, hiç olmamasından daha kötü
+      // olurdu) — bunun yerine serbest metin bir "Mahalle/Semt" alanı eklendi, city/district ile
+      // AYNI katkısal desen (yeni alan, mevcut `location` alanı değişmedi).
+      neighborhood: mahalle, neighborhoodLower: mahalle.toLocaleLowerCase('tr-TR'),
       // Normalize edilmiş, küçük harfli arama alanları — gelecekte prefix/eşleşme araması için,
       // hiçbir mevcut sorguyu/render'ı etkilemiyor, yalnızca ek yazma.
       brandLower: brand.toLocaleLowerCase('tr-TR'), cityLower: il.toLocaleLowerCase('tr-TR'), districtLower: (ilce||'').toLocaleLowerCase('tr-TR'),
@@ -7942,15 +8203,18 @@ async function submitListing() {
       // Firestore Rules seviyesinde zaten isAdmin() herhangi bir ilanı güncelleyebiliyor (bkz.
       // firestore.rules), burada yalnızca istemci tarafı UI erişimi aynı yetkiyle sınırlanıyor.
       if (!old || (isAdminEdit && !hasPermission('manageListings'))) { editingListingId = null; return; }
-      if (photos[0]) data.photo1 = photos[0]; else data.photo1 = firebase.firestore.FieldValue.delete();
-      if (photos[1]) data.photo2 = photos[1]; else data.photo2 = firebase.firestore.FieldValue.delete();
-      if (photos[2]) data.photo3 = photos[2]; else data.photo3 = firebase.firestore.FieldValue.delete();
-      if (photos[3]) data.photo4 = photos[3]; else data.photo4 = firebase.firestore.FieldValue.delete();
+      // REKABET ANALİZİ DÜZELTMESİ (Sahibinden karşılaştırması — foto limiti 4'ten 8'e çıkarıldı):
+      // photo1..4'ü tek tek yazmak yerine photos[] dizisinin uzunluğu kadar döngüyle yazılıyor —
+      // slot sayısı ileride tekrar değişirse tek satır (photos dizisinin ilk tanımı) yeterli olsun diye.
+      photos.forEach((p, i) => { data['photo' + (i+1)] = p ? p : firebase.firestore.FieldValue.delete(); });
+      data.videoUrl = listingVideoUrl ? listingVideoUrl : firebase.firestore.FieldValue.delete();
       await db.collection('teknohane_listings').doc(editingListingId).update(data);
-      // data içindeki photo1..4 alanları silinen fotoğraflar için FieldValue.delete() "sentinel"
+      // data içindeki photo1..8 alanları silinen fotoğraflar için FieldValue.delete() "sentinel"
       // objesi taşıyabilir — bu, yerel state'e ham obje olarak yazılamaz (kırık <img> riski),
       // bu yüzden burada gerçek photos[] dizisindeki güncel değerlerle açıkça değiştiriliyor.
-      syncListingFieldEverywhere(editingListingId, { ...data, photo1: photos[0]||undefined, photo2: photos[1]||undefined, photo3: photos[2]||undefined, photo4: photos[3]||undefined });
+      const photoSyncFields = {};
+      photos.forEach((p, i) => { photoSyncFields['photo' + (i+1)] = p || undefined; });
+      syncListingFieldEverywhere(editingListingId, { ...data, ...photoSyncFields, videoUrl: listingVideoUrl || undefined });
       if (isAdminEdit) adminLog('admin_edit_listing', 'listing', editingListingId, model, { model: old.model, price: old.price }, { model, price }, 'success');
 
       // Fiyat düştüyse, bu ilanı favorileyen HERKESE kalıcı bildirim gönder (çevrimdışı olsalar bile)
@@ -7966,10 +8230,8 @@ async function submitListing() {
 
       showToast('✓', 'rgba(48,209,88,.15)', 'İlan Güncellendi', `${model} güncellendi.`);
     } else {
-      if (photos[0]) data.photo1 = photos[0];
-      if (photos[1]) data.photo2 = photos[1];
-      if (photos[2]) data.photo3 = photos[2];
-      if (photos[3]) data.photo4 = photos[3];
+      photos.forEach((p, i) => { if (p) data['photo' + (i+1)] = p; });
+      if (listingVideoUrl) data.videoUrl = listingVideoUrl;
       data.sold = false;
       data.approved = false;
       data.uid = user.uid;
@@ -7989,14 +8251,16 @@ async function submitListing() {
     }
 
     closemo('listing-mo');
-    photos[0] = null; photos[1] = null; photos[2] = null; photos[3] = null;
-    [0,1,2,3].forEach(i => { const slot = document.getElementById('ps' + i); if (slot) slot.innerHTML = renderPhotoSlotHTML(i); });
+    photos.forEach((_, i) => { photos[i] = null; });
+    photos.forEach((_, i) => { const slot = document.getElementById('ps' + i); if (slot) slot.innerHTML = renderPhotoSlotHTML(i); });
+    listingVideoUrl = null;
+    renderListingVideoSlot();
     editingListingId = null;
     document.querySelector('#listing-mo .mtit').textContent = 'İlan Ver';
     document.querySelector('#listing-mo .sbtn2').textContent = 'İlanı Yayınla';
     document.getElementById('l-agree-wrap').style.display = '';
     setListingBrandValue('');
-    ['l-model','l-price','l-desc','l-phone','l-ram','l-storage','l-color','l-warranty','l-chip','l-battery','l-box'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    ['l-model','l-price','l-desc','l-phone','l-ram','l-storage','l-color','l-warranty','l-chip','l-battery','l-box','l-mahalle'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
     document.getElementById('l-il').value = '';
     document.getElementById('l-ilce').innerHTML = '<option value=""></option>';
     document.querySelector('.csel[data-for="l-il"] .csel-label').textContent = 'İl Seçin';
@@ -8042,6 +8306,7 @@ async function editListing(id) {
     const matchedIlce = districts.find(d => d === locParts[1]) || '';
     document.getElementById('l-ilce').value = matchedIlce;
   }
+  document.getElementById('l-mahalle').value = l.neighborhood || '';
   syncAllPickerLabels(document.getElementById('listing-mo'));
   document.getElementById('l-desc').value = l.desc || '';
   document.getElementById('l-phone').value = l.phone || '';
@@ -8060,11 +8325,10 @@ async function editListing(id) {
     document.getElementById('detail-fields').style.display = 'block';
     document.getElementById('dt-chevron')?.parentElement?.classList.add('open');
   }
-  photos[0] = l.photo1 || null;
-  photos[1] = l.photo2 || null;
-  photos[2] = l.photo3 || null;
-  photos[3] = l.photo4 || null;
-  [0,1,2,3].forEach(i => { const slot = document.getElementById('ps' + i); if (slot) slot.innerHTML = renderPhotoSlotHTML(i); });
+  photos.forEach((_, i) => { photos[i] = l['photo' + (i+1)] || null; });
+  photos.forEach((_, i) => { const slot = document.getElementById('ps' + i); if (slot) slot.innerHTML = renderPhotoSlotHTML(i); });
+  listingVideoUrl = l.videoUrl || null;
+  renderListingVideoSlot();
   exitDetailPage(false);
   document.getElementById('listing-mo').classList.add('on');
   listingFormOnChange();
@@ -8078,7 +8342,11 @@ function toggleDetailFields() {
   toggle.classList.toggle('open', !isOpen);
 }
 
-const photos = [null, null, null, null];
+// REKABET ANALİZİ DÜZELTMESİ (Sahibinden 20 fotoğrafa izin veriyor, biz 4'te kalmıştık — telefon
+// ilanlarında ön/arka/yan/ekran-çizik/kutu/fatura gibi çoklu açı ihtiyacını karşılamıyordu): 4'ten
+// 8'e çıkarıldı. Slot sayısı buradaki dizinin uzunluğu — HTML'deki ps0..ps7/pf0..pf7 slotlarıyla
+// birlikte değişir.
+const photos = [null, null, null, null, null, null, null, null];
 
 // Bir slot'un (dolu/boş) HTML içeriğini üretir — addPhoto/rmPhoto/takas arasında tekrar kullanılır.
 function renderPhotoSlotHTML(idx) {
@@ -8159,6 +8427,59 @@ function rmPhoto(idx) {
   listingFormOnChange();
 }
 
+// REKABET ANALİZİ EKLENTİSİ (Sahibinden karşılaştırması — ilan videosu): fotoğraflardan farklı
+// olarak canvas tabanlı sıkıştırma videoya uygulanamaz, bu yüzden ham dosya doğrudan yükleniyor
+// (bkz. uploadToStorage) — yalnızca boyut/tip kontrolü yapılır, yeniden kodlama yapılmaz.
+let listingVideoUrl = null;
+function renderListingVideoSlot() {
+  const wrap = document.getElementById('l-video-wrap');
+  if (!wrap) return;
+  if (!listingVideoUrl) {
+    wrap.innerHTML = `<div class="pslot" id="l-video-slot" onclick="document.getElementById('l-video-input').click()" style="width:100%;height:100px">
+      <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+      <span>Video Ekle (max 30MB)</span>
+      <input type="file" id="l-video-input" accept="video/*" style="display:none" onchange="addListingVideo(this)">
+    </div>`;
+  } else {
+    wrap.innerHTML = `<div style="position:relative">
+      <video src="${listingVideoUrl}" controls style="width:100%;border-radius:12px;max-height:180px;background:#000"></video>
+      <div class="pslot-x" onclick="removeListingVideo()" style="position:absolute;top:6px;right:6px">×</div>
+    </div>`;
+  }
+}
+
+async function addListingVideo(input) {
+  const file = input.files[0];
+  input.value = '';
+  if (!file) return;
+  if (!file.type.startsWith('video/')) { showToast('⚠️','rgba(255,69,58,.15)','Geçersiz Dosya','Lütfen bir video dosyası seç.'); return; }
+  if (file.size > 30 * 1024 * 1024) { showToast('⚠️','rgba(255,69,58,.15)','Dosya Çok Büyük','Video en fazla 30MB olabilir.'); return; }
+  const wrap = document.getElementById('l-video-wrap');
+  wrap.innerHTML = `<div class="pslot-processing" style="width:100%;height:100px"><div class="spin" style="width:22px;height:22px"></div><span id="l-video-pct">Yükleniyor…</span></div>`;
+  const oldUrl = listingVideoUrl;
+  try {
+    const listingKey = editingListingId || pendingNewListingPhotoId;
+    const ext = (file.name.split('.').pop() || 'mp4').toLowerCase();
+    listingVideoUrl = await uploadToStorage(`listing-videos/${user.uid}/${listingKey}/original.${ext}`, file, file.type, pct => {
+      const pctEl = document.getElementById('l-video-pct');
+      if (pctEl) pctEl.textContent = `Yükleniyor… %${pct}`;
+    });
+    deleteStorageUrlIfAny(oldUrl);
+    renderListingVideoSlot();
+    listingFormOnChange();
+  } catch(e) {
+    renderListingVideoSlot();
+    showErrorToast(e, 'Video yüklenemedi.');
+  }
+}
+
+function removeListingVideo() {
+  deleteStorageUrlIfAny(listingVideoUrl);
+  listingVideoUrl = null;
+  renderListingVideoSlot();
+  listingFormOnChange();
+}
+
 let currentListing = null;
 let currentDetailPhotos = [];
 let openListingId = null;
@@ -8232,7 +8553,7 @@ function renderDetailPage(l) {
   const isAdmin = isAdminNow();
   const pending = l.approved === false;
   const fav = favs.has(l.id);
-  const ps = [l.photo1, l.photo2, l.photo3, l.photo4].filter(Boolean);
+  const ps = [l.photo1, l.photo2, l.photo3, l.photo4, l.photo5, l.photo6, l.photo7, l.photo8].filter(Boolean);
   currentDetailPhotos = ps; // onclick niteliği içinde ("ps" yerel kapsamda olduğu için) erişilebilmesi için global bir aynası tutulur
   const refs = l.referrers || [];
   const alreadyRef = user && refs.some(r => r.uid === user.uid);
@@ -8251,6 +8572,7 @@ function renderDetailPage(l) {
   const dateStr = l.createdAt?.toDate ? l.createdAt.toDate().toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric'}) : null;
   document.getElementById('det-body').innerHTML = `
     ${ps.length ? `<div class="det-photos det-anim">${ps.map((p,i)=>`<div class="det-photo-wrap"><div class="det-photo-skel" id="det-skel-${i}"></div><img class="det-photo" src="${escapeHtml(p)}" onclick="openListingGallery(currentDetailPhotos, ${i})" onload="this.classList.add('loaded');const s=document.getElementById('det-skel-${i}');if(s)s.remove();"></div>`).join('')}</div>` : `<div class="det-photos det-anim"><div class="det-photo-empty"><img src="teknohane.png" alt="" onerror="this.style.display='none'"><span>Fotoğraf Eklenmedi</span></div></div>`}
+    ${l.videoUrl ? `<div class="det-anim" style="animation-delay:.06s;margin-top:10px"><video src="${escapeHtml(l.videoUrl)}" controls playsinline style="width:100%;border-radius:14px;background:#000;max-height:320px"></video></div>` : ''}
     ${pending && mine && !isAdmin ? `<div style="background:rgba(255,149,0,.12);border:1px solid rgba(255,149,0,.3);color:#FF9500;font-size:13px;font-weight:700;padding:8px 14px;border-radius:10px;margin-bottom:12px;text-align:center">⏳ İlanınız inceleniyor, onaylandığında Pazar'da görünecek</div>` : ''}
     ${pending && isAdmin ? `<div style="background:rgba(255,149,0,.12);border:1px solid rgba(255,149,0,.3);color:#FF9500;font-size:13px;font-weight:700;padding:8px 14px;border-radius:10px;margin-bottom:12px;text-align:center">⏳ Onay bekliyor</div>` : ''}
     ${mine && isListingExpired(l) ? `<div style="background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.3);color:var(--cyan);font-size:13px;font-weight:700;padding:8px 14px;border-radius:10px;margin-bottom:12px;text-align:center">⏰ İlanının 30 günlük süresi doldu, Pazar'da artık görünmüyor. Aşağıdan yeniden yayınlayabilirsin.</div>` : ''}
@@ -8266,7 +8588,7 @@ function renderDetailPage(l) {
     <div class="det-status-row det-anim" style="animation-delay:.08s">
       ${l.sold ? `<div class="det-status-badge st-sold"><span class="dot"></span>🔴 Satıldı</div>` : (l.condition==='Sıfır' ? `<div class="det-status-badge st-new"><span class="dot"></span>🟢 Sıfır</div>` : `<div class="det-status-badge st-used"><span class="dot"></span>🟠 ${escapeHtml(l.condition)||'İkinci El'}</div>`)}
       ${l.origin?`<div class="det-status-badge st-info">${escapeHtml(l.origin)}</div>`:''}
-      ${l.location?`<div class="det-status-badge st-info">📍 ${escapeHtml(l.location)}</div>`:''}
+      ${l.location?`<div class="det-status-badge st-info">📍 ${escapeHtml(l.neighborhood ? l.location + ' · ' + l.neighborhood : l.location)}</div>`:''}
     </div>
     ${l.poolSystem ? `<div class="pool-banner det-anim" style="animation-delay:.09s">
       <div class="pool-banner-top">
@@ -8303,6 +8625,7 @@ function renderDetailPage(l) {
         ${refs.length ? refs.map(r=>`<div class="ref-item"><div class="ref-av">${(r.name||'?')[0].toUpperCase()}</div>${escapeHtml(r.name)}</div>`).join('') : '<div class="ref-empty">Henüz referans olan yok</div>'}
       </div>
     </div>
+    <div id="det-qa-section" class="det-anim" style="animation-delay:.19s"></div>
     <div class="det-contact-row det-anim" style="animation-delay:.2s">
       ${l.phone?`<button class="det-contact-btn dc-wa" onpointerdown="spawnRipple(event,this)" onclick="ol(waListingLink('${escapeJsAttr(l.model||'')}','${escapeJsAttr(l.phone)}'))">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.998 2C6.477 2 2 6.477 2 12c0 1.989.574 3.842 1.565 5.408L2 22l4.757-1.535A9.958 9.958 0 0 0 11.998 22c5.523 0 10-4.477 10-10S17.521 2 11.998 2z"/></svg>
@@ -8340,6 +8663,7 @@ function renderDetailPage(l) {
   document.getElementById('detail-mo').classList.add('on');
   if (l.uid) loadSellerCard(l.uid, l.ownerName, mine, 'det-seller-card');
   renderSimilarListings(l, 'det-similar');
+  loadListingQuestions(id, mine);
   // Görüntülenme sayısı — yalnızca YENİ bir açılışta, ilan sahibi kendi ilanına bakmıyorsa VE bu
   // cihazdan aynı ilan yakın zamanda (12 saat içinde) zaten sayılmadıysa artırılır (bkz.
   // shouldCountListingView) — ek okuma yok, yalnızca gerçekten yeni sayılan görüntülenmede tek bir
@@ -8454,6 +8778,11 @@ async function approveListing(id) {
     const l = await getListingById(id);
     if (l) { l.approved = true; l.rejected = false; }
     adminLog('approve_listing', 'listing', id, l?.model || id, { approved: false }, { approved: true });
+    // REKABET ANALİZİ EKLENTİSİ (Sahibinden karşılaştırması — ilan yaşam döngüsü bildirimleri):
+    // ilan sahibi, ilanı onaylanınca/reddedilince artık bir bildirim alıyor — önceden bu tamamen
+    // sessizdi, kullanıcı yalnızca Pazar'a bakıp fark etmek zorundaydı.
+    if (l?.uid) notifyUser(l.uid, 'listing_approved', `"${l.model}" ilanınız onaylandı ve Pazar'da yayında!`, id);
+    if (l) checkSavedSearchMatches(l);
     exitDetailPage(false);
     rlistings();
     radmin();
@@ -8500,6 +8829,7 @@ async function rejectListing(id, reasonCode, reasonLabel, note) {
     });
     if (l) Object.assign(l, { approved: false, rejected: true, rejectReasonLabel: reasonLabel });
     adminLog('reject_listing', 'listing', id, l?.model||id, { approved: null }, { rejected: true, reasonLabel }, 'success');
+    if (l?.uid) notifyUser(l.uid, 'listing_rejected', `"${l.model}" ilanınız reddedildi: ${reasonLabel}${note?' — '+note:''}`, id);
     exitDetailPage(false);
     rlistings(); radmin();
     showToast('✓', 'rgba(255,149,0,.15)', 'İlan Reddedildi', reasonLabel);
@@ -8680,7 +9010,7 @@ async function performListingDelete(id) {
     await db.collection('teknohane_listings').doc(id).delete();
     // İlan silinince Storage'daki fotoğrafları da temizle — base64 kullanan eski ilanlarda bu
     // alanlar data: URL'idir, deleteStorageUrlIfAny zaten bunları sessizce atlar.
-    [l?.photo1, l?.photo2, l?.photo3, l?.photo4].forEach(deleteStorageUrlIfAny);
+    [l?.photo1, l?.photo2, l?.photo3, l?.photo4, l?.photo5, l?.photo6, l?.photo7, l?.photo8, l?.videoUrl].forEach(deleteStorageUrlIfAny);
     // Pazar/Profil'in kendi sayfalamalı dizilerinden de kaldır (görsel anında güncellensin diye)
     marketAllListings = marketAllListings.filter(x => x.id !== id);
     marketFavListings = marketFavListings.filter(x => x.id !== id);
@@ -11149,9 +11479,19 @@ const COMPLAINT_TYPE_LABELS = { user: 'Kullanıcı', listing: 'İlan', forum_pos
 
 let reportContext = null; // { type, targetId, targetLabel, targetOwnerUid }
 
+// REKABET ANALİZİ EKLENTİSİ (Sahibinden karşılaştırması — yapılandırılmış şikayet formu): şikayete
+// isteğe bağlı bir ekran görüntüsü/kanıt fotoğrafı eklenebiliyor. Yükleme yolu (complaint-evidence/
+// {uid}/{complaintId}/...) şikayet dokümanının ID'sini GEREKTİRDİĞİ için, ilan fotoğraflarındaki
+// aynı desenle (bkz. pendingNewListingPhotoId), doküman ID'si .add() ile OLUŞTURULMADAN önce
+// .doc() ile üretilip önceden biliniyor.
+let pendingReportId = null;
+let reportPhotoUrl = null;
+
 function openReportModal(type, targetId, targetLabel, targetOwnerUid) {
   if (!user) { gt('profile'); return; }
   reportContext = { type, targetId, targetLabel, targetOwnerUid };
+  pendingReportId = db.collection('teknohane_complaints').doc().id;
+  reportPhotoUrl = null;
   document.getElementById('report-target-label').textContent = `${COMPLAINT_TYPE_LABELS[type]||type}: ${targetLabel}`;
   const sel = document.getElementById('report-reason-select');
   sel.innerHTML = COMPLAINT_REASONS.map(r => `<option value="${r.code}">${r.label}</option>`).join('');
@@ -11159,8 +11499,35 @@ function openReportModal(type, targetId, targetLabel, targetOwnerUid) {
   document.getElementById('report-other-wrap').style.display = 'none';
   document.getElementById('report-other-text').value = '';
   document.getElementById('report-description').value = '';
+  renderReportPhotoSlot();
   const err = document.getElementById('report-err'); err.textContent = ''; err.classList.remove('on');
   document.getElementById('report-mo').classList.add('on');
+}
+
+function renderReportPhotoSlot() {
+  const slot = document.getElementById('report-photo-slot');
+  if (!slot) return;
+  if (!reportPhotoUrl) {
+    slot.innerHTML = `<svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>Ekle</span><input type="file" id="report-photo-input" accept="image/*" style="display:none" onchange="onReportPhotoSelected(this)">`;
+  } else {
+    slot.innerHTML = `<img src="${escapeHtml(reportPhotoUrl)}" alt="Kanıt fotoğrafı"><div class="pslot-x" onclick="reportPhotoUrl=null;renderReportPhotoSlot();event.stopPropagation()">×</div>`;
+  }
+}
+
+async function onReportPhotoSelected(input) {
+  const file = input.files[0];
+  input.value = '';
+  if (!file) return;
+  if (file.size > 50 * 1024 * 1024) { showToast('⚠️','rgba(255,69,58,.15)','Dosya Çok Büyük','Bu dosya işlenemeyecek kadar büyük.'); return; }
+  const slot = document.getElementById('report-photo-slot');
+  slot.innerHTML = `<div class="pslot-processing"><div class="spin" style="width:20px;height:20px"></div><span>Yükleniyor…</span></div>`;
+  try {
+    reportPhotoUrl = await compressAndUploadPhoto(file, `complaint-evidence/${user.uid}/${pendingReportId}/original`, 1080, 0.82);
+    renderReportPhotoSlot();
+  } catch(e) {
+    renderReportPhotoSlot();
+    showErrorToast(e, 'Fotoğraf yüklenemedi.');
+  }
 }
 
 async function submitReport() {
@@ -11176,7 +11543,7 @@ async function submitReport() {
   }
   const description = document.getElementById('report-description').value.trim();
   try {
-    await db.collection('teknohane_complaints').add({
+    await db.collection('teknohane_complaints').doc(pendingReportId).set({
       type: reportContext.type,
       targetId: reportContext.targetId,
       targetLabel: reportContext.targetLabel,
@@ -11184,6 +11551,7 @@ async function submitReport() {
       reporterUid: user.uid,
       reporterName: myProfileData.displayName || user.displayName || user.email,
       reasonCode, reasonLabel, description,
+      evidenceUrl: reportPhotoUrl || null,
       status: 'pending',
       priority: 'normal',
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -12534,6 +12902,13 @@ async function submitSellerReview(sellerUid) {
   if (!user) { gt('profile'); return; }
   if (user.uid === sellerUid) return;
   if (!srRating) { showToast('⚠️','rgba(255,69,58,.15)','Eksik Bilgi','Lütfen yıldız seçerek bir puan ver.'); return; }
+  // REKABET ANALİZİ DÜZELTMESİ (Sahibinden karşılaştırması): Sahibinden kullanıcıları, satış hiç
+  // gerçekleşmeden verilebilen haksız negatif puanlardan şikayetçi. Teknohane'de uygulama içi bir
+  // işlem/ödeme kaydı olmadığı için teknik bir doğrulama yapılamıyor, ama en azından bilinçli bir
+  // onay adımı ekleniyor — bu, gelişigüzel/kötü niyetli "hiç iletişime geçmeden puan verme"
+  // davranışını caydırıyor.
+  const confirmed = await confirmDialog('Bu satıcıyla işlemin (alım/satım/iletişim) gerçekten tamamlandı mı? Puanlama yalnızca gerçek bir işlem sonrası yapılmalı.', { title: 'İşlem Tamamlandı mı?', okLabel: 'Evet, tamamlandı', cancelLabel: 'Vazgeç', danger: false });
+  if (!confirmed) return;
   const textEl = document.getElementById('sr-text');
   const text = (textEl?.value || '').trim();
   try {
