@@ -863,6 +863,17 @@ body.tk-text-focus * { user-select: auto !important; -webkit-user-select: auto !
 .pcompl-fill{height:100%;background:linear-gradient(90deg,var(--cyan),#0080ff);border-radius:20px;transition:width .5s ease;}
 .pcompl-missing{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
 .pcompl-pill{font-size:11px;color:var(--cyan);background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.25);padding:4px 10px;border-radius:20px;cursor:pointer;}
+/* PROFİL YENİDEN TASARIMI: skor + istatistik + tamamlanma tek bir kartta, ayrı ayrı sınırlı 3 kart
+   yerine iç bölmeli tek bir "genel bakış" kartı — sayfadaki tekrarlayan "gri kutu" hissini azaltır. */
+.poverview-card{background:var(--surf);border:1px solid rgba(0,212,255,.2);border-radius:20px;padding:20px 20px 18px;margin-bottom:16px;position:relative;overflow:hidden;}
+.poverview-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,212,255,.06),transparent 55%);pointer-events:none;}
+.poverview-top{display:flex;align-items:center;gap:16px;position:relative;}
+.poverview-section{border-top:1px solid var(--border);margin-top:16px;padding-top:16px;position:relative;}
+/* Gizlilik/görünürlük anahtarı — düz metin yerine gerçek aç/kapa anahtarı, durumu tek bakışta netleştirir. */
+.ptoggle{position:relative;width:40px;height:24px;border-radius:20px;background:var(--surf3);border:1px solid var(--border2);cursor:pointer;flex-shrink:0;transition:background .2s ease,border-color .2s ease;}
+.ptoggle::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .2s cubic-bezier(.34,1.56,.64,1);box-shadow:0 1px 3px rgba(0,0,0,.3);}
+.ptoggle.on{background:var(--cyan);border-color:var(--cyan);}
+.ptoggle.on::after{transform:translateX(16px);}
 .notif-cat-dot{display:none;width:6px;height:6px;border-radius:50%;background:var(--red);margin-left:5px;vertical-align:middle;}
 .notif-cat-dot.on{display:inline-block;}
 .notif-date-hdr{font-size:12px;font-weight:700;color:var(--text3);margin:16px 0 8px;text-transform:uppercase;letter-spacing:.5px;}
@@ -1000,7 +1011,6 @@ body.tk-text-focus * { user-select: auto !important; -webkit-user-select: auto !
 .ud-empty{font-size:12px;color:var(--text3);padding:10px 0;}
 .adm-del svg{width:15px;height:15px;stroke:var(--red);}
 .aptit{font-size:14px;font-weight:700;color:#FFBE3C;margin-bottom:6px;display:flex;align-items:center;gap:6px;}
-.signout{width:100%;background:rgba(255,69,58,.1);border:1px solid rgba(255,69,58,.2);color:var(--red);font-size:15px;font-weight:600;padding:14px;border-radius:14px;cursor:pointer;font-family:inherit;}
 /* TEMA SEÇİCİ */
 .theme-panel{background:var(--surf);border:1px solid var(--border2);border-radius:14px;padding:14px;margin-bottom:16px;}
 .theme-title{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:10px;}
@@ -4060,6 +4070,7 @@ function rprof() {
         <div class="pemail">${escapeHtml(user.email)}</div>
         ${myProfileData.city?`<div class="puname" style="color:var(--text3)">📍 ${escapeHtml(myProfileData.city)}</div>`:''}
         ${myProfileData.bio?`<div class="pbio">${escapeHtml(myProfileData.bio)}</div>`:''}
+        ${joinedDateStr?`<div class="puname" style="color:var(--text3);font-size:11px;margin-top:4px">Katıldı: ${joinedDateStr}</div>`:''}
         <div class="pverify">
           <span class="pverify-item${user.emailVerified?' ok':''}">${user.emailVerified?'✓':'○'} E-posta ${user.emailVerified?'doğrulandı':'doğrulanmadı'}</span>
           <span class="pverify-item${hasVerifiedPhoneNumber?' ok':''}">${hasVerifiedPhoneNumber?'✓':'○'} Telefon ${hasVerifiedPhoneNumber?'doğrulandı':'eklenmedi'}</span>
@@ -4075,33 +4086,37 @@ function rprof() {
           </div>
         </div>
       </div>
-      <div class="tscore-card">
-        <div class="tscore-ring">
-          <svg viewBox="0 0 100 100">
-            <circle cx="50" cy="50" r="44" stroke="var(--border2)" stroke-width="6" fill="none"/>
-            <circle cx="50" cy="50" r="44" stroke="var(--cyan)" stroke-width="6" fill="none" stroke-linecap="round" stroke-dasharray="276.5" stroke-dashoffset="${scoreRingOffset}" transform="rotate(-90 50 50)"/>
-          </svg>
-          <div class="tscore-num">${teknohaneScore}</div>
+      <div class="poverview-card">
+        <div class="poverview-top">
+          <div class="tscore-ring" style="width:80px;height:80px;margin:0;flex-shrink:0">
+            <svg viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="44" stroke="var(--border2)" stroke-width="6" fill="none"/>
+              <circle cx="50" cy="50" r="44" stroke="var(--cyan)" stroke-width="6" fill="none" stroke-linecap="round" stroke-dasharray="276.5" stroke-dashoffset="${scoreRingOffset}" transform="rotate(-90 50 50)"/>
+            </svg>
+            <div class="tscore-num" style="font-size:22px">${teknohaneScore}</div>
+          </div>
+          <div style="text-align:left;flex:1">
+            <div class="tscore-label" style="margin-top:0">Teknohane Skoru</div>
+            <div class="tscore-sub" style="margin:4px 0 0;max-width:none;text-align:left">${scoreDesc}</div>
+          </div>
         </div>
-        <div class="tscore-label">Teknohane Skoru</div>
-        <div class="tscore-sub">${scoreDesc}</div>
+        <div class="pstats-card poverview-section" style="margin-bottom:0;border-radius:0;padding:0">
+          <div class="pstat-item"><div class="pstat-num" data-target="${myListingsCount}">0</div><div class="pstat-lbl">İlan</div></div>
+          <div class="pstat-item"><div class="pstat-num" data-target="${myCompareCount}">0</div><div class="pstat-lbl">Karşılaştırma</div></div>
+          <div class="pstat-item"><div class="pstat-num" data-target="${myForumCount}">0</div><div class="pstat-lbl">Forum</div></div>
+          <div class="pstat-item"><div class="pstat-num" data-target="${myLikesReceived}">0</div><div class="pstat-lbl">Beğeni</div></div>
+          <div class="pstat-item"><div class="pstat-num" data-target="${scoreInfo.referralCount||0}">0</div><div class="pstat-lbl">Referans</div></div>
+        </div>
+        <div class="poverview-section">
+          <div class="pcompl-top"><span>Profil Tamamlanma</span><span class="pcompl-pct">%${complPct}</span></div>
+          <div class="pcompl-bar"><div class="pcompl-fill" style="width:${complPct}%"></div></div>
+          ${complPct<100
+            ? `<div class="pcompl-missing">${complMissing.map(i=>`<span class="pcompl-pill" onclick="${i.action}">+ ${i.label}</span>`).join('')}</div>`
+            : `<div style="font-size:12px;color:#3DDC97;margin-top:8px">✓ Profilin eksiksiz — harika gidiyorsun!</div>`}
+        </div>
       </div>
       <div id="my-trust-card">${renderTrustCardHTML(0, 0, { trustedSeller: myProfileData.trustedSeller, verified: user.emailVerified||myProfileData.adminVerified, joinedYear, uid: user.uid, displayName: myProfileData.displayName||user.displayName||'Ben' })}</div>
       <div id="my-trust-reviews-raw" style="display:none"></div>
-      <div class="pstats-card">
-        <div class="pstat-item"><div class="pstat-num" data-target="${myListingsCount}">0</div><div class="pstat-lbl">İlan</div></div>
-        <div class="pstat-item"><div class="pstat-num" data-target="${myCompareCount}">0</div><div class="pstat-lbl">Karşılaştırma</div></div>
-        <div class="pstat-item"><div class="pstat-num" data-target="${myForumCount}">0</div><div class="pstat-lbl">Forum</div></div>
-        <div class="pstat-item"><div class="pstat-num" data-target="${myLikesReceived}">0</div><div class="pstat-lbl">Beğeni</div></div>
-        <div class="pstat-item"><div class="pstat-num" data-target="${scoreInfo.referralCount||0}">0</div><div class="pstat-lbl">Referans</div></div>
-      </div>
-      <div class="pcompl-card">
-        <div class="pcompl-top"><span>Profil Tamamlanma</span><span class="pcompl-pct">%${complPct}</span></div>
-        <div class="pcompl-bar"><div class="pcompl-fill" style="width:${complPct}%"></div></div>
-        ${complPct<100
-          ? `<div class="pcompl-missing">${complMissing.map(i=>`<span class="pcompl-pill" onclick="${i.action}">+ ${i.label}</span>`).join('')}</div>`
-          : `<div style="font-size:12px;color:#3DDC97;margin-top:8px">✓ Profilin eksiksiz — harika gidiyorsun!</div>`}
-      </div>
       <button class="apbtn" onclick="openEditProfile()">✏️ Profili Düzenle</button>
       <div class="psec-title" style="margin-top:4px">⚡ Hızlı İşlemler</div>
       <div class="pqa-grid">
@@ -4179,11 +4194,6 @@ function rprof() {
           Tüm İlanları Yönet
         </button>
       </div>`:''}
-      <div class="pacc-card">
-        <div class="psec-title">Hesap İstatistikleri</div>
-        <div class="pacc-row"><span class="pacc-lbl">Üyelik Tarihi</span><span class="pacc-val">${joinedDateStr||'Henüz veri bulunmuyor'}</span></div>
-        <div class="pacc-row"><span class="pacc-lbl">Hesap Türü</span><span class="pacc-val">${isAdmin?'Yönetici':'Standart Üye'}</span></div>
-      </div>
       <div class="pact-card">
         <div class="psec-title">Son Etkinlikler</div>
         ${topActivity.length?topActivity.map(a=>`
@@ -4194,19 +4204,18 @@ function rprof() {
       </div>
       <div class="pacc-card">
         <div class="psec-title">🔐 Gizlilik</div>
-        <div class="pacc-row"><span class="pacc-lbl">Profil Görünürlüğü</span><span class="pacc-val" style="cursor:pointer;color:var(--cyan)" onclick="togglePrivacySetting('publicProfile')">${myPrivacy.publicProfile?'Herkese Açık':'Gizli'}</span></div>
-        <div class="pacc-row"><span class="pacc-lbl">Telefon Koleksiyonu</span><span class="pacc-val" style="cursor:pointer;color:var(--cyan)" onclick="togglePrivacySetting('hidePhones')">${myPrivacy.hidePhones?'Gizli':'Görünür'}</span></div>
-        <div class="pacc-row"><span class="pacc-lbl">Telefon Numaram</span><span class="pacc-val" style="cursor:pointer;color:var(--cyan)" onclick="togglePrivacySetting('hidePhoneNumber')">${myPrivacy.hidePhoneNumber?'Gizli':'Görünür'}</span></div>
-        <div class="pacc-row"><span class="pacc-lbl">Son Görülme</span><span class="pacc-val" style="cursor:pointer;color:var(--cyan)" onclick="togglePrivacySetting('hideLastSeen')">${myPrivacy.hideLastSeen?'Gizli':'Görünür'}</span></div>
-        <div class="pacc-row"><span class="pacc-lbl">Teknohane Skoru</span><span class="pacc-val" style="cursor:pointer;color:var(--cyan)" onclick="togglePrivacySetting('hideScore')">${myPrivacy.hideScore?'Gizli':'Görünür'}</span></div>
-        <div class="pacc-row"><span class="pacc-lbl">Rozetler</span><span class="pacc-val" style="cursor:pointer;color:var(--cyan)" onclick="togglePrivacySetting('hideBadges')">${myPrivacy.hideBadges?'Gizli':'Görünür'}</span></div>
-        <div class="pacc-row"><span class="pacc-lbl">İlanlarım</span><span class="pacc-val" style="cursor:pointer;color:var(--cyan)" onclick="togglePrivacySetting('hideListings')">${myPrivacy.hideListings?'Gizli':'Görünür'}</span></div>
-        <div class="pacc-row"><span class="pacc-lbl">Forum Aktivitem</span><span class="pacc-val" style="cursor:pointer;color:var(--cyan)" onclick="togglePrivacySetting('hideForumActivity')">${myPrivacy.hideForumActivity?'Gizli':'Görünür'}</span></div>
+        <div class="pacc-row" style="align-items:center"><span class="pacc-lbl">Profil Görünürlüğü</span><div class="ptoggle${myPrivacy.publicProfile?' on':''}" onclick="togglePrivacySetting('publicProfile')"></div></div>
+        <div class="pacc-row" style="align-items:center"><span class="pacc-lbl">Telefon Koleksiyonu</span><div class="ptoggle${!myPrivacy.hidePhones?' on':''}" onclick="togglePrivacySetting('hidePhones')"></div></div>
+        <div class="pacc-row" style="align-items:center"><span class="pacc-lbl">Telefon Numaram</span><div class="ptoggle${!myPrivacy.hidePhoneNumber?' on':''}" onclick="togglePrivacySetting('hidePhoneNumber')"></div></div>
+        <div class="pacc-row" style="align-items:center"><span class="pacc-lbl">Son Görülme</span><div class="ptoggle${!myPrivacy.hideLastSeen?' on':''}" onclick="togglePrivacySetting('hideLastSeen')"></div></div>
+        <div class="pacc-row" style="align-items:center"><span class="pacc-lbl">Teknohane Skoru</span><div class="ptoggle${!myPrivacy.hideScore?' on':''}" onclick="togglePrivacySetting('hideScore')"></div></div>
+        <div class="pacc-row" style="align-items:center"><span class="pacc-lbl">Rozetler</span><div class="ptoggle${!myPrivacy.hideBadges?' on':''}" onclick="togglePrivacySetting('hideBadges')"></div></div>
+        <div class="pacc-row" style="align-items:center"><span class="pacc-lbl">İlanlarım</span><div class="ptoggle${!myPrivacy.hideListings?' on':''}" onclick="togglePrivacySetting('hideListings')"></div></div>
+        <div class="pacc-row" style="align-items:center"><span class="pacc-lbl">Forum Aktivitem</span><div class="ptoggle${!myPrivacy.hideForumActivity?' on':''}" onclick="togglePrivacySetting('hideForumActivity')"></div></div>
       </div>
       <div class="psec-title" style="margin-top:4px">⚙️ Ayarlar</div>
       ${pushPanelHTML()}
-      ${themePanelHTML()}
-      <button class="signout" onclick="auth.signOut()">Çıkış Yap</button>`;
+      ${themePanelHTML()}`;
     if (isAdmin) updateAdminStats();
     updateThemeToggleUI();
     animateProfileStats();
