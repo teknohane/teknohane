@@ -3749,9 +3749,13 @@ async function syncUserProfile(u) {
     const lastSync = parseInt(localStorage.getItem('tk_last_profile_sync') || '0');
     const needsUpdate = !snap.exists || !snap.data().email || (now - lastSync > 24*60*60*1000);
     if (needsUpdate) {
+      const syncedDisplayName = u.displayName || u.email?.split('@')[0] || 'Kullanıcı';
       const updateData = {
         favorites: existingData.favorites || [],
-        displayName: u.displayName || u.email?.split('@')[0] || 'Kullanıcı',
+        displayName: syncedDisplayName,
+        // Ad-soyad arama dizini (bkz. runUserSearch) — günde 1 kez, kendi belgesine yazılıyor,
+        // eski hesapları geriye dönük olarak organik biçimde dolduruyor.
+        displayNameLower: syncedDisplayName.toLocaleLowerCase('tr-TR'),
         email: u.email || '',
         createdAt: existingData.createdAt || firebase.firestore.FieldValue.serverTimestamp(),
         emailVerified: !!u.emailVerified
@@ -3762,6 +3766,10 @@ async function syncUserProfile(u) {
         updateData.photoURL = u.photoURL || '';
       }
       await db.collection('teknohane_users').doc(u.uid).set(updateData, { merge: true });
+      db.collection('teknohane_user_index').doc(u.uid).set({
+        uid: u.uid, displayName: syncedDisplayName, displayNameLower: syncedDisplayName.toLocaleLowerCase('tr-TR'),
+        photoURL: updateData.photoURL ?? existingData.photoURL ?? '', username: existingData.username || null
+      }, { merge: true }).catch(()=>{});
       localStorage.setItem('tk_last_profile_sync', String(now));
     }
   } catch(e) {
@@ -4231,6 +4239,10 @@ function rprof() {
         <div class="pacc-row" style="align-items:center"><span class="pacc-lbl">Rozetler</span><div class="ptoggle${!myPrivacy.hideBadges?' on':''}" onclick="togglePrivacySetting('hideBadges')"></div></div>
         <div class="pacc-row" style="align-items:center"><span class="pacc-lbl">İlanlarım</span><div class="ptoggle${!myPrivacy.hideListings?' on':''}" onclick="togglePrivacySetting('hideListings')"></div></div>
         <div class="pacc-row" style="align-items:center"><span class="pacc-lbl">Forum Aktivitem</span><div class="ptoggle${!myPrivacy.hideForumActivity?' on':''}" onclick="togglePrivacySetting('hideForumActivity')"></div></div>
+      </div>
+      <div class="pacc-card">
+        <div class="psec-title">🔔 Bildirim Tercihleri</div>
+        <div class="pacc-row" style="align-items:center"><span class="pacc-lbl">Takip Ettiklerimin Yeni İlanları</span><div class="ptoggle${myProfileData.notifyFollowedListings?' on':''}" onclick="toggleNotifyFollowedListings()"></div></div>
       </div>
       <div class="psec-title" style="margin-top:4px">⚙️ Ayarlar</div>
       ${pushPanelHTML()}
@@ -4719,9 +4731,13 @@ async function saveProfileInfo() {
     await user.reload();
     user = auth.currentUser;
 
-    const fsUpdates = { displayName: name, username: uname || firebase.firestore.FieldValue.delete(), bio: bio || firebase.firestore.FieldValue.delete(), city: city || firebase.firestore.FieldValue.delete() };
+    const fsUpdates = { displayName: name, displayNameLower: name.toLocaleLowerCase('tr-TR'), username: uname || firebase.firestore.FieldValue.delete(), bio: bio || firebase.firestore.FieldValue.delete(), city: city || firebase.firestore.FieldValue.delete() };
     if (epNewPhotoDataUrl) { fsUpdates.photoURL = epNewPhotoDataUrl; fsUpdates.customPhoto = true; }
     await db.collection('teknohane_users').doc(user.uid).set(fsUpdates, { merge: true });
+    db.collection('teknohane_user_index').doc(user.uid).set({
+      uid: user.uid, displayName: name, displayNameLower: name.toLocaleLowerCase('tr-TR'),
+      photoURL: fsUpdates.photoURL || myProfileData.photoURL || '', username: uname || null
+    }, { merge: true }).catch(()=>{});
 
     myProfileData.displayName = name;
     myProfileData.username = uname || null;
@@ -4915,6 +4931,17 @@ async function togglePrivacySetting(key) {
     myProfileData.privacy = updated;
     rprof();
     showToast('✓', 'rgba(48,209,88,.15)', 'Kaydedildi', 'Gizlilik ayarın güncellendi.');
+  } catch(e) { showErrorToast(e); }
+}
+
+async function toggleNotifyFollowedListings() {
+  if (!user) return;
+  const updated = !myProfileData.notifyFollowedListings;
+  try {
+    await db.collection('teknohane_users').doc(user.uid).set({ notifyFollowedListings: updated }, { merge: true });
+    myProfileData.notifyFollowedListings = updated;
+    rprof();
+    showToast('✓', 'rgba(48,209,88,.15)', 'Kaydedildi', updated ? 'Takip ettiklerinin yeni ilanlarında bildirim alacaksın.' : 'Bu bildirim türü kapatıldı.');
   } catch(e) { showErrorToast(e); }
 }
 
@@ -5222,7 +5249,7 @@ const NOTIF_TYPE_CATEGORY = {
   new_referrer: 'referrals',
   price_drop: 'market', listing_favorited: 'market', seller_review: 'market', listing_expired: 'market',
   listing_approved: 'market', listing_rejected: 'market', saved_search_match: 'market',
-  listing_question: 'market', listing_question_answered: 'market',
+  listing_question: 'market', listing_question_answered: 'market', followed_new_listing: 'followers',
   post_liked: 'forum', post_comment: 'forum', comment_liked: 'forum', comment_reply: 'forum',
   admin_notification: 'system', admin_warning: 'system', complaint_update: 'system',
   new_message: 'messages',
@@ -6047,6 +6074,7 @@ const NOTIF_ICONS = {
   pool_reply: { ic: '🛡️', bg: 'rgba(48,209,88,.15)' },
   offer_received: { ic: '🤝', bg: 'rgba(0,212,255,.12)' },
   offer_response: { ic: '🤝', bg: 'rgba(48,209,88,.15)' },
+  followed_new_listing: { ic: '📦', bg: 'rgba(0,212,255,.12)' },
 };
 
 function subscribeNotifBadge(uid) {
@@ -7535,6 +7563,24 @@ async function checkSavedSearchMatches(l) {
   } catch(e) { console.error('Kayıtlı arama eşleşmesi kontrol edilemedi:', e); }
 }
 
+// REKABET ANALİZİ EKLENTİSİ (takip edilen kişi yeni ilan verince bildirim, opt-in): sadece
+// `notifyFollowedListings` tercihini AÇIK yapmış takipçilere bildirim gider (bkz. profildeki
+// "Takip Ettiklerimin Yeni İlanları" ayarı). Takipçi listesi doğrudan teknohane_users üzerinden
+// sorgulanıyor — bu koleksiyonun 'list' izni yalnızca adminlere açık (bkz. firestore.rules), ama bu
+// fonksiyon zaten yalnızca approveListing() (admin-only) içinden çağrıldığı için sorun teşkil etmiyor.
+async function notifyFollowersOfNewListing(l) {
+  if (!l?.uid) return;
+  try {
+    const snap = await db.collection('teknohane_users').where('followingUids', 'array-contains', l.uid).limit(200).get();
+    snap.docs.forEach(d => {
+      if (d.id === l.uid) return;
+      const u = d.data();
+      if (!u.notifyFollowedListings) return;
+      notifyUser(d.id, 'followed_new_listing', `${l.ownerName || 'Takip ettiğin biri'} yeni bir ilan paylaştı: "${l.model}"`, l.id, null, l.uid, l.ownerName);
+    });
+  } catch(e) { console.error('Takipçi bildirimi gönderilemedi:', e); }
+}
+
 // Satıldı olarak işaretlenen bir ilan 24 saatten eskiyse true döner (Pazar'dan gizlenmeli)
 function isSoldExpired(l) {
   if (!l.sold || !l.soldAt) return false;
@@ -8822,6 +8868,7 @@ async function approveListing(id) {
     // sessizdi, kullanıcı yalnızca Pazar'a bakıp fark etmek zorundaydı.
     if (l?.uid) notifyUser(l.uid, 'listing_approved', `"${l.model}" ilanınız onaylandı ve Pazar'da yayında!`, id);
     if (l) checkSavedSearchMatches(l);
+    if (l) notifyFollowersOfNewListing(l);
     exitDetailPage(false);
     rlistings();
     radmin();
@@ -10356,10 +10403,12 @@ function openUserSearch() {
 // maliyet. (3) `username` alanı zaten her zaman küçük harfe normalize edilip kaydediliyor (bkz.
 // openEditProfile/saveProfileInfo) — yeni bir alan/koleksiyon eklemeden, mevcut, indeksli bir
 // prefix (başlangıç eşleşmesi) sorgusu kuruluyor.
-// Dürüst bir sınır: Bu, Firestore'un desteklediği "başlangıç eşleşmesi" araması — tam metin arama
-// değil, ve yalnızca kullanıcı adı BELİRLEMİŞ kullanıcıları buluyor (ad soyad üzerinden arama,
-// aynı anda ikinci bir sorgu gerektireceği ve maliyeti ikiye katlayacağı için bilinçli olarak
-// kapsam dışı bırakıldı).
+// Ad-soyad araması: kullanıcı adı sorgusuna PARALEL ikinci bir sorgu olarak eklendi (`displayNameLower`
+// alanı — bkz. syncUserProfile/saveProfileInfo, her iki yerde de yazılıyor). Eski hesaplarda bu alan
+// henüz yoktur; syncUserProfile'daki günlük profil senkronizasyonu sayesinde her aktif kullanıcı bir
+// sonraki girişinde kendi belgesine bu alanı yazar (kendi belgesine yazma, güvenlik kuralı değişikliği
+// gerektirmez) — yani arama dizini zamanla organik olarak geriye dönük doluyor.
+// Dürüst bir sınır: Bu, Firestore'un desteklediği "başlangıç eşleşmesi" araması — tam metin arama değil.
 let userSearchDebounceTimer = null;
 function searchUsers(q) {
   const res = document.getElementById('user-srch-results');
@@ -10373,20 +10422,37 @@ async function runUserSearch(query) {
   if (!res) return;
   res.innerHTML = `<div class="load"><div class="spin"></div></div>`;
   try {
-    const snap = await db.collection('teknohane_usernames')
+    const [usernameSnap, nameSnap] = await Promise.all([
+      db.collection('teknohane_usernames')
       .where(firebase.firestore.FieldPath.documentId(), '>=', query)
       .where(firebase.firestore.FieldPath.documentId(), '<=', query + '\uf8ff')
-      .limit(20)
-      .get();
-    if (snap.empty) { res.innerHTML = '<div class="no">Kullanıcı bulunamadı</div>'; return; }
-    res.innerHTML = snap.docs.map(d => {
+      .limit(20).get(),
+      db.collection('teknohane_user_index')
+        .where('displayNameLower', '>=', query)
+        .where('displayNameLower', '<=', query + String.fromCharCode(0xf8ff))
+        .limit(20).get()
+    ]);
+    // İki sorgudan gelen sonuçlar uid'e göre birleştirilip tekilleştiriliyor — aynı kullanıcı hem
+    // kullanıcı adı hem ad-soyad eşleşmesinden gelebilir.
+    const merged = new Map();
+    usernameSnap.docs.forEach(d => {
       const u = d.data();
-      const name = u.displayName || d.id || 'Kullanıcı';
+      merged.set(u.uid, { uid: u.uid, name: u.displayName || d.id || 'Kullanıcı', photoURL: u.photoURL, username: d.id });
+    });
+    nameSnap.docs.forEach(d => {
+      if (merged.has(d.id)) return;
+      const u = d.data();
+      merged.set(d.id, { uid: d.id, name: u.displayName || 'Kullanıcı', photoURL: u.photoURL, username: u.username || null });
+    });
+    const results = [...merged.values()];
+    if (!results.length) { res.innerHTML = '<div class="no">Kullanıcı bulunamadı</div>'; return; }
+    res.innerHTML = results.map(u => {
+      const name = u.name;
       return `<div class="adm-user-row" onclick="closemo('user-search-mo');openPublicProfile('${u.uid}','${name.replace(/'/g,"\\'")}')">
         <div class="adm-user-av">${u.photoURL?`<img src="${u.photoURL}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%" loading="lazy" decoding="async">`:name[0].toUpperCase()}</div>
         <div class="adm-user-info">
           <div class="adm-user-name">${name}</div>
-          <div class="adm-user-email">@${d.id}</div>
+          <div class="adm-user-email">${u.username?'@'+u.username:'Teknohane kullanıcısı'}</div>
         </div>
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text3)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
       </div>`;
