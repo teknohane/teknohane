@@ -8621,10 +8621,12 @@ function renderDetailPage(l) {
         <span id="det-fav-count">❤️ ${(l.favoritedByUids||[]).length} favori</span>
       </div>
     </div>
+    <div id="det-price-analysis"></div>
     <div class="det-status-row det-anim" style="animation-delay:.08s">
       ${l.sold ? `<div class="det-status-badge st-sold"><span class="dot"></span>🔴 Satıldı</div>` : (l.condition==='Sıfır' ? `<div class="det-status-badge st-new"><span class="dot"></span>🟢 Sıfır</div>` : `<div class="det-status-badge st-used"><span class="dot"></span>🟠 ${escapeHtml(l.condition)||'İkinci El'}</div>`)}
       ${l.origin?`<div class="det-status-badge st-info">${escapeHtml(l.origin)}</div>`:''}
       ${l.location?`<div class="det-status-badge st-info">📍 ${escapeHtml(l.neighborhood ? l.location + ' · ' + l.neighborhood : l.location)}</div>`:''}
+      <div class="det-status-badge st-info" style="cursor:pointer" onclick="openImeiInfo()">🔒 IMEI Kontrolü</div>
     </div>
     ${l.poolSystem && !l.sold ? `<div class="pool-banner det-anim" style="animation-delay:.09s">
       <div class="pool-banner-top">
@@ -8699,6 +8701,7 @@ function renderDetailPage(l) {
   document.getElementById('detail-mo').classList.add('on');
   if (l.uid) loadSellerCard(l.uid, l.ownerName, mine, 'det-seller-card');
   renderSimilarListings(l, 'det-similar');
+  renderPriceAnalysis(l, 'det-price-analysis');
   loadListingQuestions(id, mine);
   // Görüntülenme sayısı — yalnızca YENİ bir açılışta, ilan sahibi kendi ilanına bakmıyorsa VE bu
   // cihazdan aynı ilan yakın zamanda (12 saat içinde) zaten sayılmadıysa artırılır (bkz.
@@ -12902,6 +12905,47 @@ function renderSimilarListings(l, containerId) {
           <div class="similar-card-price">₺${parseInt(s.price||0).toLocaleString('tr-TR')}</div>
         </div>`).join('')}
     </div>`;
+}
+
+// REKABET ANALİZİ EKLENTİSİ (Sahibinden karşılaştırması — piyasa fiyat analizi): "bu fiyat uygun mu?"
+// sorusunu bir yapay zekâ API'sine sormak yerine, zaten bellekte duran marketAllListings üzerinden
+// aynı markadaki diğer ilanların MEDYAN fiyatıyla karşılaştırıyoruz — yeni Firestore okuması yok,
+// dış servis maliyeti/gecikmesi/"halüsinasyon" riski yok, sonuç tamamen şeffaf ve doğrulanabilir.
+function renderPriceAnalysis(l, containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const brandGuess = (l.brand || (l.model||'').split(' ')[0] || '').toLowerCase();
+  const price = parseInt(l.price || 0);
+  if (!brandGuess || !price || !marketAllListings.length) { el.innerHTML = ''; return; }
+  const comparable = marketAllListings
+    .filter(x => x.id !== l.id && !x.sold && x.approved !== false && !x.paused && !isListingExpired(x))
+    .filter(x => (x.brand || (x.model||'').split(' ')[0] || '').toLowerCase() === brandGuess)
+    .map(x => parseInt(x.price || 0))
+    .filter(p => p > 0);
+  // Az sayıda karşılaştırma verisiyle yanıltıcı bir yüzde göstermektense hiç göstermemek tercih edildi.
+  if (comparable.length < 3) { el.innerHTML = ''; return; }
+  const sorted = [...comparable].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  const median = sorted.length % 2 ? sorted[mid] : Math.round((sorted[mid - 1] + sorted[mid]) / 2);
+  const diffPct = Math.round(((price - median) / median) * 100);
+  let badge, color, bg, border;
+  if (diffPct <= -10) { badge = `📊 Piyasa ortalamasının %${Math.abs(diffPct)} altında`; color = '#30D158'; bg = 'rgba(48,209,88,.12)'; border = 'rgba(48,209,88,.3)'; }
+  else if (diffPct >= 10) { badge = `📊 Piyasa ortalamasının %${diffPct} üstünde`; color = 'var(--red)'; bg = 'rgba(255,69,58,.12)'; border = 'rgba(255,69,58,.3)'; }
+  else { badge = '📊 Piyasa ortalamasına yakın'; color = 'var(--cyan)'; bg = 'rgba(0,212,255,.1)'; border = 'rgba(0,212,255,.3)'; }
+  el.innerHTML = `
+    <div class="det-anim" style="background:${bg};border:1px solid ${border};border-radius:14px;padding:12px 14px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:700;color:${color}">${badge}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:2px">Aynı markadan benzer ${comparable.length} ilanın medyan fiyatı: ₺${median.toLocaleString('tr-TR')}</div>
+    </div>`;
+}
+
+// REKABET ANALİZİ EKLENTİSİ (Sahibinden karşılaştırması — IMEI kontrolü): telefona özgü, Sahibinden'de
+// olmayan bir güven adımı. Dışarıya (gerçekliği/güncelliği elimizden doğrulanamayan) bir URL'e
+// yönlendirmek yerine, kullanıcıyı kendi *#06# + e-Devlet "IMEI Sorgulama" hizmeti üzerinden
+// doğrulamaya yönlendiren bilgilendirici bir metin — mevcut infoDialog() deseniyle (bkz. openPoolInfo).
+const IMEI_CHECK_INFO = 'Telefonun ayarlarından veya tuş takımına *#06# yazarak IMEI numarasını öğrenebilirsin.\n\nSatın almadan önce satıcıdan bu numarayı iste ve kutu/faturadaki IMEI ile eşleştiğini kontrol et.\n\nCihazın Türkiye\'de kayıtlı olup olmadığını e-Devlet üzerindeki "IMEI Sorgulama" hizmetinden teyit edebilirsin — kayıtsız/yurt dışı çıkışlı telefonlarda hat kısıtlaması olabileceğini unutma.\n\nBu bilgi doğrulama sürecine yardımcı olmak içindir; Teknohane bu kontrolü senin adına otomatik yapmaz.';
+function openImeiInfo() {
+  infoDialog(IMEI_CHECK_INFO, '🔒 IMEI Kontrolü Nasıl Yapılır?');
 }
 
 async function loadSellerRatingSummary(sellerUid, spanId) {
