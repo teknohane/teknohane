@@ -801,6 +801,15 @@ body.tk-text-focus * { user-select: auto !important; -webkit-user-select: auto !
 @keyframes su{from{transform:translateY(20px);opacity:0;}to{transform:translateY(0);opacity:1;}}
 .mh{width:36px;height:4px;border-radius:2px;background:var(--text3);margin:0 auto 20px;}
 .mtit{font-size:18px;font-weight:700;margin-bottom:16px;}
+/* TAM EKRAN SAYFA GEÇİŞİ ("kayan pencere" yerine): Forum konusu, Mesajlar, Bildirimler gibi asıl
+   içerik ekranları artık alttan kayan yarı-şeffaf bir bottom-sheet yerine, kenardan kenara, tam
+   ekran bir "sayfa" gibi açılıyor — İlan Detayı/Sohbet ekranlarında zaten kullanılan .det-sheet
+   deseniyle tutarlı. Yalnızca .fullscreen ekleyen modallerde devrede, mevcut .mo/.ms/.det-sheet
+   kullanan diğer (gerçekten bir "sheet" hissi istenen) modaller etkilenmiyor. */
+.mo.fullscreen{background:var(--bg2);backdrop-filter:none;-webkit-backdrop-filter:none;}
+.mo.fullscreen .ms,.mo.fullscreen .det-sheet{border-radius:0;border-top:none;width:100%;height:100dvh;max-height:100dvh;}
+.mo.fullscreen .det-sticky{margin:-20px -20px 16px;}
+.fs-title{font-size:16px;font-weight:700;flex:1;}
 .mi{display:flex;align-items:center;justify-content:space-between;background:var(--surf);border:1px solid var(--border2);border-radius:14px;padding:14px 16px;cursor:pointer;margin-bottom:10px;}
 .mi:active{background:var(--surf2);}
 .mil{display:flex;align-items:center;gap:12px;}
@@ -992,9 +1001,6 @@ body.tk-text-focus * { user-select: auto !important; -webkit-user-select: auto !
 /* Genel Kullanıcı Profili */
 .pub-hero{display:flex;flex-direction:column;align-items:center;padding:20px 0 16px;margin-bottom:16px;}
 .pub-av{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--cdim),var(--surf2));border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:var(--cyan);margin-bottom:12px;}
-.pub-name{font-size:20px;font-weight:700;letter-spacing:-.3px;margin-bottom:4px;}
-.pub-joined{font-size:12px;color:var(--text3);}
-.pub-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px;}
 .pub-listing-card{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surf);border-radius:12px;margin-bottom:8px;cursor:pointer;border:1px solid var(--border2);}
 .pub-listing-card:active{background:var(--surf2);}
 .pub-listing-img{width:44px;height:44px;border-radius:8px;object-fit:cover;background:var(--surf2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px;}
@@ -1154,7 +1160,7 @@ body.tk-maintenance #maintenance-gate{
   <div class="wel-content">
     <img class="wel-logo" src="teknohane.png" alt="">
     <div class="wel-title">Teknohane'ye<br>Hoş Geldin!</div>
-    <div class="wel-sub">Telefon meraklıları topluluğu — içerik, karşılaştırma ve ikinci el pazarı tek yerde.</div>
+    <div class="wel-sub">Teknolojinin Yeni Evi — içerik, karşılaştırma ve ikinci el pazarı tek yerde.</div>
     <div class="wel-features">
       <div class="wel-feat">
         <div class="wel-feat-ic" style="background:rgba(255,0,0,.1)">▶️</div>
@@ -1479,12 +1485,14 @@ body.tk-maintenance #maintenance-gate{
 
 <!-- HABER DETAY MODAL -->
 <!-- BİLDİRİMLER MODAL -->
-<div class="mo" id="notif-mo" onclick="closemo('notif-mo')">
-  <div class="ms" onclick="event.stopPropagation()" style="max-height:85vh">
-    <div class="mh"></div>
-    <div class="mtit" style="display:flex;align-items:center;justify-content:space-between">
-      <span>Bildirimler</span>
-      <span id="notif-actions" style="font-size:12px;display:none">
+<div class="mo fullscreen" id="notif-mo" onclick="closemo('notif-mo')">
+  <div class="ms" onclick="event.stopPropagation()">
+    <div class="det-sticky">
+      <div class="det-close" onclick="closemo('notif-mo')">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </div>
+      <span class="fs-title">Bildirimler</span>
+      <span id="notif-actions" style="font-size:12px;display:none;white-space:nowrap">
         <span style="color:var(--cyan);cursor:pointer;font-weight:600" onclick="markAllNotifsRead()">Tümünü Okundu Yap</span>
         <span style="color:var(--text3)"> · </span>
         <span style="color:var(--red);cursor:pointer;font-weight:600" onclick="clearAllNotifications()">Tümünü Sil</span>
@@ -1503,10 +1511,15 @@ body.tk-maintenance #maintenance-gate{
   </div>
 </div>
 
-<div class="mo" id="chat-list-mo" onclick="closemo('chat-list-mo')">
+<div class="mo fullscreen" id="chat-list-mo" onclick="closemo('chat-list-mo')">
   <div class="ms" onclick="event.stopPropagation()">
-    <div class="mh"></div>
-    <div class="mtit" id="chat-list-title">Mesajlar</div>
+    <div class="det-sticky">
+      <div class="det-close" onclick="closemo('chat-list-mo')">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </div>
+      <span class="fs-title" id="chat-list-title">Mesajlar</span>
+      <div style="width:32px"></div>
+    </div>
     <div id="chat-list"></div>
   </div>
 </div>
@@ -2169,9 +2182,15 @@ body.tk-maintenance #maintenance-gate{
 </div>
 
 <!-- POST DETAY MODAL -->
-<div class="mo" id="post-detail-mo" onclick="closemo('post-detail-mo')">
-  <div class="ms" onclick="event.stopPropagation()" style="max-height:90vh">
-    <div class="mh"></div>
+<div class="mo fullscreen" id="post-detail-mo" onclick="closemo('post-detail-mo')">
+  <div class="ms" onclick="event.stopPropagation()">
+    <div class="det-sticky">
+      <div class="det-close" onclick="closemo('post-detail-mo')">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </div>
+      <span class="fs-title">Konu</span>
+      <div style="width:32px"></div>
+    </div>
     <div id="post-detail-body"></div>
     <div id="comments-list" style="margin-bottom:12px"></div>
     <div class="reply-quote-bar" id="reply-quote-bar">
@@ -4199,7 +4218,7 @@ function rprof() {
         ${topActivity.length?topActivity.map(a=>`
         <div class="pact-row">
           <div class="pact-ic">${a.icon}</div>
-          <div class="pact-body"><div class="pact-txt">${a.text}</div><div class="pact-time">${timeAgo(a.date)}</div></div>
+          <div class="pact-body"><div class="pact-txt">${escapeHtml(a.text)}</div><div class="pact-time">${timeAgo(a.date)}</div></div>
         </div>`).join(''):'<div class="no">Henüz etkinlik bulunmuyor.</div>'}
       </div>
       <div class="pacc-card">
@@ -5553,6 +5572,10 @@ async function submitPoolRequestForm() {
   const listingId = poolReqTargetListingId;
   const l = currentListing && currentListing.id === listingId ? currentListing : await getListingById(listingId);
   if (!l) return;
+  // KÖK NEDEN DÜZELTMESİ ("satılmış ilana talep/teklif verilebiliyordu"): buton zaten satılan
+  // ilanlarda gösterilmiyor (bkz. renderDetailPage) ama sayfa satış ANINDAN hemen önce açılıp
+  // önbellekte kalmış olabilir — bu yüzden gönderim anında da ikinci bir güvenlik ağı olarak kontrol edilir.
+  if (l.sold) { err.textContent = 'Bu ilan satıldı, talep gönderilemez.'; err.classList.add('on'); return; }
   const buyerName = myProfileData.displayName || user.displayName || user.email?.split('@')[0] || 'Bir kullanıcı';
   if (!guardSubmit('poolRequest')) return;
   try {
@@ -5654,6 +5677,10 @@ async function submitOffer() {
   const listingId = offerTargetListingId;
   const l = currentListing && currentListing.id === listingId ? currentListing : await getListingById(listingId);
   if (!l) return;
+  // KÖK NEDEN DÜZELTMESİ ("satılmış ilana teklif verilebiliyordu"): buton zaten satılan ilanlarda
+  // gösterilmiyor (bkz. renderDetailPage) ama sayfa satış ANINDAN hemen önce açılıp önbellekte
+  // kalmış olabilir — bu yüzden gönderim anında da ikinci bir güvenlik ağı olarak kontrol edilir.
+  if (l.sold) { err.textContent = 'Bu ilan satıldı, teklif verilemez.'; err.classList.add('on'); return; }
   const buyerName = myProfileData.displayName || user.displayName || user.email?.split('@')[0] || 'Bir kullanıcı';
   if (!guardSubmit('offer')) return;
   try {
@@ -8599,20 +8626,20 @@ function renderDetailPage(l) {
       ${l.origin?`<div class="det-status-badge st-info">${escapeHtml(l.origin)}</div>`:''}
       ${l.location?`<div class="det-status-badge st-info">📍 ${escapeHtml(l.neighborhood ? l.location + ' · ' + l.neighborhood : l.location)}</div>`:''}
     </div>
-    ${l.poolSystem ? `<div class="pool-banner det-anim" style="animation-delay:.09s">
+    ${l.poolSystem && !l.sold ? `<div class="pool-banner det-anim" style="animation-delay:.09s">
       <div class="pool-banner-top">
         <span class="pool-badge">🛡️ Havuz Sistemi ile Güvenli Alışveriş</span>
         <span class="pool-info-q" onclick="openPoolInfo()">?</span>
       </div>
       ${!mine ? `<button class="pool-buy-btn" onclick="openPoolRequestForm('${id}')">Havuz Sistemi ile Satın Al</button>` : ''}
     </div>` : ''}
-    ${l.negotiable && !mine ? `<div class="pool-banner det-anim" style="animation-delay:.095s">
+    ${l.negotiable && !mine && !l.sold ? `<div class="pool-banner det-anim" style="animation-delay:.095s">
       <div class="pool-banner-top">
         <span class="pool-badge">🤝 Pazarlığa Açık</span>
       </div>
       <button class="pool-buy-btn" onclick="openOfferForm('${id}')">Pazarlık Yap</button>
     </div>` : ''}
-    ${l.negotiable && mine ? `<div id="det-offers-section" class="det-anim" style="animation-delay:.095s"></div>` : ''}
+    ${l.negotiable && mine && !l.sold ? `<div id="det-offers-section" class="det-anim" style="animation-delay:.095s"></div>` : ''}
     <div class="listing-id-bar det-anim" style="animation-delay:.1s">
       <div><div class="listing-id-label">İlan No</div><div class="listing-id-val">#${shortId}</div></div>
       <div style="display:flex;gap:8px">
@@ -10037,7 +10064,10 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
   profileListings = profileListings || [];
   const userListings = profileListings.filter(l => l.approved !== false && !l.sold);
   const soldListings = profileListings.filter(l => l.sold);
-  const refCount = (data.referredListingIds || []).length;
+  // REKABET/PARİTE DÜZELTMESİ ("başkasının profili kendi profilimiz kadar detaylı olsun"): kendi
+  // profilimizdeki 5 istatistik (İlan/Karşılaştırma/Forum/Beğeni/Referans) ile birebir aynı hesap —
+  // ek bir okuma gerekmiyor, hepsi zaten scoreInfo'dan veya bellekteki forumPosts'tan geliyor.
+  const likesReceived = forumPosts.filter(p=>p.uid===uid).reduce((s,p)=>s+(p.likes||[]).length,0);
   const isTargetAdmin = !!data.isAdminPublic;
 
   let displayName = data.displayName || nameHint;
@@ -10059,6 +10089,23 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
   const isOnlineNow = isPresenceOnline(presenceData);
   const shareUrl = `https://teknohane.github.io/teknohane/?profile=${uid}`;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&bgcolor=00040F&color=00D4FF&data=${encodeURIComponent(shareUrl)}`;
+
+  // REKABET/PARİTE DÜZELTMESİ: kendi profilimizdeki "Son Etkinlikler" listesinin aynısı — ek bir
+  // Firestore okuması gerekmiyor, zaten yüklü profileListings/forumPosts üzerinden hesaplanıyor.
+  // Gizlilik ayarlarına saygılı: ilgili bölüm gizliyse o tür etkinlik listeye hiç girmiyor.
+  const otherActivityItems = [];
+  if (!privacy.hideListings) {
+    profileListings.forEach(l => {
+      if (l.createdAt?.toDate) otherActivityItems.push({ ts: l.createdAt.toMillis?l.createdAt.toMillis():0, date: l.createdAt.toDate(), icon:'🛍️', text:`"${l.model||'İlan'}" yayınladı` });
+    });
+  }
+  if (!privacy.hideForumActivity) {
+    forumPosts.filter(p=>p.uid===uid).forEach(p=>{
+      if (p.createdAt?.toDate) otherActivityItems.push({ ts: p.createdAt.toMillis?p.createdAt.toMillis():0, date: p.createdAt.toDate(), icon:'💬', text:`"${p.title||'Forum gönderisi'}" paylaştı` });
+    });
+  }
+  otherActivityItems.sort((a,b)=>b.ts-a.ts);
+  const topOtherActivity = otherActivityItems.slice(0,4);
 
   body.innerHTML = `
     <div class="phero">
@@ -10111,10 +10158,12 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
 
     <div id="pub-trust-card">${renderTrustCardHTML(0, 0, { trustedSeller: data.trustedSeller, verified: data.emailVerified||data.adminVerified, joinedYear, uid, displayName })}</div>
 
-    <div class="pub-stats">
-      <div class="apstat"><div class="apstat-n">${userListings.length}</div><div class="apstat-l">Aktif İlan</div></div>
-      <div class="apstat"><div class="apstat-n">${soldListings.length}</div><div class="apstat-l">Satılan</div></div>
-      <div class="apstat"><div class="apstat-n">${refCount}</div><div class="apstat-l">Referans</div></div>
+    <div class="pstats-card">
+      <div class="pstat-item"><div class="pstat-num">${scoreInfo.listingsCount}</div><div class="pstat-lbl">İlan</div></div>
+      <div class="pstat-item"><div class="pstat-num">${scoreInfo.compareCount}</div><div class="pstat-lbl">Karşılaştırma</div></div>
+      <div class="pstat-item"><div class="pstat-num">${scoreInfo.forumCount}</div><div class="pstat-lbl">Forum</div></div>
+      <div class="pstat-item"><div class="pstat-num">${likesReceived}</div><div class="pstat-lbl">Beğeni</div></div>
+      <div class="pstat-item"><div class="pstat-num">${scoreInfo.referralCount}</div><div class="pstat-lbl">Referans</div></div>
     </div>
 
     ${!privacy.hideBadges ? `
@@ -10146,6 +10195,16 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
       ${!privacy.hideLastSeen?`<div class="pacc-row"><span class="pacc-lbl">Son Görülme</span><span class="pacc-val">${isOnlineNow?'<span style="color:#3DDC97">● Çevrimiçi</span>':(lastSeenStr||'Henüz veri bulunmuyor')}</span></div>`:''}
       ${!privacy.hidePhoneNumber && data.phoneNumber?`<div class="pacc-row"><span class="pacc-lbl">Telefon</span><span class="pacc-val">${data.phoneNumber}</span></div>`:''}
     </div>
+
+    ${topOtherActivity.length?`
+    <div class="pact-card">
+      <div class="psec-title">Son Etkinlikler</div>
+      ${topOtherActivity.map(a=>`
+      <div class="pact-row">
+        <div class="pact-ic">${a.icon}</div>
+        <div class="pact-body"><div class="pact-txt">${escapeHtml(a.text)}</div><div class="pact-time">${timeAgo(a.date)}</div></div>
+      </div>`).join('')}
+    </div>` : ''}
 
     <div class="ud-section">
       <div class="ud-section-title">Satıcı Değerlendirmeleri</div>
