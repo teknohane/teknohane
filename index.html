@@ -806,9 +806,14 @@ body.tk-text-focus * { user-select: auto !important; -webkit-user-select: auto !
    ekran bir "sayfa" gibi açılıyor — İlan Detayı/Sohbet ekranlarında zaten kullanılan .det-sheet
    deseniyle tutarlı. Yalnızca .fullscreen ekleyen modallerde devrede, mevcut .mo/.ms/.det-sheet
    kullanan diğer (gerçekten bir "sheet" hissi istenen) modaller etkilenmiyor. */
-.mo.fullscreen{background:var(--bg2);backdrop-filter:none;-webkit-backdrop-filter:none;}
+.mo.fullscreen{align-items:stretch;background:var(--bg2);backdrop-filter:none;-webkit-backdrop-filter:none;}
 .mo.fullscreen .ms,.mo.fullscreen .det-sheet{border-radius:0;border-top:none;width:100%;height:100dvh;max-height:100dvh;}
 .mo.fullscreen .det-sticky{margin:-20px -20px 16px;}
+/* #post-detail-mo/#admin-mo, metin girişi taşıyan modaller listesinde olduğu için (bkz. "beyaz T
+   hatası" düzeltmesi) yarı saydam rgba(0,0,0,.82) arka plana sahip — ID seçicisi .fullscreen'den
+   daha spesifik olduğundan onu eziyordu. Bileşik seçici (ID+.fullscreen) ile geri kazanılıyor;
+   backdrop-filter:none (asıl T hatası düzeltmesi) olduğu gibi korunuyor. */
+#post-detail-mo.fullscreen,#admin-mo.fullscreen{background:var(--bg2);}
 .fs-title{font-size:16px;font-weight:700;flex:1;}
 .mi{display:flex;align-items:center;justify-content:space-between;background:var(--surf);border:1px solid var(--border2);border-radius:14px;padding:14px 16px;cursor:pointer;margin-bottom:10px;}
 .mi:active{background:var(--surf2);}
