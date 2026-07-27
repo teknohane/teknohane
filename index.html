@@ -801,13 +801,17 @@ body.tk-text-focus * { user-select: auto !important; -webkit-user-select: auto !
 @keyframes su{from{transform:translateY(20px);opacity:0;}to{transform:translateY(0);opacity:1;}}
 .mh{width:36px;height:4px;border-radius:2px;background:var(--text3);margin:0 auto 20px;}
 .mtit{font-size:18px;font-weight:700;margin-bottom:16px;}
-/* TAM EKRAN SAYFA GEÇİŞİ ("kayan pencere" yerine): Forum konusu, Mesajlar, Bildirimler gibi asıl
-   içerik ekranları artık alttan kayan yarı-şeffaf bir bottom-sheet yerine, kenardan kenara, tam
-   ekran bir "sayfa" gibi açılıyor — İlan Detayı/Sohbet ekranlarında zaten kullanılan .det-sheet
-   deseniyle tutarlı. Yalnızca .fullscreen ekleyen modallerde devrede, mevcut .mo/.ms/.det-sheet
-   kullanan diğer (gerçekten bir "sheet" hissi istenen) modaller etkilenmiyor. */
-.mo.fullscreen{align-items:stretch;background:var(--bg2);backdrop-filter:none;-webkit-backdrop-filter:none;}
-.mo.fullscreen .ms,.mo.fullscreen .det-sheet{border-radius:0;border-top:none;width:100%;height:100dvh;max-height:100dvh;}
+/* TAM EKRAN SAYFA GEÇİŞİ ("kayan pencere" yerine): Forum konusu, Mesajlar, Bildirimler, Yönetim gibi
+   asıl içerik ekranları artık alttan kayan yarı-şeffaf bir bottom-sheet yerine, kenardan kenara, tam
+   ekran bir "sayfa" gibi açılıyor. Yalnızca .fullscreen ekleyen modallerde devrede, mevcut .mo/.ms
+   kullanan diğer (gerçekten bir "sheet" hissi istenen) modaller etkilenmiyor.
+   İlan Detayı/Sohbet ekranlarından (#detail-mo/#chat-thread-mo, kendi ID-bazlı kurallarıyla) FARKI:
+   bunlar alt sekme çubuğunu (#tabs) TAMAMEN kaplar/gizler — kasıtlı, çünkü onlar "derinlemesine dalış"
+   ekranlarıdır. Bildirimler/Yönetim/Mesajlar/Konu ise kullanıcının "bir sekme" gibi algılamasını
+   istediği ekranlar — bu yüzden alt sekme çubuğu için yer bırakılıyor (inset:0 yerine, tabanı
+   sekme çubuğunun yüksekliği kadar yukarıda tutuluyor), tab çubuğu görünür ve tıklanabilir kalıyor. */
+.mo.fullscreen{align-items:stretch;bottom:calc(var(--tab) + var(--sb));background:var(--bg2);backdrop-filter:none;-webkit-backdrop-filter:none;}
+.mo.fullscreen .ms,.mo.fullscreen .det-sheet{border-radius:0;border-top:none;width:100%;height:100%;max-height:100%;}
 .mo.fullscreen .det-sticky{margin:-20px -20px 16px;}
 /* #post-detail-mo/#admin-mo, metin girişi taşıyan modaller listesinde olduğu için (bkz. "beyaz T
    hatası" düzeltmesi) yarı saydam rgba(0,0,0,.82) arka plana sahip — ID seçicisi .fullscreen'den
@@ -10487,6 +10491,11 @@ async function updateAdminStats() {
 }
 
 function openAdmin() {
+  // "Yönetim" gerçek bir .screen değil (bkz. gt()), alt sekme çubuğunda kendi ID'siyle (#admin-tab)
+  // duran ayrı bir .mo.fullscreen — bu yüzden aktif sekme görünümünü (mavi vurgu) kendisi yönetiyor.
+  document.querySelectorAll('.mo.fullscreen.on').forEach(m=>m.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.getElementById('admin-tab')?.classList.add('on');
   document.getElementById('admin-mo').classList.add('on');
   document.getElementById('adm-srch').value = '';
   switchAdminTab('listings');
@@ -13208,6 +13217,10 @@ function closeSupportPage() {
 }
 
 function gt(name) {
+  // Alt sekme çubuğu artık Bildirimler/Yönetim/Mesajlar/Konu gibi tam ekran sayfalar açıkken de
+  // görünür ve tıklanabilir kalıyor (bkz. .mo.fullscreen CSS'i) — kullanıcı doğrudan başka bir
+  // sekmeye dokunursa, altta açık kalmış tam ekran sayfa önce kapatılır.
+  document.querySelectorAll('.mo.fullscreen.on').forEach(m=>m.classList.remove('on'));
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
   const tab=document.querySelector(`.tab[data-s="${name}"]`);
@@ -13355,7 +13368,17 @@ function waListingLink(model, phone) {
   const msg = `Merhaba, Teknohane'de "${model}" ilanınızı gördüm, bilgi almak istiyorum.`;
   return `https://wa.me/90${phone}?text=${encodeURIComponent(msg)}`;
 }
-function closemo(id) { document.getElementById(id)?.classList.remove('on'); }
+function closemo(id) {
+  const el = document.getElementById(id);
+  el?.classList.remove('on');
+  // Yönetim (#admin-tab), alt sekme çubuğunda gt() DIŞINDA yönetilen tek "sekme" — kapatılınca
+  // vurgu, altta gerçekte açık olan .screen'e (ör. Profil/Pazar) geri dönmeli.
+  if (id === 'admin-mo') {
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+    const activeScreenName = document.querySelector('.screen.on')?.id?.replace('s-', '') || 'home';
+    document.querySelector(`.tab[data-s="${activeScreenName}"]`)?.classList.add('on');
+  }
+}
 
 // ==== ÖZEL SEÇİM BİLEŞENİ (Custom Picker) ====
 // Native <select>'in Android WebView'de bazı cihazlarda sistemin kendi (uygulama temasından habersiz,
@@ -13836,7 +13859,7 @@ window.addEventListener('popstate', () => {
   // Açık modal var mı kontrol et
   const openModal = document.querySelector('.mo.on');
   if (openModal) {
-    openModal.classList.remove('on');
+    closemo(openModal.id); // doğrudan classList.remove yerine — #admin-tab gibi sekme vurgusunu geri yükleyen mantığı da çalıştırır
     history.pushState(null, '', location.href);
     return;
   }
