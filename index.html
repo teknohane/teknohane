@@ -1600,7 +1600,7 @@ body.tk-maintenance #maintenance-gate{
     <div class="mtit">İlan Ver</div>
     <div class="fg">
       <label class="fl">Fotoğraflar <span id="l-photo-counter" style="color:var(--text3);font-weight:400">(0 / 8)</span></label>
-      <div id="l-photo-hint" style="font-size:11.5px;color:#FF9500;margin-top:4px">En az 3 fotoğraf eklemelisiniz.</div>
+      <div id="l-photo-hint" style="font-size:11.5px;color:#FF9500;margin-top:4px">En az 1 fotoğraf eklemelisiniz.</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px">
         <div class="pslot" id="ps0" onclick="onPslotTap(0)" onpointerdown="onPslotPointerDown(0)" onpointerup="onPslotPointerUp()" onpointerleave="onPslotPointerUp()">
           <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
@@ -1703,7 +1703,7 @@ body.tk-maintenance #maintenance-gate{
       </div>
     </div>
 
-    <div class="fg"><label class="fl">Açıklama <span id="l-desc-counter" style="color:var(--text3);font-weight:400">(0 / 30)</span></label><textarea class="fi" id="l-desc" placeholder="Ürün hakkında detaylı bilgi verin…" style="min-height:70px;resize:vertical;font-family:inherit" oninput="listingFormOnChange()"></textarea></div>
+    <div class="fg"><label class="fl">Açıklama <span id="l-desc-counter" style="color:var(--text3);font-weight:400">(0 / 10)</span></label><textarea class="fi" id="l-desc" placeholder="Ürün hakkında detaylı bilgi verin…" style="min-height:70px;resize:vertical;font-family:inherit" oninput="listingFormOnChange()"></textarea></div>
     <div class="fg">
       <label class="fl">WhatsApp Numaranız</label>
       <div style="display:flex;gap:8px">
@@ -4000,7 +4000,7 @@ function renderTrustCardHTML(avg, count, opts) {
   // Değerlendirme sayısı ARTIK tıklanabilir — kart, satıcının aldığı tüm yorum/puanları listeleyen
   // bir modal açar (bkz. openSellerReviewsModal). Zaten var olan loadSellerReviews() yeniden kullanılır,
   // yeni bir Firestore sorgusu/koleksiyonu eklenmedi.
-  const clickAttr = uid ? `onclick="openSellerReviewsModal('${uid}','${(displayName||'Kullanıcı').replace(/'/g,"\\'")}')" style="cursor:pointer"` : '';
+  const clickAttr = uid ? `onclick="openSellerReviewsModal('${uid}','${escapeJsAttr(displayName||'Kullanıcı')}')" style="cursor:pointer"` : '';
   return `<div class="trust-card premium" ${clickAttr}>
     ${hasRating ? `
       <div class="trust-stars">${'★'.repeat(Math.round(avg))}${'☆'.repeat(5-Math.round(avg))}</div>
@@ -4130,11 +4130,11 @@ function rprof() {
           <span class="pverify-item${hasVerifiedPhoneNumber?' ok':''}">${hasVerifiedPhoneNumber?'✓':'○'} Telefon ${hasVerifiedPhoneNumber?'doğrulandı':'eklenmedi'}</span>
         </div>
         <div style="display:flex;justify-content:center;gap:28px;margin-top:14px">
-          <div style="text-align:center;cursor:pointer" onclick="openFollowList('${user.uid}','followers','${(user.displayName||'Sen').replace(/'/g,"\\'")}')">
+          <div style="text-align:center;cursor:pointer" onclick="openFollowList('${user.uid}','followers','${escapeJsAttr(user.displayName||'Sen')}')">
             <div style="font-size:18px;font-weight:700" id="my-followers-count">…</div>
             <div style="font-size:11px;color:var(--text2)">Takipçi</div>
           </div>
-          <div style="text-align:center;cursor:pointer" onclick="openFollowList('${user.uid}','following','${(user.displayName||'Sen').replace(/'/g,"\\'")}')">
+          <div style="text-align:center;cursor:pointer" onclick="openFollowList('${user.uid}','following','${escapeJsAttr(user.displayName||'Sen')}')">
             <div style="font-size:18px;font-weight:700">${(myProfileData.followingUids||[]).length}</div>
             <div style="font-size:11px;color:var(--text2)">Takip Edilen</div>
           </div>
@@ -7074,7 +7074,7 @@ function chatRowWrapHTML(d, forwardMsgId) {
   const preview = (c.lastMessage||'').slice(0,40) + ((c.lastMessage||'').length>40?'…':'');
   const avHtml = otherAv ? `<img src="${escapeHtml(otherAv)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${escapeJsAttr(avatarUrl(null, otherName, 96))}'">` : escapeHtml(otherName)[0]?.toUpperCase();
   const listingThumb = c.lastListingId ? getListingByIdSync(c.lastListingId)?.photo1 : null;
-  const otherNameJs = otherName.replace(/'/g,"\\'");
+  const otherNameJs = escapeJsAttr(otherName);
   const rowClick = forwardMsgId ? `forwardMsgTo('${otherUid}','${otherNameJs}')` : `openChatThread('${otherUid}','${otherNameJs}')`;
   return `<div class="notif-swipe-wrap" data-id="${d.id}">
     <div class="notif-swipe-del">🗑️</div>
@@ -8161,18 +8161,18 @@ function titleCaseListingField(id) {
   listingFormOnChange();
 }
 
-// İlan formundaki herhangi bir zorunlu alan değiştiğinde çağrılır: fotoğraf sayacı, "en az 3 fotoğraf"
+// İlan formundaki herhangi bir zorunlu alan değiştiğinde çağrılır: fotoğraf sayacı, "en az 1 fotoğraf"
 // uyarısı, açıklama karakter sayacı ve "İlanı Yayınla" butonunun aktif/pasif durumunu günceller.
 function listingFormOnChange() {
   const photoCount = photos.filter(Boolean).length;
   const counterEl = document.getElementById('l-photo-counter');
   if (counterEl) counterEl.textContent = `(${photoCount} / ${photos.length})`;
   const hintEl = document.getElementById('l-photo-hint');
-  if (hintEl) hintEl.style.display = photoCount >= 3 ? 'none' : 'block';
+  if (hintEl) hintEl.style.display = photoCount >= 1 ? 'none' : 'block';
 
   const descLen = (document.getElementById('l-desc')?.value || '').trim().length;
   const descCounterEl = document.getElementById('l-desc-counter');
-  if (descCounterEl) { descCounterEl.textContent = `(${descLen} / 30)`; descCounterEl.style.color = descLen >= 30 ? 'var(--green)' : 'var(--text3)'; }
+  if (descCounterEl) { descCounterEl.textContent = `(${descLen} / 10)`; descCounterEl.style.color = descLen >= 10 ? 'var(--green)' : 'var(--text3)'; }
 
   const brand = getListingBrandValue();
   const modelOnly = document.getElementById('l-model')?.value.trim();
@@ -8180,7 +8180,7 @@ function listingFormOnChange() {
   const il = document.getElementById('l-il')?.value;
   const agreeOk = editingListingId || document.getElementById('l-agree')?.checked;
   const allValid = brand && modelOnly && (brand+' '+modelOnly).trim().length >= 4
-    && price && parseInt(price) > 0 && il && photoCount >= 3 && descLen >= 30 && agreeOk;
+    && price && parseInt(price) > 0 && il && photoCount >= 1 && descLen >= 10 && agreeOk;
 
   const btn = document.getElementById('l-submit-btn');
   if (btn) {
@@ -8222,6 +8222,9 @@ function newListing() {
 async function submitListing() {
   if (!user) return;
   if (systemSettings.listingsDisabled && !editingListingId) { showToast('⚠️','rgba(255,69,58,.15)','Kapalı','Yeni ilan ekleme şu anda geçici olarak kapalı.'); return; }
+  // GÜVENLİK DÜZELTMESİ (denetim raporu): sahte/yazım hatalı e-postayla anında hesap açıp ilan
+  // verilebiliyordu, hiçbir doğrulama gerekmiyordu. Yalnızca YENİ ilan içindir — düzenleme etkilenmez.
+  if (!editingListingId && !user.emailVerified) { showToast('📧','rgba(255,159,10,.15)','E-posta Doğrulanmamış','İlan verebilmek için önce e-postanı doğrulaman gerekiyor. Doğrulama e-postası göndermek için dokun.', sendVerificationEmail, 6000); return; }
   const brand = getListingBrandValue();
   const modelOnly = document.getElementById('l-model').value.trim();
   const model = [brand, modelOnly].filter(Boolean).join(' ').trim();
@@ -8240,8 +8243,8 @@ async function submitListing() {
   if (model.length < 4) { showToast('⚠️','rgba(255,69,58,.15)','Eksik Bilgi','İlan başlığı (marka + model) çok kısa, lütfen tam yazın.'); return; }
   if (!price || parseInt(price) <= 0) { showToast('⚠️','rgba(255,69,58,.15)','Geçersiz Fiyat','Fiyat boş veya sıfır/negatif olamaz.'); return; }
   if (!il) { showToast('⚠️','rgba(255,69,58,.15)','Eksik Bilgi','İl alanı zorunludur.'); return; }
-  if (photoCount < 3) { showToast('⚠️','rgba(255,69,58,.15)','Eksik Fotoğraf', `En az 3 fotoğraf eklemelisiniz (şu an ${photoCount}).`); return; }
-  if (desc.length < 30) { showToast('⚠️','rgba(255,69,58,.15)','Açıklama Çok Kısa', `Açıklama en az 30 karakter olmalı (şu an ${desc.length}).`); return; }
+  if (photoCount < 1) { showToast('⚠️','rgba(255,69,58,.15)','Eksik Fotoğraf', `En az 1 fotoğraf eklemelisiniz.`); return; }
+  if (desc.length < 10) { showToast('⚠️','rgba(255,69,58,.15)','Açıklama Çok Kısa', `Açıklama en az 10 karakter olmalı (şu an ${desc.length}).`); return; }
   const phone = normalizeTrPhone(document.getElementById('l-phone').value);
   if (phone.length !== 10 || phone[0] !== '5') { showToast('⚠️','rgba(255,69,58,.15)','Geçersiz Numara','WhatsApp numarasını 5XXXXXXXXX biçiminde, 10 haneli gir.'); return; }
   if (!editingListingId && !document.getElementById('l-agree').checked) { showToast('⚠️','rgba(255,69,58,.15)','Onay Gerekli','Devam etmek için onay kutusunu işaretlemelisiniz.'); return; }
@@ -9309,7 +9312,7 @@ function forumPostCardHTML(p) {
   const catLabel = POST_CATS[p.category] || '';
   const isPopular = likeCount >= 10 && !p.resolved;
   const authorSafe = escapeHtml(p.authorName || '—');
-  const authorJs = (p.authorName||'').replace(/'/g,"\\'");
+  const authorJs = escapeJsAttr(p.authorName||'');
   return `<div class="post-card" onclick="openPost('${p.id}')">
       ${p.imageUrl ? `<div class="post-card-thumb"><img src="${p.imageUrl}" alt="" loading="lazy" decoding="async"></div>` : ''}
       <div class="post-card-body">
@@ -9485,6 +9488,10 @@ async function handleCmtPhoto(input) {
 async function submitPost() {
   if (!user) return;
   if (systemSettings.forumDisabled) { showToast('⚠️','rgba(255,69,58,.15)','Kapalı','Forum şu anda geçici olarak kapalı.'); return; }
+  // GÜVENLİK DÜZELTMESİ (denetim raporu): sahte/yazım hatalı e-postayla anında hesap açıp içerik
+  // üretilebiliyordu, hiçbir doğrulama gerekmiyordu. Toast'a dokununca doğrulama e-postası
+  // (yeniden) gönderiliyor — bkz. sendVerificationEmail().
+  if (!user.emailVerified) { showToast('📧','rgba(255,159,10,.15)','E-posta Doğrulanmamış','Yeni konu açmak için önce e-postanı doğrulaman gerekiyor. Doğrulama e-postası göndermek için dokun.', sendVerificationEmail, 6000); return; }
   const title = document.getElementById('np-title').value.trim();
   const body = document.getElementById('np-body').value.trim();
   if (!title) { showToast('⚠️','rgba(255,69,58,.15)','Eksik Bilgi','Başlık zorunlu.'); return; }
@@ -9579,7 +9586,7 @@ function renderPostDetail() {
   const pt = POST_TYPES[p.type] || POST_TYPES.tartisma;
   const catLabel = POST_CATS[p.category] || '';
   const authorSafe = escapeHtml(p.authorName || '—');
-  const authorJs = (p.authorName||'').replace(/'/g,"\\'");
+  const authorJs = escapeJsAttr(p.authorName||'');
   document.getElementById('post-detail-body').innerHTML = `
     <div class="post-detail-header">
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap">
@@ -9610,7 +9617,7 @@ function renderPostDetail() {
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51L8.59 10.49"/></svg>
       </button>
       ${canDelete?`<button class="del-post-btn" onclick="deletePost('${p.id}')"><svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>Sil</button>`:''}
-      ${user && user.uid!==p.uid?`<span onclick="openReportModal('forum_post','${p.id}','${(p.title||'Konu').replace(/'/g,"\\'").replace(/"/g,'&quot;')}','${p.uid||''}')" style="font-size:11px;color:var(--text3);cursor:pointer;text-decoration:underline;margin-left:auto">🚩 Şikayet Et</span>`:''}
+      ${user && user.uid!==p.uid?`<span onclick="openReportModal('forum_post','${p.id}','${escapeJsAttr(p.title||'Konu')}','${p.uid||''}')" style="font-size:11px;color:var(--text3);cursor:pointer;text-decoration:underline;margin-left:auto">🚩 Şikayet Et</span>`:''}
     </div>`;
   document.getElementById('comment-input-area').style.display = user ? 'flex' : 'none';
   document.getElementById('comment-inp').value = '';
@@ -9635,7 +9642,7 @@ function renderComments() {
     const canDelComment = isCommentOwner || isAdmin;
     const ts = c.createdAt?.toDate ? timeAgo(c.createdAt.toDate()) : '';
     const authorSafe = escapeHtml(c.authorName || '—');
-    const authorJs = (c.authorName||'').replace(/'/g,"\\'");
+    const authorJs = escapeJsAttr(c.authorName||'');
     const quotedSafe = c.quotedText ? escapeHtml(c.quotedText) : '';
     const quotedAuthorSafe = c.quotedAuthorName ? escapeHtml(c.quotedAuthorName) : '';
     return `<div class="comment-item ${isBest?'best':''}" id="cmt-${c.id}">
@@ -9649,12 +9656,12 @@ function renderComments() {
           <button class="comment-like-btn ${likedC?'liked':''}" onclick="likeComment('${c.id}')">
             ♥ ${(c.likes||[]).length}
           </button>
-          ${user ? `<button class="del-comment-btn" onclick="startReplyToComment('${c.id}','${c.uid||''}','${authorJs}','${(c.body||'').slice(0,140).replace(/'/g,"\\'").replace(/"/g,'&quot;').replace(/\n/g,' ')}')">↩ Yanıtla</button>` : ''}
+          ${user ? `<button class="del-comment-btn" onclick="startReplyToComment('${c.id}','${c.uid||''}','${authorJs}','${escapeJsAttr((c.body||'').slice(0,140).replace(/\n/g,' '))}')">↩ Yanıtla</button>` : ''}
           ${canBest && !isBest ? `<button class="mark-best-btn" onclick="markBest('${c.id}')">✓ En İyi</button>` : ''}
           ${canBest && isBest ? `<button class="unmark-best-btn" onclick="unmarkBest('${c.id}')">↺ Geri Al</button>` : ''}
           ${isCommentOwner ? `<button class="del-comment-btn" style="color:var(--cyan)" onclick="startEditComment('${c.id}')">Düzenle</button>` : ''}
           ${canDelComment ? `<button class="del-comment-btn" onclick="deleteComment('${c.id}')">Sil</button>` : ''}
-          ${user && !isCommentOwner ? `<button class="del-comment-btn" onclick="openReportModal('comment','${c.id}','${(c.body||'Yorum').slice(0,40).replace(/'/g,"\\'").replace(/"/g,'&quot;').replace(/\n/g,' ')}','${c.uid||''}')">🚩</button>` : ''}
+          ${user && !isCommentOwner ? `<button class="del-comment-btn" onclick="openReportModal('comment','${c.id}','${escapeJsAttr((c.body||'Yorum').slice(0,40).replace(/\n/g,' '))}','${c.uid||''}')">🚩</button>` : ''}
         </div>
         <span style="font-size:11px;color:var(--text3)">${ts}${c.edited?' · düzenlendi':''}</span>
       </div>
@@ -10184,26 +10191,26 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
         <span class="pverify-item${data.emailVerified?' ok':''}">${data.emailVerified?'✓':'○'} E-posta ${data.emailVerified?'doğrulandı':'doğrulanmadı'}</span>
       </div>
       <div style="display:flex;justify-content:center;gap:28px;margin-top:14px">
-        <div style="text-align:center;cursor:pointer" onclick="openFollowList('${uid}','followers','${displayName.replace(/'/g,"\\'")}')">
+        <div style="text-align:center;cursor:pointer" onclick="openFollowList('${uid}','followers','${escapeJsAttr(displayName)}')">
           <div style="font-size:18px;font-weight:700" id="pub-followers-count">…</div>
           <div style="font-size:11px;color:var(--text2)">Takipçi</div>
         </div>
-        <div style="text-align:center;cursor:pointer" onclick="openFollowList('${uid}','following','${displayName.replace(/'/g,"\\'")}')">
+        <div style="text-align:center;cursor:pointer" onclick="openFollowList('${uid}','following','${escapeJsAttr(displayName)}')">
           <div style="font-size:18px;font-weight:700" id="pub-following-count">…</div>
           <div style="font-size:11px;color:var(--text2)">Takip Edilen</div>
         </div>
       </div>
       ${!isMe ? `
       <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:14px">
-        <button class="sbtn2" style="padding:9px 16px;width:auto;display:inline-flex;align-items:center;gap:6px" onclick="closemo('pub-profile-mo');openChatWith('${uid}','${displayName.replace(/'/g,"\\'")}')">💬 Mesaj Gönder</button>
+        <button class="sbtn2" style="padding:9px 16px;width:auto;display:inline-flex;align-items:center;gap:6px" onclick="closemo('pub-profile-mo');openChatWith('${uid}','${escapeJsAttr(displayName)}')">💬 Mesaj Gönder</button>
         <button class="sbtn2" style="padding:9px 16px;width:auto;background:var(--surf2);color:var(--text)" onclick="document.getElementById('pub-listings-section')?.scrollIntoView({behavior:'smooth'})">🛍️ İlanları</button>
         ${!privacy.hideForumActivity?`<button class="sbtn2" style="padding:9px 16px;width:auto;background:var(--surf2);color:var(--text)" onclick="document.getElementById('pub-forum-section')?.scrollIntoView({behavior:'smooth'})">💬 Forum</button>`:''}
         <button class="sbtn2" id="pub-follow-btn" style="padding:9px 16px;width:auto;background:var(--surf2);color:${isFollowingUser?'var(--cyan)':'var(--text)'}" onclick="toggleFollow('${uid}')">${isFollowingUser?'✓ Takip Ediliyor':'➕ Takip Et'}</button>
-        <button class="sbtn2" style="padding:9px 16px;width:auto;background:var(--surf2);color:var(--text)" onclick="shareProfile('${uid}','${displayName.replace(/'/g,"\\'")}')">🔗 Paylaş</button>
+        <button class="sbtn2" style="padding:9px 16px;width:auto;background:var(--surf2);color:var(--text)" onclick="shareProfile('${uid}','${escapeJsAttr(displayName)}')">🔗 Paylaş</button>
       </div>
-      <div style="text-align:center;margin-top:8px"><span onclick="openReportModal('user','${uid}','${displayName.replace(/'/g,"\\'").replace(/"/g,'&quot;')}','${uid}')" style="font-size:12px;color:var(--text3);cursor:pointer;text-decoration:underline">🚩 Kullanıcıyı Şikayet Et</span></div>` : `
+      <div style="text-align:center;margin-top:8px"><span onclick="openReportModal('user','${uid}','${escapeJsAttr(displayName)}','${uid}')" style="font-size:12px;color:var(--text3);cursor:pointer;text-decoration:underline">🚩 Kullanıcıyı Şikayet Et</span></div>` : `
       <div style="display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap">
-        <button class="sbtn2" style="width:auto;padding:9px 16px" onclick="shareProfile('${uid}','${displayName.replace(/'/g,"\\'")}')">🔗 Profilimi Paylaş</button>
+        <button class="sbtn2" style="width:auto;padding:9px 16px" onclick="shareProfile('${uid}','${escapeJsAttr(displayName)}')">🔗 Profilimi Paylaş</button>
         <button class="sbtn2" style="width:auto;padding:9px 16px;background:var(--surf2);color:var(--text)" onclick="document.getElementById('pub-qr-wrap').style.display=document.getElementById('pub-qr-wrap').style.display==='none'?'block':'none'">📱 QR Kod</button>
       </div>
       <div id="pub-qr-wrap" style="display:none;margin-top:16px"><img src="${qrUrl}" alt="Profil QR kodu" style="width:140px;height:140px;border-radius:12px;border:1px solid var(--border)"></div>`}
@@ -10368,7 +10375,10 @@ async function openFollowList(uid, type, name) {
   try {
     let users = [];
     if (type === 'followers') {
-      const snap = await db.collection('teknohane_users').where('followingUids', 'array-contains', uid).get();
+      // PERFORMANS DÜZELTMESİ (denetim raporu): üst sınır yoktu — çok takipçili bir hesabın tüm
+      // listesi tek seferde indiriliyordu. 200 sınırı, mevcut tasarım kararlarıyla (bkz.
+      // teknohane_saved_searches/bildirim sorguları) aynı ölçekte.
+      const snap = await db.collection('teknohane_users').where('followingUids', 'array-contains', uid).limit(200).get();
       users = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
     } else {
       let followingUids;
@@ -10388,14 +10398,14 @@ async function openFollowList(uid, type, name) {
     body.innerHTML = users.map(u => {
       const uav = avatarUrl(u.photoURL, u.displayName, 64);
       const uFollowing = (myProfileData.followingUids||[]).includes(u.uid);
-      const safeName = (u.displayName||'Kullanıcı').replace(/'/g,"\\'");
+      const safeName = escapeJsAttr(u.displayName||'Kullanıcı');
       return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
         <img src="${uav}" alt="" style="width:44px;height:44px;border-radius:50%;object-fit:cover;cursor:pointer" loading="lazy" decoding="async" onclick="closemo('followlist-mo');openPublicProfile('${u.uid}','${safeName}')">
         <div style="flex:1;cursor:pointer" onclick="closemo('followlist-mo');openPublicProfile('${u.uid}','${safeName}')">
-          <div style="font-size:14px;font-weight:600">${u.displayName||'Kullanıcı'}</div>
-          ${u.username?`<div style="font-size:12px;color:var(--text2)">@${u.username}</div>`:''}
+          <div style="font-size:14px;font-weight:600">${escapeHtml(u.displayName||'Kullanıcı')}</div>
+          ${u.username?`<div style="font-size:12px;color:var(--text2)">@${escapeHtml(u.username)}</div>`:''}
         </div>
-        ${user && u.uid !== user.uid ? `<button class="sbtn2" style="width:auto;padding:6px 12px;font-size:12px;background:${uFollowing?'var(--surf2)':'var(--cyan)'};color:${uFollowing?'var(--text)':'#000'}" onclick="toggleFollow('${u.uid}').then(()=>openFollowList('${uid}','${type}','${name.replace(/'/g,"\\'")}'))">${uFollowing?'✓ Takip Ediliyor':'➕ Takip Et'}</button>` : ''}
+        ${user && u.uid !== user.uid ? `<button class="sbtn2" style="width:auto;padding:6px 12px;font-size:12px;background:${uFollowing?'var(--surf2)':'var(--cyan)'};color:${uFollowing?'var(--text)':'#000'}" onclick="toggleFollow('${u.uid}').then(()=>openFollowList('${uid}','${type}','${escapeJsAttr(name)}'))">${uFollowing?'✓ Takip Ediliyor':'➕ Takip Et'}</button>` : ''}
       </div>`;
     }).join('');
   } catch (e) {
@@ -10463,11 +10473,11 @@ async function runUserSearch(query) {
     if (!results.length) { res.innerHTML = '<div class="no">Kullanıcı bulunamadı</div>'; return; }
     res.innerHTML = results.map(u => {
       const name = u.name;
-      return `<div class="adm-user-row" onclick="closemo('user-search-mo');openPublicProfile('${u.uid}','${name.replace(/'/g,"\\'")}')">
+      return `<div class="adm-user-row" onclick="closemo('user-search-mo');openPublicProfile('${u.uid}','${escapeJsAttr(name)}')">
         <div class="adm-user-av">${u.photoURL?`<img src="${u.photoURL}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%" loading="lazy" decoding="async">`:name[0].toUpperCase()}</div>
         <div class="adm-user-info">
-          <div class="adm-user-name">${name}</div>
-          <div class="adm-user-email">${u.username?'@'+u.username:'Teknohane kullanıcısı'}</div>
+          <div class="adm-user-name">${escapeHtml(name)}</div>
+          <div class="adm-user-email">${u.username?'@'+escapeHtml(u.username):'Teknohane kullanıcısı'}</div>
         </div>
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text3)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
       </div>`;
