@@ -1463,6 +1463,10 @@ body.tk-maintenance #maintenance-gate{
       <div class="tco"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
       <span>Profil</span>
     </div>
+    <div class="tab" id="admin-tab" data-s="admin" style="display:none" onclick="openAdmin()">
+      <div class="tco"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+      <span>Yönetim</span>
+    </div>
   </div>
 </div>
 
@@ -1998,10 +2002,15 @@ body.tk-maintenance #maintenance-gate{
 </div>
 
 <!-- ADMIN MODAL -->
-<div class="mo" id="admin-mo" onclick="closemo('admin-mo')">
-  <div class="ms" onclick="event.stopPropagation()" style="max-height:85vh">
-    <div class="mh"></div>
-    <div class="mtit" id="admin-modal-title">Yönetim</div>
+<div class="mo fullscreen" id="admin-mo" onclick="closemo('admin-mo')">
+  <div class="ms" onclick="event.stopPropagation()">
+    <div class="det-sticky">
+      <div class="det-close" onclick="closemo('admin-mo')">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </div>
+      <span class="fs-title" id="admin-modal-title">Yönetim</span>
+      <div style="width:32px"></div>
+    </div>
     <div class="mtabs" style="margin-bottom:14px">
       <button class="mtab on" id="adm-tab-listings" onclick="switchAdminTab('listings')">İlanlar</button>
       <button class="mtab off" id="adm-tab-users" onclick="switchAdminTab('users')">Kullanıcılar</button>
@@ -2433,6 +2442,14 @@ async function loadMyAdminRole(uid) {
   startAdminPendingListener(); // yalnızca admin ise gerçekten kurulur, değilse mevcut dinleyici kapatılır
   applyMaintenanceGate(); // admin durumu netleşti — bakım modu kapısını buna göre güncelle
   requestProfileRerender();
+  updateAdminTabVisibility();
+}
+
+// Yönetici Paneli artık profil içinde değil, alt sekme çubuğunda ("Yönetim") — yalnızca admin
+// rolü netleştiğinde (loadMyAdminRole) veya çıkış yapıldığında görünürlüğü güncelleniyor.
+function updateAdminTabVisibility() {
+  const t = document.getElementById('admin-tab');
+  if (t) t.style.display = isAdminNow() ? 'flex' : 'none';
 }
 
 // Giriş yapmış kullanıcının aktif bir admin rolü olup olmadığını söyler (panel giriş kontrolü için).
@@ -3692,6 +3709,7 @@ auth.onAuthStateChanged(u => {
     document.getElementById('hlogin').style.display = 'flex';
     document.getElementById('hbell').style.display = 'none';
     document.getElementById('hchat').style.display = 'none';
+    updateAdminTabVisibility();
     favs = new Set();
     myProfileData = {};
     markDataStale('profile'); // sonraki girişte (farklı bir hesap dahil) eski durumun sızmaması için
@@ -4209,18 +4227,6 @@ function rprof() {
         <button class="apbtn" style="margin-top:12px;background:rgba(255,69,58,.08);border-color:rgba(255,69,58,.25);color:var(--red)" onclick="auth.signOut()">Oturumu Kapat</button>
         <button class="apbtn" style="margin-top:8px;background:transparent;border-color:rgba(255,69,58,.2);color:var(--red);font-size:12px;padding:8px" onclick="deleteMyAccount()">Hesabımı Kalıcı Olarak Sil</button>
       </div>
-      ${isAdmin?`<div class="apanel">
-        <div class="aptit"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#FFBE3C" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Yönetici Paneli</div>
-        <div class="apstats">
-          <div class="apstat"><div class="apstat-n" id="adm-cnt-listing">–</div><div class="apstat-l">İlan</div></div>
-          <div class="apstat"><div class="apstat-n" id="adm-cnt-seller">–</div><div class="apstat-l">Satıcı</div></div>
-          <div class="apstat"><div class="apstat-n" id="adm-cnt-photo">–</div><div class="apstat-l">Fotoğraflı</div></div>
-        </div>
-        <button class="apbtn" onclick="openAdmin()">
-          <svg viewBox="0 0 24 24" stroke="var(--text)" fill="none" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-          Tüm İlanları Yönet
-        </button>
-      </div>`:''}
       <div class="pact-card">
         <div class="psec-title">Son Etkinlikler</div>
         ${topActivity.length?topActivity.map(a=>`
