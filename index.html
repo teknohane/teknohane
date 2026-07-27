@@ -632,16 +632,24 @@ body.tk-text-focus * { user-select: auto !important; -webkit-user-select: auto !
 .mcard{background:var(--surf);border:1px solid var(--border2);border-radius:14px;overflow:hidden;cursor:pointer;position:relative;box-shadow:0 2px 10px rgba(0,0,0,.2),0 0 0 1px rgba(0,212,255,.04);transition:transform .15s ease;}
 .mcard:active{transform:scale(.99);}
 .mcard.sold{opacity:.55;}
-/* VİTRİN/ÖNE ÇIKAN/ACİL — ilan kartının renk tonu artık her iki temada da (yalnızca ince bir parlama
-   değil) belirgin bir kenarlık + üstten alta solan bir renk geçişiyle işaretleniyor. Öne Çıkan zaten
-   var olan --cyan/--cdim/--cglow (tema-duyarlı) değişkenlerini kullanıyor; Vitrin/Acil için sabit
-   mor/turuncu tonlar seçildi, açık temada yeterince belirgin kalması için ayrı alfa değerleriyle. */
-.mcard.showcase{border-color:#AF52DE;box-shadow:0 2px 10px rgba(0,0,0,.2),0 0 14px rgba(175,82,222,.35);background:linear-gradient(155deg,rgba(175,82,222,.16),var(--surf) 60%);}
-.mcard.featured{border-color:var(--cyan);box-shadow:0 2px 10px rgba(0,0,0,.2),0 0 14px var(--cglow);background:linear-gradient(155deg,var(--cdim),var(--surf) 60%);}
-.mcard.urgent-listing{border-color:#FF9F0A;box-shadow:0 2px 10px rgba(0,0,0,.2),0 0 14px rgba(255,159,10,.35);}
-.mcard.urgent-listing .mcard-info{background:linear-gradient(155deg,rgba(255,159,10,.18),var(--surf) 65%);}
-[data-theme="light"] .mcard.showcase{background:linear-gradient(155deg,rgba(175,82,222,.22),var(--surf) 55%);}
-[data-theme="light"] .mcard.urgent-listing .mcard-info{background:linear-gradient(155deg,rgba(255,159,10,.24),var(--surf) 60%);}
+/* VİTRİN/ÖNE ÇIKAN/ACİL — rengin "tüm ilana yansıması" iki katmanla sağlanıyor: (1) sol kenarda,
+   fotoğraf/metin içeriğinden bağımsız, HER ZAMAN net görünen dolu renkli bir şerit (::before) —
+   asıl "anlaşılabilirlik" garantisi bu, çünkü fotoğrafın rengi/aydınlığı ne olursa olsun etkilenmiyor
+   ve yazının üstüne binmiyor; (2) kart genelinde daha güçlü bir renk geçişi (önceki sürümden daha
+   yüksek alfa). Acil (turuncu/sarı) diğer ikisinden daha yüksek alfa alıyor çünkü aynı şeffaflıkta
+   koyu lacivert zemin üzerinde mor/camgöbeğinden daha soluk kalıyor. Öne Çıkan zaten var olan
+   --cyan/--cdim/--cglow (tema-duyarlı) değişkenlerini kullanıyor. */
+.mcard.showcase,.mcard.featured,.mcard.urgent-listing{position:relative;}
+.mcard.showcase::before,.mcard.featured::before,.mcard.urgent-listing::before{content:'';position:absolute;top:0;left:0;bottom:0;width:5px;z-index:3;}
+.mcard.showcase::before{background:#AF52DE;}
+.mcard.featured::before{background:var(--cyan);}
+.mcard.urgent-listing::before{background:#FF9F0A;}
+.mcard.showcase{border-color:#AF52DE;box-shadow:0 2px 10px rgba(0,0,0,.2),0 0 14px rgba(175,82,222,.4);background:linear-gradient(155deg,rgba(175,82,222,.24),var(--surf) 70%);}
+.mcard.featured{border-color:var(--cyan);box-shadow:0 2px 10px rgba(0,0,0,.2),0 0 14px var(--cglow);background:linear-gradient(155deg,var(--cdim),var(--surf) 70%);}
+.mcard.urgent-listing{border-color:#FF9F0A;box-shadow:0 2px 10px rgba(0,0,0,.2),0 0 14px rgba(255,159,10,.45);}
+.mcard.urgent-listing .mcard-info{background:linear-gradient(155deg,rgba(255,159,10,.32),var(--surf) 75%);}
+[data-theme="light"] .mcard.showcase{background:linear-gradient(155deg,rgba(175,82,222,.26),var(--surf) 65%);}
+[data-theme="light"] .mcard.urgent-listing .mcard-info{background:linear-gradient(155deg,rgba(255,159,10,.32),var(--surf) 65%);}
 .mcard-row{display:flex;}
 .mcard-photo{position:relative;width:96px;height:96px;flex-shrink:0;background:linear-gradient(145deg,var(--surf2),var(--surf3));overflow:hidden;}
 .mcard-photo img{width:100%;height:100%;object-fit:cover;display:block;}
