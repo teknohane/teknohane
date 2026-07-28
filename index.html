@@ -3082,15 +3082,19 @@ function rprof() {
         <img class="alogo" src="teknohane.png" alt="">
         <div class="atit">Teknohane</div>
         <div class="asub">Topluluğa katılmak için<br>giriş yap</div>
-        <div class="aform">
+        <form class="aform" id="auth-form" autocomplete="on" onsubmit="return onAuthFormSubmit(event)">
           <div class="atabs"><div class="atab on" onclick="satab('login',this)">Giriş Yap</div><div class="atab" onclick="satab('register',this)">Kayıt Ol</div></div>
           <div class="aerr" id="aerr"></div>
-          <div class="fg"><label class="fl">E-posta</label><input class="fi" type="email" id="aemail" placeholder="ornek@mail.com"></div>
-          <div class="fg"><label class="fl">Şifre</label><input class="fi" type="password" id="apass" placeholder="••••••••"></div>
+          <div class="fg" id="aname-g" style="display:none"><label class="fl">Ad Soyad</label><input class="fi" type="text" id="aname" name="name" placeholder="Adınız" autocomplete="name"></div>
+          <div class="fg"><label class="fl">E-posta</label><input class="fi" type="email" id="aemail" name="username" placeholder="ornek@mail.com" autocomplete="username"></div>
+          <div class="fg"><label class="fl">Şifre</label><input class="fi" type="password" id="apass" name="password" placeholder="••••••••" autocomplete="current-password"></div>
           <div id="afgt-wrap" style="text-align:right;margin:-8px 0 12px"><span onclick="forgotPassword()" style="font-size:12px;color:var(--cyan);cursor:pointer;text-decoration:underline">Şifremi unuttum?</span></div>
-          <div class="fg" id="aname-g" style="display:none"><label class="fl">Ad Soyad</label><input class="fi" type="text" id="aname" placeholder="Adınız"></div>
-          <button class="sbtn" id="asbtn" onclick="dologin()">Giriş Yap</button>
-        </div>
+          <label style="display:flex;align-items:center;gap:9px;cursor:pointer;margin:-4px 0 16px">
+            <input type="checkbox" id="aremember" checked style="width:17px;height:17px;accent-color:var(--cyan);flex-shrink:0">
+            <span style="font-size:13px;color:var(--text2)">Beni hatırla</span>
+          </label>
+          <button class="sbtn" id="asbtn" type="submit">Giriş Yap</button>
+        </form>
       </div>
       ${themePanelHTML()}`;
     updateThemeToggleUI();
@@ -3333,7 +3337,7 @@ async function sendVerificationEmail() {
   if (!user || user.emailVerified) return;
   try {
     await user.sendEmailVerification();
-    showToast('✓', 'rgba(48,209,88,.15)', 'Gönderildi', 'Doğrulama e-postası gönderildi, gelen kutunu kontrol et.');
+    showToast('✓', 'rgba(48,209,88,.15)', 'Gönderildi', 'Doğrulama e-postası gönderildi. Gelen kutunda göremezsen spam/gereksiz klasörünü kontrol et.');
   } catch (e) {
     showErrorToast(e, 'E-posta gönderilemedi.');
   }
@@ -3823,24 +3827,50 @@ async function deleteMyAccount() {
   } finally { releaseSubmit('deleteAccount'); }
 }
 
+let authFormMode = 'login';
 function satab(t, el) {
   document.querySelectorAll('.atab').forEach(x=>x.classList.remove('on'));
   el.classList.add('on');
+  authFormMode = t;
   const isLogin = t==='login';
   const ng = document.getElementById('aname-g');
   const btn = document.getElementById('asbtn');
   const fgt = document.getElementById('afgt-wrap');
+  const pass = document.getElementById('apass');
   if (ng) ng.style.display = isLogin?'none':'block';
   if (fgt) fgt.style.display = isLogin?'block':'none';
-  if (btn) { btn.textContent = isLogin?'Giriş Yap':'Kayıt Ol'; btn.onclick = isLogin?dologin:doregister; }
+  if (btn) btn.textContent = isLogin?'Giriş Yap':'Kayıt Ol';
+  if (pass) pass.autocomplete = isLogin?'current-password':'new-password';
+}
+
+function onAuthFormSubmit(event) {
+  event.preventDefault();
+  if (authFormMode === 'login') dologin(); else doregister();
+  return false;
+}
+
+// Girişten/kayıttan hemen sonra çağrılır — tarayıcı/WebView'ın "şifreyi kaydet" (Google Şifreler)
+// istemini tetikler. Yalnızca Credential Management API destekleniyorsa çalışır (Chromium tabanlı
+// WebView'lerde — Capacitor Android dahil — mevcuttur); desteklenmiyorsa sessizce hiçbir şey yapmaz.
+async function tryStorePasswordCredential(email, password, displayName) {
+  try {
+    if (!window.PasswordCredential || !navigator.credentials?.store) return;
+    const cred = new PasswordCredential({ id: email, password, name: displayName || email });
+    await navigator.credentials.store(cred);
+  } catch(e) { /* kullanıcı reddetmiş veya API yok — akışı bloklamaz */ }
 }
 
 async function dologin() {
   const e=document.getElementById('aemail')?.value;
   const p=document.getElementById('apass')?.value;
   const err=document.getElementById('aerr');
+  const remember = document.getElementById('aremember')?.checked !== false;
   if (!e||!p) return;
-  try { await auth.signInWithEmailAndPassword(e,p); }
+  try {
+    await auth.setPersistence(remember ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION);
+    await auth.signInWithEmailAndPassword(e,p);
+    tryStorePasswordCredential(e,p);
+  }
   catch(ex) {
     if (err) {
       const codesForWrongCreds = ['auth/invalid-credential','auth/invalid-login-credentials','auth/wrong-password','auth/user-not-found'];
@@ -3855,9 +3885,14 @@ async function doregister() {
   const p=document.getElementById('apass')?.value;
   const n=document.getElementById('aname')?.value;
   const err=document.getElementById('aerr');
+  const remember = document.getElementById('aremember')?.checked !== false;
   if (!e||!p||!n) { if(err){err.textContent='Tüm alanları doldurun';err.classList.add('on');} return; }
   if (systemSettings.registrationsDisabled) { if(err){err.textContent='Yeni kayıtlar şu anda geçici olarak kapalı.';err.classList.add('on');} return; }
-  try { const c=await auth.createUserWithEmailAndPassword(e,p); await c.user.updateProfile({displayName:n}); }
+  try {
+    await auth.setPersistence(remember ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION);
+    const c=await auth.createUserWithEmailAndPassword(e,p); await c.user.updateProfile({displayName:n});
+    tryStorePasswordCredential(e,p,n);
+  }
   catch(ex) {
     if (err) {
       const msg = ex.code==='auth/email-already-in-use' ? 'Bu e-posta zaten kayıtlı'
@@ -3879,7 +3914,7 @@ async function forgotPassword() {
   try {
     await auth.sendPasswordResetEmail(email);
     if (err) { err.textContent = ''; err.classList.remove('on'); }
-    showToast('📧','var(--cdim)','E-posta Gönderildi', `${email} adresine şifre sıfırlama linki gönderildi.`);
+    showToast('📧','var(--cdim)','E-posta Gönderildi', `${email} adresine şifre sıfırlama linki gönderildi. Görmüyorsan spam/gereksiz klasörüne bak.`);
   } catch(ex) {
     if (err) {
       const msg = (ex.code === 'auth/user-not-found' || ex.code === 'auth/invalid-email') ? 'Bu e-posta ile kayıtlı bir hesap bulunamadı' : 'İşlem başarısız, lütfen tekrar dene';
