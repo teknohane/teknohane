@@ -3381,7 +3381,7 @@ async function dispatchAnnouncementPush(a) {
       const snap = await db.collection('admins').where('role','in',roleMap[a.audienceType]).where('isActive','==',true).get();
       targetUids = snap.docs.map(d=>d.id);
     }
-    targetUids.forEach(uid => sendPush(uid, a.pushTitle||a.title, a.pushMessage||a.description, a.linkUrl||'/teknohane/'));
+    targetUids.forEach(uid => sendPush(uid, a.pushTitle||a.title, a.pushMessage||a.description, { customUrl: a.linkUrl||'/teknohane/' }));
   } catch(e) { console.error('Duyuru push gönderilemedi:', e); }
 }
 
@@ -3391,23 +3391,40 @@ async function dispatchAnnouncementPush(a) {
 // sorguda BİRDEN FAZLA eşitsizlik operatörü kullanamadığından (Firestore kısıtı), filtre istemci
 // tarafında uygulanır — resolveAudienceCount() zaten aynı nedenle tüm koleksiyonu taradığı için yeni
 // bir maliyet kalıbı eklenmiyor.
-// PERFORMANS DÜZELTMESİ ("toplu push için TÜM kullanıcı koleksiyonu indiriliyordu"): eskiden
-// push token'ı olsun olmasın HERKESİN dokümanı indiriliyordu. fcmToken alanı yalnızca push'u
-// açan kullanıcılarda VAR olan (yoksa hiç yazılmayan) düz bir string olduğu için, tek-alanlı bir
-// aralık sorgusu (>'') Firestore'da otomatik indekslenir ve alanı HİÇ olmayan dokümanları zaten
-// dışarıda bırakır — yalnızca gerçekten push alabilecek kullanıcılar indirilir.
+// NOT: eskiden burada fcmToken üzerinde tek-alanlı bir aralık sorgusuyla (>'') hem token filtrelemesi
+// hem "yalnızca push açan kullanıcılar indirilsin" performans kazanımı tek seferde sağlanıyordu.
+// fcmToken artık teknohane_users/{uid} üzerinde değil (bkz. aşağıdaki GÜVENLİK DÜZELTMESİ), bu yüzden
+// token'lar ayrı bir collectionGroup sorgusuyla toplanıyor; audience filtresi (banned/lastSeen) için
+// hâlâ tüm teknohane_users okunuyor — küçük bir performans maliyeti, güvenlik düzeltmesinin bedeli.
 async function dispatchAnnouncementPushBulk(a) {
-  const snap = await db.collection('teknohane_users').where('fcmToken', '>', '').get();
-  const cutoff = new Date(Date.now() - 30*24*60*60*1000);
-  const tokens = snap.docs.map(d => d.data()).filter(u => {
-    if (!u.fcmToken) return false;
-    if (a.audienceType === 'not_banned' && u.banned === true) return false;
-    if (a.audienceType === 'active_30d') {
-      const ls = u.lastSeen?.toDate ? u.lastSeen.toDate() : null;
-      if (!ls || ls < cutoff) return false;
-    }
-    return true;
-  }).map(u => u.fcmToken);
+  // GÜVENLİK DÜZELTMESİ: fcmToken artık teknohane_users/{uid} üzerinde değil, hiçbir istemcinin
+  // okuyamadığı teknohane_users/{uid}/push/current alt-dokümanında (bkz. görev raporu) — bu yüzden
+  // token'lar collectionGroup('push') ile toplanıyor (yalnızca sendNotifications yetkisiyle
+  // listelenebilir), audience filtresi (banned/lastSeen) için hâlâ teknohane_users okunuyor.
+  const pushSnap = await db.collectionGroup('push').get();
+  const tokensByUid = new Map();
+  pushSnap.docs.forEach(d => {
+    const uid = d.ref.parent.parent.id;
+    if (d.data().fcmToken) tokensByUid.set(uid, d.data().fcmToken);
+  });
+  let allowedUids = null;
+  if (a.audienceType === 'not_banned' || a.audienceType === 'active_30d') {
+    const usersSnap = await db.collection('teknohane_users').get();
+    const cutoff = new Date(Date.now() - 30*24*60*60*1000);
+    allowedUids = new Set();
+    usersSnap.docs.forEach(d => {
+      const u = d.data();
+      if (a.audienceType === 'not_banned' && u.banned === true) return;
+      if (a.audienceType === 'active_30d') {
+        const ls = u.lastSeen?.toDate ? u.lastSeen.toDate() : null;
+        if (!ls || ls < cutoff) return;
+      }
+      allowedUids.add(d.id);
+    });
+  }
+  const tokens = [...tokensByUid.entries()]
+    .filter(([uid]) => !allowedUids || allowedUids.has(uid))
+    .map(([, token]) => token);
   if (!tokens.length) return;
   // Worker'a tek istekte en fazla 300 token gönderilir (istek gövdesi/zaman aşımı güvenliği için) —
   // gerekirse birden fazla isteğe bölünür; Worker kendi içinde ayrıca 20'şerli gruplar hâlinde işler.
@@ -5324,7 +5341,7 @@ async function notifyUser(toUid, type, message, listingId, postId, fromUid, from
     });
   } catch(e) { /* sessizce geç */ }
   if (!skipPush && !systemSettings.notificationsDisabled) {
-    sendPush(toUid, 'Teknohane', message, notifTargetUrl(type, listingId, postId, fromUid));
+    sendPush(toUid, 'Teknohane', message, { notifType: type, listingId, postId, fromUid });
   }
 }
 
@@ -5474,18 +5491,13 @@ function markAnnouncementRead(id) {
 // ---- UYGULAMA KAPALIYKEN BİLDİRİM (PUSH / FCM) ----
 // Hedef kullanıcının kayıtlı FCM token'ını bulup Cloudflare Worker üzerinden push gönderir.
 // Kullanıcının bildirim izni yoksa veya token'ı yoksa sessizce hiçbir şey yapmaz.
-// Bildirim hedef URL'si — HEM push bildirimi (native, navigateFromNotificationUrl) HEM uygulama içi
-// bildirim listesi tıklaması (clickNotifGroup zaten kendi mantığıyla çalışıyor) AYNI hedefe gitsin diye
-// TEK noktadan üretiliyor. KÖK NEDEN DÜZELTMESİ: sohbet mesajı push'ları (sendChat*) eskiden sabit
-// '/teknohane/' gönderiyordu — hangi sohbetin açılacağı bilgisi hiç taşınmıyordu, bu yüzden bir sohbet
-// bildirimine dokunmak uygulamayı sadece ana ekrana açıyordu, ilgili sohbete GÖTÜRMÜYORDU.
-function notifTargetUrl(type, listingId, postId, fromUid) {
-  if (listingId) return `/teknohane/?listing=${listingId}`;
-  if (postId) return `/teknohane/?post=${postId}`;
-  if (type === 'new_message' && fromUid) return `/teknohane/?chat=${fromUid}`;
-  if (type === 'new_follower' && fromUid) return `/teknohane/?profile=${fromUid}`;
-  return '/teknohane/';
-}
+// Bildirim hedef URL'si (?listing=/?post=/?profile=/?chat=) — sohbet/beğeni/takip gibi olaylarda
+// hangi ekrana gidileceğini KÖK NEDEN DÜZELTMESİ olarak (sendChat* eskiden sabit '/teknohane/'
+// gönderip hangi sohbetin açılacağı bilgisini hiç taşımıyordu) type/listingId/postId/fromUid'den
+// üretir. GÜVENLİK DÜZELTMESİ ile bu üretim artık istemcide değil (bkz. sendPush), Cloudflare
+// Worker'da yapılıyor — istemci push'a gidecek url'i asla oluşturup göndermiyor, yalnızca bu
+// parametreleri kuyruğa bırakıyor. Bu fonksiyon yalnızca navigateFromNotificationUrl'in AYNI
+// mantıkla, gelen bir push'un url'ini uygulama içinde çözmesi için (aşağıda) referans kalıyor.
 
 // Bir push bildirimi URL'sinden (?listing=/?post=/?profile=/?chat=) hedefi çözüp doğru ekrana yönlendirir.
 // Uygulama soğuk başlatılmışsa (bildirime dokunularak açıldıysa) veri henüz gelmemiş olabilir —
@@ -5516,91 +5528,78 @@ function navigateFromNotificationUrl(url, attempt) {
   } catch(e) { console.error('Bildirim yönlendirme URL\'si çözülemedi:', e); }
 }
 
-// fcmToken zaten elde varsa (örn. teknohane_admin_push_targets'tan), ek bir Firestore okuması
-// olmadan doğrudan token'a push gönderir. sendPush() de aynı fonksiyonu kullanır.
-async function dispatchPushToToken(token, title, body, url) {
-  if (!token) return;
+// GÜVENLİK DÜZELTMESİ: eskiden burada doğrudan teknohane_users/{toUid} okunup fcmToken eline
+// alınıyor, sonra kimlik doğrulaması yapmayan Cloudflare Worker'a (PUSH_API) doğrudan POST
+// atılıyordu — bu, giriş yapmış HERHANGİ bir kullanıcının BAŞKA herhangi bir kullanıcının push
+// token'ını okuyup ona sahte bir bildirim gönderebilmesine izin veriyordu (bkz. görev raporu).
+// Artık istemci token'a hiç dokunmuyor: yalnızca teknohane_notify_queue'ya "bu kullanıcıya şu
+// bildirim gitsin" diye bir kayıt bırakıyor; gerçek token okuma (teknohane_users/{uid}/push/current
+// — artık hiçbir istemcinin okuyamadığı bir alt-doküman) + FCM gönderimi, Worker'ın Cron
+// Trigger'ı tarafından kendi servis hesabıyla (bu kurallara tabi olmadan) yapılıyor.
+// url artık istemciden asla alınmıyor — notifType/listingId/postId/fromUid'den Worker kendisi
+// notifTargetUrl() ile birebir aynı mantıkla hesaplıyor. Tek istisna opts.customUrl: yalnızca
+// sendNotifications yetkili adminlerin (duyuru sistemi) zaten doğrulanmış akışında kullanılır.
+async function sendPush(toUid, title, body, opts) {
+  opts = opts || {};
   try {
-    await fetch(PUSH_API, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token, title, body, url: url || 'https://teknohane.github.io/teknohane/' })
+    await db.collection('teknohane_notify_queue').add({
+      mode: 'user', targetUid: toUid,
+      title: String(title).slice(0, 80), body: String(body).slice(0, 300),
+      ...(opts.customUrl ? { customUrl: opts.customUrl } : {
+        notifType: opts.notifType || null, listingId: opts.listingId || null,
+        postId: opts.postId || null, fromUid: opts.fromUid || null
+      }),
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      processed: false
     });
   } catch(e) { /* sessizce geç, push olmadan da uygulama çalışmaya devam eder */ }
 }
 
-async function sendPush(toUid, title, body, url) {
-  try {
-    const snap = await db.collection('teknohane_users').doc(toUid).get();
-    await dispatchPushToToken(snap.data()?.fcmToken, title, body, url);
-  } catch(e) { /* sessizce geç, push olmadan da uygulama çalışmaya devam eder */ }
-}
-
 // ==== ADMİNLERE OLAY BİLDİRİMİ (UYGULAMA KAPALIYKEN BİLE) — GENEL, TEKRAR KULLANILABİLİR ALTYAPI ====
-// Sorun: admins/teknohane_users koleksiyonlarını LİSTELEMEK Firestore Rules'ta yalnızca adminlere
-// açık (bkz. "allow list: if isAdmin();") — yani örn. ilanı veren SIRADAN bir kullanıcı, kime push
-// atacağını bulmak için bu koleksiyonları sorgulayamaz. Yeni bir Cloud Function kurmadan, mevcut
-// Worker+FCM mimarisini kullanabilmek için: yalnızca fcmToken+displayName+permissions içeren,
-// herkesin OKUYABİLDİĞİ (rol adı/hassas veri taşımayan, yalnızca boolean yetki bayrakları içeren)
-// dar kapsamlı bir hedef koleksiyonu tutulur. notifyAdminsOfEvent() genel bir motor — hangi olay
-// hangi yetkiye sahip adminlere gitsin diye permKey parametresiyle belirlenir; her yeni olay türü
-// için yeni bir koleksiyon/yetki sistemi İCAT EDİLMEZ, mevcut ROLE_DEFAULT_PERMISSIONS anahtarları
-// (manageListings, manageComplaints, manageUsers, vb.) kullanılır.
-// NOT: teknohane_admin_push_targets/{uid} koleksiyonu için Firestore Rules'a şu blok eklenmelidir
-// (bu değişiklik canlı kurallara ayrıca uygulanmalıdır, bkz. görev raporu):
-//   match /teknohane_admin_push_targets/{uid} {
-//     allow read: if request.auth != null;
-//     allow write: if request.auth != null && request.auth.uid == uid && isAdmin();
-//     allow delete: if isAdmin() || (request.auth != null && request.auth.uid == uid);
-//   }
-function syncAdminPushTarget(token) {
-  if (!user || !token || !isAdminNow()) return;
-  db.collection('teknohane_admin_push_targets').doc(user.uid).set({
-    fcmToken: token,
-    displayName: myAdminRole?.displayName || user.displayName || user.email || 'Admin',
-    permissions: myAdminRole?.permissions || {},
-    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-  }, { merge: true }).catch(() => {});
-}
-
-// permKey yetkisine (ör. 'manageListings', 'manageComplaints') sahip tüm adminlere tek sorguyla,
-// admin başına ek okuma yapmadan push gönderir (dispatchPushToToken doğrudan elde olan token'ı
-// kullanır). Bir olay hiçbir yeni Firestore koleksiyonu/index'i gerektirmez.
-async function notifyAdminsOfEvent(permKey, title, body, url) {
+// GÜVENLİK DÜZELTMESİ: bu fonksiyon eskiden teknohane_admin_push_targets'ı doğrudan istemciden
+// okuyup adminlerin gerçek FCM token'larını eline alıyor, sonra kimlik doğrulaması yapmayan
+// Cloudflare Worker'a (PUSH_API) kendisi POST atıyordu — herhangi bir giriş yapmış kullanıcı bu
+// yolla 3 adminin token'ını okuyup onlara sahte push gönderebilirdi (bkz. görev raporu). Artık
+// istemci token'a hiç dokunmuyor: yalnızca "şu olay oldu" diye teknohane_notify_queue'ya bir kayıt
+// bırakıyor; gerçek token okuma + FCM gönderimi, Worker'ın Cron Trigger'ı tarafından, kendi servis
+// hesabıyla (Firestore kurallarına tabi olmadan) sunucu tarafında yapılıyor. Firestore kuralı
+// permKey'i yalnızca ['manageListings','manageComplaints'] ile sınırlıyor — çünkü uygulamada bu
+// olayı tetikleyen tek meşru akışlar bunlar (aşağıdaki iki fonksiyon).
+async function notifyAdminsOfEvent(permKey, title, body, refId, persistExtra) {
   try {
-    const snap = await db.collection('teknohane_admin_push_targets').limit(100).get();
-    snap.docs.forEach(d => {
-      if (d.id === user?.uid) return; // olayı tetikleyen kişi zaten admin ise kendine push atmasın
-      if (!d.data().permissions?.[permKey]) return;
-      dispatchPushToToken(d.data().fcmToken, title, body, url || 'https://teknohane.github.io/teknohane/');
+    await db.collection('teknohane_notify_queue').add({
+      mode: 'admin', permKey, refId: refId || null,
+      title: String(title).slice(0, 80), body: String(body).slice(0, 300),
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      processed: false,
+      ...(persistExtra || {})
     });
   } catch(e) { /* sessizce geç — push gitmese de asıl işlem akışı asla bloklanmamalı */ }
 }
 
 // Pazar: yeni bir ilan onaya gönderildiğinde, ilan moderasyonu yetkisi (manageListings) olan
 // adminlere anlık push gönderir.
-function notifyAdminsNewListing(model, ownerName) {
-  notifyAdminsOfEvent('manageListings', '🟢 Yeni ilan onaya gönderildi', `${model}\nGönderen: ${ownerName}`);
+function notifyAdminsNewListing(listingId, model, ownerName) {
+  notifyAdminsOfEvent('manageListings', '🟢 Yeni ilan onaya gönderildi', `${model}\nGönderen: ${ownerName}`, listingId);
 }
 
-// Havuz Sistemi talebi: notifyAdminsOfEvent yalnızca ANLIK push atar, kalıcı bir kayıt bırakmaz —
-// bu, ödeme/para tutma henüz entegre edilmediği için adminin manuel takip edebileceği bir "iş listesi"
-// gibi davranması gereken bir olay olduğundan, AYNI hedef kitleye (manageListings yetkili adminler)
-// EK olarak notifyUser ile kalıcı bir bildirim de yazılıyor (bell panelinde kalır, kaçırılmaz).
-// İleride gerçek ödeme akışı eklendiğinde bu fonksiyon, yeni durumları (ödeme alındı/onaylandı vb.)
-// bildirmek üzere genişletilebilir.
+// Havuz Sistemi talebi: push'a EK olarak, AYNI hedef kitleye (manageListings yetkili adminler)
+// kalıcı bir bildirim de gerekiyor (bell panelinde kalır, kaçırılmaz) — bu, ödeme/para tutma henüz
+// entegre edilmediği için adminin manuel takip edebileceği bir "iş listesi" gibi davranması
+// gereken bir olay olduğundan. persistNotifType/fromUid/fromName/fromPhoto alanları, Worker'ın
+// eşleşen her admin için notifyUser ile birebir aynı şekilde bir teknohane_notifications kaydı
+// yazabilmesi için taşınıyor — istemci artık HANGİ adminlerin bu yetkiye sahip olduğunu bilmiyor/
+// bilmesine gerek yok. İleride gerçek ödeme akışı eklendiğinde bu fonksiyon, yeni durumları
+// (ödeme alındı/onaylandı vb.) bildirmek üzere genişletilebilir.
 async function notifyAdminsPoolRequest(listingId, listingModel, buyerName) {
   const title = '🛡️ Havuz Sistemi Talebi';
   const body = `${buyerName}, "${listingModel}" ilanı için Havuz Sistemi ile satın alma talep etti.`;
-  notifyAdminsOfEvent('manageListings', title, body, `https://teknohane.github.io/teknohane/?listing=${listingId}`);
-  try {
-    const snap = await db.collection('teknohane_admin_push_targets').limit(100).get();
-    snap.docs.forEach(d => {
-      if (d.id === user?.uid) return;
-      if (!d.data().permissions?.manageListings) return;
-      notifyUser(d.id, 'pool_request', body, listingId, null, user.uid, myProfileData.displayName || user.displayName || null, myProfileData.photoURL, true);
-    });
-  } catch(e) { /* sessizce geç — bildirim gitmese de asıl işlem akışı asla bloklanmamalı */ }
+  notifyAdminsOfEvent('manageListings', title, body, listingId, {
+    persistNotifType: 'pool_request',
+    fromUid: user.uid,
+    fromName: myProfileData.displayName || user.displayName || null,
+    fromPhoto: myProfileData.photoURL || null
+  });
 }
 
 // Havuz Sistemi açıklaması — hem ilan formunda (satıcıya) hem ilan detayında (alıcıya) "?" ikonuna
@@ -5958,7 +5957,7 @@ async function setupPushNative(silent) {
       nativePushListenersAttached = true;
       PushNotifications.addListener('registration', async (token) => {
         try {
-          await db.collection('teknohane_users').doc(user.uid).set({ fcmToken: token.value }, { merge: true });
+          await db.collection('teknohane_users').doc(user.uid).collection('push').doc('current').set({ fcmToken: token.value, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
           myProfileData.fcmToken = token.value;
           syncAdminPushTarget(token.value); // Pazar: manageListings yetkili adminse, yeni ilan push hedefi tazelenir
           updatePushToggleUI();
@@ -6011,7 +6010,7 @@ async function setupPushWeb(silent) {
       15000, 'FCM token alma'
     );
     if (!token) { if (!silent) showErrorToast('Bildirim token\'ı alınamadı, tekrar dener misin?'); return; }
-    await withTimeout(db.collection('teknohane_users').doc(user.uid).set({ fcmToken: token }, { merge: true }), 10000, 'Token kaydetme');
+    await withTimeout(db.collection('teknohane_users').doc(user.uid).collection('push').doc('current').set({ fcmToken: token, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }), 10000, 'Token kaydetme');
     myProfileData.fcmToken = token;
     syncAdminPushTarget(token); // Pazar: manageListings yetkili adminse, yeni ilan push hedefi tazelenir
     updatePushToggleUI();
@@ -6881,7 +6880,7 @@ async function sendChatListingCard(listingId) {
     renderChatMessages();
     await markChatMessageSent(ref, '📎 İlan paylaştı', currentChatOtherUid, { lastListingId: listingId });
     const myName = user.displayName || user.email?.split('@')[0] || 'Biri';
-    sendPush(currentChatOtherUid, myName, '📎 Bir ilan paylaştı', notifTargetUrl('new_message', null, null, user.uid));
+    sendPush(currentChatOtherUid, myName, '📎 Bir ilan paylaştı', { notifType: 'new_message', fromUid: user.uid });
   } catch(e) {
     localMsg._status = 'failed';
     renderChatMessages();
@@ -6945,7 +6944,7 @@ async function sendChatMessage() {
     renderChatMessages();
     await markChatMessageSent(ref, text, currentChatOtherUid, { lastListingId: firebase.firestore.FieldValue.delete() });
     const myName = user.displayName || user.email?.split('@')[0] || 'Biri';
-    sendPush(currentChatOtherUid, myName, text, notifTargetUrl('new_message', null, null, user.uid));
+    sendPush(currentChatOtherUid, myName, text, { notifType: 'new_message', fromUid: user.uid });
   } catch(e) {
     localMsg._status = 'failed';
     renderChatMessages();
@@ -6982,7 +6981,7 @@ async function sendChatImage(input) {
     renderChatMessages();
     await markChatMessageSent(ref, '📷 Fotoğraf', currentChatOtherUid, { lastListingId: firebase.firestore.FieldValue.delete() });
     const myName = user.displayName || user.email?.split('@')[0] || 'Biri';
-    sendPush(currentChatOtherUid, myName, '📷 Fotoğraf gönderdi', notifTargetUrl('new_message', null, null, user.uid));
+    sendPush(currentChatOtherUid, myName, '📷 Fotoğraf gönderdi', { notifType: 'new_message', fromUid: user.uid });
   } catch(e) {
     localMsg._status = 'failed';
     renderChatMessages();
@@ -8364,12 +8363,12 @@ async function submitListing() {
       // isListingExpired/rlistings). Süre dolunca sahibine bildirim gider, tek tuşla yeniden
       // yayınlanabilir (bkz. checkMyExpiredListings/renewListing).
       data.expiresAt = firebase.firestore.Timestamp.fromDate(new Date(Date.now() + 30*24*60*60*1000));
-      await db.collection('teknohane_listings').add(data);
+      const newListingRef = await db.collection('teknohane_listings').add(data);
       // DENORMALİZASYON (Genel Performans): admin kullanıcı listesi artık ilan sayısını TÜM
       // koleksiyonu tarayarak değil (bkz. rAdminUsers), bu sayaçtan okuyor. NOT (dürüstlük): bu alan
       // eklenmeden ÖNCE oluşturulmuş ilanlar sayılmaz — geriye dönük taşıma bu oturumun kapsamı dışında.
       db.collection('teknohane_users').doc(user.uid).set({ listingsCount: firebase.firestore.FieldValue.increment(1) }, { merge: true }).catch(()=>{});
-      notifyAdminsNewListing(model, data.ownerName); // uygulama kapalı olsa bile ilgili adminlere anlık push
+      notifyAdminsNewListing(newListingRef.id, model, data.ownerName); // uygulama kapalı olsa bile ilgili adminlere anlık push
       showToast('⏳', 'rgba(255,149,0,.15)', 'İlanınız Gönderildi', 'İncelendikten sonra Pazar\'da yayınlanacaktır.');
     }
 
@@ -11747,7 +11746,7 @@ async function submitReport() {
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       history: [{ at: new Date(), by: user.uid, byName: myProfileData.displayName||user.displayName||user.email, action: 'created', detail: 'Şikayet oluşturuldu' }]
     });
-    notifyAdminsOfEvent('manageComplaints', '🟢 Yeni şikayet oluşturuldu', `${COMPLAINT_TYPE_LABELS[reportContext.type]||reportContext.type}: ${reportContext.targetLabel}\nSebep: ${reasonLabel}`);
+    notifyAdminsOfEvent('manageComplaints', '🟢 Yeni şikayet oluşturuldu', `${COMPLAINT_TYPE_LABELS[reportContext.type]||reportContext.type}: ${reportContext.targetLabel}\nSebep: ${reasonLabel}`, pendingReportId);
     closemo('report-mo');
     showToast('✓', 'rgba(48,209,88,.15)', 'Şikayet Alındı', 'Bildirimin için teşekkürler, ekibimiz inceleyecek.');
   } catch(e) {
