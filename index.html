@@ -4726,6 +4726,18 @@ async function setupPushWeb(silent) {
   }
 }
 
+// Admin ise, kendi push token'ını/yetkilerini teknohane_admin_push_targets'a yazar — Cloudflare
+// Worker'ın "yeni ilan" gibi olaylarda kime push atacağını bulmak için okuduğu koleksiyon.
+function syncAdminPushTarget(token) {
+  if (!user || !token || !isAdminNow()) return;
+  db.collection('teknohane_admin_push_targets').doc(user.uid).set({
+    fcmToken: token,
+    displayName: myAdminRole?.displayName || user.displayName || user.email || 'Admin',
+    permissions: myAdminRole?.permissions || {},
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  }, { merge: true }).catch(() => {});
+}
+
 function pushPanelHTML() {
   if (isNativeApp()) {
     let statusText, statusColor, btnHtml;
