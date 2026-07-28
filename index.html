@@ -5215,6 +5215,14 @@ function firebaseErrorToTurkish(e) {
   if (authMatch && FIREBASE_ERROR_TR[authMatch[0]]) return FIREBASE_ERROR_TR[authMatch[0]];
   if (/network/i.test(msg)) return 'İnternet bağlantını kontrol et.';
   if (/permission|insufficient/i.test(msg)) return 'Bu işlem için yetkin yok.';
+  // HATA AYIKLAMA DÜZELTMESİ ("fotoğraf yüklenemedi" — gerçek neden hiç görünmüyordu): Firebase kodu
+  // TAŞIMAYAN (yani bizim kendi elle attığımız, zaten Türkçe/okunabilir) Error nesneleri buraya kadar
+  // geldiğinde önceden sessizce null dönüp çağıranın genel "X yüklenemedi" mesajına düşüyordu — asıl
+  // sebep (ör. "Görsel sıkıştırma zaman aşımına uğradı", "Yükleme zaman aşımına uğradı") kullanıcıya
+  // hiç ulaşmıyordu. Kodsuz bir Error'ın kendi mesajı artık olduğu gibi gösteriliyor. Not: dahili,
+  // kullanıcıya gösterilmesi istenmeyen mesajlar (ör. 'TAKEN') zaten çağıran tarafta bu fonksiyona
+  // hiç ulaşmadan ayrıca ele alınıyor (bkz. saveProfileInfo).
+  if (!code && e instanceof Error && msg) return msg;
   return null; // tanınmayan hata — çağıran taraf fallback göstersin
 }
 function showErrorToast(err, fallback) {
