@@ -1938,6 +1938,135 @@ body.tk-maintenance #maintenance-gate{
   </div>
 </div>
 
+<!-- GİRİŞ DUYURUSU (SPLASH) MODALI — normal .mo'lardan KASITLI olarak farklı: arka plana dokununca
+     KAPANMAZ (backdrop'ta onclick yok), yalnızca "Tamam"/"Kapat" butonuna basınca kapanır. Oturum
+     kontrolünden hemen sonra, ana ekran etkileşime açılmadan ÖNCE gösterilir (bkz. loadActiveAnnouncements). -->
+<div class="mo" id="announcement-splash-mo" style="align-items:center;justify-content:center;z-index:500">
+  <div class="ms" style="border-radius:24px;max-width:380px;width:calc(100% - 40px);max-height:80vh" onclick="event.stopPropagation()">
+    <div id="announcement-splash-body"></div>
+  </div>
+</div>
+
+<!-- ÖZEL SEÇİM MODALI (tüm <select> alanları için paylaşılan, native picker yerine) -->
+<!-- GENEL ONAY/GİRİŞ DİYALOGU — tarayıcının sistem confirm()/prompt()'unun (Android'de beyaz "T"
+     simgeli pencerelere sebep olan) yerini alan, uygulamanın kendi tasarım diline uygun tek bileşen. -->
+<div class="mo" id="confirm-mo">
+  <div class="ms" onclick="event.stopPropagation()" style="max-height:70vh">
+    <div class="mh"></div>
+    <div class="mtit" id="confirm-mo-title">Emin misiniz?</div>
+    <div id="confirm-mo-msg" style="font-size:14px;color:var(--text2);margin-bottom:18px;line-height:1.5;white-space:pre-line"></div>
+    <div id="confirm-mo-input-wrap" style="display:none;margin-bottom:16px">
+      <input type="text" id="confirm-mo-input" style="width:100%;background:var(--surf);border:1px solid var(--border2);border-radius:12px;padding:12px 14px;color:var(--text);font-size:15px;font-family:inherit;box-sizing:border-box">
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="apbtn" id="confirm-mo-cancel" style="margin-top:0;flex:1">İptal</button>
+      <button class="sbtn2" id="confirm-mo-ok" style="flex:1">Onayla</button>
+    </div>
+  </div>
+</div>
+
+<div class="mo" id="custom-picker-mo" onclick="closemo('custom-picker-mo')">
+  <div class="ms" onclick="event.stopPropagation()" style="max-height:70vh">
+    <div class="mh"></div>
+    <div class="mtit" id="picker-mo-title">Seç</div>
+    <div class="sw" id="picker-search-wrap" style="display:none;margin-bottom:10px">
+      <svg class="sico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="si" type="text" id="picker-search-inp" placeholder="Ara…" oninput="filterPickerOptions(this.value)">
+    </div>
+    <div id="picker-options"></div>
+  </div>
+</div>
+
+
+<!-- HAVUZ SİSTEMİ TALEP FORMU: alıcı iletişim bilgisi + talebini yazar, doğrudan yetkili adminlere
+     gider (bkz. submitPoolRequestForm/notifyAdminsPoolRequest); admin panelindeki "Havuz Talepleri"
+     sekmesinden yanıtlanır, yanıt alıcıya bildirim olarak ulaşır. -->
+<div class="mo" id="pool-request-mo" onclick="closemo('pool-request-mo')">
+  <div class="ms" onclick="event.stopPropagation()" style="max-height:85vh">
+    <div class="mh"></div>
+    <div class="mtit">🛡️ Havuz Sistemi ile Satın Al</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.5">Bilgilerini ve talebini yaz, yönetici ekibimiz seninle iletişime geçecek.</div>
+    <div class="fg"><label class="fl">Telefon Numaran</label><input class="fi" type="tel" id="pool-req-phone" placeholder="5XXXXXXXXX"></div>
+    <div class="fg"><label class="fl">Talebin</label><textarea class="fi" id="pool-req-message" rows="4" style="resize:vertical;font-family:inherit" placeholder="Bu ilanı Havuz Sistemi ile satın almak istiyorum…"></textarea></div>
+    <div class="aerr" id="pool-req-err"></div>
+    <button class="sbtn2" onclick="submitPoolRequestForm()">Talebi Gönder</button>
+  </div>
+</div>
+
+<!-- PAZARLIK TEKLİFİ FORMU: alıcı fiyat teklifi + isteğe bağlı mesaj yazar, doğrudan satıcıya
+     gider (bkz. submitOffer); satıcı kendi ilan detayında (det-offers-section) yanıtlar. -->
+<div class="mo" id="offer-mo" onclick="closemo('offer-mo')">
+  <div class="ms" onclick="event.stopPropagation()" style="max-height:85vh">
+    <div class="mh"></div>
+    <div class="mtit">🤝 Pazarlık Yap</div>
+    <div class="fg"><label class="fl">Teklifin (₺)</label><input class="fi" type="number" id="offer-price" placeholder="20000"></div>
+    <div class="fg"><label class="fl">Mesajın (isteğe bağlı)</label><textarea class="fi" id="offer-message" rows="3" style="resize:vertical;font-family:inherit" placeholder="Bu fiyata anlaşabilir miyiz?"></textarea></div>
+    <div class="aerr" id="offer-err"></div>
+    <button class="sbtn2" onclick="submitOffer()">Teklifi Gönder</button>
+  </div>
+</div>
+
+<!-- REKABET ANALİZİ EKLENTİSİ (Sahibinden karşılaştırması — kayıtlı arama/fiyat alarmı): kullanıcı
+     Pazar filtre kriterlerini kaydeder, bu kritere uyan yeni bir ilan onaylandığında bildirim alır
+     (bkz. saveCurrentSearch/checkSavedSearchMatches). -->
+<div class="mo" id="saved-searches-mo" onclick="closemo('saved-searches-mo')">
+  <div class="ms" onclick="event.stopPropagation()" style="max-height:85vh">
+    <div class="mh"></div>
+    <div class="mtit">🔔 Kayıtlı Aramalarım</div>
+    <div id="saved-searches-list"></div>
+  </div>
+</div>
+
+<!-- ŞİKAYET ET MODAL -->
+<div class="mo" id="report-mo" onclick="closemo('report-mo')">
+  <div class="ms" onclick="event.stopPropagation()">
+    <div class="mh"></div>
+    <div class="mtit">Şikayet Et</div>
+    <div id="report-target-label" style="font-size:12px;color:var(--text2);margin-bottom:14px"></div>
+    <div class="fg"><label class="fl">Sebep</label>
+      <div class="csel" data-for="report-reason-select" data-title="Şikayet Sebebi" onclick="openPicker(this)"><span class="csel-label">Seç</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+      <select id="report-reason-select" style="display:none" onchange="document.getElementById('report-other-wrap').style.display=this.value==='diger'?'block':'none'"></select>
+    </div>
+    <div class="fg" id="report-other-wrap" style="display:none">
+      <label class="fl">Açıklama (Diğer)</label>
+      <textarea class="fi" id="report-other-text" rows="2" style="resize:none;font-family:inherit"></textarea>
+    </div>
+    <div class="fg"><label class="fl">Ek Açıklama (isteğe bağlı)</label>
+      <textarea class="fi" id="report-description" rows="3" style="resize:none;font-family:inherit" placeholder="Şikayetinle ilgili detay verebilirsin..."></textarea>
+    </div>
+    <div class="fg">
+      <label class="fl">Ekran Görüntüsü / Kanıt (isteğe bağlı)</label>
+      <div class="pslot" id="report-photo-slot" onclick="document.getElementById('report-photo-input').click()" style="width:88px;height:88px">
+        <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        <span>Ekle</span>
+        <input type="file" id="report-photo-input" accept="image/*" style="display:none" onchange="onReportPhotoSelected(this)">
+      </div>
+    </div>
+    <div class="aerr" id="report-err"></div>
+    <button class="sbtn2" onclick="submitReport()">Şikayeti Gönder</button>
+  </div>
+</div>
+
+<!-- TELEFON DOĞRULAMA MODAL -->
+<div class="mo" id="phone-verify-mo" onclick="closemo('phone-verify-mo')">
+  <div class="ms" onclick="event.stopPropagation()">
+    <div class="mh"></div>
+    <div class="mtit">Telefon Doğrulama</div>
+    <div id="pv-step-number">
+      <div class="fg"><label class="fl">Telefon Numarası</label><input class="fi" type="tel" id="pv-phone" placeholder="5XXXXXXXXX"></div>
+      <div id="pv-recaptcha"></div>
+      <button class="sbtn2" onclick="sendPhoneVerificationCode()">Kod Gönder</button>
+    </div>
+    <div id="pv-step-code" style="display:none">
+      <div class="fg"><label class="fl">Doğrulama Kodu</label><input class="fi" type="text" id="pv-code" placeholder="6 haneli kod" maxlength="6"></div>
+      <button class="sbtn2" onclick="confirmPhoneVerificationCode()">Doğrula</button>
+    </div>
+    <div class="aerr" id="pv-err"></div>
+  </div>
+</div>
+
+
+
 <!-- PICKER MODAL -->
 <div class="mo" id="picker-mo" onclick="closemo('picker-mo')">
   <div class="ms" onclick="event.stopPropagation()">
