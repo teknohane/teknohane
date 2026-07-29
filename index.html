@@ -2555,6 +2555,66 @@ async function loadSystemSettings() {
   } catch(e) { systemSettings = {}; }
   applyMaintenanceGate();
 }
+
+// ==== ADMOB (Google Reklamları) ====
+// Yalnızca native (Capacitor) ortamda çalışır — web/PWA'da AdMob eklentisi hiç bulunmaz, tüm
+// fonksiyonlar sessizce no-op'tur. Ad Unit ID'ler Firestore'dan (systemSettings.admobBannerUnitId/
+// admobInterstitialUnitId, admin panelinden değiştirilebilir) okunur; App ID ise yalnızca native
+// tarafta (AndroidManifest → strings.xml) sabittir, değiştirmek yeni bir derleme gerektirir.
+// Gerçek Ad Unit ID'ler Ayarlar'dan girilene KADAR Google'ın RESMİ TEST ID'leri kullanılır —
+// kendi gerçek reklamına ASLA tıklanmamalı (geçersiz trafik sayılıp AdMob hesabı askıya alınabilir),
+// test ID'leriyle bu risk hiç yok.
+const ADMOB_TEST_BANNER_ID = 'ca-app-pub-3940256099942544/6300978111';
+const ADMOB_TEST_INTERSTITIAL_ID = 'ca-app-pub-3940256099942544/1033173712';
+let admobReady = false;
+let admobInterstitialLoaded = false;
+let listingDetailOpenCount = 0;
+
+async function initAdMobIfEnabled() {
+  if (!isNativeApp() || !Capacitor.Plugins.AdMob || !systemSettings.adsEnabled) return;
+  try {
+    await Capacitor.Plugins.AdMob.initialize();
+    admobReady = true;
+    prepareAdMobInterstitial();
+    if (document.getElementById('s-market')?.classList.contains('on')) showMarketBanner();
+  } catch(e) { console.error('AdMob başlatılamadı:', e); }
+}
+
+function showMarketBanner() {
+  if (!admobReady || !systemSettings.adsEnabled) return;
+  Capacitor.Plugins.AdMob.showBanner({
+    adId: systemSettings.admobBannerUnitId || ADMOB_TEST_BANNER_ID,
+    adSize: 'ADAPTIVE_BANNER',
+    position: 'BOTTOM_CENTER',
+    margin: 0,
+    isTesting: !systemSettings.admobBannerUnitId,
+  }).catch(e => console.error('Banner gösterilemedi:', e));
+}
+function hideMarketBanner() {
+  if (!admobReady) return;
+  Capacitor.Plugins.AdMob.hideBanner().catch(()=>{});
+}
+
+function prepareAdMobInterstitial() {
+  if (!admobReady || !systemSettings.adsEnabled) return;
+  admobInterstitialLoaded = false;
+  Capacitor.Plugins.AdMob.prepareInterstitial({
+    adId: systemSettings.admobInterstitialUnitId || ADMOB_TEST_INTERSTITIAL_ID,
+    isTesting: !systemSettings.admobInterstitialUnitId,
+  }).then(() => { admobInterstitialLoaded = true; }).catch(e => console.error('Interstitial hazırlanamadı:', e));
+}
+
+// İlan detayı her yeni açılışta çağrılır (bkz. renderDetailPage) — interstitialFrequency'de bir
+// (varsayılan 5) hazır bekleyen geçiş reklamını gösterir, ardından bir sonraki gösterim için hemen
+// yeni bir tane hazırlar.
+function maybeShowInterstitial() {
+  if (!admobReady || !systemSettings.adsEnabled) return;
+  const freq = parseInt(systemSettings.interstitialFrequency) || 5;
+  listingDetailOpenCount++;
+  if (listingDetailOpenCount % freq !== 0 || !admobInterstitialLoaded) return;
+  Capacitor.Plugins.AdMob.showInterstitial().catch(()=>{});
+  prepareAdMobInterstitial();
+}
 function applyMaintenanceGate() {
   document.body.classList.toggle('tk-maintenance', !!systemSettings.maintenanceMode && !isAdminNow());
 }
@@ -7681,6 +7741,7 @@ function renderDetailPage(l) {
   currentListing = l;
   const id = l.id;
   const isNewOpen = openListingId !== id;
+  if (isNewOpen) maybeShowInterstitial();
   const mine = user && l.uid === user.uid;
   const isAdmin = isAdminNow();
   const pending = l.approved === false;
@@ -10897,6 +10958,9 @@ function gt(name) {
     else if (mktab === 'mine' && !marketMineLoaded) loadMarketMine();
     else rlistings();
     document.getElementById('market-dot')?.classList.remove('on');
+    showMarketBanner();
+  } else {
+    hideMarketBanner();
   }
   if(name==='community' && !forumPosts.length && !forumLoading) loadForumPage(true);
   if(name==='compare') loadExtraPhones();
@@ -11425,7 +11489,7 @@ async function tkCheckForContentUpdate() {
 initTheme();
 rhome();
 handleSharedListingLink();
-loadSystemSettings();
+loadSystemSettings().then(initAdMobIfEnabled);
 setTimeout(() => loadExtraPhones(), 3000); // arka planda, sayfa yüklenip biraz sakinleştikten sonra
 checkOnboarding();
 updateOnlineStatus();
