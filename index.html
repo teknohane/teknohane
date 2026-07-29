@@ -7819,6 +7819,11 @@ async function detFav() {
   if (!user || !currentListing) { gt('profile'); return; }
   const id = currentListing.id;
   const btn = document.getElementById('dfav');
+  // GÜVENİLİRLİK DÜZELTMESİ: detay sayfası (ör. geri tuşu/hızlı çift dokunuşla) tam bu sırada
+  // kapatılmışsa buton DOM'dan kalkmış olabilir — btn null gelir, aşağıdaki classList/textContent
+  // erişimleri sessizce patlardı (bkz. Hatalar sekmesi). Sayfa zaten kapandıysa bu tıklamanın
+  // görsel bir karşılığı kalmadı, güvenle atlanır.
+  if (!btn) return;
   const adding = !favs.has(id);
   if (adding) { favs.add(id); btn.classList.add('on'); btn.querySelector('.abtn-lbl').textContent='Favoride'; }
   else { favs.delete(id); btn.classList.remove('on'); btn.querySelector('.abtn-lbl').textContent='Favorile'; }
