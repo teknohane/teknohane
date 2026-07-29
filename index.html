@@ -1397,6 +1397,7 @@ body.tk-maintenance #maintenance-gate{
       <div class="mtabs" id="mcat-tabs" style="margin-top:6px">
         <button class="mtab on" onclick="scat('tumu',this)">Tümü</button>
         <button class="mtab off" onclick="scat('telefon',this)">📱 Telefon</button>
+        <button class="mtab off" onclick="scat('akillisaat',this)">⌚ Akıllı Saat</button>
         <button class="mtab off" onclick="scat('kulaklik',this)">🎧 Kulaklık</button>
         <button class="mtab off" onclick="scat('sarj',this)">🔌 Şarj</button>
       </div>
@@ -1679,7 +1680,7 @@ body.tk-maintenance #maintenance-gate{
     </div>
     <div class="fg"><label class="fl">Kategori</label>
       <div class="csel" data-for="l-category" data-title="Kategori" onclick="openPicker(this)"><span class="csel-label">Telefon</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
-      <select id="l-category" style="display:none" onchange="onListingCategoryChange()"><option value="telefon">Telefon</option><option value="kulaklik">Kulaklık</option><option value="sarj">Şarj Cihazı</option></select>
+      <select id="l-category" style="display:none" onchange="onListingCategoryChange()"><option value="telefon">Telefon</option><option value="akillisaat">Akıllı Saat</option><option value="kulaklik">Kulaklık</option><option value="sarj">Şarj Cihazı</option></select>
     </div>
     <div class="fg"><label class="fl">Marka</label>
       <div class="csel" data-for="l-brand" data-title="Marka Seç" onclick="openPicker(this)"><span class="csel-label">Marka Seçin</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
@@ -6720,7 +6721,7 @@ function mcardHTML(l) {
         ${user
           ? `<div class="mcard-price"><span class="cur">₺</span>${parseInt(l.price||0).toLocaleString('tr-TR')}</div>`
           : `<div class="mcard-price-locked" onclick="event.stopPropagation();gt('profile')">🔒 Giriş yap</div>`}
-        <div class="mcard-title">${l.category==='kulaklik'?'🎧 ':l.category==='sarj'?'🔌 ':''}${escapeHtml(l.model)}</div>
+        <div class="mcard-title">${l.category==='akillisaat'?'⌚ ':l.category==='kulaklik'?'🎧 ':l.category==='sarj'?'🔌 ':''}${escapeHtml(l.model)}</div>
         <div class="mcard-loc">📍 ${escapeHtml(l.location)||'Belirtilmedi'}${l.createdAt?.toDate?` · <span class="mcard-date">${timeAgo(l.createdAt.toDate())}</span>`:''}${remaining?` · <span class="mcard-date" style="color:${remaining.urgent?'var(--red)':'var(--text3)'}">${remaining.text}</span>`:''}</div>
         <div class="mcard-foot" onclick="event.stopPropagation()">
           ${l.ownerName?`<div class="mcard-seller" onclick="openPublicProfile('${l.uid}','${escapeJsAttr(l.ownerName)}')"><span class="mcard-seller-name">${escapeHtml(l.ownerName)}</span>${mine?'<span class="mcard-seller-me">· Siz</span>':''}</div>`:'<span></span>'}
@@ -6966,7 +6967,7 @@ function ensureListingBrandOptionsPopulated() {
 // (telefonda sabit picker, diğerlerinde serbest metin — bkz. getListingBrandValue/setListingBrandValue,
 // bu iki fonksiyona hiç dokunulmadı) ve teknik detay alan grupları (telefon/kulaklık/şarj) gösterilip
 // gizlenir. Ortak alanlar (Renk/Garanti/Kutu-Aksesuar) her kategoride aynen kalır.
-const LISTING_CATEGORY_MODEL_PLACEHOLDER = { telefon: 'Örn: Galaxy S24', kulaklik: 'Örn: WF-1000XM5', sarj: 'Örn: 65W GaN Şarj Adaptörü' };
+const LISTING_CATEGORY_MODEL_PLACEHOLDER = { telefon: 'Örn: Galaxy S24', akillisaat: 'Örn: Galaxy Watch 6', kulaklik: 'Örn: WF-1000XM5', sarj: 'Örn: 65W GaN Şarj Adaptörü' };
 function onListingCategoryChange() {
   const cat = document.getElementById('l-category').value;
   const isPhone = cat === 'telefon';
@@ -7202,10 +7203,10 @@ async function submitListing() {
       } : category === 'kulaklik' ? {
         earphoneType: document.getElementById('l-earphone-type').value,
         anc: document.getElementById('l-anc').checked,
-      } : {
+      } : category === 'sarj' ? {
         outputPower: document.getElementById('l-output-power').value.trim(),
         connectorType: document.getElementById('l-connector-type').value,
-      }),
+      } : {}),
       // Havuz Sistemi: satıcının opsiyonel olarak işaretlediği güven-önlemi bayrağı (bkz.
       // requestPoolPurchase/notifyAdminsPoolRequest) — ödeme/para tutma henüz entegre değil,
       // yalnızca ilan detayında alıcıya "Havuz Sistemi ile Satın Al" butonunu göstermek için kullanılıyor.
