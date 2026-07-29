@@ -2170,6 +2170,41 @@ const VAPID_KEY = 'BPt5vY5P3Dr9DG2zHOQwhQKnH6V5UruqGisQRTlGWxkNaAYtYKAEG9xiTHn78
 let user = null;
 let myProfileData = {};
 
+// ==== İSTEMCİ HATA KAYDI — üretimde sessizce patlayan JS hatalarından haberdar olmak için.
+// Gerçek Crashlytics değil (native çökmeleri yakalamaz) ama bu uygulamanın neredeyse tamamı JS
+// olduğu için asıl "sessiz bozulma" riskinin büyük kısmını (yakalanmamış hata/reddedilen promise)
+// karşılıyor. Oturum başına sınırlı sayıda ve tekrarlananları eleyerek yazıyor — bir döngü içinde
+// tekrar eden bir hata, Firestore'u/kotayı spam'lemesin diye.
+const CLIENT_ERROR_LOG_MAX_PER_SESSION = 15;
+let clientErrorLogCount = 0;
+const clientErrorLogSeen = new Set();
+function logClientError(message, stack, source) {
+  try {
+    if (clientErrorLogCount >= CLIENT_ERROR_LOG_MAX_PER_SESSION) return;
+    const sig = String(message || '').slice(0, 120) + '@' + String(source || '');
+    if (clientErrorLogSeen.has(sig)) return;
+    clientErrorLogSeen.add(sig);
+    clientErrorLogCount++;
+    db.collection('teknohane_error_logs').add({
+      message: String(message || '').slice(0, 500),
+      stack: String(stack || '').slice(0, 2000),
+      source: String(source || '').slice(0, 60),
+      url: location.href.slice(0, 300),
+      uid: (typeof user !== 'undefined' && user) ? user.uid : null,
+      platform: (window.Capacitor && window.Capacitor.getPlatform) ? window.Capacitor.getPlatform() : 'web',
+      userAgent: navigator.userAgent.slice(0, 200),
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    }).catch(() => {});
+  } catch (e) { /* hata kaydı asla uygulamayı bozmamalı */ }
+}
+window.addEventListener('error', (e) => {
+  logClientError(e.message, e.error?.stack, `${e.filename || ''}:${e.lineno || ''}:${e.colno || ''}`);
+});
+window.addEventListener('unhandledrejection', (e) => {
+  const reason = e.reason;
+  logClientError(reason?.message || String(reason), reason?.stack, 'unhandledrejection');
+});
+
 // ==== GENEL VERİ HAZIRLIK YÖNETİMİ (yeniden kullanılabilir) ====
 // "Bu veri, bu oturumda sunucudan gerçekten doğrulanmış mı" sorusunu, verinin kendisinin dolu/boş
 // olmasından TAMAMEN BAĞIMSIZ cevaplayan genel bir mekanizma. İlk kez profil verisi için kuruldu
@@ -6407,6 +6442,27 @@ function shouldCountListingView(id) {
   } catch(e) { return true; } // localStorage kullanılamıyorsa eski (her zaman say) davranışa düş
 }
 
+// ==== İLETİŞİM SAYACI — huni analitiği (görüntülenme → iletişim → satış) için viewCount ile
+// birebir aynı dedup deseni, ayrı bir anahtar altında. WhatsApp/Mesaj butonlarına tıklanınca
+// çağrılır; asıl aksiyonu (ol()/openChatWith()) ASLA bloklamaz, sessizce geçer.
+const CONTACT_DEDUP_WINDOW_MS = 12 * 60 * 60 * 1000;
+function shouldCountListingContact(id) {
+  try {
+    const seen = JSON.parse(localStorage.getItem('tk_contacted_listings') || '{}');
+    const last = seen[id];
+    if (last && (Date.now() - last) < CONTACT_DEDUP_WINDOW_MS) return false;
+    seen[id] = Date.now();
+    Object.keys(seen).forEach(k => { if (Date.now() - seen[k] > CONTACT_DEDUP_WINDOW_MS) delete seen[k]; });
+    localStorage.setItem('tk_contacted_listings', JSON.stringify(seen));
+    return true;
+  } catch(e) { return true; }
+}
+function trackListingContact(id, isOwner) {
+  if (isOwner) return;
+  if (!shouldCountListingContact(id)) return;
+  db.collection('teknohane_listings').doc(id).update({ contactCount: firebase.firestore.FieldValue.increment(1) }).catch(()=>{});
+}
+
 // ==== PAZAR EKRANI SAYFALAMA (100.000+ ilan ölçeği için) ====
 // "Tümü" sekmesi artık tüm koleksiyonu değil, 20'lik sayfalar halinde yalnızca onaylı ilanları çeker.
 // "Favorilerim" ve "İlanlarım" kendi dar kapsamlı sorgularıyla, sekmeye girildiğinde bir kez yüklenir.
@@ -7502,11 +7558,11 @@ function renderDetailPage(l) {
     </div>
     <div id="det-qa-section" class="det-anim" style="animation-delay:.19s"></div>
     <div class="det-contact-row det-anim" style="animation-delay:.2s">
-      ${l.phone?`<button class="det-contact-btn dc-wa" onpointerdown="spawnRipple(event,this)" onclick="ol(waListingLink('${escapeJsAttr(l.model||'')}','${escapeJsAttr(l.phone)}'))">
+      ${l.phone?`<button class="det-contact-btn dc-wa" onpointerdown="spawnRipple(event,this)" onclick="trackListingContact('${id}',${mine?'true':'false'});ol(waListingLink('${escapeJsAttr(l.model||'')}','${escapeJsAttr(l.phone)}'))">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.998 2C6.477 2 2 6.477 2 12c0 1.989.574 3.842 1.565 5.408L2 22l4.757-1.535A9.958 9.958 0 0 0 11.998 22c5.523 0 10-4.477 10-10S17.521 2 11.998 2z"/></svg>
         <span class="det-contact-lbl">WhatsApp</span>
       </button>`:'<div></div>'}
-      ${!mine && l.uid ? `<button class="det-contact-btn dc-msg" onpointerdown="spawnRipple(event,this)" onclick="openChatWith('${l.uid}','${escapeJsAttr(l.ownerName||'Kullanıcı')}','${escapeJsAttr(l.model||'')}')">
+      ${!mine && l.uid ? `<button class="det-contact-btn dc-msg" onpointerdown="spawnRipple(event,this)" onclick="trackListingContact('${id}',false);openChatWith('${l.uid}','${escapeJsAttr(l.ownerName||'Kullanıcı')}','${escapeJsAttr(l.model||'')}')">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
         <span class="det-contact-lbl">Mesaj</span>
       </button>`:'<div></div>'}
