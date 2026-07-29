@@ -2757,8 +2757,8 @@ function computeBadges(uid, profileData, isTargetAdmin, scoreInfo) {
     // Artık yalnızca e-posta doğrulamasıyla değil, admin onayıyla da (adminVerified) kazanılabiliyor.
     { id:'verified', icon:'✅', label:'Doğrulanmış Hesap', done: !!profileData.emailVerified || !!profileData.adminVerified },
     { id:'early-user', icon:'🚀', label:'Erken Kullanıcı', done: !!(joinedDate && joinedDate < EARLY_USER_CUTOFF) },
-    { id:'vip', icon:'💎', label:'VIP', done: !!profileData.vip },
-    { id:'trusted-seller', icon:'🤝', label:'Güvenilir Satıcı', done: !!profileData.trustedSeller },
+    { id:'vip', icon:'💎', label:'VIP', done: isVipActive(profileData) },
+    { id:'trusted-seller', icon:'🤝', label:'Güvenilir Satıcı', done: isTrustedSellerActive(profileData) },
     { id:'referrer', icon:'🔗', label:'Referans Kahramanı', done: (scoreInfo.referralCount||0)>=5 },
     { id:'admin', icon:'🛡️', label:'Yönetici', done: !!isTargetAdmin },
     { id:'10-sales', icon:'🏆', label:'10 Satış', done:false, locked:true, info:'Satış takip sistemi henüz aktif değil, veri oluşunca bu rozet otomatik açılacak.' },
@@ -2786,6 +2786,24 @@ function isCurrentlyBanned(profileData) {
   if (!profileData || !profileData.banned) return false;
   if (profileData.banType === 'permanent' || !profileData.banExpiresAt) return true;
   const expires = profileData.banExpiresAt?.toDate ? profileData.banExpiresAt.toDate() : null;
+  return expires ? expires.getTime() > Date.now() : true;
+}
+
+// VIP/Güvenilir Satıcı rozetleri artık SÜRELİ verilebiliyor (bkz. Yönetim Paneli — admin rozeti
+// verirken süre seçebiliyor, ör. aylık) — isCurrentlyBanned ile AYNI desen: expiresAt alanı yoksa
+// rozet süresiz kabul edilir, varsa ve geçmişse rozet artık ETKİN SAYILMAZ (ham `vip`/`trustedSeller`
+// alanı admin panelinden ayrıca temizlenene kadar true kalabilir — burada yalnızca GÖSTERİM anında
+// gerçekten etkin olup olmadığı hesaplanıyor, ekstra bir Firestore yazması gerekmiyor).
+function isVipActive(profileData) {
+  if (!profileData || !profileData.vip) return false;
+  if (!profileData.vipExpiresAt) return true;
+  const expires = profileData.vipExpiresAt?.toDate ? profileData.vipExpiresAt.toDate() : null;
+  return expires ? expires.getTime() > Date.now() : true;
+}
+function isTrustedSellerActive(profileData) {
+  if (!profileData || !profileData.trustedSeller) return false;
+  if (!profileData.trustedSellerExpiresAt) return true;
+  const expires = profileData.trustedSellerExpiresAt?.toDate ? profileData.trustedSellerExpiresAt.toDate() : null;
   return expires ? expires.getTime() > Date.now() : true;
 }
 
@@ -3048,7 +3066,7 @@ function rprof() {
             : `<div style="font-size:12px;color:#3DDC97;margin-top:8px">✓ Profilin eksiksiz — harika gidiyorsun!</div>`}
         </div>
       </div>
-      <div id="my-trust-card">${renderTrustCardHTML(0, 0, { trustedSeller: myProfileData.trustedSeller, verified: user.emailVerified||myProfileData.adminVerified, joinedYear, uid: user.uid, displayName: myProfileData.displayName||user.displayName||'Ben' })}</div>
+      <div id="my-trust-card">${renderTrustCardHTML(0, 0, { trustedSeller: isTrustedSellerActive(myProfileData), verified: user.emailVerified||myProfileData.adminVerified, joinedYear, uid: user.uid, displayName: myProfileData.displayName||user.displayName||'Ben' })}</div>
       <div id="my-trust-reviews-raw" style="display:none"></div>
       <button class="apbtn" onclick="openEditProfile()">✏️ Profili Düzenle</button>
       <div class="psec-title" style="margin-top:4px">⚡ Hızlı İşlemler</div>
@@ -9170,7 +9188,7 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
       <div class="tscore-label">Teknohane Skoru</div>
     </div>` : ''}
 
-    <div id="pub-trust-card">${renderTrustCardHTML(0, 0, { trustedSeller: data.trustedSeller, verified: data.emailVerified||data.adminVerified, joinedYear, uid, displayName })}</div>
+    <div id="pub-trust-card">${renderTrustCardHTML(0, 0, { trustedSeller: isTrustedSellerActive(data), verified: data.emailVerified||data.adminVerified, joinedYear, uid, displayName })}</div>
 
     <div class="pstats-card">
       <div class="pstat-item"><div class="pstat-num">${scoreInfo.listingsCount}</div><div class="pstat-lbl">İlan</div></div>
@@ -10544,8 +10562,8 @@ async function loadSellerCard(sellerUid, ownerName, mine, containerId) {
     const avEl = el.querySelector('.seller-card-lg-av');
     if (avEl && u.photoURL) avEl.outerHTML = `<img class="seller-card-lg-av" src="${avatarUrl(u.photoURL, ownerName, 112)}" alt="" loading="lazy" decoding="async">`;
     const badges = [];
-    if (u.vip) badges.push({t:'💎 VIP', trust:false});
-    if (u.trustedSeller) badges.push({t:'🤝 Güvenilir Satıcı', trust:true});
+    if (isVipActive(u)) badges.push({t:'💎 VIP', trust:false});
+    if (isTrustedSellerActive(u)) badges.push({t:'🤝 Güvenilir Satıcı', trust:true});
     if (u.adminVerified || u.emailVerified) badges.push({t:'✅ Doğrulanmış', trust:false});
     const badgesEl = document.getElementById(`${containerId}-badges`);
     if (badgesEl && badges.length) badgesEl.innerHTML = `<div class="seller-card-lg-badges">${badges.map(b=>`<span class="seller-badge${b.trust?' trust':''}">${b.t}</span>`).join('')}</div>`;
@@ -11496,6 +11514,16 @@ if (isNativeApp()) {
     Capacitor.Plugins.App.addListener('appStateChange', (state) => {
       if (state.isActive) handleAppForeground();
       else appBackgroundedAt = Date.now();
+    });
+    // ANDROİD APP LINKS: paylaşılan bir ilan/konu/profil linkine (https://teknohane.github.io/teknohane/...)
+    // dokunulduğunda artık tarayıcı yerine doğrudan uygulama açılıyor (bkz. AndroidManifest.xml'deki
+    // autoVerify intent-filter). İki senaryo var: uygulama SOĞUK başlatıldıysa (kapalıyken linke
+    // dokunuldu) launch URL'i getLaunchUrl() ile; uygulama zaten AÇIKKEN (singleTask) yeni bir link
+    // gelirse appUrlOpen olayıyla alınır. navigateFromNotificationUrl zaten listing/post/profile/chat
+    // hepsini destekliyor (bkz. push bildirimi yönlendirmesi) — burada da aynen kullanılıyor.
+    Capacitor.Plugins.App.getLaunchUrl().then(res => { if (res?.url) navigateFromNotificationUrl(res.url); }).catch(()=>{});
+    Capacitor.Plugins.App.addListener('appUrlOpen', (data) => {
+      try { navigateFromNotificationUrl(data.url); } catch(e) { console.error('Deep link yönlendirme hatası:', e); }
     });
   } else {
     console.warn('Capacitor App plugin bulunamadı, donanım geri tuşu köprülenemedi.');
