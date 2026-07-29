@@ -1389,10 +1389,16 @@ body.tk-maintenance #maintenance-gate{
         </div>
         <button class="apbtn" onclick="saveCurrentSearch()" style="margin-top:8px;color:var(--cyan)">🔔 Bu Aramayı Kaydet — Yeni İlan Gelince Haber Ver</button>
       </div>
-      <div class="mtabs">
+      <div class="mtabs" id="msrc-tabs">
         <button class="mtab on" onclick="smtab('all',this)">Tümü</button>
         <button class="mtab off" onclick="smtab('fav',this)">❤️ Favoriler</button>
         <button class="mtab off" onclick="smtab('mine',this)">İlanlarım</button>
+      </div>
+      <div class="mtabs" id="mcat-tabs" style="margin-top:6px">
+        <button class="mtab on" onclick="scat('tumu',this)">Tümü</button>
+        <button class="mtab off" onclick="scat('telefon',this)">📱 Telefon</button>
+        <button class="mtab off" onclick="scat('kulaklik',this)">🎧 Kulaklık</button>
+        <button class="mtab off" onclick="scat('sarj',this)">🔌 Şarj</button>
       </div>
       <div id="lgrid" class="lgrid">
         <div class="load"><div class="spin"></div><span>Yükleniyor…</span></div>
@@ -1671,12 +1677,16 @@ body.tk-maintenance #maintenance-gate{
         </div>
       </div>
     </div>
+    <div class="fg"><label class="fl">Kategori</label>
+      <div class="csel" data-for="l-category" data-title="Kategori" onclick="openPicker(this)"><span class="csel-label">Telefon</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+      <select id="l-category" style="display:none" onchange="onListingCategoryChange()"><option value="telefon">Telefon</option><option value="kulaklik">Kulaklık</option><option value="sarj">Şarj Cihazı</option></select>
+    </div>
     <div class="fg"><label class="fl">Marka</label>
       <div class="csel" data-for="l-brand" data-title="Marka Seç" onclick="openPicker(this)"><span class="csel-label">Marka Seçin</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
       <select id="l-brand" style="display:none" onchange="onListingBrandChange()"></select>
     </div>
     <div class="fg" id="l-brand-other-wrap" style="display:none">
-      <label class="fl">Marka (elle yazın)</label><input class="fi" type="text" id="l-brand-other" placeholder="Markanızı yazın" oninput="syncListingBrandOtherLabel();listingFormOnChange()" onblur="titleCaseListingField('l-brand-other')">
+      <label class="fl" id="l-brand-other-label">Marka (elle yazın)</label><input class="fi" type="text" id="l-brand-other" placeholder="Markanızı yazın" oninput="syncListingBrandOtherLabel();listingFormOnChange()" onblur="titleCaseListingField('l-brand-other')">
     </div>
     <div class="fg"><label class="fl">Model</label><input class="fi" type="text" id="l-model" placeholder="Örn: Galaxy S24" oninput="listingFormOnChange()" onblur="titleCaseListingField('l-model')"></div>
     <div class="fg"><label class="fl">Fiyat (₺)</label><input class="fi" type="number" id="l-price" placeholder="25000" oninput="listingFormOnChange()"></div>
@@ -1705,19 +1715,35 @@ body.tk-maintenance #maintenance-gate{
       <svg id="dt-chevron" viewBox="0 0 24 24" stroke="var(--cyan)" fill="none" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
     </div>
     <div id="detail-fields" style="display:none">
-      <div class="fg2-row">
-        <div class="fg2"><label class="fl">RAM</label><input class="fi" type="text" id="l-ram" placeholder="8GB"></div>
-        <div class="fg2"><label class="fl">Depolama</label><input class="fi" type="text" id="l-storage" placeholder="256GB"></div>
+      <div id="l-phone-fields">
+        <div class="fg2-row">
+          <div class="fg2"><label class="fl">RAM</label><input class="fi" type="text" id="l-ram" placeholder="8GB"></div>
+          <div class="fg2"><label class="fl">Depolama</label><input class="fi" type="text" id="l-storage" placeholder="256GB"></div>
+        </div>
+        <div class="fg"><label class="fl">İşlemci</label><input class="fi" type="text" id="l-chip" placeholder="Snapdragon 8 Gen 3"></div>
+        <div class="fg"><label class="fl">Batarya Sağlığı</label><input class="fi" type="text" id="l-battery" placeholder="%95"></div>
+      </div>
+      <div id="l-kulaklik-fields" style="display:none">
+        <div class="fg"><label class="fl">Tip</label>
+          <div class="csel" data-for="l-earphone-type" data-title="Tip" onclick="openPicker(this)"><span class="csel-label">Kablosuz</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <select id="l-earphone-type" style="display:none"><option>Kablosuz</option><option>Kablolu</option></select>
+        </div>
+        <label class="fg fchk" style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="l-anc" style="width:18px;height:18px;accent-color:var(--cyan);flex-shrink:0"><span style="font-size:13px;color:var(--text)">Aktif Gürültü Önleme (ANC)</span></label>
+      </div>
+      <div id="l-sarj-fields" style="display:none">
+        <div class="fg2-row">
+          <div class="fg2"><label class="fl">Çıkış Gücü</label><input class="fi" type="text" id="l-output-power" placeholder="65W"></div>
+          <div class="fg2"><label class="fl">Bağlantı Tipi</label>
+            <div class="csel" data-for="l-connector-type" data-title="Bağlantı Tipi" onclick="openPicker(this)"><span class="csel-label">USB-C</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+            <select id="l-connector-type" style="display:none"><option>USB-C</option><option>Lightning</option><option>Micro USB</option><option>Diğer</option></select>
+          </div>
+        </div>
       </div>
       <div class="fg2-row">
         <div class="fg2"><label class="fl">Renk</label><input class="fi" type="text" id="l-color" placeholder="Siyah"></div>
         <div class="fg2"><label class="fl">Garanti</label><input class="fi" type="text" id="l-warranty" placeholder="Var / Yok / X ay"></div>
       </div>
-      <div class="fg"><label class="fl">İşlemci</label><input class="fi" type="text" id="l-chip" placeholder="Snapdragon 8 Gen 3"></div>
-      <div class="fg2-row">
-        <div class="fg2"><label class="fl">Batarya Sağlığı</label><input class="fi" type="text" id="l-battery" placeholder="%95"></div>
-        <div class="fg2"><label class="fl">Kutu/Aksesuar</label><input class="fi" type="text" id="l-box" placeholder="Kutulu, şarj aleti var"></div>
-      </div>
+      <div class="fg"><label class="fl">Kutu/Aksesuar</label><input class="fi" type="text" id="l-box" placeholder="Kutulu, şarj aleti var"></div>
     </div>
 
     <div class="fg"><label class="fl">Açıklama <span id="l-desc-counter" style="color:var(--text3);font-weight:400">(0 / 10)</span></label><textarea class="fi" id="l-desc" placeholder="Ürün hakkında detaylı bilgi verin…" style="min-height:70px;resize:vertical;font-family:inherit" oninput="listingFormOnChange()"></textarea></div>
@@ -6514,7 +6540,7 @@ async function loadMarketPage(reset) {
       // özel etiketlerden biri varsa veya arama/filtre/sekme aktifse güvenli şekilde tam render'a
       // (rlistings) düşülür — yalnızca "sade" sayfalamada (en yaygın durum) hızlı ekleme kullanılır.
       const raw = (document.getElementById('msrch')?.value||'').trim();
-      const filtersActive = !!(raw || filterMin || filterMax || filterBrand !== 'Tümü' || filterCondition !== 'Tümü' || filterSort !== 'yeni');
+      const filtersActive = !!(raw || filterMin || filterMax || filterBrand !== 'Tümü' || filterCondition !== 'Tümü' || filterSort !== 'yeni' || filterCategory !== 'tumu');
       const hasSpecial = newItems.some(l => l.showcase || l.featured || l.sold);
       if (mktab === 'all' && !filtersActive && !hasSpecial) {
         appendListingCards(newItems.filter(l => !isSoldExpired(l) && !l.paused && !isListingExpired(l)));
@@ -6552,7 +6578,7 @@ function renderMarketLoadMoreControl() {
   if (!grid) return;
   let wrap = grid.querySelector('.market-loadmore-wrap');
   const raw = (document.getElementById('msrch')?.value||'').trim();
-  const shouldShow = mktab === 'all' && !raw && !filterMin && !filterMax && filterBrand === 'Tümü' && filterCondition === 'Tümü' && filterSort === 'yeni';
+  const shouldShow = mktab === 'all' && !raw && !filterMin && !filterMax && filterBrand === 'Tümü' && filterCondition === 'Tümü' && filterSort === 'yeni' && filterCategory === 'tumu';
   if (!shouldShow) { wrap?.remove(); return; }
   if (!wrap) {
     wrap = document.createElement('div');
@@ -6694,7 +6720,7 @@ function mcardHTML(l) {
         ${user
           ? `<div class="mcard-price"><span class="cur">₺</span>${parseInt(l.price||0).toLocaleString('tr-TR')}</div>`
           : `<div class="mcard-price-locked" onclick="event.stopPropagation();gt('profile')">🔒 Giriş yap</div>`}
-        <div class="mcard-title">${escapeHtml(l.model)}</div>
+        <div class="mcard-title">${l.category==='kulaklik'?'🎧 ':l.category==='sarj'?'🔌 ':''}${escapeHtml(l.model)}</div>
         <div class="mcard-loc">📍 ${escapeHtml(l.location)||'Belirtilmedi'}${l.createdAt?.toDate?` · <span class="mcard-date">${timeAgo(l.createdAt.toDate())}</span>`:''}${remaining?` · <span class="mcard-date" style="color:${remaining.urgent?'var(--red)':'var(--text3)'}">${remaining.text}</span>`:''}</div>
         <div class="mcard-foot" onclick="event.stopPropagation()">
           ${l.ownerName?`<div class="mcard-seller" onclick="openPublicProfile('${l.uid}','${escapeJsAttr(l.ownerName)}')"><span class="mcard-seller-name">${escapeHtml(l.ownerName)}</span>${mine?'<span class="mcard-seller-me">· Siz</span>':''}</div>`:'<span></span>'}
@@ -6761,6 +6787,7 @@ function rlistings() {
   if (filterMax) items = items.filter(l => parseInt(l.price||0) <= parseInt(filterMax));
   if (filterBrand !== 'Tümü') items = items.filter(l => (l.model||'').toLowerCase().includes(filterBrand.toLowerCase()));
   if (filterCondition !== 'Tümü') items = items.filter(l => l.condition === filterCondition);
+  if (filterCategory !== 'tumu') items = items.filter(l => (l.category||'telefon') === filterCategory);
   // Sıralama: kullanıcı açıkça fiyat sıralaması seçtiyse (filterSort), Vitrin/Öne Çıkan önceliği
   // yerine doğrudan fiyata göre sıralanır — satılanlar yine de en altta kalır. Varsayılan ("yeni")
   // durumda önceki davranış (Vitrin > Öne Çıkan > diğerleri, zaten en yeniden eskiye gelen sorgu
@@ -6791,11 +6818,30 @@ function rlistings() {
 
 function smtab(t, el) {
   mktab = t;
-  document.querySelectorAll('.mtab').forEach(b => {b.className='mtab off';});
+  document.querySelectorAll('#msrc-tabs .mtab').forEach(b => {b.className='mtab off';});
   el.className = 'mtab on';
   if (t === 'all' && !marketAllLoadedOnce) { loadMarketPage(true); return; }
   if (t === 'fav') { loadMarketFavorites(); return; }
   if (t === 'mine') { loadMarketMine(); return; }
+  rlistings();
+}
+
+// Pazar'a telefon dışı kategoriler eklendi (kulaklık/şarj cihazı) — bu, mktab (Tümü/Favoriler/
+// İlanlarım = HANGİ KAYNAK) ile ORTOGONAL, ayrı bir boyut (HANGİ ÜRÜN TÜRÜ). Zaten bellekte yüklü
+// veriler üzerinde tamamen istemci tarafında filtrelenir (bkz. rlistings) — yeni bir Firestore
+// sorgusu/yükleme tetiklenmez, sekmeler arası geçiş anlıktır.
+let filterCategory = 'tumu';
+function scat(cat, el) {
+  filterCategory = cat;
+  document.querySelectorAll('#mcat-tabs .mtab').forEach(b => {b.className='mtab off';});
+  el.className = 'mtab on';
+  // Marka filtresi (MARKET_BRANDS) yalnızca telefon markalarından oluşuyor — kulaklık/şarj
+  // sekmelerinde anlamsız olduğu için filtre panelinde gizlenir.
+  const brandFilterGroup = document.getElementById('filter-brands')?.previousElementSibling;
+  const brandFilterEl = document.getElementById('filter-brands');
+  const showBrandFilter = cat === 'tumu' || cat === 'telefon';
+  if (brandFilterGroup) brandFilterGroup.style.display = showBrandFilter ? '' : 'none';
+  if (brandFilterEl) brandFilterEl.style.display = showBrandFilter ? '' : 'none';
   rlistings();
 }
 
@@ -6916,6 +6962,33 @@ function ensureListingBrandOptionsPopulated() {
 // "Diğer" seçilince elle-yazım yedek alanını açar/kapatır — picker'dan seçim yapıldığında tetiklenir.
 // (Normal marka seçimlerinde tetikleyici etiketi zaten choosePickerOption'ın çağırdığı
 // syncPickerTriggerLabel ile doğru ayarlanıyor — burada yalnızca "Diğer" durumu özel işleniyor.)
+// Pazar'a telefon dışı kategoriler eklendi (kulaklık/şarj cihazı) — kategoriye göre marka alanı
+// (telefonda sabit picker, diğerlerinde serbest metin — bkz. getListingBrandValue/setListingBrandValue,
+// bu iki fonksiyona hiç dokunulmadı) ve teknik detay alan grupları (telefon/kulaklık/şarj) gösterilip
+// gizlenir. Ortak alanlar (Renk/Garanti/Kutu-Aksesuar) her kategoride aynen kalır.
+const LISTING_CATEGORY_MODEL_PLACEHOLDER = { telefon: 'Örn: Galaxy S24', kulaklik: 'Örn: WF-1000XM5', sarj: 'Örn: 65W GaN Şarj Adaptörü' };
+function onListingCategoryChange() {
+  const cat = document.getElementById('l-category').value;
+  const isPhone = cat === 'telefon';
+  document.querySelector('.csel[data-for="l-brand"]').style.display = isPhone ? '' : 'none';
+  const brandOtherWrap = document.getElementById('l-brand-other-wrap');
+  const brandOtherLabel = document.getElementById('l-brand-other-label');
+  if (isPhone) {
+    brandOtherLabel.textContent = 'Marka (elle yazın)';
+    onListingBrandChange(); // eski davranışa (yalnızca picker'da "Diğer" seçiliyken görünür) döner
+  } else {
+    document.getElementById('l-brand').value = 'Diğer';
+    brandOtherWrap.style.display = 'block';
+    brandOtherLabel.textContent = 'Marka';
+    syncListingBrandOtherLabel();
+  }
+  document.getElementById('l-phone-fields').style.display = isPhone ? '' : 'none';
+  document.getElementById('l-kulaklik-fields').style.display = cat === 'kulaklik' ? '' : 'none';
+  document.getElementById('l-sarj-fields').style.display = cat === 'sarj' ? '' : 'none';
+  document.getElementById('l-model').placeholder = LISTING_CATEGORY_MODEL_PLACEHOLDER[cat] || LISTING_CATEGORY_MODEL_PLACEHOLDER.telefon;
+  listingFormOnChange();
+}
+
 function onListingBrandChange() {
   const sel = document.getElementById('l-brand');
   const isOther = sel.value === 'Diğer';
@@ -7034,6 +7107,8 @@ function newListing() {
   pendingNewListingPhotoId = db.collection('teknohane_listings').doc().id;
   ensureListingIlOptionsPopulated();
   ensureListingBrandOptionsPopulated();
+  document.getElementById('l-category').value = 'telefon';
+  onListingCategoryChange();
   setListingBrandValue('');
   document.getElementById('l-model').value = '';
   document.getElementById('l-price').value = '';
@@ -7063,6 +7138,7 @@ async function submitListing() {
   // GÜVENLİK DÜZELTMESİ (denetim raporu): sahte/yazım hatalı e-postayla anında hesap açıp ilan
   // verilebiliyordu, hiçbir doğrulama gerekmiyordu. Yalnızca YENİ ilan içindir — düzenleme etkilenmez.
   if (!editingListingId && !user.emailVerified) { showToast('📧','rgba(255,159,10,.15)','E-posta Doğrulanmamış','İlan verebilmek için önce e-postanı doğrulaman gerekiyor. Doğrulama e-postası göndermek için dokun.', sendVerificationEmail, 6000); return; }
+  const category = document.getElementById('l-category').value || 'telefon';
   const brand = getListingBrandValue();
   const modelOnly = document.getElementById('l-model').value.trim();
   const model = [brand, modelOnly].filter(Boolean).join(' ').trim();
@@ -7110,13 +7186,26 @@ async function submitListing() {
       location,
       desc: document.getElementById('l-desc').value.trim(),
       phone,
-      ram: document.getElementById('l-ram').value.trim(),
-      storage: document.getElementById('l-storage').value.trim(),
+      // Pazar'a telefon dışı kategoriler eklendi (kulaklık/şarj cihazı) — category alanı yoksa
+      // (eski ilanlar) her yerde 'telefon' varsayılır, bu yüzden geriye dönük hiçbir şeyi bozmaz.
+      // Ortak alanlar (Renk/Garanti/Kutu-Aksesuar) her kategoride aynen kaydedilir; teknik detaylar
+      // yalnızca kendi kategorisinde anlamlı olduğu için koşullu eklenir.
+      category,
       color: document.getElementById('l-color').value.trim(),
       warranty: document.getElementById('l-warranty').value.trim(),
-      chip: document.getElementById('l-chip').value.trim(),
-      battery: document.getElementById('l-battery').value.trim(),
       box: document.getElementById('l-box').value.trim(),
+      ...(category === 'telefon' ? {
+        ram: document.getElementById('l-ram').value.trim(),
+        storage: document.getElementById('l-storage').value.trim(),
+        chip: document.getElementById('l-chip').value.trim(),
+        battery: document.getElementById('l-battery').value.trim(),
+      } : category === 'kulaklik' ? {
+        earphoneType: document.getElementById('l-earphone-type').value,
+        anc: document.getElementById('l-anc').checked,
+      } : {
+        outputPower: document.getElementById('l-output-power').value.trim(),
+        connectorType: document.getElementById('l-connector-type').value,
+      }),
       // Havuz Sistemi: satıcının opsiyonel olarak işaretlediği güven-önlemi bayrağı (bkz.
       // requestPoolPurchase/notifyAdminsPoolRequest) — ödeme/para tutma henüz entegre değil,
       // yalnızca ilan detayında alıcıya "Havuz Sistemi ile Satın Al" butonunu göstermek için kullanılıyor.
@@ -7197,8 +7286,11 @@ async function submitListing() {
     document.querySelector('#listing-mo .mtit').textContent = 'İlan Ver';
     document.querySelector('#listing-mo .sbtn2').textContent = 'İlanı Yayınla';
     document.getElementById('l-agree-wrap').style.display = '';
+    document.getElementById('l-category').value = 'telefon';
+    onListingCategoryChange();
     setListingBrandValue('');
-    ['l-model','l-price','l-desc','l-phone','l-ram','l-storage','l-color','l-warranty','l-chip','l-battery','l-box','l-mahalle'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    ['l-model','l-price','l-desc','l-phone','l-ram','l-storage','l-color','l-warranty','l-chip','l-battery','l-box','l-mahalle','l-output-power'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    document.getElementById('l-anc').checked = false;
     document.getElementById('l-il').value = '';
     document.getElementById('l-ilce').innerHTML = '<option value=""></option>';
     document.querySelector('.csel[data-for="l-il"] .csel-label').textContent = 'İl Seçin';
@@ -7225,6 +7317,11 @@ async function editListing(id) {
   ensureListingBrandOptionsPopulated();
   document.querySelector('#listing-mo .mtit').textContent = l.uid === user.uid ? 'İlanı Düzenle' : `İlanı Düzenle (Admin — ${l.ownerName||'başka kullanıcı'})`;
   document.querySelector('#listing-mo .sbtn2').textContent = 'Değişiklikleri Kaydet';
+  // category alanı yoksa (eski ilan) 'telefon' varsayılır — onListingCategoryChange önce çağrılır ki
+  // marka alanının picker/serbest-metin görünürlüğü doğru kurulsun, ASIL değeri hemen ardından
+  // setListingBrandValue ile (aşağıda) doldurulur.
+  document.getElementById('l-category').value = l.category || 'telefon';
+  onListingCategoryChange();
   // Yeni ilanlarda brand ayrı bir alan olarak kaydediliyor (bkz. submitListing) — varsa doğrudan
   // kullanılır (picker'da yoksa "Diğer" + elle-yazım alanına düşer, bkz. setListingBrandValue).
   // Eski ilanlarda (brand alanı hiç yokken tek parça "model" string'i vardı) geriye dönük uyumluluk
@@ -7255,11 +7352,15 @@ async function editListing(id) {
   document.getElementById('l-chip').value = l.chip || '';
   document.getElementById('l-battery').value = l.battery || '';
   document.getElementById('l-box').value = l.box || '';
+  document.getElementById('l-earphone-type').value = l.earphoneType || 'Kablosuz';
+  document.getElementById('l-anc').checked = !!l.anc;
+  document.getElementById('l-output-power').value = l.outputPower || '';
+  document.getElementById('l-connector-type').value = l.connectorType || 'USB-C';
   document.getElementById('l-pool-system').checked = !!l.poolSystem;
   document.getElementById('l-negotiable').checked = !!l.negotiable;
   document.getElementById('l-agree').checked = true;
   document.getElementById('l-agree-wrap').style.display = 'none';
-  if (l.ram || l.storage || l.color || l.warranty || l.chip || l.battery || l.box) {
+  if (l.ram || l.storage || l.color || l.warranty || l.chip || l.battery || l.box || l.earphoneType || l.anc || l.outputPower || l.connectorType) {
     document.getElementById('detail-fields').style.display = 'block';
     document.getElementById('dt-chevron')?.parentElement?.classList.add('open');
   }
@@ -7527,6 +7628,11 @@ function renderDetailPage(l) {
     l.chip ? {l:'İşlemci', v:l.chip} : null,
     l.battery ? {l:'Batarya Sağlığı', v:l.battery} : null,
     l.box ? {l:'Kutu/Aksesuar', v:l.box} : null,
+    // Pazar'a telefon dışı kategoriler eklendi (kulaklık/şarj cihazı) — kendi kategori-özel alanları.
+    l.earphoneType ? {l:'Tip', v:l.earphoneType} : null,
+    l.anc ? {l:'Aktif Gürültü Önleme', v:'Var'} : null,
+    l.outputPower ? {l:'Çıkış Gücü', v:l.outputPower} : null,
+    l.connectorType ? {l:'Bağlantı Tipi', v:l.connectorType} : null,
   ].filter(Boolean);
   // Kısa ID: son 6 karakter
   const shortId = id.slice(-6).toUpperCase();
@@ -7554,7 +7660,7 @@ function renderDetailPage(l) {
       ${l.sold ? `<div class="det-status-badge st-sold"><span class="dot"></span>🔴 Satıldı</div>` : (l.condition==='Sıfır' ? `<div class="det-status-badge st-new"><span class="dot"></span>🟢 Sıfır</div>` : `<div class="det-status-badge st-used"><span class="dot"></span>🟠 ${escapeHtml(l.condition)||'İkinci El'}</div>`)}
       ${l.origin?`<div class="det-status-badge st-info">${escapeHtml(l.origin)}</div>`:''}
       ${l.location?`<div class="det-status-badge st-info">📍 ${escapeHtml(l.neighborhood ? l.location + ' · ' + l.neighborhood : l.location)}</div>`:''}
-      <div class="det-status-badge st-info" style="cursor:pointer" onclick="openImeiInfo()">🔒 IMEI Kontrolü</div>
+      ${(l.category||'telefon')==='telefon'?`<div class="det-status-badge st-info" style="cursor:pointer" onclick="openImeiInfo()">🔒 IMEI Kontrolü</div>`:''}
     </div>
     ${l.poolSystem && !l.sold ? `<div class="pool-banner det-anim" style="animation-delay:.09s">
       <div class="pool-banner-top">
@@ -10429,11 +10535,15 @@ function renderSimilarListings(l, containerId) {
   const brandGuess = (l.brand || (l.model||'').split(' ')[0] || '').toLowerCase();
   const price = parseInt(l.price || 0);
   const city = (l.city || (l.location||'').split(',')[0] || '').trim().toLowerCase();
+  const category = l.category || 'telefon';
   if (!brandGuess || !marketAllListings.length) { el.innerHTML = ''; return; }
   // Öncelik sırası: aynı marka (en ağırlıklı) > aynı fiyat aralığı (±%20) > aynı şehir.
   // Tamamen bellekteki marketAllListings üzerinde — yeni Firestore okuması yok.
+  // KATEGORİ DÜZELTMESİ (Pazar'a kulaklık/şarj cihazı eklendi): kategori filtresi ÖNCE uygulanır —
+  // aksi halde aynı marka adını paylaşan farklı kategorideki ürünler (ör. "Sony" telefon ile "Sony"
+  // kulaklık) birbirine "benzer ilan" olarak yanlışlıkla önerilirdi.
   const scored = marketAllListings
-    .filter(x => x.id !== l.id && !x.sold && x.approved !== false && !x.paused && !isListingExpired(x))
+    .filter(x => x.id !== l.id && !x.sold && x.approved !== false && !x.paused && !isListingExpired(x) && (x.category||'telefon') === category)
     .map(x => {
       let score = 0;
       const xBrand = (x.brand || (x.model||'').split(' ')[0] || '').toLowerCase();
@@ -10471,9 +10581,12 @@ function renderPriceAnalysis(l, containerId) {
   if (!user) { el.innerHTML = ''; return; } // fiyat gizliyken "ortalamanın %X altında" gibi bir kıyas da göstermek anlamsız/dolaylı sızıntı olur
   const brandGuess = (l.brand || (l.model||'').split(' ')[0] || '').toLowerCase();
   const price = parseInt(l.price || 0);
+  const category = l.category || 'telefon';
   if (!brandGuess || !price || !marketAllListings.length) { el.innerHTML = ''; return; }
+  // KATEGORİ DÜZELTMESİ: bkz. renderSimilarListings'teki aynı not — kategori eşleşmesi olmadan
+  // farklı ürün tipleri yanlışlıkla fiyat karşılaştırmasına dahil olurdu.
   const comparable = marketAllListings
-    .filter(x => x.id !== l.id && !x.sold && x.approved !== false && !x.paused && !isListingExpired(x))
+    .filter(x => x.id !== l.id && !x.sold && x.approved !== false && !x.paused && !isListingExpired(x) && (x.category||'telefon') === category)
     .filter(x => (x.brand || (x.model||'').split(' ')[0] || '').toLowerCase() === brandGuess)
     .map(x => parseInt(x.price || 0))
     .filter(p => p > 0);
