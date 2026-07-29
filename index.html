@@ -2561,17 +2561,17 @@ async function loadSystemSettings() {
 // fonksiyonlar sessizce no-op'tur. Ad Unit ID'ler Firestore'dan (systemSettings.admobBannerUnitId/
 // admobInterstitialUnitId, admin panelinden değiştirilebilir) okunur; App ID ise yalnızca native
 // tarafta (AndroidManifest → strings.xml) sabittir, değiştirmek yeni bir derleme gerektirir.
-// Gerçek Ad Unit ID'ler Ayarlar'dan girilene KADAR Google'ın RESMİ TEST ID'leri kullanılır —
-// kendi gerçek reklamına ASLA tıklanmamalı (geçersiz trafik sayılıp AdMob hesabı askıya alınabilir),
-// test ID'leriyle bu risk hiç yok.
-const ADMOB_TEST_BANNER_ID = 'ca-app-pub-3940256099942544/6300978111';
-const ADMOB_TEST_INTERSTITIAL_ID = 'ca-app-pub-3940256099942544/1033173712';
+// KASITLI TASARIM: bir ilgili Ad Unit ID gerçekten GİRİLMEDEN o reklam türü (banner/interstitial)
+// hiçbir şekilde başlatılmaz/gösterilmez — otomatik bir "test reklamı" yedeği YOK. "Reklamları
+// Göster" açık olsa bile, ID alanı boşsa uygulama tamamen eskisi gibi (reklamsız) kalır; admin
+// isterse Google'ın kendi test ID'lerini elle Ayarlar'a girip deneyebilir.
 let admobReady = false;
 let admobInterstitialLoaded = false;
 let listingDetailOpenCount = 0;
 
 async function initAdMobIfEnabled() {
   if (!isNativeApp() || !Capacitor.Plugins.AdMob || !systemSettings.adsEnabled) return;
+  if (!systemSettings.admobBannerUnitId && !systemSettings.admobInterstitialUnitId) return;
   try {
     await Capacitor.Plugins.AdMob.initialize();
     admobReady = true;
@@ -2581,13 +2581,12 @@ async function initAdMobIfEnabled() {
 }
 
 function showMarketBanner() {
-  if (!admobReady || !systemSettings.adsEnabled) return;
+  if (!admobReady || !systemSettings.adsEnabled || !systemSettings.admobBannerUnitId) return;
   Capacitor.Plugins.AdMob.showBanner({
-    adId: systemSettings.admobBannerUnitId || ADMOB_TEST_BANNER_ID,
+    adId: systemSettings.admobBannerUnitId,
     adSize: 'ADAPTIVE_BANNER',
     position: 'BOTTOM_CENTER',
     margin: 0,
-    isTesting: !systemSettings.admobBannerUnitId,
   }).catch(e => console.error('Banner gösterilemedi:', e));
 }
 function hideMarketBanner() {
@@ -2596,11 +2595,10 @@ function hideMarketBanner() {
 }
 
 function prepareAdMobInterstitial() {
-  if (!admobReady || !systemSettings.adsEnabled) return;
+  if (!admobReady || !systemSettings.adsEnabled || !systemSettings.admobInterstitialUnitId) return;
   admobInterstitialLoaded = false;
   Capacitor.Plugins.AdMob.prepareInterstitial({
-    adId: systemSettings.admobInterstitialUnitId || ADMOB_TEST_INTERSTITIAL_ID,
-    isTesting: !systemSettings.admobInterstitialUnitId,
+    adId: systemSettings.admobInterstitialUnitId,
   }).then(() => { admobInterstitialLoaded = true; }).catch(e => console.error('Interstitial hazırlanamadı:', e));
 }
 
@@ -2608,7 +2606,7 @@ function prepareAdMobInterstitial() {
 // (varsayılan 5) hazır bekleyen geçiş reklamını gösterir, ardından bir sonraki gösterim için hemen
 // yeni bir tane hazırlar.
 function maybeShowInterstitial() {
-  if (!admobReady || !systemSettings.adsEnabled) return;
+  if (!admobReady || !systemSettings.adsEnabled || !systemSettings.admobInterstitialUnitId) return;
   const freq = parseInt(systemSettings.interstitialFrequency) || 5;
   listingDetailOpenCount++;
   if (listingDetailOpenCount % freq !== 0 || !admobInterstitialLoaded) return;
