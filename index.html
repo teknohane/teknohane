@@ -338,13 +338,18 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 #img-fullscreen{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.95);align-items:center;justify-content:center;}
 #img-fullscreen.on{display:flex;}
 #img-fullscreen img{max-width:100%;max-height:100%;object-fit:contain;}
-#img-fullscreen-close{position:absolute;top:calc(var(--st)+16px);right:16px;color:#fff;font-size:28px;cursor:pointer;z-index:1001;width:40px;height:40px;display:flex;align-items:center;justify-content:center;}
+#img-fullscreen-close{position:absolute;top:max(calc(var(--st)+16px),34px);right:16px;color:#fff;font-size:28px;cursor:pointer;z-index:1001;width:40px;height:40px;display:flex;align-items:center;justify-content:center;}
 /* ==== İLAN DETAYI FOTOĞRAF GALERİSİ — img-fullscreen'den TAMAMEN AYRI, yeni bir bileşen.
    img-fullscreen Sohbet ve Forum'da da kullanıldığı için ona hiç dokunulmadı. ==== */
 #listing-gallery-mo{display:none;position:fixed;inset:0;z-index:1000;background:#000;flex-direction:column;}
 #listing-gallery-mo.on{display:flex;animation:lgfadezoom .22s cubic-bezier(.22,.61,.36,1);}
 @keyframes lgfadezoom{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
-#lg-header{display:flex;align-items:center;justify-content:space-between;padding:calc(var(--st)+14px) 16px 12px;flex-shrink:0;}
+/* GÜVENİLİRLİK DÜZELTMESİ (kullanıcı ekran görüntüsüyle bildirdi — kapat/sayaç bazı cihazlarda
+   sistem saat/simgeleriyle çakışıyordu): env(safe-area-inset-top) native tarafta edge-to-edge/inset
+   yönlendirmesi doğru kurulmadan bazı cihazlarda 0 dönebiliyordu (bkz. MainActivity.java'daki
+   WindowCompat düzeltmesi) — max() ile sabit bir alt taban eklenerek bu durumda bile üst çubuğun
+   sistem durum çubuğuyla asla çakışmaması garanti ediliyor. */
+#lg-header{display:flex;align-items:center;justify-content:space-between;padding:max(calc(var(--st)+14px),32px) 16px 12px;flex-shrink:0;}
 #lg-counter{color:#fff;font-size:13px;font-weight:700;background:rgba(255,255,255,.12);padding:6px 14px;border-radius:20px;letter-spacing:.2px;}
 #lg-close{color:#fff;font-size:22px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;background:rgba(255,255,255,.12);border-radius:50%;}
 #lg-track-wrap{flex:1;overflow:hidden;position:relative;min-height:0;}
