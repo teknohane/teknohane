@@ -637,6 +637,13 @@ body.tk-text-focus * { user-select: auto !important; -webkit-user-select: auto !
 .mcard{background:var(--surf);border:1px solid var(--border2);border-radius:14px;overflow:hidden;cursor:pointer;position:relative;box-shadow:0 2px 10px rgba(0,0,0,.2),0 0 0 1px rgba(0,212,255,.04);transition:transform .15s ease;}
 .mcard:active{transform:scale(.99);}
 .mcard.sold{opacity:.55;}
+/* REKLAM ALTYAPISI: gerçek ilan kartıyla AYNI dış kutuyu (.mcard) kullanır ki ızgarada aynı boyut/
+   hizada dursun — yalnızca içerik ve imleç farklı (tıklanamaz, henüz gerçek bir reklam ağı bağlı değil). */
+.mcard.ad-slot{cursor:default;border-style:dashed;background:var(--surf2);}
+.mcard.ad-slot:active{transform:none;}
+.ad-slot-body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:26px 12px;text-align:center;}
+.ad-slot-body .ic{font-size:20px;opacity:.5;}
+.ad-slot-body .lbl{font-size:11px;color:var(--text3);letter-spacing:.3px;text-transform:uppercase;}
 /* VİTRİN/ÖNE ÇIKAN/ACİL — rengin "tüm ilana yansıması" iki katmanla sağlanıyor: (1) sol kenarda,
    fotoğraf/metin içeriğinden bağımsız, HER ZAMAN net görünen dolu renkli bir şerit (::before) —
    asıl "anlaşılabilirlik" garantisi bu, çünkü fotoğrafın rengi/aydınlığı ne olursa olsun etkilenmiyor
@@ -6635,7 +6642,8 @@ function appendListingCards(newItems) {
   const grid = document.getElementById('lgrid');
   if (!grid) return;
   const wrap = grid.querySelector('.market-loadmore-wrap');
-  const html = newItems.map(mcardHTML).join('');
+  const alreadyRendered = grid.querySelectorAll('.mcard:not(.ad-slot)').length;
+  const html = interleaveAdSlots(newItems, alreadyRendered).map(renderMarketCard).join('');
   if (wrap) wrap.insertAdjacentHTML('beforebegin', html);
   else grid.insertAdjacentHTML('beforeend', html);
 }
@@ -6775,6 +6783,33 @@ function listingCardSignature(l) {
   return [l.id, l.price, l.sold, l.showcase, l.featured, l.urgent, l.poolSystem, l.photo1||''].join('|');
 }
 
+// ==== REKLAM ALTYAPISI (Pazar) ====
+// Yönetim panelinden (adsEnabled/adFrequency, bkz. systemSettings) kontrol edilir. Şu an gerçek bir
+// reklam ağı (AdMob vb.) BAĞLI DEĞİL — bilinçli bir kapsam kararı, henüz erken (bkz. proje notu).
+// Yalnızca yer/altyapı hazırlanıyor: ilerde gerçek reklam SDK'sı entegre edilince yalnızca
+// renderAdSlotHTML()'in içeriği değişecek, interleaveAdSlots/renderMarketCard/çağıran taraflar
+// (rlistings/appendListingCards) hiç değişmeyecek. Yalnızca Pazar'ın "Tümü" sekmesinde gösterilir —
+// Favorilerim/İlanlarım gibi kişisel listelerde (kişisel içerik) hiç reklam gösterilmez.
+function renderAdSlotHTML() {
+  return `<div class="mcard ad-slot"><div class="ad-slot-body"><div class="ic">📢</div><div class="lbl">Reklam Alanı</div></div></div>`;
+}
+// items (yalnızca gerçek ilanlar) dizisini { real } / { ad:true } zarflarına çevirip her adFrequency
+// gerçek karttan sonra bir reklam zarfı ekler. startIndex, sayfalamada (appendListingCards) bu ana
+// kadar zaten gösterilmiş gerçek kart sayısıdır — aralığın sayfalar arasında da tutarlı kalmasını sağlar.
+function interleaveAdSlots(items, startIndex) {
+  const freq = parseInt(systemSettings.adFrequency) || 8;
+  if (!systemSettings.adsEnabled || mktab !== 'all' || freq < 1) return items.map(l => ({ real: l }));
+  const out = [];
+  items.forEach((l, i) => {
+    out.push({ real: l });
+    if ((startIndex + i + 1) % freq === 0) out.push({ ad: true });
+  });
+  return out;
+}
+function renderMarketCard(entry) {
+  return entry.ad ? renderAdSlotHTML() : mcardHTML(entry.real);
+}
+
 function rlistings() {
   const grid = document.getElementById('lgrid');
   if (!grid) return;
@@ -6840,7 +6875,7 @@ function rlistings() {
   // duran görseller yeniden decode/paint edilmek zorunda kalmıyor.
   const sig = items.map(listingCardSignature).join(';;');
   if (grid._renderedSig === sig) { renderMarketLoadMoreControl(); return; }
-  grid.innerHTML = items.map(mcardHTML).join('');
+  grid.innerHTML = interleaveAdSlots(items, 0).map(renderMarketCard).join('');
   grid._renderedSig = sig;
   renderMarketLoadMoreControl();
   } catch(e) {
