@@ -4182,6 +4182,7 @@ const NOTIF_TYPE_CATEGORY = {
   listing_approved: 'market', listing_rejected: 'market', saved_search_match: 'market',
   listing_question: 'market', listing_question_answered: 'market', followed_new_listing: 'followers',
   post_liked: 'forum', post_comment: 'forum', comment_liked: 'forum', comment_reply: 'forum',
+  forum_post_approved: 'forum', forum_post_rejected: 'forum',
   admin_notification: 'system', admin_warning: 'system', complaint_update: 'system',
   new_message: 'messages',
   pool_request: 'market', pool_reply: 'market',
@@ -4457,6 +4458,13 @@ async function notifyAdminsOfEvent(permKey, title, body, refId, persistExtra) {
 // adminlere anlık push gönderir.
 function notifyAdminsNewListing(listingId, model, ownerName) {
   notifyAdminsOfEvent('manageListings', '🟢 Yeni ilan onaya gönderildi', `${model}\nGönderen: ${ownerName}`, listingId);
+}
+
+// Forum: yeni bir konu onaya gönderildiğinde, forum moderasyonu yetkisi (manageListings — bkz.
+// Yönetim Paneli'ndeki Forum sekmesi izni) olan adminlere anlık push gönderir. refId burada
+// postId'dir — Worker/bell paneli tarafında listingId ile aynı şekilde ele alınır.
+function notifyAdminsNewForumPost(postId, title, authorName) {
+  notifyAdminsOfEvent('manageListings', '🟢 Yeni konu onaya gönderildi', `${title}\nGönderen: ${authorName}`, postId);
 }
 
 // Havuz Sistemi talebi: push'a EK olarak, AYNI hedef kitleye (manageListings yetkili adminler)
@@ -4930,6 +4938,8 @@ const NOTIF_ICONS = {
   listing_expired: { ic: '⏰', bg: 'rgba(0,212,255,.12)' },
   listing_approved: { ic: '✅', bg: 'rgba(48,209,88,.15)' },
   listing_rejected: { ic: '❌', bg: 'rgba(255,69,58,.15)' },
+  forum_post_approved: { ic: '✅', bg: 'rgba(48,209,88,.15)' },
+  forum_post_rejected: { ic: '❌', bg: 'rgba(255,69,58,.15)' },
   saved_search_match: { ic: '🔔', bg: 'rgba(0,212,255,.12)' },
   listing_question: { ic: '💬', bg: 'rgba(0,212,255,.12)' },
   listing_question_answered: { ic: '↩️', bg: 'rgba(48,209,88,.15)' },
@@ -8165,7 +8175,10 @@ async function loadForumPage(reset) {
     let q = db.collection('teknohane_posts').orderBy('createdAt', 'desc').limit(50);
     if (forumLastDoc) q = q.startAfter(forumLastDoc);
     const snap = await q.get();
-    let newItems = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.archived !== true);
+    // MODERASYON: approved===false olan (henüz onaylanmamış) konular herkese açık listeden
+    // gizlenir — !== false kullanılır (=== true DEĞİL) ki alanın hiç olmadığı eski konular
+    // (bu alan eklenmeden önce açılmış) geriye dönük olarak görünür kalmaya devam etsin.
+    let newItems = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.archived !== true && p.approved !== false);
     forumLastDoc = snap.docs[snap.docs.length - 1] || forumLastDoc;
     forumHasMore = snap.docs.length === 50;
     if (reset) {
@@ -8284,7 +8297,7 @@ async function runForumSearch(query) {
     const snap = await db.collection('teknohane_posts')
       .where('titleLower', '>=', query).where('titleLower', '<=', query + '\uf8ff')
       .limit(20).get();
-    forumPosts = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.archived !== true);
+    forumPosts = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.archived !== true && p.approved !== false);
     rForum();
   } catch (e) {
     console.error('Forum araması başarısız:', e);
@@ -8431,12 +8444,16 @@ async function submitPost() {
       bestAnswer: null,
       resolved: false,
       pinned: false, featured: false, locked: false, archived: false,
+      // MODERASYON: Pazar (teknohane_listings) ile AYNI desen — yeni konular admin onayına
+      // düşer, cevaplar (submitComment) bundan etkilenmez, anında yayınlanır.
+      approved: false,
       followers: [user.uid],
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
     if (npPhotoB64) data.imageUrl = npPhotoB64;
     const ref = await db.collection('teknohane_posts').add(data);
     const savedPostId = ref.id;
+    notifyAdminsNewForumPost(savedPostId, title, data.authorName);
 
     closemo('new-post-mo');
     npPhotoB64 = null;
@@ -8454,7 +8471,7 @@ async function submitPost() {
     adminForumPosts = [localPost, ...adminForumPosts.filter(p => p.id !== savedPostId)];
     rForum();
 
-    showToast('✅','rgba(48,209,88,.15)','Konu Yayınlandı','Konunuz foruma eklendi.');
+    showToast('⏳','rgba(255,159,10,.15)','Konu Gönderildi','İncelendikten sonra foruma yayınlanacaktır.');
   } catch(e) { showErrorToast(e); } finally { releaseSubmit('post'); }
 }
 
@@ -8501,8 +8518,14 @@ function renderPostDetail() {
   const catLabel = POST_CATS[p.category] || '';
   const authorSafe = escapeHtml(p.authorName || '—');
   const authorJs = escapeJsAttr(p.authorName||'');
+  // Forum'a Pazar (teknohane_listings) ile AYNI moderasyon deseni eklendi — yeni konular admin
+  // onayı bekler, cevaplar (comments) onay gerektirmez. Banner metni/koşulu renderDetailPage'deki
+  // (Pazar ilan detayı) `pending` bloğuyla BİREBİR aynı.
+  const pending = p.approved === false;
   document.getElementById('post-detail-body').innerHTML = `
     <div class="post-detail-header">
+      ${pending && isOwner && !isAdmin ? `<div style="background:rgba(255,149,0,.12);border:1px solid rgba(255,149,0,.3);color:#FF9500;font-size:13px;font-weight:700;padding:8px 14px;border-radius:10px;margin-bottom:12px;text-align:center">⏳ Konunuz inceleniyor, onaylandığında foruma görünecek</div>` : ''}
+      ${pending && isAdmin ? `<div style="background:rgba(255,149,0,.12);border:1px solid rgba(255,149,0,.3);color:#FF9500;font-size:13px;font-weight:700;padding:8px 14px;border-radius:10px;margin-bottom:12px;text-align:center">⏳ Onay bekliyor</div>` : ''}
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap">
         <div class="post-type-badge ${pt.cls}">${pt.label}</div>
         ${catLabel?`<div class="post-cat-badge">${catLabel}</div>`:''}
