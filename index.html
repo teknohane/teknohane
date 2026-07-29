@@ -641,6 +641,8 @@ body.tk-text-focus * { user-select: auto !important; -webkit-user-select: auto !
    hizada dursun — yalnızca içerik ve imleç farklı (tıklanamaz, henüz gerçek bir reklam ağı bağlı değil). */
 .mcard.ad-slot{cursor:default;border-style:dashed;background:var(--surf2);}
 .mcard.ad-slot:active{transform:none;}
+.mcard.ad-slot.ad-slot-real{cursor:pointer;border-style:solid;}
+.mcard.ad-slot.ad-slot-real:active{transform:scale(.99);}
 .ad-slot-body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:26px 12px;text-align:center;}
 .ad-slot-body .ic{font-size:20px;opacity:.5;}
 .ad-slot-body .lbl{font-size:11px;color:var(--text3);letter-spacing:.3px;text-transform:uppercase;}
@@ -6842,13 +6844,34 @@ function listingCardSignature(l) {
 }
 
 // ==== REKLAM ALTYAPISI (Pazar) ====
-// Yönetim panelinden (adsEnabled/adFrequency, bkz. systemSettings) kontrol edilir. Şu an gerçek bir
-// reklam ağı (AdMob vb.) BAĞLI DEĞİL — bilinçli bir kapsam kararı, henüz erken (bkz. proje notu).
-// Yalnızca yer/altyapı hazırlanıyor: ilerde gerçek reklam SDK'sı entegre edilince yalnızca
-// renderAdSlotHTML()'in içeriği değişecek, interleaveAdSlots/renderMarketCard/çağıran taraflar
-// (rlistings/appendListingCards) hiç değişmeyecek. Yalnızca Pazar'ın "Tümü" sekmesinde gösterilir —
-// Favorilerim/İlanlarım gibi kişisel listelerde (kişisel içerik) hiç reklam gösterilmez.
+// Yönetim panelinden (adsEnabled/adFrequency, bkz. systemSettings) kontrol edilir. Yalnızca Pazar'ın
+// "Tümü" sekmesinde gösterilir — Favorilerim/İlanlarım gibi kişisel listelerde hiç reklam gösterilmez.
+// İki katman var: (1) AdMob (banner/interstitial, ayrı — bkz. initAdMobIfEnabled), (2) burada:
+// doğrudan anlaşmalı görsel+link reklamlar (teknohane_direct_ads, admin panelinden yönetilir).
+// Aktif bir doğrudan reklam VARSA o gösterilir; yoksa (admin "Reklamları Göster"ı açtı ama henüz
+// içerik eklemedi) basit bir "📢 Reklam Alanı" yer tutucusu gösterilir.
+let directAds = [];
+async function loadDirectAds() {
+  try {
+    const snap = await db.collection('teknohane_direct_ads').where('active', '==', true).get();
+    directAds = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch(e) { directAds = []; }
+}
+function trackAdImpression(adId) {
+  db.collection('teknohane_direct_ads').doc(adId).update({ impressions: firebase.firestore.FieldValue.increment(1) }).catch(()=>{});
+}
+function openDirectAd(adId, linkUrl) {
+  db.collection('teknohane_direct_ads').doc(adId).update({ clicks: firebase.firestore.FieldValue.increment(1) }).catch(()=>{});
+  if (linkUrl) ol(linkUrl);
+}
 function renderAdSlotHTML() {
+  if (directAds.length) {
+    const ad = directAds[Math.floor(Math.random() * directAds.length)];
+    trackAdImpression(ad.id);
+    return `<div class="mcard ad-slot ad-slot-real" onclick="openDirectAd('${ad.id}','${escapeJsAttr(ad.linkUrl||'')}')">
+      <img src="${escapeHtml(ad.imageUrl)}" alt="${escapeHtml(ad.title||'Reklam')}" style="width:100%;height:100%;object-fit:cover;display:block" loading="lazy">
+    </div>`;
+  }
   return `<div class="mcard ad-slot"><div class="ad-slot-body"><div class="ic">📢</div><div class="lbl">Reklam Alanı</div></div></div>`;
 }
 // items (yalnızca gerçek ilanlar) dizisini { real } / { ad:true } zarflarına çevirip her adFrequency
@@ -11488,6 +11511,7 @@ initTheme();
 rhome();
 handleSharedListingLink();
 loadSystemSettings().then(initAdMobIfEnabled);
+loadDirectAds();
 setTimeout(() => loadExtraPhones(), 3000); // arka planda, sayfa yüklenip biraz sakinleştikten sonra
 checkOnboarding();
 updateOnlineStatus();
