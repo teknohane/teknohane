@@ -2553,6 +2553,13 @@ auth.onAuthStateChanged(u => {
     loadMyAdminRole(u.uid);
     loadActiveAnnouncements();
     startMyListingsListener(u.uid); // Kendi ilanlarım — dar kapsamlı dinleyici
+    // GÜVENİLİRLİK DÜZELTMESİ: push token senkronizasyonu eskiden YALNIZCA kullanıcı Profil'deki
+    // Bildirimler panelini gerçekten görüntülerse tetikleniyordu (bkz. pushPanelHTML) — hiç o ekrana
+    // girmeyen kullanıcılar (büyük çoğunluk) için token Firestore'a hiç yazılmıyor, dolayısıyla o
+    // kullanıcıya HİÇBİR push (sohbet, onay, duyuru — hiçbiri) asla ulaşamıyordu. Artık her girişte
+    // sessizce (silent=true, hata/izin reddi göstermez) bir kez denenir — pushAutoSyncDone bayrağı
+    // pushPanelHTML ile paylaşılıyor, o ekran daha sonra açılırsa tekrar denemez.
+    if (!pushAutoSyncDone) { pushAutoSyncDone = true; setTimeout(() => setupPush(true), 800); }
     // Favoriler dinleyicisi, favs Set'i syncUserProfile'dan gelince (aşağıda) kurulacak.
   } else {
     document.getElementById('hav').style.display = 'none';
