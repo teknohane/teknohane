@@ -1097,6 +1097,12 @@ body.tk-text-focus * { user-select: auto !important; -webkit-user-select: auto !
 .picker-opt{padding:14px 16px;font-size:15px;border-radius:12px;cursor:pointer;}
 .picker-opt:active{background:var(--surf2);}
 .picker-opt.active{color:var(--cyan);font-weight:700;background:rgba(0,212,255,.08);}
+/* Paylaşım menüsü — İlan/Forum konusu/Profil paylaşımının üçünün de ORTAK kullandığı platform ızgarası. */
+.share-opt-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px 8px;padding:6px 2px 10px;}
+.share-opt{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;}
+.share-opt:active{opacity:.7;}
+.share-opt-ic{width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;}
+.share-opt-lbl{font-size:11px;color:var(--text2);text-align:center;line-height:1.2;}
 /* Özel tarih/saat seçici (custom datetime picker) — native <input type="datetime-local">'ın bu
    WebView'de içeriği hiç çizmeyip boş/beyaz kalması sorununu (adb ile kanıtlandı) ortadan kaldırmak
    için, aynı .csel deseninde tamamen uygulama içi bir takvim + saat kaydırıcı. */
@@ -2038,6 +2044,14 @@ body.tk-maintenance #maintenance-gate{
       <button class="apbtn" id="confirm-mo-cancel" style="margin-top:0;flex:1">İptal</button>
       <button class="sbtn2" id="confirm-mo-ok" style="flex:1">Onayla</button>
     </div>
+  </div>
+</div>
+
+<div class="mo" id="share-mo" onclick="closemo('share-mo')">
+  <div class="ms" onclick="event.stopPropagation()" style="max-height:50vh">
+    <div class="mh"></div>
+    <div class="mtit">Paylaş</div>
+    <div id="share-options" class="share-opt-grid"></div>
   </div>
 </div>
 
@@ -8057,6 +8071,46 @@ function exitDetailPage(toMarket) {
   if (toMarket) gt('market');
 }
 
+// ==== PAYLAŞIM MENÜSÜ ====
+// İlan/Forum konusu/Profil paylaşımının ÜÇÜNÜN de ortak kullandığı, WhatsApp/Facebook/X/Telegram'a
+// tek dokunuşla, her platformun kendi resmî paylaşım URL şemasıyla giden bir seçenek ızgarası.
+// "Diğer" seçeneği, önceki (native Capacitor Share / navigator.share) davranışı SMS/e-posta/Instagram
+// gibi burada ayrı bir buton olarak listelenmeyen uygulamalar için yedek olarak koruyor.
+function openShareMenu(title, text, url) {
+  const full = `${text} ${url}`;
+  const wa = 'https://wa.me/?text=' + encodeURIComponent(full);
+  const fb = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url);
+  const tw = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(text) + '&url=' + encodeURIComponent(url);
+  const tg = 'https://t.me/share/url?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent(text);
+  const titleJs = escapeJsAttr(title), textJs = escapeJsAttr(text), urlJs = escapeJsAttr(url), fullJs = escapeJsAttr(full);
+  document.getElementById('share-options').innerHTML = `
+    <div class="share-opt" onclick="closemo('share-mo');ol('${escapeJsAttr(wa)}')"><div class="share-opt-ic" style="background:#25D366">💬</div><div class="share-opt-lbl">WhatsApp</div></div>
+    <div class="share-opt" onclick="closemo('share-mo');ol('${escapeJsAttr(fb)}')"><div class="share-opt-ic" style="background:#1877F2">📘</div><div class="share-opt-lbl">Facebook</div></div>
+    <div class="share-opt" onclick="closemo('share-mo');ol('${escapeJsAttr(tw)}')"><div class="share-opt-ic" style="background:#000">𝕏</div><div class="share-opt-lbl">X / Twitter</div></div>
+    <div class="share-opt" onclick="closemo('share-mo');ol('${escapeJsAttr(tg)}')"><div class="share-opt-ic" style="background:#26A5E4">✈️</div><div class="share-opt-lbl">Telegram</div></div>
+    <div class="share-opt" onclick="closemo('share-mo');copyShareLink('${fullJs}')"><div class="share-opt-ic" style="background:var(--surf3);color:var(--text2)">🔗</div><div class="share-opt-lbl">Linki Kopyala</div></div>
+    <div class="share-opt" onclick="closemo('share-mo');openNativeShare('${titleJs}','${textJs}','${urlJs}')"><div class="share-opt-ic" style="background:var(--surf3);color:var(--text2)">⋯</div><div class="share-opt-lbl">Diğer</div></div>
+  `;
+  document.getElementById('share-mo').classList.add('on');
+}
+function copyShareLink(full) {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(full).then(() => showToast('🔗','var(--cdim)','Bağlantı Kopyalandı','Link panoya kopyalandı.'));
+  } else {
+    const el = document.createElement('textarea');
+    el.value = full; document.body.appendChild(el); el.select(); document.execCommand('copy'); el.remove();
+    showToast('🔗','var(--cdim)','Bağlantı Kopyalandı','Link panoya kopyalandı.');
+  }
+}
+async function openNativeShare(title, text, url) {
+  if (isNativeApp() && window.Capacitor?.Plugins?.Share) {
+    try { await Capacitor.Plugins.Share.share({ title, text, url }); return; }
+    catch(e) { if (e?.message?.includes('cancel')) return; }
+  }
+  if (navigator.share) { navigator.share({ title, text, url }).catch(()=>{}); return; }
+  copyShareLink(`${text} ${url}`);
+}
+
 async function shareListing(id) {
   const l = await getListingById(id);
   if (!l) return;
@@ -8065,31 +8119,7 @@ async function shareListing(id) {
   // AÇILABİLİR olması gerekiyor (bkz. profil paylaşımındaki aynı sabit desen).
   const url = 'https://teknohane.github.io/teknohane/?listing=' + id;
   const text = `${l.model} - ₺${parseInt(l.price||0).toLocaleString('tr-TR')}\nTeknohane'de incele:`;
-  // Native Capacitor Share eklentisi varsa (Kamera'da kullandığımız aynı özellik algılama deseni)
-  // Android'in sistem paylaşım menüsünü doğrudan onunla açıyoruz — yoksa navigator.share zaten
-  // aynı sistem menüsünü açıyor (modern Android WebView'lerde desteklenir), o yola düşülüyor.
-  if (isNativeApp() && window.Capacitor?.Plugins?.Share) {
-    try { await Capacitor.Plugins.Share.share({ title: l.model, text, url, dialogTitle: 'İlanı Paylaş' }); return; }
-    catch(e) { if (e?.message?.includes('cancel')) return; /* diğer hatalarda aşağıdaki yollara düş */ }
-  }
-  if (navigator.share) {
-    navigator.share({ title: l.model, text, url }).catch(()=>{});
-    return;
-  }
-  const full = `${text} ${url}`;
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(full).then(() => {
-      showToast('🔗','var(--cdim)','Bağlantı Kopyalandı','İlan linki panoya kopyalandı.');
-    });
-  } else {
-    const el = document.createElement('textarea');
-    el.value = full;
-    document.body.appendChild(el);
-    el.select();
-    document.execCommand('copy');
-    el.remove();
-    showToast('🔗','var(--cdim)','Bağlantı Kopyalandı','İlan linki panoya kopyalandı.');
-  }
+  openShareMenu(l.model, text, url);
 }
 
 function copyListingId(shortId, fullId) {
@@ -9004,19 +9034,7 @@ async function shareForumPost(id) {
   // artık https://localhost, paylaşılan link herkes için açılabilir olmalı.
   const url = 'https://teknohane.github.io/teknohane/?post=' + id;
   const text = `${p.title}\nTeknohane Forum'da incele:`;
-  if (isNativeApp() && window.Capacitor?.Plugins?.Share) {
-    try { await Capacitor.Plugins.Share.share({ title: p.title, text, url, dialogTitle: 'Konuyu Paylaş' }); return; }
-    catch(e) { if (e?.message?.includes('cancel')) return; }
-  }
-  if (navigator.share) { navigator.share({ title: p.title, text, url }).catch(()=>{}); return; }
-  const full = `${text} ${url}`;
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(full).then(() => showToast('🔗','var(--cdim)','Bağlantı Kopyalandı','Konu linki panoya kopyalandı.'));
-  } else {
-    const el = document.createElement('textarea');
-    el.value = full; document.body.appendChild(el); el.select(); document.execCommand('copy'); el.remove();
-    showToast('🔗','var(--cdim)','Bağlantı Kopyalandı','Konu linki panoya kopyalandı.');
-  }
+  openShareMenu(p.title, text, url);
 }
 
 // Beğeni toggle (yorum)
@@ -9542,17 +9560,10 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
   }).catch(()=>{});
 }
 
-async function shareProfile(uid, name) {
+function shareProfile(uid, name) {
   const url = `https://teknohane.github.io/teknohane/?profile=${uid}`;
-  const shareData = { title: `Teknohane — ${name}`, text: `${name} adlı kullanıcının Teknohane profiline göz at.`, url };
-  try {
-    if (navigator.share) {
-      await navigator.share(shareData);
-    } else {
-      await navigator.clipboard.writeText(url);
-      showToast('✓', 'rgba(48,209,88,.15)', 'Kopyalandı', 'Profil bağlantısı panoya kopyalandı.');
-    }
-  } catch (e) { /* kullanıcı paylaşımı iptal etmiş olabilir, sessizce geç */ }
+  const text = `${name} adlı kullanıcının Teknohane profiline göz at.`;
+  openShareMenu(`Teknohane — ${name}`, text, url);
 }
 
 // Takip listesi, hedef kullanıcının dokümanına değil, TAKİP EDENİN kendi dokümanına yazılır
