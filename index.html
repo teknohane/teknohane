@@ -606,6 +606,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 /* TOAST BİLDİRİM */
 #offline-bar{display:none;position:fixed;top:var(--st);left:0;right:0;z-index:550;background:rgba(255,149,0,.95);backdrop-filter:blur(8px);color:#000;font-size:12px;font-weight:700;text-align:center;padding:7px;letter-spacing:.2px;}
 #offline-bar.on{display:block;}
+#text-sel-toolbar{position:fixed;left:0;right:0;bottom:0;z-index:900;display:none;gap:6px;padding:8px 10px;background:var(--bg2);border-top:1px solid var(--border2);box-shadow:0 -4px 16px rgba(0,0,0,.25);}
+#text-sel-toolbar button{flex:1;background:var(--surf2);border:1px solid var(--border2);color:var(--text);font-size:12.5px;font-weight:600;font-family:inherit;padding:9px 4px;border-radius:10px;cursor:pointer;}
+#text-sel-toolbar button:disabled{opacity:.4;}
 
 #toast-wrap{position:fixed;top:calc(var(--st) + 64px);left:16px;right:16px;z-index:500;display:flex;flex-direction:column;gap:8px;pointer-events:none;}
 .toast{background:var(--surf2);backdrop-filter:blur(16px);border:1px solid var(--border);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,.4);pointer-events:all;cursor:pointer;animation:tin .3s ease;}
@@ -1238,6 +1241,12 @@ body.tk-maintenance #maintenance-gate{
 <div id="app">
 <div id="offline-bar">📡 İnternet bağlantısı yok — bazı içerikler güncellenemiyor</div>
 <div id="toast-wrap"></div>
+<div id="text-sel-toolbar" style="display:none">
+  <button type="button" id="tst-cut" onmousedown="event.preventDefault()" onclick="tstAction('cut')">✂️ Kes</button>
+  <button type="button" id="tst-copy" onmousedown="event.preventDefault()" onclick="tstAction('copy')">📄 Kopyala</button>
+  <button type="button" onmousedown="event.preventDefault()" onclick="tstAction('paste')">📋 Yapıştır</button>
+  <button type="button" onmousedown="event.preventDefault()" onclick="tstAction('selectall')">🔘 Tümünü Seç</button>
+</div>
 
 <!-- KARŞILAMA EKRANI -->
 <div id="welcome-mo">
@@ -12017,6 +12026,109 @@ document.addEventListener('focusout', e => {
     }
   }, 0);
 });
+
+// ==== ÖZEL METİN SEÇİM ARAÇ ÇUBUĞU (Kes/Kopyala/Yapıştır/Tümünü Seç) ====
+// KESİN KÖK NEDEN DÜZELTMESİ: Android'in native ActionMode metin seçim araç çubuğu, ekran
+// görüntüsüyle doğrulanan bir hata nedeniyle bu uygulamada güvenilir çalışmıyor (ekranın büyük bir
+// kısmını kaplayan boş/bozuk bir pencere açılıyor) — MainActivity.java'da TAMAMEN bastırıldı (bkz.
+// onWindowStartingActionMode, TYPE_FLOATING → null). Native araç çubuğuna hiç ihtiyaç duymayan,
+// tamamen kendi HTML/JS'imizle çalışan bir alternatif: herhangi bir input/textarea odaklandığında
+// görünür, seçim durumuna göre Kes/Kopyala etkinleşir/pasifleşir. Metni SEÇMEK (sürükleme
+// tutamaçları) native mekanizmayla, yalnızca ARIZALI araç çubuğu penceresi devre dışı — bu yüzden
+// burada yalnızca eylemler (kes/kopyala/yapıştır/tümünü seç) uygulanıyor, seçimin kendisi değil.
+let tstTarget = null;
+// Edge-to-edge açık olduğu için klavye artık içerik alanını otomatik küçültmüyor (IME inset olarak
+// raporlanıyor) — araç çubuğunun klavyenin ALTINDA gizli kalmaması için visualViewport'un kendi
+// resize/scroll olaylarıyla klavye yüksekliği izlenip konum buna göre güncelleniyor.
+function updateTextSelToolbarPosition() {
+  const bar = document.getElementById('text-sel-toolbar');
+  if (!bar || !window.visualViewport) return;
+  const vv = window.visualViewport;
+  const kbHeight = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+  bar.style.bottom = kbHeight + 'px';
+}
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', updateTextSelToolbarPosition);
+  window.visualViewport.addEventListener('scroll', updateTextSelToolbarPosition);
+}
+function showTextSelToolbar(el) {
+  tstTarget = el;
+  const bar = document.getElementById('text-sel-toolbar');
+  if (!bar) return;
+  bar.style.display = 'flex';
+  updateTextSelToolbarPosition();
+  updateTextSelToolbarState();
+}
+function hideTextSelToolbar() {
+  tstTarget = null;
+  const bar = document.getElementById('text-sel-toolbar');
+  if (bar) bar.style.display = 'none';
+}
+function updateTextSelToolbarState() {
+  if (!tstTarget) return;
+  const hasSel = tstTarget.selectionStart !== tstTarget.selectionEnd;
+  const cutBtn = document.getElementById('tst-cut');
+  const copyBtn = document.getElementById('tst-copy');
+  if (cutBtn) cutBtn.disabled = !hasSel;
+  if (copyBtn) copyBtn.disabled = !hasSel;
+}
+document.addEventListener('focusin', e => {
+  if (e.target.matches?.('input, textarea')) showTextSelToolbar(e.target);
+});
+document.addEventListener('focusout', e => {
+  if (!e.target.matches?.('input, textarea')) return;
+  setTimeout(() => {
+    const active = document.activeElement;
+    if (!active || !active.matches?.('input, textarea')) hideTextSelToolbar();
+  }, 0);
+});
+document.addEventListener('selectionchange', () => {
+  if (tstTarget && document.activeElement === tstTarget) updateTextSelToolbarState();
+});
+async function tstClipboardWrite(text) {
+  if (isNativeApp() && window.Capacitor?.Plugins?.Clipboard) {
+    await Capacitor.Plugins.Clipboard.write({ string: text });
+  } else if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+  }
+}
+async function tstClipboardRead() {
+  if (isNativeApp() && window.Capacitor?.Plugins?.Clipboard) {
+    const res = await Capacitor.Plugins.Clipboard.read();
+    return res?.value || '';
+  } else if (navigator.clipboard?.readText) {
+    try { return await navigator.clipboard.readText(); } catch(e) { return ''; }
+  }
+  return '';
+}
+async function tstAction(action) {
+  const el = tstTarget;
+  if (!el) return;
+  const start = el.selectionStart, end = el.selectionEnd;
+  const selected = el.value.slice(start, end);
+  try {
+    if (action === 'copy' || action === 'cut') {
+      if (!selected) return;
+      await tstClipboardWrite(selected);
+      if (action === 'cut') {
+        el.value = el.value.slice(0, start) + el.value.slice(end);
+        el.setSelectionRange(start, start);
+        el.dispatchEvent(new Event('input'));
+      }
+    } else if (action === 'paste') {
+      const text = await tstClipboardRead();
+      if (!text) return;
+      el.value = el.value.slice(0, start) + text + el.value.slice(end);
+      const newPos = start + text.length;
+      el.setSelectionRange(newPos, newPos);
+      el.dispatchEvent(new Event('input'));
+    } else if (action === 'selectall') {
+      el.select();
+    }
+  } catch(e) {}
+  el.focus();
+  updateTextSelToolbarState();
+}
 
 // ==== YEREL PAKET + ARKA PLANDA İÇERİK GÜNCELLEME (Madde 7 — performans raporu) ====
 // Kök neden: uygulama eskiden capacitor.config.json'daki server.url ile her soğuk açılışta
