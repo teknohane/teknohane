@@ -1702,7 +1702,7 @@ body.tk-maintenance #maintenance-gate{
     <div class="fg" id="l-accessory-type-wrap" style="display:none">
       <label class="fl">Aksesuar Türü</label>
       <div class="csel" data-for="l-accessory-type" data-title="Aksesuar Türü" onclick="openPicker(this)"><span class="csel-label">Kılıf</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
-      <select id="l-accessory-type" style="display:none" onchange="onAccessoryTypeChange()"><option value="kilif">Kılıf</option><option value="sarj">Şarj Adaptörü</option></select>
+      <select id="l-accessory-type" style="display:none" onchange="onAccessoryTypeChange()"><option value="kilif">Kılıf</option><option value="sarj">Şarj Adaptörü</option><option value="kablo">Şarj Kablosu</option><option value="powerbank">Powerbank</option><option value="ekran-koruyucu">Ekran Koruyucu</option><option value="hafiza-karti">Hafıza Kartı</option></select>
     </div>
     <div class="fg"><label class="fl">Marka</label>
       <div class="csel" data-for="l-brand" data-title="Marka Seç" onclick="openPicker(this)"><span class="csel-label">Marka Seçin</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
@@ -1761,6 +1761,27 @@ body.tk-maintenance #maintenance-gate{
             <select id="l-connector-type" style="display:none"><option>USB-C</option><option>Lightning</option><option>Micro USB</option><option>Diğer</option></select>
           </div>
         </div>
+      </div>
+      <div id="l-kablo-subfields" style="display:none">
+        <div class="fg2-row">
+          <div class="fg2"><label class="fl">Kablo Uzunluğu</label><input class="fi" type="text" id="l-cable-length" placeholder="1m"></div>
+          <div class="fg2"><label class="fl">Bağlantı Tipi</label>
+            <div class="csel" data-for="l-cable-connector-type" data-title="Bağlantı Tipi" onclick="openPicker(this)"><span class="csel-label">USB-C</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+            <select id="l-cable-connector-type" style="display:none"><option>USB-C</option><option>Lightning</option><option>Micro USB</option><option>Diğer</option></select>
+          </div>
+        </div>
+      </div>
+      <div id="l-powerbank-subfields" style="display:none">
+        <div class="fg"><label class="fl">Kapasite</label><input class="fi" type="text" id="l-powerbank-capacity" placeholder="20000mAh"></div>
+      </div>
+      <div id="l-ekran-koruyucu-subfields" style="display:none">
+        <div class="fg"><label class="fl">Malzeme</label>
+          <div class="csel" data-for="l-screen-protector-material" data-title="Malzeme" onclick="openPicker(this)"><span class="csel-label">Cam</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <select id="l-screen-protector-material" style="display:none"><option>Cam</option><option>Plastik</option></select>
+        </div>
+      </div>
+      <div id="l-hafiza-karti-subfields" style="display:none">
+        <div class="fg"><label class="fl">Kapasite</label><input class="fi" type="text" id="l-memory-card-capacity" placeholder="128GB"></div>
       </div>
       <div class="fg2-row">
         <div class="fg2"><label class="fl">Renk</label><input class="fi" type="text" id="l-color" placeholder="Siyah"></div>
@@ -6850,7 +6871,7 @@ function mcardHTML(l) {
         ${user
           ? `<div class="mcard-price"><span class="cur">₺</span>${parseInt(l.price||0).toLocaleString('tr-TR')}</div>`
           : `<div class="mcard-price-locked" onclick="event.stopPropagation();gt('profile')">🔒 Giriş yap</div>`}
-        <div class="mcard-title">${l.category==='akillisaat'?'⌚ ':l.category==='kulaklik'?'🎧 ':listingEffectiveCategory(l)==='aksesuar'?(listingEffectiveAccessoryType(l)==='sarj'?'🔌 ':'🛡️ '):''}${escapeHtml(l.model)}</div>
+        <div class="mcard-title">${l.category==='akillisaat'?'⌚ ':l.category==='kulaklik'?'🎧 ':listingEffectiveCategory(l)==='aksesuar'?(ACCESSORY_TYPE_ICON[listingEffectiveAccessoryType(l)]||'🎒')+' ':''}${escapeHtml(l.model)}</div>
         <div class="mcard-loc">📍 ${escapeHtml(l.location)||'Belirtilmedi'}${l.createdAt?.toDate?` · <span class="mcard-date">${timeAgo(l.createdAt.toDate())}</span>`:''}${remaining?` · <span class="mcard-date" style="color:${remaining.urgent?'var(--red)':'var(--text3)'}">${remaining.text}</span>`:''}</div>
         <div class="mcard-foot" onclick="event.stopPropagation()">
           ${l.ownerName?`<div class="mcard-seller" onclick="openPublicProfile('${l.uid}','${escapeJsAttr(l.ownerName)}')"><span class="mcard-seller-name">${escapeHtml(l.ownerName)}</span>${mine?'<span class="mcard-seller-me">· Siz</span>':''}</div>`:'<span></span>'}
@@ -7129,11 +7150,25 @@ const PHONE_BRANDS = [
   'Diğer',
 ];
 
+// Aksesuar kategorisi için hazır marka listesi — telefon markalarıyla AYNI picker+"Diğer" mekanizmasını
+// kullanır (bkz. getListingBrandValue/setListingBrandValue, ikisi de hiç değiştirilmedi), yalnızca
+// hangi listenin yüklendiği kategoriye göre değişir (bkz. populateListingBrandOptions).
+const ACCESSORY_BRANDS = ['Anker','Baseus','UGREEN','Spigen','ESR','Ringke','Nillkin','Remax','Hoco','Apple','Samsung','Xiaomi','Huawei','Diğer'];
+// Kart görünümünde (mcardHTML) alt türe göre gösterilen ikon — kılıf varsayılan.
+const ACCESSORY_TYPE_ICON = { kilif: '🛡️', sarj: '🔌', kablo: '🔗', powerbank: '🔋', 'ekran-koruyucu': '🔲', 'hafiza-karti': '💾' };
+
+function populateListingBrandOptions(list) {
+  const sel = document.getElementById('l-brand');
+  if (!sel) return;
+  sel.innerHTML = '<option value=""></option>' + list.map(b => `<option value="${b}">${b}</option>`).join('');
+}
 // Marka <select>'inin seçeneklerini bir kez doldurur (idempotent) — İl picker'ıyla AYNI desen.
+// Yalnızca İLK açılışta çalışır; kategoriye göre hangi listenin (telefon/aksesuar) yükleneceği
+// onListingCategoryChange() içinde her seferinde YENİDEN belirleniyor (bkz. orada populateListingBrandOptions çağrısı).
 function ensureListingBrandOptionsPopulated() {
   const sel = document.getElementById('l-brand');
   if (!sel || sel.dataset.filled) return;
-  sel.innerHTML = '<option value=""></option>' + PHONE_BRANDS.map(b => `<option value="${b}">${b}</option>`).join('');
+  populateListingBrandOptions(PHONE_BRANDS);
   sel.dataset.filled = '1';
 }
 
@@ -7147,14 +7182,24 @@ function ensureListingBrandOptionsPopulated() {
 const LISTING_CATEGORY_MODEL_PLACEHOLDER = { telefon: 'Örn: Galaxy S24', akillisaat: 'Örn: Galaxy Watch 6', kulaklik: 'Örn: WF-1000XM5' };
 // Aksesuar, kılıf/şarj adaptörü gibi birkaç alt türü bir arada barındırdığı için model alanı
 // yer tutucusu kategoriye DEĞİL, alt türe (accessoryType) göre belirleniyor.
-const ACCESSORY_TYPE_MODEL_PLACEHOLDER = { kilif: 'Örn: Şeffaf Silikon Kılıf', sarj: 'Örn: 65W GaN Şarj Adaptörü' };
+const ACCESSORY_TYPE_MODEL_PLACEHOLDER = {
+  kilif: 'Örn: Şeffaf Silikon Kılıf', sarj: 'Örn: 65W GaN Şarj Adaptörü', kablo: 'Örn: 100W USB-C Şarj Kablosu',
+  powerbank: 'Örn: 20000mAh Powerbank', 'ekran-koruyucu': 'Örn: 9D Temperli Cam Ekran Koruyucu', 'hafiza-karti': 'Örn: 128GB MicroSD Kart',
+};
+// Alt türe özel ek alan grupları — her biri en fazla bir tanesi görünür olur (bkz. onAccessoryTypeChange).
+const ACCESSORY_SUBFIELD_TYPES = ['sarj', 'kablo', 'powerbank', 'ekran-koruyucu', 'hafiza-karti'];
 function onListingCategoryChange() {
   const cat = document.getElementById('l-category').value;
   const isPhone = cat === 'telefon';
-  document.querySelector('.csel[data-for="l-brand"]').style.display = isPhone ? '' : 'none';
+  const isAksesuar = cat === 'aksesuar';
+  document.querySelector('.csel[data-for="l-brand"]').style.display = (isPhone || isAksesuar) ? '' : 'none';
   const brandOtherWrap = document.getElementById('l-brand-other-wrap');
   const brandOtherLabel = document.getElementById('l-brand-other-label');
-  if (isPhone) {
+  if (isPhone || isAksesuar) {
+    // Aksesuar'da da telefon gibi hazır marka listesi + "Diğer" serbest yazım kullanılıyor (bkz.
+    // ACCESSORY_BRANDS) — yalnızca hangi listenin yüklendiği farklı, getListingBrandValue/
+    // setListingBrandValue tamamen ORTAK ve değişmeden çalışıyor.
+    populateListingBrandOptions(isPhone ? PHONE_BRANDS : ACCESSORY_BRANDS);
     brandOtherLabel.textContent = 'Marka (elle yazın)';
     onListingBrandChange(); // eski davranışa (yalnızca picker'da "Diğer" seçiliyken görünür) döner
   } else {
@@ -7168,8 +7213,8 @@ function onListingCategoryChange() {
   // Aksesuar Türü, RAM/Depolama gibi opsiyonel bir teknik detay değil — Kategori kadar temel bir
   // sınıflandırma alanı, bu yüzden "Detaylı Teknik Bilgiler" akordeonunun İÇİNDE değil, Kategori'nin
   // hemen altında HER ZAMAN görünür (bkz. #l-accessory-type-wrap, form HTML'inde Kategori'den sonra).
-  document.getElementById('l-accessory-type-wrap').style.display = cat === 'aksesuar' ? '' : 'none';
-  if (cat === 'aksesuar') {
+  document.getElementById('l-accessory-type-wrap').style.display = isAksesuar ? '' : 'none';
+  if (isAksesuar) {
     onAccessoryTypeChange(); // alt tür alt-alanlarını ve model yer tutucusunu da ayarlar
   } else {
     document.getElementById('l-model').placeholder = LISTING_CATEGORY_MODEL_PLACEHOLDER[cat] || LISTING_CATEGORY_MODEL_PLACEHOLDER.telefon;
@@ -7177,11 +7222,14 @@ function onListingCategoryChange() {
   listingFormOnChange();
 }
 
-// Aksesuar kategorisi seçiliyken alt tür (Kılıf/Şarj Adaptörü) değiştiğinde — yalnızca Şarj
-// Adaptörü'ne özel Çıkış Gücü/Bağlantı Tipi alanlarını gösterir/gizler.
+// Aksesuar kategorisi seçiliyken alt tür (Kılıf/Şarj Adaptörü/Şarj Kablosu/Powerbank/Ekran Koruyucu/
+// Hafıza Kartı) değiştiğinde — yalnızca seçilen alt türe özel alan grubunu gösterir, diğerlerini gizler.
 function onAccessoryTypeChange() {
   const type = document.getElementById('l-accessory-type').value;
-  document.getElementById('l-sarj-subfields').style.display = type === 'sarj' ? '' : 'none';
+  ACCESSORY_SUBFIELD_TYPES.forEach(t => {
+    const el = document.getElementById('l-' + t + '-subfields');
+    if (el) el.style.display = (type === t) ? '' : 'none';
+  });
   document.getElementById('l-model').placeholder = ACCESSORY_TYPE_MODEL_PLACEHOLDER[type] || ACCESSORY_TYPE_MODEL_PLACEHOLDER.kilif;
   listingFormOnChange();
 }
@@ -7419,6 +7467,15 @@ async function submitListing() {
       } : category === 'aksesuar' && accessoryType === 'sarj' ? {
         outputPower: document.getElementById('l-output-power').value.trim(),
         connectorType: document.getElementById('l-connector-type').value,
+      } : category === 'aksesuar' && accessoryType === 'kablo' ? {
+        cableLength: document.getElementById('l-cable-length').value.trim(),
+        cableConnectorType: document.getElementById('l-cable-connector-type').value,
+      } : category === 'aksesuar' && accessoryType === 'powerbank' ? {
+        powerbankCapacity: document.getElementById('l-powerbank-capacity').value.trim(),
+      } : category === 'aksesuar' && accessoryType === 'ekran-koruyucu' ? {
+        screenProtectorMaterial: document.getElementById('l-screen-protector-material').value,
+      } : category === 'aksesuar' && accessoryType === 'hafiza-karti' ? {
+        memoryCardCapacity: document.getElementById('l-memory-card-capacity').value.trim(),
       } : {}),
       // Havuz Sistemi: satıcının opsiyonel olarak işaretlediği güven-önlemi bayrağı (bkz.
       // requestPoolPurchase/notifyAdminsPoolRequest) — ödeme/para tutma henüz entegre değil,
@@ -7504,7 +7561,7 @@ async function submitListing() {
     onListingCategoryChange();
     document.getElementById('l-accessory-type').value = 'kilif';
     setListingBrandValue('');
-    ['l-model','l-price','l-desc','l-phone','l-ram','l-storage','l-color','l-warranty','l-chip','l-battery','l-box','l-mahalle','l-output-power'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    ['l-model','l-price','l-desc','l-phone','l-ram','l-storage','l-color','l-warranty','l-chip','l-battery','l-box','l-mahalle','l-output-power','l-cable-length','l-powerbank-capacity','l-memory-card-capacity'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
     document.getElementById('l-anc').checked = false;
     document.getElementById('l-il').value = '';
     document.getElementById('l-ilce').innerHTML = '<option value=""></option>';
@@ -7576,11 +7633,16 @@ async function editListing(id) {
   document.getElementById('l-anc').checked = !!l.anc;
   document.getElementById('l-output-power').value = l.outputPower || '';
   document.getElementById('l-connector-type').value = l.connectorType || 'USB-C';
+  document.getElementById('l-cable-length').value = l.cableLength || '';
+  document.getElementById('l-cable-connector-type').value = l.cableConnectorType || 'USB-C';
+  document.getElementById('l-powerbank-capacity').value = l.powerbankCapacity || '';
+  document.getElementById('l-screen-protector-material').value = l.screenProtectorMaterial || 'Cam';
+  document.getElementById('l-memory-card-capacity').value = l.memoryCardCapacity || '';
   document.getElementById('l-pool-system').checked = !!l.poolSystem;
   document.getElementById('l-negotiable').checked = !!l.negotiable;
   document.getElementById('l-agree').checked = true;
   document.getElementById('l-agree-wrap').style.display = 'none';
-  if (l.ram || l.storage || l.color || l.warranty || l.chip || l.battery || l.box || l.earphoneType || l.anc || l.outputPower || l.connectorType) {
+  if (l.ram || l.storage || l.color || l.warranty || l.chip || l.battery || l.box || l.earphoneType || l.anc || l.outputPower || l.connectorType || l.cableLength || l.powerbankCapacity || l.screenProtectorMaterial || l.memoryCardCapacity) {
     document.getElementById('detail-fields').style.display = 'block';
     document.getElementById('dt-chevron')?.parentElement?.classList.add('open');
   }
@@ -7854,6 +7916,11 @@ function renderDetailPage(l) {
     l.anc ? {l:'Aktif Gürültü Önleme', v:'Var'} : null,
     l.outputPower ? {l:'Çıkış Gücü', v:l.outputPower} : null,
     l.connectorType ? {l:'Bağlantı Tipi', v:l.connectorType} : null,
+    l.cableLength ? {l:'Kablo Uzunluğu', v:l.cableLength} : null,
+    l.cableConnectorType ? {l:'Bağlantı Tipi', v:l.cableConnectorType} : null,
+    l.powerbankCapacity ? {l:'Kapasite', v:l.powerbankCapacity} : null,
+    l.screenProtectorMaterial ? {l:'Malzeme', v:l.screenProtectorMaterial} : null,
+    l.memoryCardCapacity ? {l:'Kapasite', v:l.memoryCardCapacity} : null,
   ].filter(Boolean);
   // Kısa ID: son 6 karakter
   const shortId = id.slice(-6).toUpperCase();
