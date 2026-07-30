@@ -232,8 +232,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .sico{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:18px;height:18px;stroke:var(--text3);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;pointer-events:none;}
 
 /* FORUM */
-.forum-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
-.forum-title{font-size:17px;font-weight:700;}
+.forum-header{display:flex;align-items:center;justify-content:flex-end;margin-bottom:12px;}
 .new-post-btn{display:flex;align-items:center;gap:6px;background:var(--cyan);color:#000;font-size:13px;font-weight:700;padding:8px 14px;border-radius:12px;border:none;cursor:pointer;font-family:inherit;}
 .forum-tabs{display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;}
 .forum-tabs::-webkit-scrollbar{display:none;}
@@ -511,22 +510,30 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
    YOKTUR, yalnızca kullanıcı bir metin alanına dokunduğu birkaç saniye içinde etkindir. Bu, hem
    şu an var olan HEM gelecekte eklenecek her modal/ekran için otomatik olarak geçerlidir — yeni bir
    modal eklendiğinde bu listeye elle eklenmesi gerekmez (bkz. body.tk-text-focus * yedek kuralı). */
-body.tk-text-focus #hdr,
-body.tk-text-focus #tabs,
-body.tk-text-focus #offline-bar,
-body.tk-text-focus .toast,
-body.tk-text-focus .mo,
-body.tk-text-focus .ms,
-body.tk-text-focus .det-sheet,
-body.tk-text-focus .mcard-cnd,
-body.tk-text-focus .mcard-fav,
-body.tk-text-focus .mcard-status-overlay,
-body.tk-text-focus .det-status-badge,
-body.tk-text-focus .pbadge-ic,
-body.tk-text-focus .pcover-edit,
-body.tk-text-focus .pc,
-body.tk-text-focus .pslot-cover,
-body.tk-text-focus .det-sticky {
+/* ÜÇÜNCÜ KÖK NEDEN ADAYI — JS gecikmesi: yukarıdaki tk-text-focus sınıfı, 'focusin' OLAYI JS event
+   kuyruğunda ÇALIŞTIKTAN SONRA eklenir; ama Android WebView'in dokunma-basılı-tut anında seçim/
+   ActionMode gösterip göstermeyeceği kararı, native tarafta ÇOK DAHA ERKEN (JS'e hiç dönmeden)
+   verilebiliyor — bu, "bazen çalışıyor bazen çalışmıyor" (özellikle odaklanma ile ilk basılı tutmanın
+   AYNI ANDA olduğu ilk dokunuşta) tutarsızlığını açıklıyor. :focus-within, tarayıcı motorunun kendi
+   stil hesaplamasının BİR PARÇASI olduğu için JS'e hiç muhtaç değil — odak ANINDA, hiçbir olay
+   döngüsü beklemeden uygulanır. JS sınıfı (tk-text-focus) eski motorlar için yedek olarak kalıyor,
+   :focus-within ASIL/birincil tetikleyici. */
+:is(body.tk-text-focus, body:focus-within) #hdr,
+:is(body.tk-text-focus, body:focus-within) #tabs,
+:is(body.tk-text-focus, body:focus-within) #offline-bar,
+:is(body.tk-text-focus, body:focus-within) .toast,
+:is(body.tk-text-focus, body:focus-within) .mo,
+:is(body.tk-text-focus, body:focus-within) .ms,
+:is(body.tk-text-focus, body:focus-within) .det-sheet,
+:is(body.tk-text-focus, body:focus-within) .mcard-cnd,
+:is(body.tk-text-focus, body:focus-within) .mcard-fav,
+:is(body.tk-text-focus, body:focus-within) .mcard-status-overlay,
+:is(body.tk-text-focus, body:focus-within) .det-status-badge,
+:is(body.tk-text-focus, body:focus-within) .pbadge-ic,
+:is(body.tk-text-focus, body:focus-within) .pcover-edit,
+:is(body.tk-text-focus, body:focus-within) .pc,
+:is(body.tk-text-focus, body:focus-within) .pslot-cover,
+:is(body.tk-text-focus, body:focus-within) .det-sticky {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   animation: none !important;
@@ -539,7 +546,7 @@ body.tk-text-focus .det-sticky {
    varsayılan durumdur) güvenle uygulanabilir. backdrop-filter/animasyon YUKARIDAKİ dar listeyle
    sınırlı tutuldu (o ikisi her elementte "none" yapıldığında bazı sürekli çalışan/dekoratif
    animasyonlarda -örn. spinner- istenmeyen donma etkisi yaratabileceği için). */
-body.tk-text-focus * { will-change: auto !important; }
+:is(body.tk-text-focus, body:focus-within) * { will-change: auto !important; }
 /* İKİNCİ, DAHA GÜÇLÜ KÖK NEDEN ADAYI — user-select:none zinciri: dosyanın en üstünde (bkz. "*{...
    user-select:none}" kuralı) SEÇİM her elementte varsayılan olarak KAPALI, yalnızca input/textarea'nın
    KENDİSİNDE (ata zincirinde DEĞİL) tekrar açılıyor. Bu, Capacitor/Cordova tabanlı hibrit uygulamalarda
@@ -550,7 +557,7 @@ body.tk-text-focus * { will-change: auto !important; }
    HER modalde/ekranda (hepsi aynı global user-select:none kuralını miras aldığı için) tekrarladığını
    da açıklıyor. Çözüm: metin alanı odaklıyken, TÜM ata zincirinde user-select'i geçici olarak
    yeniden açmak — kalıcı bir davranış değişikliği değil, yalnızca odak süresince. */
-body.tk-text-focus * { user-select: auto !important; -webkit-user-select: auto !important; }
+:is(body.tk-text-focus, body:focus-within) * { user-select: auto !important; -webkit-user-select: auto !important; }
 @keyframes detpage{from{transform:translateX(16px);opacity:0;}to{transform:translateX(0);opacity:1;}}
 .det-sheet::-webkit-scrollbar{display:none;}
 .det-sticky{position:sticky;top:0;background:rgba(7,13,26,.95);backdrop-filter:blur(12px);padding:calc(12px + var(--st)) 20px 12px;border-bottom:1px solid var(--border2);z-index:10;display:flex;align-items:center;justify-content:space-between;}
@@ -1335,7 +1342,6 @@ body.tk-maintenance #maintenance-gate{
       <div class="sh"><span class="st">Forum</span></div>
       <!-- FORUM -->
       <div class="forum-header">
-        <div class="forum-title">💬 Forum</div>
         <button class="new-post-btn" onclick="openNewPost()">
           <svg viewBox="0 0 24 24" width="14" height="14" stroke="#000" fill="none" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Konu Aç
