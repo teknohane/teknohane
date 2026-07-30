@@ -231,8 +231,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .si::placeholder{color:var(--text3);}
 .sico{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:18px;height:18px;stroke:var(--text3);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;pointer-events:none;}
 
-/* COMMUNITY */
-.wg{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:24px;}
 /* FORUM */
 .forum-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
 .forum-title{font-size:17px;font-weight:700;}
@@ -362,8 +360,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .lg-thumb{width:48px;height:48px;border-radius:10px;overflow:hidden;flex-shrink:0;opacity:.45;border:2px solid transparent;cursor:pointer;transition:opacity .2s,border-color .2s;}
 .lg-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
 .lg-thumb.active{opacity:1;border-color:var(--cyan);}
-.wc{background:var(--surf);border:1px solid var(--border2);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:8px;cursor:pointer;}
-.wc:active{background:var(--surf2);}
 
 /* COMPARE */
 .cgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
@@ -1305,47 +1301,7 @@ body.tk-maintenance #maintenance-gate{
 
   <div class="screen" id="s-community">
     <div class="sc">
-      <div class="sh"><span class="st">Topluluk</span></div>
-      <div class="wg">
-        <div class="wc" onclick="ol('https://chat.whatsapp.com/Ev6qkOSW0FjDRuEiQ80l61')" style="grid-column:span 3">
-          <div style="display:flex;align-items:center;gap:12px">
-            <div style="width:48px;height:48px;min-width:48px;border-radius:12px;background:#25D366;display:flex;align-items:center;justify-content:center;">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="28" height="28" fill="#fff"><path d="M16 2C8.28 2 2 8.28 2 16c0 2.44.65 4.73 1.78 6.72L2 30l7.45-1.95A13.93 13.93 0 0 0 16 30c7.72 0 14-6.28 14-14S23.72 2 16 2zm0 25.5c-2.18 0-4.22-.6-5.97-1.64l-.43-.25-4.42 1.16 1.17-4.3-.28-.45A11.45 11.45 0 0 1 4.5 16C4.5 9.6 9.6 4.5 16 4.5S27.5 9.6 27.5 16 22.4 27.5 16 27.5zm6.3-8.56c-.35-.17-2.05-1.01-2.37-1.13-.32-.11-.55-.17-.78.17-.23.35-.9 1.13-1.1 1.36-.2.23-.4.26-.75.09-.35-.17-1.47-.54-2.8-1.72-1.03-.92-1.73-2.06-1.93-2.4-.2-.35-.02-.53.15-.7.15-.15.35-.4.52-.6.17-.2.23-.35.35-.58.12-.23.06-.43-.03-.6-.09-.17-.78-1.88-1.07-2.57-.28-.68-.57-.59-.78-.6h-.66c-.23 0-.6.09-.91.43-.32.35-1.2 1.17-1.2 2.85s1.23 3.31 1.4 3.54c.17.23 2.42 3.7 5.87 5.18.82.35 1.46.56 1.96.72.82.26 1.57.22 2.16.13.66-.1 2.05-.84 2.34-1.65.29-.8.29-1.49.2-1.63-.08-.15-.3-.24-.65-.41z"/></svg>
-            </div>
-            <div>
-              <div style="font-size:15px;font-weight:600">WhatsApp Kanalı</div>
-              <div style="font-size:11px;color:var(--text2);margin-top:4px">Sohbet, Satış ve Fotoğraf grupları</div>
-            </div>
-          </div>
-        </div>
-        <div class="wc" onclick="ol('https://www.instagram.com/teknohaane/')">
-          <div style="width:36px;height:36px;border-radius:10px;background:rgba(193,53,132,.1);display:flex;align-items:center;justify-content:center;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="url(#ig)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
-              <defs><linearGradient id="ig" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#F58529"/><stop offset="50%" stop-color="#DD2A7B"/><stop offset="100%" stop-color="#8134AF"/></linearGradient></defs>
-              <rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.5" fill="#DD2A7B" stroke="none"/>
-            </svg>
-          </div>
-          <div style="font-size:13px;font-weight:600">Instagram</div>
-          <div style="font-size:11px;color:var(--text2)">@teknohaane</div>
-        </div>
-        <div class="wc" onclick="ol('https://youtube.com/@teknohaane')">
-          <div style="width:36px;height:36px;border-radius:10px;background:rgba(255,0,0,.1);display:flex;align-items:center;justify-content:center;">
-            <svg viewBox="0 0 24 24" fill="none" width="20" height="20"><path stroke="#FF3B30" stroke-width="1.8" d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon fill="#FF3B30" stroke="none" points="9.75,15.02 15.5,12 9.75,8.98 9.75,15.02"/></svg>
-          </div>
-          <div style="font-size:13px;font-weight:600">YouTube</div>
-          <div style="font-size:11px;color:var(--text2)">@teknohaane</div>
-        </div>
-        <div class="wc" onclick="ol('https://tiktok.com/@teknohaane')">
-          <div style="width:36px;height:36px;min-width:36px;border-radius:10px;background:#010101;display:flex;align-items:center;justify-content:center;overflow:visible;">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="#fff" style="display:block">
-              <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.77 0 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0 0 12.68 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.76a4.85 4.85 0 0 1-1.01-.07z"/>
-            </svg>
-          </div>
-          <div style="font-size:13px;font-weight:600">TikTok</div>
-          <div style="font-size:11px;color:var(--text2)">@teknohaane</div>
-        </div>
-      </div>
-
+      <div class="sh"><span class="st">Forum</span></div>
       <!-- FORUM -->
       <div class="forum-header">
         <div class="forum-title">💬 Forum</div>
@@ -1448,6 +1404,14 @@ body.tk-maintenance #maintenance-gate{
           <div><div class="mlbl">WhatsApp Destek</div><div class="msub">+90 551 958 93 17</div></div>
         </div><span class="marr">›</span>
       </div>
+      <div class="mi" onclick="ol('https://chat.whatsapp.com/Ev6qkOSW0FjDRuEiQ80l61')">
+        <div class="mil">
+          <div class="mico" style="background:#25D366;min-width:36px;min-height:36px">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="20" height="20" fill="#fff"><path d="M16 2C8.28 2 2 8.28 2 16c0 2.44.65 4.73 1.78 6.72L2 30l7.45-1.95A13.93 13.93 0 0 0 16 30c7.72 0 14-6.28 14-14S23.72 2 16 2zm0 25.5c-2.18 0-4.22-.6-5.97-1.64l-.43-.25-4.42 1.16 1.17-4.3-.28-.45A11.45 11.45 0 0 1 4.5 16C4.5 9.6 9.6 4.5 16 4.5S27.5 9.6 27.5 16 22.4 27.5 16 27.5zm6.3-8.56c-.35-.17-2.05-1.01-2.37-1.13-.32-.11-.55-.17-.78.17-.23.35-.9 1.13-1.1 1.36-.2.23-.4.26-.75.09-.35-.17-1.47-.54-2.8-1.72-1.03-.92-1.73-2.06-1.93-2.4-.2-.35-.02-.53.15-.7.15-.15.35-.4.52-.6.17-.2.23-.35.35-.58.12-.23.06-.43-.03-.6-.09-.17-.78-1.88-1.07-2.57-.28-.68-.57-.59-.78-.6h-.66c-.23 0-.6.09-.91.43-.32.35-1.2 1.17-1.2 2.85s1.23 3.31 1.4 3.54c.17.23 2.42 3.7 5.87 5.18.82.35 1.46.56 1.96.72.82.26 1.57.22 2.16.13.66-.1 2.05-.84 2.34-1.65.29-.8.29-1.49.2-1.63-.08-.15-.3-.24-.65-.41z"/></svg>
+          </div>
+          <div><div class="mlbl">WhatsApp Kanalı</div><div class="msub">Sohbet, Satış ve Fotoğraf grupları</div></div>
+        </div><span class="marr">›</span>
+      </div>
       <div class="mi" onclick="ol('mailto:teknohaane@hotmail.com')">
         <div class="mil">
           <div class="mico" style="background:rgba(0,212,255,.1)"><svg viewBox="0 0 24 24" stroke="var(--cyan)" width="18" height="18"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
@@ -1513,7 +1477,7 @@ body.tk-maintenance #maintenance-gate{
     </div>
     <div class="tab" data-s="community" onclick="gt('community')">
       <div class="tco"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
-      <span>Topluluk</span>
+      <span>Forum</span>
     </div>
     <div class="tab" data-s="market" onclick="gt('market')">
       <div class="tco" style="position:relative"><svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><div class="bell-dot" id="market-dot"></div></div>
@@ -2863,7 +2827,7 @@ function computeBadges(uid, profileData, isTargetAdmin, scoreInfo) {
     { id:'first-listing', icon:'🎉', label:'İlk İlan', done: scoreInfo.listingsCount>=1 },
     { id:'100-likes', icon:'❤️', label:'100 Beğeni', done: likesReceived>=100 },
     { id:'forum-member', icon:'💬', label:'Forum Üyesi', done: scoreInfo.forumCount>=3 },
-    { id:'community-contributor', icon:'📢', label:'Topluluk Katkıcısı', done: scoreInfo.forumCount>=10 },
+    { id:'community-contributor', icon:'📢', label:'Forum Katkıcısı', done: scoreInfo.forumCount>=10 },
     // Artık yalnızca e-posta doğrulamasıyla değil, admin onayıyla da (adminVerified) kazanılabiliyor.
     { id:'verified', icon:'✅', label:'Doğrulanmış Hesap', done: !!profileData.emailVerified || !!profileData.adminVerified },
     { id:'early-user', icon:'🚀', label:'Erken Kullanıcı', done: !!(joinedDate && joinedDate < EARLY_USER_CUTOFF) },
@@ -3355,12 +3319,12 @@ function renderProfileListings() {
   const c = document.getElementById('profile-listings');
   if (!c || !user) return;
   if (profileTab === 'forum') {
-    // forumPosts, yalnızca Topluluk ekranı en az bir kez ziyaret edildiyse bellekte olur (Profil
+    // forumPosts, yalnızca Forum ekranı en az bir kez ziyaret edildiyse bellekte olur (Profil
     // burada YENİ bir Firestore sorgusu tetiklemiyor) — bu yüzden boş olması "hiç konu yok" anlamına
     // gelmeyebilir, bu ihtimal aşağıdaki mesajda dürüstçe belirtiliyor.
     const myPosts = forumPosts.filter(p => p.uid === user.uid);
     c.innerHTML = myPosts.length ? myPosts.map(forumMiniCardHTML).join('')
-      : `<div class="no">Henüz konu bulunamadı${forumPosts.length?'':' (Topluluk sekmesini ziyaret ettikten sonra tekrar kontrol et)'}</div>`;
+      : `<div class="no">Henüz konu bulunamadı${forumPosts.length?'':' (Forum sekmesini ziyaret ettikten sonra tekrar kontrol et)'}</div>`;
     return;
   }
   let items = [], loaded = true;
@@ -11159,7 +11123,7 @@ function gt(name) {
 const TIPS = {
   home: { ic:'▶️', txt:'Burada <b>Teknohane</b> kanalının son videolarını görebilirsin. Aşağı çekerek yenileyebilirsin.' },
   compare: { ic:'⚖️', txt:'İki telefon seç, <b>yüzlerce model</b> arasından detaylı karşılaştırma yap.' },
-  community: { ic:'👥', txt:'WhatsApp kanalımıza, Instagram ve YouTube hesabımıza buradan ulaşabilirsin.' },
+  community: { ic:'💬', txt:'Burada telefon/teknoloji hakkında konu açabilir, soru sorabilir ve diğer kullanıcılarla tartışabilirsin.' },
   market: { ic:'🛒', txt:'<b>İlan Ver</b> butonuyla telefonunu satabilir, beğendiğin ilanlara dokunarak detayını görebilirsin.' },
   support: { ic:'💬', txt:'Soruların mı var? Buradan bize WhatsApp veya e-posta ile ulaşabilirsin.' },
   profile: { ic:'👤', txt:'Giriş yaparak ilan verebilir, favorilerini buradan yönetebilirsin.' },
@@ -11709,7 +11673,7 @@ setTimeout(() => {
     else if (mktab === 'mine') await loadMarketMine();
     showToast('✓','var(--cdim)','Yenilendi','Pazar güncellendi.');
   });
-  // Topluluk
+  // Forum
   setupPTR('s-community', async () => {
     await loadForumPage(true);
   });
