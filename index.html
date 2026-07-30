@@ -10980,6 +10980,15 @@ function gt(name) {
     else rlistings();
     document.getElementById('market-dot')?.classList.remove('on');
     showMarketBanner();
+    // Doğrudan reklamlar yalnızca uygulama AÇILIRKEN bir kez çekiliyordu — admin yeni bir reklam
+    // ekleyip kaydettiğinde, uygulaması zaten açık olan kullanıcılar yeniden başlatana kadar hiç
+    // görmüyordu. Artık Pazar'a her girişte tazeleniyor; render önbelleği (grid._renderedSig) de
+    // BOZULARAK az önce eklenen/değişen reklamın yer tutucunun yerine hemen geçmesi sağlanıyor.
+    loadDirectAds().then(() => {
+      const grid = document.getElementById('lgrid');
+      if (grid) grid._renderedSig = null;
+      rlistings();
+    });
   } else {
     hideMarketBanner();
   }
