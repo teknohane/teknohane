@@ -265,6 +265,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .post-tag-chip{font-size:9px;font-weight:600;padding:1px 6px;border-radius:5px;background:var(--surf2);color:var(--text2);border:1px solid var(--border2);}
 .post-meta-row{font-size:10.5px;color:var(--text3);display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
 .post-meta-author{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;color:var(--text3);}
+.author-badge-icons{display:inline-flex;gap:2px;margin-left:4px;vertical-align:middle;}
+.author-badge-icon{font-size:11px;line-height:1;}
 .post-meta-stat{display:flex;align-items:center;gap:2px;}
 /* Yükleniyor iskeleti — Pazar'da ilan detayı fotoğrafları için tanımlanan @keyframes detskel
    shimmer animasyonu paylaşılıyor (global bir CSS keyframe adı, herhangi bir modüle özel değil). */
@@ -295,7 +297,31 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .cmt-codeblock{background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:8px 10px;margin:6px 0;overflow-x:auto;}
 .cmt-codeblock code{font-family:monospace;font-size:11.5px;color:var(--text2);white-space:pre;}
 .cmt-quote{display:block;border-left:2px solid var(--cyan);padding-left:8px;color:var(--text3);opacity:.85;}
+.comment-text a, .post-detail-body a{color:var(--cyan);text-decoration:underline;word-break:break-all;}
 .comment-item.editing .comment-text{display:none;}
+/* Zengin metin araç çubuğu — Konu Aç ve yorum kutusunun üstünde, .photo-add-btn ile aynı görsel dilde. */
+.fmt-toolbar{display:flex;gap:6px;margin-bottom:8px;}
+.fmt-btn{width:32px;height:32px;border-radius:8px;background:var(--surf2);border:1px solid var(--border2);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;font-family:inherit;flex-shrink:0;}
+.mention-suggest{background:var(--surf2);border:1px solid var(--border2);border-radius:10px;margin-top:4px;overflow:hidden;max-height:220px;overflow-y:auto;}
+.mention-suggest-row{display:flex;align-items:center;gap:8px;padding:8px 10px;cursor:pointer;font-size:13px;}
+.mention-suggest-row:hover{background:var(--surf3,rgba(255,255,255,.05));}
+.mention-suggest-row img{width:24px;height:24px;border-radius:50%;object-fit:cover;}
+.mention-suggest-av{width:24px;height:24px;border-radius:50%;background:var(--cyan);color:#000;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;}
+.poll-toggle-row{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);cursor:pointer;}
+.poll-opt-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.poll-opt-row .fi{flex:1;}
+.poll-opt-del{color:var(--text3);cursor:pointer;font-size:14px;flex-shrink:0;}
+.poll-add-opt-btn{background:none;border:1px dashed var(--border2);color:var(--cyan);border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer;}
+.poll-block{margin:12px 0;padding:12px;background:var(--surf2);border-radius:12px;border:1px solid var(--border2);}
+.poll-opt-bar{position:relative;margin-bottom:8px;cursor:pointer;border-radius:8px;overflow:hidden;background:var(--surf3,rgba(255,255,255,.05));border:1px solid var(--border2);}
+.poll-opt-bar.voted{cursor:default;}
+.poll-bar-fill{position:absolute;inset:0;background:rgba(0,212,255,.18);width:0%;transition:width .4s ease;}
+.poll-opt-bar.mine .poll-bar-fill{background:rgba(0,212,255,.32);}
+.poll-opt-row2{position:relative;display:flex;justify-content:space-between;align-items:center;padding:8px 12px;font-size:13px;gap:8px;}
+.poll-opt-label{flex:1;}
+.poll-opt-pct{font-weight:700;color:var(--text2);font-variant-numeric:tabular-nums;}
+.poll-total-votes{font-size:11px;color:var(--text3);margin-top:6px;}
+.fmt-btn:active{background:var(--surf3);}
 .cmt-edit-area{width:100%;background:var(--surf3);border:1px solid var(--border2);border-radius:8px;padding:8px 10px;color:var(--text);font-size:13px;font-family:inherit;resize:vertical;min-height:50px;}
 .comment-img{width:100%;border-radius:8px;margin-top:8px;cursor:pointer;max-height:180px;object-fit:cover;}
 .comment-meta{display:flex;align-items:center;justify-content:space-between;margin-top:8px;}
@@ -625,6 +651,11 @@ body.tk-text-focus * { user-select: auto !important; -webkit-user-select: auto !
 .mtab{flex:none;padding:8px 16px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;}
 .mtab.on{background:var(--cdim);border:1px solid rgba(0,212,255,.2);color:var(--cyan);}
 .mtab.off{background:var(--surf);border:1px solid var(--border2);color:var(--text2);}
+/* Alt-forum bilgi satırı — seçili kategorinin konu/mesaj sayısı + son mesaj özeti (DonanımHaber'in imzası). */
+.fcat-stats-bar{background:var(--surf);border:1px solid var(--border2);border-radius:10px;padding:8px 12px;margin:-6px 0 12px;font-size:11.5px;color:var(--text3);}
+.fcat-stats-row{display:flex;flex-direction:column;gap:2px;}
+.fcat-stats-last{cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.fcat-stats-last b{color:var(--text2);font-weight:600;}
 .lgrid{display:flex;flex-direction:column;gap:8px;}
 /* ==== PAZAR LİSTE KARTI — YATAY, KOMPAKT (Sahibinden yoğunluk hissi, Teknohane kimliği) ====
    Tamamen yeni, "mcard-" önekli sınıflar kullanılıyor; eski .lcard/.lcnd/.chatbtn2 gibi sınıflar
@@ -1314,6 +1345,18 @@ body.tk-maintenance #maintenance-gate{
         <svg class="sico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input class="si" type="text" id="forum-search-inp" placeholder="Konu başlığında ara…" oninput="onForumSearchInput(this.value)">
       </div>
+      <!-- Alt-forum/kategori şeridi — DonanımHaber tarzı gerçek gezilebilir kategoriler (bkz.
+           scatForum/loadForumCategoryPage). "Tümü" dışındaki her sekme kendi bağımsız, doğru
+           sayfalanan sorgusuna sahiptir; kozmetik bir filtre DEĞİLDİR. -->
+      <div class="mtabs" id="fcat-tabs">
+        <button class="mtab on" onclick="scatForum('tumu',this)">Tümü</button>
+        <button class="mtab off" onclick="scatForum('genel',this)">📱 Genel</button>
+        <button class="mtab off" onclick="scatForum('akilli-telefon',this)">📲 Akıllı Telefon</button>
+        <button class="mtab off" onclick="scatForum('tablet',this)">📟 Tablet</button>
+        <button class="mtab off" onclick="scatForum('bilgisayar',this)">💻 Bilgisayar</button>
+        <button class="mtab off" onclick="scatForum('aksesuar',this)">🎧 Aksesuar</button>
+      </div>
+      <div id="fcat-stats-bar" class="fcat-stats-bar" style="display:none"></div>
       <div class="forum-tabs">
         <div class="forum-tab on" data-ftab="new" onclick="switchForumTab('new',this)">Yeni</div>
         <div class="forum-tab" data-ftab="popular" onclick="switchForumTab('popular',this)">🔥 Popüler</div>
@@ -1896,7 +1939,16 @@ body.tk-maintenance #maintenance-gate{
     <label class="fl" style="margin-bottom:6px">Etiketler <span style="color:var(--text3);font-weight:400">(isteğe bağlı, en fazla 3)</span></label>
     <div class="cat-sel" id="np-tag-sel" style="margin-bottom:14px"></div>
     <div class="fg"><label class="fl">Başlık</label><input class="fi" type="text" id="np-title" placeholder="Konunuzu özetleyin…" maxlength="120"></div>
-    <div class="fg"><label class="fl">Açıklama</label><textarea class="fi" id="np-body" placeholder="Detayları yazın…" style="resize:none;min-height:90px;height:90px;font-family:inherit;font-size:15px"></textarea></div>
+    <div class="fg"><label class="fl">Açıklama</label>
+      <div class="fmt-toolbar">
+        <button type="button" class="fmt-btn" onclick="fmtWrap('np-body','**','**')" title="Kalın"><b>B</b></button>
+        <button type="button" class="fmt-btn" onclick="fmtWrap('np-body','*','*')" title="İtalik"><i>i</i></button>
+        <button type="button" class="fmt-btn" onclick="fmtLink('np-body')" title="Bağlantı">🔗</button>
+        <button type="button" class="fmt-btn" onclick="fmtWrap('np-body','`','`')" title="Kod">{ }</button>
+        <button type="button" class="fmt-btn" onclick="fmtWrap('np-body','&gt; ','')" title="Alıntı">”</button>
+      </div>
+      <textarea class="fi" id="np-body" placeholder="Detayları yazın… (birini etiketlemek için @ yazın)" style="resize:none;min-height:90px;height:90px;font-family:inherit;font-size:15px" oninput="onMentionInput('np-body')"></textarea>
+      <div class="mention-suggest" id="mention-suggest-np" style="display:none"></div></div>
     <div class="fg">
       <label class="fl">Fotoğraf (opsiyonel)</label>
       <input type="file" id="np-photo-input" accept="image/*" style="display:none" onchange="handlePostPhoto(this)">
@@ -1907,6 +1959,13 @@ body.tk-maintenance #maintenance-gate{
         <span id="np-photo-label" style="font-size:12px;color:var(--text3)">Fotoğraf ekle</span>
       </div>
       <div id="np-photo-preview" class="photo-preview-strip"></div>
+    </div>
+    <div class="fg">
+      <label class="poll-toggle-row"><input type="checkbox" id="np-poll-toggle" onchange="togglePollDraft(this.checked)"> Ankete ekle (isteğe bağlı)</label>
+      <div id="np-poll-editor" style="display:none;margin-top:8px">
+        <div id="np-poll-options"></div>
+        <button type="button" class="poll-add-opt-btn" onclick="addPollOption()">+ Seçenek Ekle</button>
+      </div>
     </div>
     <button class="sbtn2" onclick="submitPost()">Yayınla</button>
   </div>
@@ -1923,6 +1982,11 @@ body.tk-maintenance #maintenance-gate{
       <div style="width:32px"></div>
     </div>
     <div id="post-detail-body"></div>
+    <div class="mtabs" id="comment-sort-tabs" style="margin-bottom:8px">
+      <button class="mtab on" onclick="setCommentSort('oldest',this)">En Eski</button>
+      <button class="mtab off" onclick="setCommentSort('newest',this)">En Yeni</button>
+      <button class="mtab off" onclick="setCommentSort('liked',this)">En Çok Beğenilen</button>
+    </div>
     <div id="comments-list" style="margin-bottom:12px"></div>
     <div class="reply-quote-bar" id="reply-quote-bar">
       <div class="reply-quote-bar-body">
@@ -1931,16 +1995,24 @@ body.tk-maintenance #maintenance-gate{
       </div>
       <span class="reply-quote-bar-x" onclick="cancelReplyToComment()">✕</span>
     </div>
+    <div class="fmt-toolbar" id="comment-fmt-toolbar" style="display:none">
+      <button type="button" class="fmt-btn" onclick="fmtWrap('comment-inp','**','**')" title="Kalın"><b>B</b></button>
+      <button type="button" class="fmt-btn" onclick="fmtWrap('comment-inp','*','*')" title="İtalik"><i>i</i></button>
+      <button type="button" class="fmt-btn" onclick="fmtLink('comment-inp')" title="Bağlantı">🔗</button>
+      <button type="button" class="fmt-btn" onclick="fmtWrap('comment-inp','`','`')" title="Kod">{ }</button>
+      <button type="button" class="fmt-btn" onclick="fmtWrap('comment-inp','&gt; ','')" title="Alıntı">”</button>
+    </div>
     <div class="comment-input-area" id="comment-input-area" style="display:none">
       <input type="file" id="cmt-photo-input" accept="image/*" style="display:none" onchange="handleCmtPhoto(this)">
       <button class="photo-add-btn" onclick="document.getElementById('cmt-photo-input').click()">
         <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
       </button>
-      <textarea id="comment-inp" placeholder="Yorumunuzu yazın…" rows="1" oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px'"></textarea>
+      <textarea id="comment-inp" placeholder="Yorumunuzu yazın… (birini etiketlemek için @ yazın)" rows="1" oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px';onMentionInput('comment-inp')"></textarea>
       <button class="send-btn" onclick="submitComment()">
         <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
       </button>
     </div>
+    <div class="mention-suggest" id="mention-suggest-cmt" style="display:none"></div>
     <div id="cmt-photo-preview" style="display:none;margin-top:8px"></div>
   </div>
 </div>
@@ -2837,6 +2909,31 @@ function computeBadges(uid, profileData, isTargetAdmin, scoreInfo) {
     { id:'admin', icon:'🛡️', label:'Yönetici', done: !!isTargetAdmin },
     { id:'10-sales', icon:'🏆', label:'10 Satış', done:false, locked:true, info:'Satış takip sistemi henüz aktif değil, veri oluşunca bu rozet otomatik açılacak.' },
   ];
+}
+
+// Forum gönderisi/yorumu gönderilirken yazarın adının yanında gösterilecek, o ANDAKİ duruma göre
+// hesaplanmış en fazla 3 rozet ikonunu döndürür (öncelik sırasına göre) — ek bir Firestore okuması
+// gerektirmez, yalnızca bellekte zaten olan myProfileData/marketMineListings kullanılır. Gönderi
+// sonrası kazanılan yeni rozetleri yansıtmaz (authorName ile aynı kabul edilmiş trade-off).
+function computeAuthorBadgeIcons() {
+  if (!user || !myProfileData) return [];
+  const scoreInfo = computeTeknohaneScore(user.uid, myProfileData, marketMineLoaded ? marketMineListings : []);
+  const badges = computeBadges(user.uid, myProfileData, isAdminNow(), scoreInfo);
+  const priority = ['admin','vip','trusted-seller','community-contributor','forum-member','verified'];
+  const doneById = {};
+  badges.forEach(b => { doneById[b.id] = b; });
+  const icons = [];
+  for (const id of priority) {
+    const b = doneById[id];
+    if (b && b.done) icons.push(b.icon);
+    if (icons.length >= 3) break;
+  }
+  return icons;
+}
+
+function authorBadgesHTML(badges) {
+  if (!badges || !badges.length) return '';
+  return `<span class="author-badge-icons">${badges.map(b => `<span class="author-badge-icon">${escapeHtml(b)}</span>`).join('')}</span>`;
 }
 
 // Gizlilik ayarlarını varsayılan değerlerle birlikte normalize eder (privacy alanı hiç yoksa hepsi açık kabul edilir).
@@ -4299,7 +4396,7 @@ const NOTIF_TYPE_CATEGORY = {
   listing_approved: 'market', listing_rejected: 'market', saved_search_match: 'market',
   listing_question: 'market', listing_question_answered: 'market', followed_new_listing: 'followers',
   post_liked: 'forum', post_comment: 'forum', comment_liked: 'forum', comment_reply: 'forum',
-  forum_post_approved: 'forum', forum_post_rejected: 'forum',
+  forum_post_approved: 'forum', forum_post_rejected: 'forum', mention: 'forum',
   admin_notification: 'system', admin_warning: 'system', complaint_update: 'system',
   new_message: 'messages',
   pool_request: 'market', pool_reply: 'market',
@@ -5065,6 +5162,7 @@ const NOTIF_ICONS = {
   offer_received: { ic: '🤝', bg: 'rgba(0,212,255,.12)' },
   offer_response: { ic: '🤝', bg: 'rgba(48,209,88,.15)' },
   followed_new_listing: { ic: '📦', bg: 'rgba(0,212,255,.12)' },
+  mention: { ic: '📣', bg: 'rgba(0,212,255,.12)' },
 };
 
 function subscribeNotifBadge(uid) {
@@ -8346,6 +8444,10 @@ const POST_CATS = {
 // etiket bazlı filtreleme eklenebilir; bu görevde yalnızca veri modeli ve seçim arayüzü hazırlanıyor,
 // arama arayüzü kasıtlı olarak değiştirilmedi (istenen budur).
 const FORUM_TAGS = ['Android','iPhone','Samsung','Xiaomi','Yardım','Karşılaştırma','İnceleme','Sorun','Pil','Kamera','Performans'];
+// KÖK NEDEN DÜZELTMESİ: openPost() eskiden bir konunun TÜM yorumlarını limitsiz çekiyordu — yüzlerce
+// yorumlu bir konu her açılışta hepsini indiriyordu. loadForumPage'in AYNI startAfter imleç deseni
+// yorumlara da uygulanıyor (bkz. openPost/loadMoreComments/renderCommentsLoadMoreControl).
+const COMMENT_PAGE_SIZE = 20;
 
 // ==== GÜVENLİK: Kullanıcı girdisini HTML'e güvenli şekilde yerleştirme ====
 // Kök sorun: post.title/body ve comment.body şimdiye kadar innerHTML'e HİÇ kaçışsız yazılıyordu —
@@ -8368,13 +8470,132 @@ function escapeJsAttr(str) {
 // riski sıfırlanır), ARDINDAN yalnızca çok basit, düz-metin işaretleyicileri (```kod bloğu```,
 // `satır içi kod`, > alıntı satırı) HTML'e çevrilir — ağır bir markdown kütüphanesi eklenmedi.
 // Satır sonları CSS (`white-space:pre-wrap`) ile korunuyor, burada <br> üretilmiyor.
+// FORUM 2.0 — hafif, güvenli zengin metin. escapeHtml() İLK adım olarak kalır (XSS temeli
+// değişmedi) — bunun ÜZERİNE yalnızca birkaç düz-metin işaretleyicisi HTML'e çevrilir. Kod
+// bloklarının ve zaten üretilmiş linklerin içeriği, SONRAKİ regex'lerin (bold/italik/otomatik link)
+// onları yanlışlıkla tekrar işlemesini engellemek için geçici placeholder'larla korunuyor.
 function formatForumText(text) {
   if (!text) return '';
   let safe = escapeHtml(text);
-  safe = safe.replace(/```([\s\S]+?)```/g, (m, code) => `<pre class="cmt-codeblock"><code>${code}</code></pre>`);
+
+  const codeBlocks = [];
+  safe = safe.replace(/```([\s\S]+?)```/g, (m, code) => { codeBlocks.push(code); return ` CB${codeBlocks.length - 1} `; });
+
+  // Markdown link [metin](url) — yalnızca http(s)/mailto şemasına izin verilir (javascript:/data:
+  // gibi tehlikeli şemalar reddedilir, düz metin olarak kalır, hiç linklenmez).
+  const links = [];
+  safe = safe.replace(/\[([^\[\]]+)\]\((https?:\/\/[^\s()]+|mailto:[^\s()]+)\)/g, (m, label, url) => {
+    links.push(`<a href="${url}" target="_blank" rel="noopener noreferrer nofollow">${label}</a>`);
+    return ` LK${links.length - 1} `;
+  });
+  // Zaten linke dönüşmemiş çıplak URL'ler otomatik linklenir — AYNI şema kuralı.
+  safe = safe.replace(/\bhttps?:\/\/[^\s<>"']+/g, (m) => {
+    links.push(`<a href="${m}" target="_blank" rel="noopener noreferrer nofollow">${m}</a>`);
+    return ` LK${links.length - 1} `;
+  });
+
+  // **kalın** SONRA *italik*/_italik_ (bold önce işlenmeli, aksi halde ** çift yıldızı yanlış eşleşir).
+  safe = safe.replace(/\*\*([^\n*]+?)\*\*/g, '<strong>$1</strong>');
+  safe = safe.replace(/\*([^\n*]+?)\*|_([^\n_]+?)_/g, (m, a, b) => `<em>${a||b}</em>`);
+
   safe = safe.replace(/`([^`\n]+)`/g, '<code class="cmt-code">$1</code>');
   safe = safe.split('\n').map(line => line.match(/^&gt;\s?/) ? `<span class="cmt-quote">${line.replace(/^&gt;\s?/,'')}</span>` : line).join('\n');
+
+  safe = safe.replace(/ LK(\d+) /g, (m, i) => links[+i]);
+  safe = safe.replace(/ CB(\d+) /g, (m, i) => `<pre class="cmt-codeblock"><code>${codeBlocks[+i]}</code></pre>`);
   return safe;
+}
+
+// ".fmt-toolbar" butonlarının hepsi bunu çağırır — seçili metni verilen önek/sonekle sarmalar
+// (seçim yoksa imleç konumuna aynen eklenir), input olayını el ile tetikler ki karakter sayacı gibi
+// dinleyiciler (varsa) güncellensin.
+function fmtWrap(textareaId, prefix, suffix) {
+  const ta = document.getElementById(textareaId);
+  if (!ta) return;
+  const start = ta.selectionStart, end = ta.selectionEnd;
+  const val = ta.value;
+  const selected = val.slice(start, end);
+  ta.value = val.slice(0, start) + prefix + selected + suffix + val.slice(end);
+  ta.focus();
+  ta.setSelectionRange(start + prefix.length, start + prefix.length + selected.length);
+  ta.dispatchEvent(new Event('input'));
+}
+// Bağlantı butonu tek bir prompt() ile URL alır — istemci tarafında da formatForumText'teki AYNI
+// şema kısıtlaması (http(s)/mailto) uygulanır, kullanıcıya anında geri bildirim verir.
+function fmtLink(textareaId) {
+  const ta = document.getElementById(textareaId);
+  if (!ta) return;
+  const url = (prompt('Bağlantı adresi girin (https://... veya mailto:...):') || '').trim();
+  if (!url) return;
+  if (!/^https?:\/\//i.test(url) && !/^mailto:/i.test(url)) { showToast('⚠️','rgba(255,69,58,.15)','Geçersiz Bağlantı','Yalnızca http(s):// veya mailto: adresleri desteklenir.'); return; }
+  const start = ta.selectionStart, end = ta.selectionEnd;
+  const val = ta.value;
+  const label = val.slice(start, end) || 'bağlantı metni';
+  const insertText = `[${label}](${url})`;
+  ta.value = val.slice(0, start) + insertText + val.slice(end);
+  ta.focus();
+  ta.setSelectionRange(start + insertText.length, start + insertText.length);
+  ta.dispatchEvent(new Event('input'));
+}
+
+// @Mentions — imleçten geriye doğru boşluksuz bir "@parça" arar (kullanıcı arama ekranındaki AYNI
+// displayNameLower prefix sorgusu, 300ms debounce). Seçim yapısal: metne kozmetik "@AdSoyad" eklenir,
+// gerçek referans pendingMentions[] dizisinde tutulur (currentPostTags'ın aynı birikim deseni).
+function mentionSuffix(textareaId) {
+  return textareaId === 'np-body' ? 'np' : 'cmt';
+}
+function onMentionInput(textareaId) {
+  const ta = document.getElementById(textareaId);
+  if (!ta) return;
+  const upToCaret = ta.value.slice(0, ta.selectionStart);
+  const m = upToCaret.match(/@([^\s@]{1,30})$/);
+  clearTimeout(mentionDebounceTimer);
+  if (!m || m[1].length < 2) { hideMentionSuggest(textareaId); return; }
+  mentionActiveTextareaId = textareaId;
+  mentionDebounceTimer = setTimeout(() => runMentionSearch(textareaId, m[1].toLowerCase()), 300);
+}
+
+async function runMentionSearch(textareaId, query) {
+  const box = document.getElementById('mention-suggest-' + mentionSuffix(textareaId));
+  if (!box || mentionActiveTextareaId !== textareaId) return;
+  try {
+    const snap = await db.collection('teknohane_user_index')
+      .where('displayNameLower', '>=', query)
+      .where('displayNameLower', '<=', query + '')
+      .limit(6).get();
+    if (mentionActiveTextareaId !== textareaId) return;
+    if (snap.empty) { box.style.display = 'none'; return; }
+    box.innerHTML = snap.docs.map(d => {
+      const u = d.data();
+      const name = u.displayName || 'Kullanıcı';
+      return `<div class="mention-suggest-row" onclick="selectMention('${textareaId}','${d.id}','${escapeJsAttr(name)}')">${u.photoURL?`<img src="${u.photoURL}" alt="">`:`<span class="mention-suggest-av">${escapeHtml(name[0]||'?').toUpperCase()}</span>`}<span>${escapeHtml(name)}</span></div>`;
+    }).join('');
+    box.style.display = 'block';
+  } catch(e) { box.style.display = 'none'; }
+}
+
+function selectMention(textareaId, uid, displayName) {
+  const ta = document.getElementById(textareaId);
+  if (!ta) return;
+  const caret = ta.selectionStart;
+  const upToCaret = ta.value.slice(0, caret);
+  const m = upToCaret.match(/@([^\s@]{1,30})$/);
+  if (m) {
+    const start = caret - m[0].length;
+    const insertText = `@${displayName} `;
+    ta.value = ta.value.slice(0, start) + insertText + ta.value.slice(caret);
+    const newPos = start + insertText.length;
+    ta.setSelectionRange(newPos, newPos);
+  }
+  if (!pendingMentions.some(p => p.uid === uid)) pendingMentions.push({ uid, displayName });
+  hideMentionSuggest(textareaId);
+  ta.focus();
+}
+
+function hideMentionSuggest(textareaId) {
+  mentionActiveTextareaId = null;
+  const box = document.getElementById('mention-suggest-' + mentionSuffix(textareaId === 'np' ? 'np-body' : textareaId));
+  if (box) box.style.display = 'none';
 }
 
 // ==== GÖRÜNTÜLENME SAYACI — Pazar'daki (teknohane_listings) desenle AYNI mantık, ama kasıtlı olarak
@@ -8407,6 +8628,11 @@ let forumSearchActive = false;
 // openPost() her çağrıldığında "adminForumPosts is not defined" ile patlıyordu (bkz. Hatalar sekmesi).
 let adminForumPosts = [];
 let forumSearchDebounceTimer = null;
+// Alt-forum/kategori gezinme — "Tümü" akışından (forumPosts/forumLastDoc/forumHasMore) TAMAMEN
+// AYRI, paralel bir ikinci akış. Her kategori kendi sayfalama durumunu taşır ki az aktif bir
+// kategori, "Tümü" penceresinin filtrelenmesiyle eksik/yanlış görünmesin (bkz. plan, Yaklaşım 1).
+let forumCategory = 'tumu';
+let forumCatState = {}; // { [catKey]: { posts:[], lastDoc:null, hasMore:true, loading:false } }
 
 // Sekmeler (Yeni/Popüler/Çözüldü/Takip Ettiklerim) hepsi AYNI temel veriyi (son N gönderi) farklı
 // süzüyor/sıralıyor — bu yüzden sekme değiştirmek artık Firestore'a YENİDEN gitmiyor; zaten yüklü
@@ -8421,8 +8647,92 @@ function switchForumTab(tab, el) {
   if (si) si.value = '';
   document.querySelectorAll('.forum-tab').forEach(t => t.classList.remove('on'));
   el.classList.add('on');
-  if (!wasSearching && forumPosts.length) rForum();
+  const usingCategory = forumCategory !== 'tumu';
+  const hasData = usingCategory ? !!forumCatState[forumCategory]?.posts.length : forumPosts.length > 0;
+  if (!wasSearching && hasData) rForum();
+  else if (usingCategory) loadForumCategoryPage(forumCategory, true);
   else loadForumPage(true);
+}
+
+// Kategori/alt-forum şeridi — "Tümü" seçiliyken eski davranış (forumPosts) aynen çalışır; bir
+// kategori seçilince o kategoriye özgü bağımsız akışa (forumCatState) geçilir (bkz. yukarıdaki not).
+function scatForum(cat, el) {
+  forumCategory = cat;
+  document.querySelectorAll('#fcat-tabs .mtab').forEach(b => b.className = 'mtab off');
+  el.className = 'mtab on';
+  const statsBar = document.getElementById('fcat-stats-bar');
+  if (statsBar) statsBar.style.display = cat === 'tumu' ? 'none' : '';
+  if (cat === 'tumu') {
+    rForum();
+    return;
+  }
+  if (!forumCatState[cat]) forumCatState[cat] = { posts: [], lastDoc: null, hasMore: true, loading: false };
+  if (forumCatState[cat].posts.length) rForum();
+  else loadForumCategoryPage(cat, true);
+  loadForumCatStats(cat);
+}
+
+// loadForumPage'in BİREBİR aynı iskeleti — yalnızca sorguya where('category',...) eklenmiş hali.
+// Yeni bir composite index (category ASC, createdAt DESC) gerektirir (bkz. firestore.indexes.json).
+async function loadForumCategoryPage(catKey, reset) {
+  if (!forumCatState[catKey]) forumCatState[catKey] = { posts: [], lastDoc: null, hasMore: true, loading: false };
+  const state = forumCatState[catKey];
+  if (state.loading) return;
+  if (reset) { state.posts = []; state.lastDoc = null; state.hasMore = true; }
+  if (!state.hasMore) { rForum(); return; }
+  state.loading = true;
+  if (reset) rForum(); else renderForumLoadMoreControl();
+  try {
+    let q = db.collection('teknohane_posts').where('category', '==', catKey).orderBy('createdAt', 'desc').limit(50);
+    if (state.lastDoc) q = q.startAfter(state.lastDoc);
+    const snap = await q.get();
+    const newItems = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.archived !== true && p.approved !== false);
+    state.lastDoc = snap.docs[snap.docs.length - 1] || state.lastDoc;
+    state.hasMore = snap.docs.length === 50;
+    state.posts = reset ? newItems : [...state.posts, ...newItems];
+    rForum();
+  } catch (e) {
+    console.error('Forum kategori sayfası yüklenemedi:', e);
+    if (reset) {
+      const list = document.getElementById('forum-list');
+      if (list) list.innerHTML = `<div class="no">Konular yüklenemedi.<br><span style="font-size:11px;color:var(--text3)">Lütfen internet bağlantını kontrol edip tekrar dene.</span></div>`;
+    }
+  } finally {
+    state.loading = false;
+    renderForumLoadMoreControl();
+  }
+}
+
+// Kategori sekmesinin altındaki "N konu · N mesaj + son mesaj" bilgi satırı — teknohane_forum_cat_stats
+// koleksiyonundan TEK bir doküman okumasıyla doldurulur (bkz. updateForumCatStats).
+async function loadForumCatStats(cat) {
+  const bar = document.getElementById('fcat-stats-bar');
+  if (!bar) return;
+  bar.innerHTML = `<div class="spin" style="width:14px;height:14px;margin:2px 0"></div>`;
+  try {
+    const snap = await db.collection('teknohane_forum_cat_stats').doc(cat).get();
+    const s = snap.exists ? snap.data() : {};
+    const lastAgo = s.lastPostAt?.toDate ? timeAgo(s.lastPostAt.toDate()) : '';
+    bar.innerHTML = `<div class="fcat-stats-row">
+      <span>${s.threadCount||0} konu · ${s.replyCount||0} mesaj</span>
+      ${s.lastPostId?`<span class="fcat-stats-last" onclick="openPost('${s.lastPostId}')">Son: <b>${escapeHtml((s.lastPostTitle||'').slice(0,44))}</b> — ${escapeHtml(s.lastPostAuthorName||'')} · ${lastAgo}</span>`:'<span>Bu kategoride henüz konu yok</span>'}
+    </div>`;
+  } catch(e) { bar.innerHTML = ''; }
+}
+
+// Yeni koleksiyon: teknohane_forum_cat_stats/{catKey} — Cloud Function yok, bu yüzden increment
+// SADECE ilgili yazma (konu/yorum) başarılı olduktan SONRA, ek bir yazma olarak yapılıyor
+// (likeCount/viewCount ile AYNI desen) — başarısız olursa sessizce yutulur, asıl akışı bloklamaz.
+function updateForumCatStats(catKey, kind, info) {
+  if (!catKey) return;
+  const patch = { [kind === 'thread' ? 'threadCount' : 'replyCount']: firebase.firestore.FieldValue.increment(1) };
+  if (info) {
+    patch.lastPostId = info.postId;
+    patch.lastPostTitle = info.title;
+    patch.lastPostAuthorName = info.authorName;
+    patch.lastPostAt = firebase.firestore.FieldValue.serverTimestamp();
+  }
+  db.collection('teknohane_forum_cat_stats').doc(catKey).set(patch, { merge: true }).catch(()=>{});
 }
 
 async function loadForumPage(reset) {
@@ -8495,10 +8805,14 @@ function renderForumLoadMoreControl() {
   } else {
     list.appendChild(wrap);
   }
-  if (forumLoading) wrap.innerHTML = `<div class="spin" style="margin:0 auto"></div>`;
-  else if (forumHasMore) wrap.innerHTML = `<button class="apbtn" style="width:auto;padding:10px 24px;display:inline-block" onclick="loadForumPage(false)">Daha Fazla Yükle</button>`;
+  const usingCategory = forumCategory !== 'tumu';
+  const loading = usingCategory ? !!forumCatState[forumCategory]?.loading : forumLoading;
+  const hasMore = usingCategory ? !!forumCatState[forumCategory]?.hasMore : forumHasMore;
+  const triggerLoadMore = () => usingCategory ? loadForumCategoryPage(forumCategory, false) : loadForumPage(false);
+  if (loading) wrap.innerHTML = `<div class="spin" style="margin:0 auto"></div>`;
+  else if (hasMore) wrap.innerHTML = `<button class="apbtn" style="width:auto;padding:10px 24px;display:inline-block" onclick="${usingCategory ? `loadForumCategoryPage('${forumCategory}',false)` : 'loadForumPage(false)'}">Daha Fazla Yükle</button>`;
   else wrap.innerHTML = '';
-  if (forumHasMore) observeLoadMoreOnScroll(wrap, () => loadForumPage(false));
+  if (hasMore) observeLoadMoreOnScroll(wrap, triggerLoadMore);
 }
 
 // Forum kartı HTML'ini üretir — rForum()'un içindeki şablonla BİREBİR aynı, tekilleştirmek için
@@ -8526,7 +8840,7 @@ function forumPostCardHTML(p) {
         <div class="post-title">${escapeHtml(p.title)}</div>
         ${(p.tags&&p.tags.length)?`<div class="post-tags-row">${p.tags.slice(0,3).map(t=>`<span class="post-tag-chip">#${escapeHtml(t)}</span>`).join('')}</div>`:''}
         <div class="post-meta-row">
-          <span onclick="event.stopPropagation();openPublicProfile('${p.uid}','${authorJs}')" class="post-meta-author">${authorSafe}</span>
+          <span onclick="event.stopPropagation();openPublicProfile('${p.uid}','${authorJs}')" class="post-meta-author">${authorSafe}</span>${authorBadgesHTML(p.authorBadges)}
           <span>· ${ts}</span>
           <span class="post-meta-stat">❤ ${likeCount}</span>
           <span class="post-meta-stat">💬 ${p.answerCount||0}</span>
@@ -8588,10 +8902,15 @@ function forumSkeletonHTML(count) {
 function rForum() {
   const list = document.getElementById('forum-list');
   if (!list) return;
-  if (!forumPosts.length && forumLoading) { list.innerHTML = forumSkeletonHTML(5); return; }
-  // Sekmeye özgü filtre/sıralama — artık burada (render anında), ham veri (forumPosts) sekmeler
-  // arasında YENİDEN KULLANILIYOR, her sekme değişiminde yeni bir Firestore sorgusu atılmıyor.
-  let items = forumPosts;
+  // Kategori sekmesi seçiliyken kaynak "Tümü" penceresi (forumPosts) DEĞİL, o kategoriye özgü
+  // bağımsız akış (forumCatState) olur — bkz. scatForum/loadForumCategoryPage.
+  const usingCategory = forumCategory !== 'tumu';
+  const sourcePosts = usingCategory ? (forumCatState[forumCategory]?.posts || []) : forumPosts;
+  const sourceLoading = usingCategory ? !!forumCatState[forumCategory]?.loading : forumLoading;
+  if (!sourcePosts.length && sourceLoading) { list.innerHTML = forumSkeletonHTML(5); return; }
+  // Sekmeye özgü filtre/sıralama — artık burada (render anında), ham veri sekmeler arasında
+  // YENİDEN KULLANILIYOR, her sekme değişiminde yeni bir Firestore sorgusu atılmıyor.
+  let items = sourcePosts;
   if (forumCurrentTab === 'resolved') items = items.filter(p => p.resolved === true);
   else if (forumCurrentTab === 'following') { const uids = new Set(myProfileData.followingUids || []); items = items.filter(p => uids.has(p.uid)); }
   else if (forumCurrentTab === 'popular') items = [...items].sort((a,b) => (b.likeCount ?? (b.likes||[]).length) - (a.likeCount ?? (a.likes||[]).length));
@@ -8610,6 +8929,39 @@ let pendingCommentPhotoId = null;
 // Yeni gönderi henüz Firestore'da yok ama fotoğraf seçilir seçilmez Storage'a yükleniyor —
 // ilan fotoğraflarındaki AYNI "geçici, kararlı ID" deseni (bkz. pendingNewListingPhotoId).
 let pendingNewPostPhotoId = null;
+// @Mentions: serbest metinden isim ayrıştırmak yerine YAPISAL seçim modeli — currentPostTags'ın
+// AYNI birikim deseni. Textarea'ya yalnızca kozmetik "@AdSoyad" eklenir, gerçek referans (uid) bu
+// dizide tutulur ve submitPost/submitComment sırasında Firestore'a mentions:[uid,...] olarak yazılır.
+let pendingMentions = [];
+let mentionDebounceTimer = null;
+let mentionActiveTextareaId = null;
+// Anketler: yeni bir POST_TYPES değeri DEĞİL, herhangi bir konuya eklenebilen opsiyonel bir ek —
+// taslak yalnızca metin dizisi olarak tutulur, submitPost sırasında poll:{options,votes,totalVotes}
+// map'ine dönüştürülür (Firestore'da noktalı-yol increment() yalnızca map alanlarında çalışır, bu
+// yüzden dizi değil obje).
+const POLL_MAX_OPTIONS = 6;
+let pollOptionsDraft = [];
+
+function togglePollDraft(enabled) {
+  document.getElementById('np-poll-editor').style.display = enabled ? 'block' : 'none';
+  if (enabled && pollOptionsDraft.length < 2) { pollOptionsDraft = ['', '']; renderPollDraftInputs(); }
+}
+function renderPollDraftInputs() {
+  const c = document.getElementById('np-poll-options');
+  c.innerHTML = pollOptionsDraft.map((v, i) => `<div class="poll-opt-row">
+    <input class="fi" type="text" placeholder="Seçenek ${i+1}" maxlength="60" value="${escapeHtml(v)}" oninput="pollOptionsDraft[${i}]=this.value">
+    ${pollOptionsDraft.length > 2 ? `<span class="poll-opt-del" onclick="removePollOption(${i})">✕</span>` : ''}
+  </div>`).join('');
+}
+function addPollOption() {
+  if (pollOptionsDraft.length >= POLL_MAX_OPTIONS) { showToast('⚠️','rgba(255,69,58,.15)','Sınır','En fazla 6 seçenek eklenebilir.'); return; }
+  pollOptionsDraft.push('');
+  renderPollDraftInputs();
+}
+function removePollOption(idx) {
+  pollOptionsDraft.splice(idx, 1);
+  renderPollDraftInputs();
+}
 
 function openNewPost() {
   if (!user) { showToast('🔒','var(--cdim)','Giriş Gerekli','Konu açmak için giriş yapın.', ()=>gt('profile')); return; }
@@ -8620,6 +8972,12 @@ function openNewPost() {
   npPhotoB64 = null;
   pendingNewPostPhotoId = db.collection('teknohane_posts').doc().id;
   currentPostTags = [];
+  pendingMentions = [];
+  hideMentionSuggest('np');
+  pollOptionsDraft = [];
+  document.getElementById('np-poll-toggle').checked = false;
+  document.getElementById('np-poll-editor').style.display = 'none';
+  document.getElementById('np-poll-options').innerHTML = '';
   document.getElementById('np-tag-sel').innerHTML = FORUM_TAGS.map(t => `<div class="pcat" data-ptag="${t}" onclick="selPostTag('${t}',this)">${t}</div>`).join('');
   selPostType('soru', document.querySelector('[data-ptype="soru"]'));
   selPostCat('genel', document.querySelector('[data-pcat="genel"]'));
@@ -8699,6 +9057,9 @@ async function submitPost() {
   // açıklama zorunlu tutarken forum gönderisinde hiç kontrol yoktu) — bu, içeriksiz/spam konuların
   // önüne geçmek için minimum bir eşik ekliyor; ilan formu kadar sıkı değil (forum sorusu kısa olabilir).
   if (body.length < 10) { showToast('⚠️','rgba(255,69,58,.15)','İçerik Çok Kısa','Gönderi içeriği en az 10 karakter olmalı.'); return; }
+  const pollEnabled = document.getElementById('np-poll-toggle').checked;
+  const pollTexts = pollEnabled ? pollOptionsDraft.map(t => t.trim()).filter(t => t) : [];
+  if (pollEnabled && pollTexts.length < 2) { showToast('⚠️','rgba(255,69,58,.15)','Anket Eksik','En az 2 dolu seçenek girmelisin.'); return; }
   if (!guardSubmit('post')) return;
   try {
     const data = {
@@ -8708,7 +9069,9 @@ async function submitPost() {
       titleLower: title.toLowerCase(), // Firestore'da başlangıç eşleşmesi araması için
       uid: user.uid,
       authorName: user.displayName || user.email?.split('@')[0] || 'Anonim',
+      authorBadges: computeAuthorBadgeIcons(),
       tags: [...currentPostTags],
+      mentions: pendingMentions.map(m => m.uid),
       likes: [],
       likeCount: 0,
       answerCount: 0,
@@ -8723,9 +9086,20 @@ async function submitPost() {
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
     if (npPhotoB64) data.imageUrl = npPhotoB64;
+    if (pollTexts.length >= 2) {
+      const options = {}; const votes = {};
+      pollTexts.forEach((t, i) => { const oid = 'o' + i; options[oid] = { text: t }; votes[oid] = 0; });
+      data.poll = { options, votes, totalVotes: 0 };
+    }
     const ref = await db.collection('teknohane_posts').add(data);
     const savedPostId = ref.id;
     notifyAdminsNewForumPost(savedPostId, title, data.authorName);
+    updateForumCatStats(currentPostCat, 'thread', { postId: savedPostId, title, authorName: data.authorName });
+    // @Mentions: konu sahibine zaten gitmeyecek özel bir bildirim türü ("seni etiketledi") —
+    // takipçi/admin bildirimlerinden bağımsız, çünkü etiketlenen kişi bunların hiçbiri olmayabilir.
+    pendingMentions.forEach(m => {
+      if (m.uid && m.uid !== user.uid) notifyUser(m.uid, 'mention', `${data.authorName} seni bir konuda etiketledi: "${title}"`, null, savedPostId, user.uid, data.authorName, myProfileData.photoURL);
+    });
 
     closemo('new-post-mo');
     npPhotoB64 = null;
@@ -8742,6 +9116,8 @@ async function submitPost() {
     forumPosts = [localPost, ...forumPosts.filter(p => p.id !== savedPostId)];
     adminForumPosts = [localPost, ...adminForumPosts.filter(p => p.id !== savedPostId)];
     rForum();
+    pendingMentions = [];
+    pollOptionsDraft = [];
 
     showToast('⏳','rgba(255,159,10,.15)','Konu Gönderildi','İncelendikten sonra foruma yayınlanacaktır.');
   } catch(e) { showErrorToast(e); } finally { releaseSubmit('post'); }
@@ -8765,17 +9141,84 @@ async function openPost(id) {
     db.collection('teknohane_posts').doc(id).update({ viewCount: firebase.firestore.FieldValue.increment(1) }).catch(()=>{});
     currentPost.viewCount = (currentPost.viewCount||0) + 1;
   }
+  currentPost._myPollVote = null;
+  if (currentPost.poll && user) {
+    try {
+      const voteSnap = await db.collection('teknohane_posts').doc(id).collection('pollVotes').doc(user.uid).get();
+      if (voteSnap.exists) currentPost._myPollVote = voteSnap.data().optionId;
+    } catch(e) {}
+  }
   renderPostDetail();
   document.getElementById('post-detail-mo').classList.add('on');
   cmtPhotoB64 = null;
   cancelReplyToComment();
+  // Her yeni konu açılışında yorum sıralaması varsayılana (En Eski) döner — bir önceki konudan
+  // kalan seçim burada kalıcı hale gelmemeli.
+  commentSortMode = 'oldest';
+  document.querySelectorAll('#comment-sort-tabs .mtab').forEach((b,i) => b.className = i===0 ? 'mtab on' : 'mtab off');
+  pendingMentions = [];
+  hideMentionSuggest('comment-inp');
   const prev = document.getElementById('cmt-photo-preview');
   if (prev) { prev.style.display='none'; prev.innerHTML=''; }
   try {
-    const snap = await db.collection('teknohane_posts').doc(id).collection('comments').orderBy('createdAt','asc').get();
+    const snap = await db.collection('teknohane_posts').doc(id).collection('comments').orderBy('createdAt','asc').limit(COMMENT_PAGE_SIZE).get();
     currentPost._comments = snap.docs.map(d => ({id:d.id,...d.data()}));
+    currentPost._commentsLastDoc = snap.docs[snap.docs.length - 1] || null;
+    currentPost._commentsHasMore = snap.docs.length === COMMENT_PAGE_SIZE;
+    // UÇ DURUM: en iyi cevap ilk sayfada gelmemiş olabilir (çok yorumlu, eski bir konuda geç
+    // seçilmiş en iyi cevap gibi) — Stack Overflow deseninde en iyi cevap HER ZAMAN görünür olmalı,
+    // bu yüzden tek bir ek doküman okumasıyla ayrıca çekilip listenin başına eklenir.
+    if (currentPost.bestAnswer && !currentPost._comments.some(c => c.id === currentPost.bestAnswer)) {
+      try {
+        const bestSnap = await db.collection('teknohane_posts').doc(id).collection('comments').doc(currentPost.bestAnswer).get();
+        if (bestSnap.exists) currentPost._comments.unshift({ id: bestSnap.id, ...bestSnap.data() });
+      } catch(e) {}
+    }
     renderComments();
+    renderCommentsLoadMoreControl();
   } catch(e) {}
+}
+
+// Sonraki 20 yorumu, mevcut listenin SONUNA ekler (loadForumPage'in appendForumCards'ıyla AYNI
+// "sadece yeni kartları ekle" hızlı yol deseni) — zaten yüklü yorumlar yeniden çekilmez/render edilmez.
+async function loadMoreComments() {
+  const p = currentPost;
+  if (!p || !p._commentsHasMore || p._commentsLoadingMore) return;
+  p._commentsLoadingMore = true;
+  renderCommentsLoadMoreControl();
+  try {
+    let q = db.collection('teknohane_posts').doc(p.id).collection('comments').orderBy('createdAt','asc').limit(COMMENT_PAGE_SIZE);
+    if (p._commentsLastDoc) q = q.startAfter(p._commentsLastDoc);
+    const snap = await q.get();
+    const seen = new Set(p._comments.map(c => c.id));
+    const newItems = snap.docs.map(d => ({id:d.id,...d.data()})).filter(c => !seen.has(c.id));
+    p._comments = [...p._comments, ...newItems];
+    p._commentsLastDoc = snap.docs[snap.docs.length - 1] || p._commentsLastDoc;
+    p._commentsHasMore = snap.docs.length === COMMENT_PAGE_SIZE;
+  } catch(e) {}
+  p._commentsLoadingMore = false;
+  renderComments();
+  renderCommentsLoadMoreControl();
+}
+
+// loadForumPage/renderForumLoadMoreControl'ün BİREBİR aynı deseni — kontrol tam render'dan AYRI,
+// yalnızca bu küçük alan güncellenir.
+function renderCommentsLoadMoreControl() {
+  const list = document.getElementById('comments-list');
+  if (!list) return;
+  let wrap = list.querySelector('.comments-loadmore-wrap');
+  if (!wrap) {
+    wrap = document.createElement('div');
+    wrap.className = 'comments-loadmore-wrap';
+    wrap.style.cssText = 'padding:12px;text-align:center';
+    list.appendChild(wrap);
+  } else {
+    list.appendChild(wrap);
+  }
+  const p = currentPost;
+  if (p?._commentsLoadingMore) wrap.innerHTML = `<div class="spin" style="margin:0 auto"></div>`;
+  else if (p?._commentsHasMore) wrap.innerHTML = `<button class="apbtn" style="width:auto;padding:8px 20px;display:inline-block;font-size:13px" onclick="loadMoreComments()">Daha Fazla Yorum Yükle</button>`;
+  else wrap.innerHTML = '';
 }
 
 function renderPostDetail() {
@@ -8804,13 +9247,14 @@ function renderPostDetail() {
       </div>
       <div style="font-size:18px;font-weight:700;margin-bottom:8px;line-height:1.3">${escapeHtml(p.title)}</div>
       <div style="font-size:12px;color:var(--text3);margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <span><span onclick="openPublicProfile('${p.uid}','${authorJs}')" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;color:var(--text3)">${authorSafe}</span> · ${ts}</span>
+        <span><span onclick="openPublicProfile('${p.uid}','${authorJs}')" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;color:var(--text3)">${authorSafe}</span>${authorBadgesHTML(p.authorBadges)} · ${ts}</span>
         <span>👁 ${p.viewCount||0}</span>
       </div>
     </div>
     ${(p.tags&&p.tags.length)?`<div class="post-detail-tags">${p.tags.map(t=>`<span class="post-tag-chip">#${escapeHtml(t)}</span>`).join('')}</div>`:''}
     ${p.imageUrl?`<img class="post-detail-img" src="${p.imageUrl}" alt="Gönderi görseli" loading="lazy" decoding="async" onclick="openFullscreen('${p.imageUrl}')">` : ''}
     <div class="post-detail-body">${formatForumText(p.body)}</div>
+    ${pollBlockHTML(p)}
     <div class="post-actions" style="flex-wrap:wrap">
       <button class="like-btn ${liked?'liked':''}" onclick="likePost('${p.id}')">
         <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
@@ -8829,7 +9273,95 @@ function renderPostDetail() {
       ${user && user.uid!==p.uid?`<span onclick="openReportModal('forum_post','${p.id}','${escapeJsAttr(p.title||'Konu')}','${p.uid||''}')" style="font-size:11px;color:var(--text3);cursor:pointer;text-decoration:underline;margin-left:auto">🚩 Şikayet Et</span>`:''}
     </div>`;
   document.getElementById('comment-input-area').style.display = user ? 'flex' : 'none';
+  document.getElementById('comment-fmt-toolbar').style.display = user ? 'flex' : 'none';
   document.getElementById('comment-inp').value = '';
+}
+
+// Anket bloğu: her seçenek için yüzde çubuğu, kullanıcının kendi oyu (_myPollVote, openPost'ta tek
+// ek doküman okumasıyla önceden çekilir) vurgulanır. Tıklama her zaman votePoll'u tetikler — aynı
+// seçeneğe tekrar tıklama oyu geri çeker, farklı bir seçeneğe tıklama oyu değiştirir.
+function pollBlockHTML(p) {
+  if (!p.poll || !p.poll.options) return '';
+  const total = p.poll.totalVotes || 0;
+  const myVote = p._myPollVote || null;
+  const optIds = Object.keys(p.poll.options);
+  return `<div class="poll-block">
+    ${optIds.map(oid => {
+      const opt = p.poll.options[oid] || {};
+      const count = (p.poll.votes || {})[oid] || 0;
+      const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+      const mine = myVote === oid;
+      return `<div class="poll-opt-bar ${mine ? 'mine voted' : ''}" onclick="votePoll('${p.id}','${oid}')">
+        <div class="poll-bar-fill" style="width:${pct}%"></div>
+        <div class="poll-opt-row2"><span class="poll-opt-label">${mine ? '✓ ' : ''}${escapeHtml(opt.text || '')}</span><span class="poll-opt-pct">${pct}% · ${count}</span></div>
+      </div>`;
+    }).join('')}
+    <div class="poll-total-votes">${total} oy</div>
+  </div>`;
+}
+
+// Anket oyu — bu codebase'deki İLK db.runTransaction() kullanımı: oy değiştirme, iki seçenek
+// sayacında AYNI yazmada atomik bir azalt+artır gerektiriyor (basit tek-alan increment()'ten farklı
+// gerçek bir oku-değiştir-yaz işlemi). pollVotes/{uid} alt koleksiyonu doküman ID'si = uid olduğu
+// için kişi başı 1 oy doğal olarak garanti edilir.
+async function votePoll(postId, optionId) {
+  if (!user) { showToast('🔒','var(--cdim)','Giriş Gerekli','Oy kullanmak için giriş yapın.', ()=>gt('profile')); return; }
+  const p = currentPost;
+  if (!p || p.id !== postId || !p.poll) return;
+  const prevLocal = p._myPollVote || null;
+  const postRef = db.collection('teknohane_posts').doc(postId);
+  const voteRef = postRef.collection('pollVotes').doc(user.uid);
+  try {
+    await db.runTransaction(async (tx) => {
+      const voteSnap = await tx.get(voteRef);
+      const postSnap = await tx.get(postRef);
+      if (!postSnap.exists) throw new Error('Konu bulunamadı.');
+      const poll = postSnap.data().poll;
+      if (!poll || !poll.options || !poll.options[optionId]) throw new Error('Geçersiz seçenek.');
+      const prevOption = voteSnap.exists ? voteSnap.data().optionId : null;
+      const updates = {};
+      if (prevOption === optionId) {
+        updates[`poll.votes.${optionId}`] = firebase.firestore.FieldValue.increment(-1);
+        updates['poll.totalVotes'] = firebase.firestore.FieldValue.increment(-1);
+        tx.delete(voteRef);
+      } else if (prevOption) {
+        updates[`poll.votes.${prevOption}`] = firebase.firestore.FieldValue.increment(-1);
+        updates[`poll.votes.${optionId}`] = firebase.firestore.FieldValue.increment(1);
+        tx.set(voteRef, { optionId, votedAt: firebase.firestore.FieldValue.serverTimestamp() });
+      } else {
+        updates[`poll.votes.${optionId}`] = firebase.firestore.FieldValue.increment(1);
+        updates['poll.totalVotes'] = firebase.firestore.FieldValue.increment(1);
+        tx.set(voteRef, { optionId, votedAt: firebase.firestore.FieldValue.serverTimestamp() });
+      }
+      tx.update(postRef, updates);
+    });
+    if (prevLocal === optionId) {
+      p.poll.votes[optionId] = Math.max(0, (p.poll.votes[optionId]||0) - 1);
+      p.poll.totalVotes = Math.max(0, (p.poll.totalVotes||0) - 1);
+      p._myPollVote = null;
+    } else if (prevLocal) {
+      p.poll.votes[prevLocal] = Math.max(0, (p.poll.votes[prevLocal]||0) - 1);
+      p.poll.votes[optionId] = (p.poll.votes[optionId]||0) + 1;
+      p._myPollVote = optionId;
+    } else {
+      p.poll.votes[optionId] = (p.poll.votes[optionId]||0) + 1;
+      p.poll.totalVotes = (p.poll.totalVotes||0) + 1;
+      p._myPollVote = optionId;
+    }
+    renderPostDetail();
+  } catch(e) { showErrorToast(e, 'Oy kaydedilemedi.'); }
+}
+
+// Sayfalamayla (bkz. loadMoreComments) uzlaştırma: sıralama o an istemcide yüklü currentPost._comments
+// PENCERESİ üzerinde yapılır — daha fazla sayfa yüklendikçe havuz büyür ve sıralama yeniden uygulanır.
+// Forum'daki "Popüler" post sekmesinin (rForum) ZATEN kabul edilmiş aynı kısıtlaması, yeni bir
+// tutarsızlık yaratılmıyor.
+let commentSortMode = 'oldest';
+function setCommentSort(mode, el) {
+  commentSortMode = mode;
+  document.querySelectorAll('#comment-sort-tabs .mtab').forEach(b => b.className = 'mtab off');
+  el.className = 'mtab on';
+  renderComments();
 }
 
 function renderComments() {
@@ -8840,9 +9372,13 @@ function renderComments() {
   const list = document.getElementById('comments-list');
   if (!list) return;
   if (!comments.length) { list.innerHTML = '<div class="no" style="padding:16px 0">Henüz yorum yok — ilk yorumu sen yap!</div>'; return; }
-  // En iyi cevap her zaman en üstte gösterilir (Stack Overflow deseni) — diğerleri kronolojik sırada
-  // kalır. Stabil sıralama (Array.sort stabildir) sayesinde en iyi cevap dışındaki sıra bozulmaz.
-  const sorted = [...comments].sort((a,b) => (p.bestAnswer===b.id?1:0) - (p.bestAnswer===a.id?1:0));
+  // Kullanıcının seçtiği sıralama (En Eski/En Yeni/En Çok Beğenilen) ÖNCE uygulanır, en iyi cevap
+  // sıralamadan BAĞIMSIZ her zaman en üstte sabit kalır (Stack Overflow deseni) — bu yüzden bestAnswer
+  // karşılaştırması son sort çağrısında yapılıyor (stabil sort sayesinde altındaki sıra bozulmuyor).
+  let base = [...comments];
+  if (commentSortMode === 'newest') base.sort((a,b) => (b.createdAt?.toDate?.()?.getTime()||0) - (a.createdAt?.toDate?.()?.getTime()||0));
+  else if (commentSortMode === 'liked') base.sort((a,b) => (b.likes||[]).length - (a.likes||[]).length);
+  const sorted = base.sort((a,b) => (p.bestAnswer===b.id?1:0) - (p.bestAnswer===a.id?1:0));
   list.innerHTML = sorted.map(c => {
     const isBest = p.bestAnswer === c.id;
     const likedC = user && (c.likes||[]).includes(user.uid);
@@ -8856,7 +9392,7 @@ function renderComments() {
     const quotedAuthorSafe = c.quotedAuthorName ? escapeHtml(c.quotedAuthorName) : '';
     return `<div class="comment-item ${isBest?'best':''}" id="cmt-${c.id}">
       ${isBest?'<div class="best-badge">✓ En İyi Cevap</div>':''}
-      <div class="comment-author" onclick="openPublicProfile('${c.uid}','${authorJs}')" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;display:inline-block">${authorSafe}</div>
+      <div class="comment-author" onclick="openPublicProfile('${c.uid}','${authorJs}')" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;display:inline-block">${authorSafe}</div>${authorBadgesHTML(c.authorBadges)}
       ${c.quotedCommentId?`<div class="comment-quote-ref" onclick="document.getElementById('cmt-${c.quotedCommentId}')?.scrollIntoView({behavior:'smooth',block:'center'})"><b>${quotedAuthorSafe}</b>: ${quotedSafe}</div>`:''}
       <div class="comment-text">${formatForumText(c.body)}</div>
       ${c.imageUrl?`<img class="comment-img" src="${c.imageUrl}" alt="Yorum görseli" loading="lazy" decoding="async" onclick="openFullscreen('${c.imageUrl}')">` : ''}
@@ -8926,6 +9462,8 @@ async function submitComment() {
     const cdata = {
       uid: user.uid,
       authorName: user.displayName || user.email?.split('@')[0] || 'Anonim',
+      authorBadges: computeAuthorBadgeIcons(),
+      mentions: pendingMentions.map(m => m.uid),
       body: body||'', likes: [],
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
@@ -8947,6 +9485,7 @@ async function submitComment() {
     }
     await db.collection('teknohane_posts').doc(p.id).update({ answerCount: firebase.firestore.FieldValue.increment(1) });
     p.answerCount = (p.answerCount||0) + 1;
+    updateForumCatStats(p.category, 'reply', { postId: p.id, title: p.title, authorName: cdata.authorName });
     p._comments = [...(p._comments||[]), { id:commentId, ...cdata, imageUrl:cmtPhotoB64||null, createdAt:{toDate:()=>new Date()} }];
     inp.value = ''; inp.style.height = 'auto';
     cmtPhotoB64 = null;
@@ -8968,6 +9507,12 @@ async function submitComment() {
     if (replyingTo?.uid && replyingTo.uid !== user.uid && !notifyTargets.has(replyingTo.uid)) {
       notifyUser(replyingTo.uid, 'comment_reply', `${name} seni yanıtladı: "${p.title}"`, null, p.id, user.uid, name, myProfileData.photoURL);
     }
+    // @Mentions — konu sahibi/takipçi/alıntı bildiriminden bağımsız, çünkü etiketlenen kişi bunların
+    // hiçbiri olmayabilir (ör. konuya hiç katılmamış biri).
+    pendingMentions.forEach(m => {
+      if (m.uid && m.uid !== user.uid) notifyUser(m.uid, 'mention', `${name} seni bir yorumda etiketledi: "${p.title}"`, null, p.id, user.uid, name, myProfileData.photoURL);
+    });
+    pendingMentions = [];
   } catch(e) { showErrorToast(e); } finally { releaseSubmit('comment'); }
 }
 
