@@ -3510,10 +3510,30 @@ async function sendVerificationEmail() {
   if (!user || user.emailVerified) return;
   try {
     await user.sendEmailVerification();
-    showToast('✓', 'rgba(48,209,88,.15)', 'Gönderildi', 'Doğrulama e-postası gönderildi. Gelen kutunda göremezsen spam/gereksiz klasörünü kontrol et.');
+    // Kullanıcı geri bildirimi: doğrulama e-postaları sıkça spam/gereksiz klasörüne düşüyor —
+    // bu uyarı fark edilsin diye normalden daha uzun süre (8sn) ekranda kalıyor, dokununca kapanıyor.
+    showToast('📬', 'rgba(48,209,88,.15)', 'Doğrulama E-postası Gönderildi', 'Birkaç dakika içinde gelen kutunda göremezsen SPAM/Gereksiz klasörünü mutlaka kontrol et — doğrulama e-postaları sık sık oraya düşüyor.', null, 8000);
   } catch (e) {
     showErrorToast(e, 'E-posta gönderilemedi.');
   }
+}
+
+// KÖK NEDEN DÜZELTMESİ ("bu işlem için yetkin yok" hatası — bazı kullanıcılarda ilan/konu
+// gönderirken): user.emailVerified istemci SDK'sındaki YEREL alan, e-posta doğrulandıktan sonra
+// reload() çağrılmadan taze kalmayabiliyor — DAHASI Firestore kuralları isteğin JWT'sindeki
+// email_verified CLAIM'ine bakıyor (bkz. firestore.rules), bu claim SDK'nın kendi ~1 saatlik
+// periyodik yenilemesi dışında asla otomatik tazelenmiyor. Sonuç: kullanıcı e-postasını doğruladıktan
+// hemen sonra (uygulamayı kapatıp açmadan) ilan/konu göndermeye çalışırsa, istemci kontrolü geçse
+// bile Firestore yazması hâlâ eski token'la reddediliyordu. Yalnızca HENÜZ doğrulanmamış görünüyorsa
+// çalışır (gereksiz ağ isteğinden kaçınmak için) — profili tazeler, GERÇEKTEN doğrulanmışsa ID
+// token'ı da zorla yeniler ki hemen ardından gelen yazma isteği güncel claim'i taşısın.
+async function refreshEmailVerifiedStatus() {
+  if (!user || user.emailVerified) return;
+  try {
+    await user.reload();
+    user = auth.currentUser;
+    if (user.emailVerified) await user.getIdToken(true);
+  } catch(e) {}
 }
 
 // Bu cihazdan/tarayıcıdan yapılan girişler `sessions` alt-koleksiyonuna kaydedilir (bkz. syncUserProfile).
@@ -7328,6 +7348,7 @@ async function submitListing() {
   if (systemSettings.listingsDisabled && !editingListingId) { showToast('⚠️','rgba(255,69,58,.15)','Kapalı','Yeni ilan ekleme şu anda geçici olarak kapalı.'); return; }
   // GÜVENLİK DÜZELTMESİ (denetim raporu): sahte/yazım hatalı e-postayla anında hesap açıp ilan
   // verilebiliyordu, hiçbir doğrulama gerekmiyordu. Yalnızca YENİ ilan içindir — düzenleme etkilenmez.
+  if (!editingListingId) await refreshEmailVerifiedStatus();
   if (!editingListingId && !user.emailVerified) { showToast('📧','rgba(255,159,10,.15)','E-posta Doğrulanmamış','İlan verebilmek için önce e-postanı doğrulaman gerekiyor. Doğrulama e-postası göndermek için dokun.', sendVerificationEmail, 6000); return; }
   const category = document.getElementById('l-category').value || 'telefon';
   const accessoryType = category === 'aksesuar' ? (document.getElementById('l-accessory-type').value || 'kilif') : null;
@@ -8607,6 +8628,7 @@ async function submitPost() {
   // GÜVENLİK DÜZELTMESİ (denetim raporu): sahte/yazım hatalı e-postayla anında hesap açıp içerik
   // üretilebiliyordu, hiçbir doğrulama gerekmiyordu. Toast'a dokununca doğrulama e-postası
   // (yeniden) gönderiliyor — bkz. sendVerificationEmail().
+  await refreshEmailVerifiedStatus();
   if (!user.emailVerified) { showToast('📧','rgba(255,159,10,.15)','E-posta Doğrulanmamış','Yeni konu açmak için önce e-postanı doğrulaman gerekiyor. Doğrulama e-postası göndermek için dokun.', sendVerificationEmail, 6000); return; }
   const title = document.getElementById('np-title').value.trim();
   const body = document.getElementById('np-body').value.trim();
