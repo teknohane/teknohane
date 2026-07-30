@@ -1699,6 +1699,11 @@ body.tk-maintenance #maintenance-gate{
       <div class="csel" data-for="l-category" data-title="Kategori" onclick="openPicker(this)"><span class="csel-label">Telefon</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
       <select id="l-category" style="display:none" onchange="onListingCategoryChange()"><option value="telefon">Telefon</option><option value="akillisaat">Akıllı Saat</option><option value="kulaklik">Kulaklık</option><option value="aksesuar">Aksesuar</option></select>
     </div>
+    <div class="fg" id="l-accessory-type-wrap" style="display:none">
+      <label class="fl">Aksesuar Türü</label>
+      <div class="csel" data-for="l-accessory-type" data-title="Aksesuar Türü" onclick="openPicker(this)"><span class="csel-label">Kılıf</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+      <select id="l-accessory-type" style="display:none" onchange="onAccessoryTypeChange()"><option value="kilif">Kılıf</option><option value="sarj">Şarj Adaptörü</option></select>
+    </div>
     <div class="fg"><label class="fl">Marka</label>
       <div class="csel" data-for="l-brand" data-title="Marka Seç" onclick="openPicker(this)"><span class="csel-label">Marka Seçin</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
       <select id="l-brand" style="display:none" onchange="onListingBrandChange()"></select>
@@ -1748,18 +1753,12 @@ body.tk-maintenance #maintenance-gate{
         </div>
         <label class="fg fchk" style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="l-anc" style="width:18px;height:18px;accent-color:var(--cyan);flex-shrink:0"><span style="font-size:13px;color:var(--text)">Aktif Gürültü Önleme (ANC)</span></label>
       </div>
-      <div id="l-aksesuar-fields" style="display:none">
-        <div class="fg"><label class="fl">Aksesuar Türü</label>
-          <div class="csel" data-for="l-accessory-type" data-title="Aksesuar Türü" onclick="openPicker(this)"><span class="csel-label">Kılıf</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
-          <select id="l-accessory-type" style="display:none" onchange="onAccessoryTypeChange()"><option value="kilif">Kılıf</option><option value="sarj">Şarj Adaptörü</option></select>
-        </div>
-        <div id="l-sarj-subfields" style="display:none">
-          <div class="fg2-row">
-            <div class="fg2"><label class="fl">Çıkış Gücü</label><input class="fi" type="text" id="l-output-power" placeholder="65W"></div>
-            <div class="fg2"><label class="fl">Bağlantı Tipi</label>
-              <div class="csel" data-for="l-connector-type" data-title="Bağlantı Tipi" onclick="openPicker(this)"><span class="csel-label">USB-C</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
-              <select id="l-connector-type" style="display:none"><option>USB-C</option><option>Lightning</option><option>Micro USB</option><option>Diğer</option></select>
-            </div>
+      <div id="l-sarj-subfields" style="display:none">
+        <div class="fg2-row">
+          <div class="fg2"><label class="fl">Çıkış Gücü</label><input class="fi" type="text" id="l-output-power" placeholder="65W"></div>
+          <div class="fg2"><label class="fl">Bağlantı Tipi</label>
+            <div class="csel" data-for="l-connector-type" data-title="Bağlantı Tipi" onclick="openPicker(this)"><span class="csel-label">USB-C</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+            <select id="l-connector-type" style="display:none"><option>USB-C</option><option>Lightning</option><option>Micro USB</option><option>Diğer</option></select>
           </div>
         </div>
       </div>
@@ -7146,7 +7145,10 @@ function onListingCategoryChange() {
   }
   document.getElementById('l-phone-fields').style.display = isPhone ? '' : 'none';
   document.getElementById('l-kulaklik-fields').style.display = cat === 'kulaklik' ? '' : 'none';
-  document.getElementById('l-aksesuar-fields').style.display = cat === 'aksesuar' ? '' : 'none';
+  // Aksesuar Türü, RAM/Depolama gibi opsiyonel bir teknik detay değil — Kategori kadar temel bir
+  // sınıflandırma alanı, bu yüzden "Detaylı Teknik Bilgiler" akordeonunun İÇİNDE değil, Kategori'nin
+  // hemen altında HER ZAMAN görünür (bkz. #l-accessory-type-wrap, form HTML'inde Kategori'den sonra).
+  document.getElementById('l-accessory-type-wrap').style.display = cat === 'aksesuar' ? '' : 'none';
   if (cat === 'aksesuar') {
     onAccessoryTypeChange(); // alt tür alt-alanlarını ve model yer tutucusunu da ayarlar
   } else {
