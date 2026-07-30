@@ -8082,8 +8082,8 @@ async function detFav() {
   // görsel bir karşılığı kalmadı, güvenle atlanır.
   if (!btn) return;
   const adding = !favs.has(id);
-  if (adding) { favs.add(id); btn.classList.add('on'); btn.querySelector('.abtn-lbl').textContent='Favoride'; }
-  else { favs.delete(id); btn.classList.remove('on'); btn.querySelector('.abtn-lbl').textContent='Favorile'; }
+  if (adding) { favs.add(id); btn.classList.add('on'); const lbl = btn.querySelector('.abtn-lbl'); if (lbl) lbl.textContent='Favoride'; }
+  else { favs.delete(id); btn.classList.remove('on'); const lbl = btn.querySelector('.abtn-lbl'); if (lbl) lbl.textContent='Favorile'; }
   try {
     await db.collection('teknohane_users').doc(user.uid).set({favorites:[...favs]},{merge:true});
   } catch(e) {
