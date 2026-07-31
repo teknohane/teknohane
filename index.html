@@ -8,6 +8,23 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Teknohane">
 <title>Teknohane</title>
+<!-- KÖK NEDEN DÜZELTMESİ (Facebook/WhatsApp/Telegram paylaşım önizlemesi bozuk/boş geliyordu):
+     sitede hiç Open Graph/Twitter Card meta etiketi yoktu — bu platformların önizleme kartı
+     oluşturmak için kullandığı TEK kaynak bu etiketlerdir, <title> tek başına yetmez. Bu bir
+     Tek Sayfa Uygulama (SPA) olduğu için (sunucu tarafı render yok, GitHub Pages her rotaya
+     AYNI statik index.html'i sunuyor) ilan/konu/profil bazında FARKLI önizleme üretilemiyor —
+     ama en azından TÜM paylaşımlarda düzgün, markalı bir kart (başlık+açıklama+görsel) görünmesi
+     hiç önizleme göstermemekten çok daha iyi; bu yüzden sabit/genel değerlerle dolduruluyor. -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Teknohane">
+<meta property="og:title" content="Teknohane — İkinci El Telefon Pazarı ve Forum">
+<meta property="og:description" content="İkinci el telefon al-sat, fiyat karşılaştır, forumda tartış. Türkiye'nin telefon pazarı Teknohane'de.">
+<meta property="og:image" content="https://teknohane.github.io/teknohane/teknohane.png">
+<meta property="og:url" content="https://teknohane.github.io/teknohane/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Teknohane — İkinci El Telefon Pazarı ve Forum">
+<meta name="twitter:description" content="İkinci el telefon al-sat, fiyat karşılaştır, forumda tartış. Türkiye'nin telefon pazarı Teknohane'de.">
+<meta name="twitter:image" content="https://teknohane.github.io/teknohane/teknohane.png">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-152.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
@@ -563,7 +580,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .det-body{padding:20px 20px calc(24px + var(--sb));}
 .news-cover{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:14px;margin-bottom:16px;}
 .news-art-title{font-size:20px;font-weight:700;line-height:1.35;margin-bottom:8px;}
-.news-art-meta{font-size:12px;color:var(--text3);margin-bottom:18px;}
+.news-art-meta{font-size:12px;color:var(--text3);margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.news-share-btn{display:flex;align-items:center;gap:5px;color:var(--cyan);cursor:pointer;font-weight:600;flex-shrink:0;}
 .news-art-body{font-size:15px;line-height:1.75;color:var(--text2);}
 .news-art-body p{margin-bottom:14px;}
 .news-art-body img{width:100%;border-radius:12px;margin:10px 0;}
@@ -10435,9 +10453,11 @@ function sanitizeHtml(html) {
   return s;
 }
 
+let currentNewsArticle = null;
 async function openNewsArticle(idx) {
   const item = newsCache?.[idx];
   if (!item) return;
+  currentNewsArticle = item;
   document.getElementById('news-detail-mo').classList.add('on');
   document.getElementById('news-detail-body').innerHTML = `
     <div class="load"><div class="spin"></div><span>Haber yükleniyor…</span></div>`;
@@ -10454,13 +10474,25 @@ async function openNewsArticle(idx) {
     document.getElementById('news-detail-body').innerHTML = `
       ${img ? `<img class="news-cover" src="${img}" alt="" loading="lazy" decoding="async">` : ''}
       <div class="news-art-title">${title}</div>
-      <div class="news-art-meta">${data.pubDate ? fd(data.pubDate) : (item.pubDate ? fd(item.pubDate) : '')}</div>
+      <div class="news-art-meta">${data.pubDate ? fd(data.pubDate) : (item.pubDate ? fd(item.pubDate) : '')}
+        <span class="news-share-btn" onclick="shareNewsArticle()">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51L8.59 10.49"/></svg>
+          Paylaş
+        </span>
+      </div>
       <div class="news-art-body">${sanitizeHtml(data.contentHtml) || `<p>${item.desc || 'İçerik yüklenemedi.'}</p>`}</div>`;
   } catch(e) {
     document.getElementById('news-detail-body').innerHTML = `
       <div class="news-art-title">${item.title}</div>
       <div class="news-art-body"><p>${item.desc || ''}</p></div>`;
   }
+}
+// Haberler Teknohane'de değil, dış kaynakta (RSS) barındığı için paylaşılan bağlantı doğrudan
+// orijinal haber URL'si — ilan/forum/profil paylaşımındaki gibi bir Teknohane derin bağlantısı
+// YOK, çünkü haberler Firestore'da kalıcı bir ID ile saklanmıyor.
+function shareNewsArticle() {
+  if (!currentNewsArticle) return;
+  openShareMenu(currentNewsArticle.title, `${currentNewsArticle.title}\nTeknohane'de okundu:`, currentNewsArticle.link);
 }
 
 function rnewslist(items) {
