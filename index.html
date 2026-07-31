@@ -460,17 +460,20 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .ccell{padding:11px;font-size:12px;}
 .ccell.lbl{color:var(--text2);font-weight:500;background:rgba(0,212,255,.03);}
 .ccell.val{font-weight:500;}
-/* Karşılaştırma — premium üst bölüm (iki telefon + VS). Gerçek telefon FOTOĞRAFI yok (bkz. görev
-   raporu), bu yüzden .cmp-hero-badge sahte bir görsel değil, markanın baş harfini taşıyan nötr bir
+/* Karşılaştırma — premium üst bölüm (iki telefon + VS). MobileAPI.dev'den zenginleştirilmiş
+   telefonlarda .cmp-hero-img gerçek ürün fotoğrafını gösterir; henüz zenginleştirilmemiş
+   telefonlarda .cmp-hero-badge sahte bir görsel değil, markanın baş harfini taşıyan nötr bir
    rozet — uygulamanın başka yerlerindeki isim baş harfi rozetleriyle (Sohbet/Bildirimler) aynı ilke. */
 .cmp-hero{display:flex;align-items:flex-start;gap:8px;background:var(--surf);border:1px solid var(--border2);border-radius:16px;padding:18px 10px;margin-bottom:14px;}
 .cmp-hero-phone{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;text-align:center;gap:2px;}
 .cmp-hero-badge{width:60px;height:60px;border-radius:50%;background:var(--cdim);color:var(--cyan);font-size:24px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-bottom:6px;}
+.cmp-hero-img{width:60px;height:60px;object-fit:contain;margin-bottom:6px;}
 .cmp-hero-name{font-size:12.5px;font-weight:700;line-height:1.3;}
 .cmp-hero-brand{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-top:1px;}
 .cmp-hero-meta{display:flex;flex-direction:column;align-items:center;gap:2px;margin-top:8px;}
 .cmp-hero-yr{font-size:11px;color:var(--text3);}
 .cmp-hero-price{font-size:13px;font-weight:700;color:var(--cyan);}
+.cmp-hero-intl-price{margin-top:2px;font-size:9.5px;color:var(--text3);}
 .cmp-hero-score{margin-top:8px;font-size:9.5px;color:var(--text3);background:var(--surf2);padding:3px 8px;border-radius:20px;white-space:nowrap;}
 .cmp-vs{flex-shrink:0;width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),#0080ff);color:#000;font-size:10.5px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-top:14px;}
 /* Kategori accordion — hafif, JS'siz max-height geçişi. İlk kategori varsayılan açık (bkz.
@@ -11063,7 +11066,15 @@ function fmtSpecValue(key, raw) {
     if (mps.length) return mps.join('+') + 'MP';
     return s.length > 40 ? s.slice(0, 40) + '…' : s;
   }
-  return s;
+  // MobileAPI.dev'in zengin (raw.*) alanları çoğu zaman uzun, virgüllü tam cümleler —
+  // bilinmeyen anahtarlar için genel bir uzunluk sınırı uygulanır.
+  return s.length > 90 ? s.slice(0, 90) + '…' : s;
+}
+
+// "raw.main_camera.modules" gibi noktalı yollarla iç içe (nested) alanlara erişir —
+// MobileAPI.dev'den zenginleştirilmiş telefonlarda bu alanlar `raw` altında saklanıyor.
+function getByPath(obj, path) {
+  return path.split('.').reduce((o, k) => (o == null ? undefined : o[k]), obj);
 }
 
 // Sayısal karşılaştırmaya uygun alanlar için ham metinden sayı çıkarır — yalnızca kazanan hesabı
@@ -11107,42 +11118,51 @@ function computeSpecWinner(key, rawA, rawB) {
   return aWins ? 'a' : 'b';
 }
 
-// Karşılaştırma özellik kategorileri — GSMArena Worker'ı DOĞRULANDI (curl): yalnızca
-// chip/ram/storage/cam/bat/scr/wt/os alanlarını döndürüyor. Bu yüzden yalnızca GERÇEKTEN karşılığı
-// olan 6 kategori tanımlanıyor. Ön Kamera/Bağlantılar/Ses/Dayanıklılık/Kutu İçeriği/Diğer için
-// hiçbir alan yok — sahte/hep-boş bir kategori göstermek yerine bu kategoriler hiç tanımlanmıyor
-// (bkz. görev raporu, kullanıcı onayı: boş kategoriler tamamen gizlensin).
+// Karşılaştırma özellik kategorileri. Temel 6 kategori (chip/ram/storage/cam/bat/scr/wt/os) her
+// telefonda var (elle girilmiş 111 kayıt + eski GSMArena listesi + MobileAPI.dev). Ek satırlar
+// (raw.* yolları) SADECE MobileAPI.dev'den zenginleştirilmiş telefonlarda dolu olur — boş
+// gelirse cmpCellHTML zaten "—"/spinner ile nazikçe gösteriyor, satır tamamen gizlenmiyor (kısmen
+// zenginleştirilmiş bir karşılaştırmada bile en azından temel 6 kategori her zaman dolu kalsın diye).
 const CMP_CATEGORIES = [
   { label: '⚡ Performans', rows: [{ k: 'chip', l: 'İşlemci' }, { k: 'ram', l: 'RAM' }, { k: 'storage', l: 'Depolama' }] },
-  { label: '📺 Ekran', rows: [{ k: 'scr', l: 'Ekran' }] },
-  { label: '📷 Kamera', rows: [{ k: 'cam', l: 'Kamera' }] },
-  { label: '🔋 Batarya', rows: [{ k: 'bat', l: 'Batarya' }] },
-  { label: '📱 Tasarım', rows: [{ k: 'wt', l: 'Ağırlık' }] },
+  { label: '📺 Ekran', rows: [{ k: 'scr', l: 'Ekran' }, { k: 'raw.display.type', l: 'Panel Tipi' }, { k: 'raw.display.protection', l: 'Ekran Koruması' }] },
+  { label: '📷 Arka Kamera', rows: [{ k: 'cam', l: 'Kamera' }, { k: 'raw.main_camera.features', l: 'Özellikler' }, { k: 'raw.main_camera.video', l: 'Video' }] },
+  { label: '🤳 Ön Kamera', rows: [{ k: 'raw.selfie_camera.modules', l: 'Ön Kamera' }, { k: 'raw.selfie_camera.video', l: 'Video' }] },
+  { label: '🔋 Batarya', rows: [{ k: 'bat', l: 'Batarya' }, { k: 'raw.battery.charging', l: 'Şarj' }] },
+  { label: '📱 Tasarım', rows: [{ k: 'wt', l: 'Ağırlık' }, { k: 'raw.body.dimensions', l: 'Boyutlar' }, { k: 'raw.body.build', l: 'Malzeme' }, { k: 'raw.body.other', l: 'Dayanıklılık' }] },
   { label: '📲 Yazılım', rows: [{ k: 'os', l: 'İşletim Sistemi' }] },
+  { label: '📶 Bağlantı', rows: [{ k: 'raw.comms.wlan', l: 'Wi-Fi' }, { k: 'raw.comms.bluetooth', l: 'Bluetooth' }, { k: 'raw.comms.nfc', l: 'NFC' }, { k: 'raw.comms.usb', l: 'USB' }] },
+  { label: '🔊 Ses', rows: [{ k: 'raw.sound.loudspeaker', l: 'Hoparlör' }, { k: 'raw.sound.audio_jack', l: 'Kulaklık Girişi' }] },
 ];
 
-// Bir özellik hücresini üretir. DOM sözleşmesi KORUNUYOR: id her zaman spec-{key}-{side} —
-// fetchMissingSpecs bu id'yi bulup async olarak dolduruyor, burada değişmedi.
+// Bir özellik hücresini üretir. DOM sözleşmesi KORUNUYOR: id her zaman spec-{key}-{side}
+// (noktalı raw.* yolları da id içinde AYNEN kullanılır — getElementById nokta içeren id'lerle
+// sorunsuz çalışır) — fetchMissingSpecs bu id'yi bulup async olarak dolduruyor.
 function cmpCellHTML(key, raw, phone, side) {
   const formatted = fmtSpecValue(key, raw);
-  const body = formatted || (phone.gsmarenaUrl ? '<span class="spin-mini"></span>' : '—');
-  return `<div class="ccell val" id="spec-${key}-${side}">${body}</div>`;
+  const stillLooking = !phone._specsChecked; // fetchMissingSpecs sonucu (veri var/yok/kuyrukta) henüz netleşmedi
+  const body = formatted || (stillLooking ? '<span class="spin-mini"></span>' : '—');
+  return `<div class="ccell val" id="spec-${key.replace(/\./g,'-')}-${side}">${body}</div>`;
 }
 
-// Gerçek bir telefon FOTOĞRAFI veri modelinde YOK (ne el yazması PHONES kayıtlarında ne GSMArena
-// Worker'ında bir görsel URL'si var — curl ile doğrulandı). Bu yüzden burada SAHTE/yanıltıcı bir
-// görsel KULLANILMIYOR, yalnızca markanın baş harfini taşıyan nötr "temsili" bir rozet gösteriliyor —
-// uygulamanın başka yerlerinde de aynı ilke (bkz. Sohbet/Bildirimler'deki isim baş harfi rozetleri).
+// MobileAPI.dev'den zenginleştirilmiş telefonlarda gerçek bir ürün fotoğrafı (p.imageUrl) var —
+// bu durumda gösterilir. Henüz zenginleştirilmemiş (eski GSMArena listesi/elle girilmiş) telefonlarda
+// hâlâ görsel YOK, bu yüzden SAHTE/yanıltıcı bir görsel kullanılmaz — markanın baş harfini taşıyan
+// nötr "temsili" rozete düşülür (uygulamanın başka yerlerindeki aynı ilke, bkz. Sohbet/Bildirimler).
 function cmpHeroPhoneHTML(p, side) {
   const initial = (p.brand || '?')[0].toUpperCase();
+  const media = p.imageUrl
+    ? `<img class="cmp-hero-img" src="${escapeJsAttr(p.imageUrl)}" alt="${escapeJsAttr(p.name)}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'cmp-hero-badge',textContent:'${initial}'}))">`
+    : `<div class="cmp-hero-badge">${initial}</div>`;
   return `<div class="cmp-hero-phone">
-    <div class="cmp-hero-badge">${initial}</div>
+    ${media}
     <div class="cmp-hero-name">${p.name}</div>
     <div class="cmp-hero-brand">${p.brand}</div>
     <div class="cmp-hero-meta">
       <span class="cmp-hero-yr">${p.yr || '—'}</span>
       <span class="cmp-hero-price">${priceCell(p, side)}</span>
     </div>
+    ${p.intlPrice ? `<div class="cmp-hero-intl-price">🌍 ${escapeHtml(p.intlPrice)}</div>` : ''}
     <div class="cmp-hero-score">⭐ Puan: Yakında</div>
   </div>`;
 }
@@ -11154,8 +11174,8 @@ function cmpHeroPhoneHTML(p, side) {
 function cmpCategoryAccordionHTML(a, b) {
   return CMP_CATEGORIES.map((cat, ci) => {
     const rowsHtml = cat.rows.map(r => {
-      const rawA = a[r.k];
-      const rawB = b ? b[r.k] : undefined;
+      const rawA = getByPath(a, r.k);
+      const rawB = b ? getByPath(b, r.k) : undefined;
       const fmtA = fmtSpecValue(r.k, rawA);
       const fmtB = b ? fmtSpecValue(r.k, rawB) : null;
       const same = b ? (String(fmtA || '—') === String(fmtB || '—') ? '1' : '0') : '0';
@@ -11428,55 +11448,56 @@ function rcmptbl() {
 
 // Liste görünümünde olmayan (kamera, ağırlık, OS) bilgileri, o telefonun kendi
 // GSMArena sayfasından tek seferlik çekip ilgili hücreleri günceller
+// teknohane-phones Worker'ının yanıtı artık üç farklı 'source' döndürebilir:
+//  - 'cache'/'live'  → d.phone dolu, hemen kullanılabilir
+//  - 'queued'        → bu telefon MobileAPI.dev'de aranmak üzere kuyruğa alındı (bkz. görev raporu,
+//                       Cloudflare Workers'ın MobileAPI.dev tarafından engellenmesi nedeniyle gerçek
+//                       arama GitHub Actions'ta ~30 dakikada bir işleniyor) — birazdan tekrar denenir
+//  - 'not_found'/'not_found_cached' → MobileAPI.dev'de bu isimle eşleşme yok, tekrar denenmez
+const CMP_RICH_KEYS = ['chip','ram','storage','cam','bat','scr','wt','os','intlPrice','imageUrl','raw'];
+
+function showSpecsPendingCells(p, side, render) {
+  CMP_RICH_KEYS.forEach(key => {
+    if (p[key]) return;
+    const el = document.getElementById(`spec-${key}-${side}`);
+    if (el) el.innerHTML = render;
+  });
+}
+
 async function fetchMissingSpecs(p, side) {
-  if (!p.gsmarenaUrl) {
-    ['cam','wt','os'].forEach(key => {
-      if (!p[key]) {
-        const el = document.getElementById(`spec-${key}-${side}`);
-        if (el) el.innerHTML = `<span style="font-size:10px;color:orange">GSMArena linki yok</span>`;
-      }
-    });
-    return;
-  }
-  if (p.cam && p.wt && p.os) return;
+  const complete = CMP_RICH_KEYS.every(k => p[k]);
+  if (complete || p._specsFetchTried) return;
+  p._specsFetchTried = true;
   try {
-    const r = await fetch(PHONES_API + '?detail=' + encodeURIComponent(p.gsmarenaUrl));
+    const r = await fetch(PHONES_API + '?brand=' + encodeURIComponent(p.brand || '') + '&name=' + encodeURIComponent(p.name));
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const d = await r.json();
-    const allEmpty = !d.cam && !d.wt && !d.os;
-    const fill = (key, val) => {
-      const el = document.getElementById(`spec-${key}-${side}`);
-      const formatted = fmtSpecValue(key, val);
-      if (el && formatted) el.textContent = formatted;
-      else if (el && allEmpty) el.innerHTML = `<span style="font-size:9px;color:orange">Worker'dan boş geldi</span>`;
-      else if (el) el.textContent = '—';
-    };
-    if (!p.cam) fill('cam', d.cam);
-    if (!p.wt) fill('wt', d.wt);
-    if (!p.os) fill('os', d.os);
-    p.cam = p.cam || d.cam; p.wt = p.wt || d.wt; p.os = p.os || d.os;
-    // Ağırlık kazananı render anında hesaplanamamış olabilir (veri asenkron geldi) — yalnızca bu TEK
-    // satır için, tüm sonucu yeniden çekip ek Firestore/API okuması yaratmadan tazelenir.
-    if (pA && pB) {
-      const winner = computeSpecWinner('wt', pA.wt, pB.wt);
-      ['a','b'].forEach(sd => {
-        const cell = document.getElementById(`spec-wt-${sd}`);
-        const wrap = cell?.parentElement;
-        if (!wrap) return;
-        const shouldWin = winner === sd;
-        wrap.classList.toggle('win', shouldWin);
-        const existingBadge = wrap.querySelector('.cmp-win-badge');
-        if (shouldWin && !existingBadge) wrap.insertAdjacentHTML('beforeend', '<span class="cmp-win-badge">✔</span>');
-        else if (!shouldWin && existingBadge) existingBadge.remove();
-      });
+
+    if (d.source === 'queued') {
+      p._specsFetchTried = false; // sonraki bir görüntülemede tekrar denensin
+      showSpecsPendingCells(p, side, `<span style="font-size:9px;color:var(--cyan)">Hazırlanıyor, birazdan tekrar aç</span>`);
+      return;
+    }
+    p._specsChecked = true; // spinner yerine artık kesin "—" gösterilebilir
+    if (d.source === 'not_found' || d.source === 'not_found_cached') {
+      showSpecsPendingCells(p, side, '—');
+      return;
+    }
+
+    if (d.phone) {
+      let gotNewData = false;
+      for (const [key, val] of Object.entries(d.phone)) {
+        if ((p[key] === undefined || p[key] === null || p[key] === '') && val) { p[key] = val; gotNewData = true; }
+      }
+      // Yeni alanlar arasında fotoğraf/zengin kategori satırları (raw) olabileceğinden, tek tek DOM
+      // yamanmak yerine tüm karşılaştırma görünümü (hero fotoğrafı + kategori tablosu) yeniden çizilir.
+      if (gotNewData) refreshCmp();
+      else showSpecsPendingCells(p, side, '—');
+    } else {
+      showSpecsPendingCells(p, side, '—');
     }
   } catch(e) {
-    ['cam','wt','os'].forEach(key => {
-      if (!p[key]) {
-        const el = document.getElementById(`spec-${key}-${side}`);
-        if (el) el.innerHTML = `<span style="font-size:10px;color:red">Hata: ${e.message}</span>`;
-      }
-    });
+    showSpecsPendingCells(p, side, `<span style="font-size:10px;color:red">Hata: ${escapeHtml(e.message)}</span>`);
   }
 }
 
