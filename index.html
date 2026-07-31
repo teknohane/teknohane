@@ -8545,6 +8545,26 @@ async function loadForumTags() {
 // yorumlara da uygulanıyor (bkz. openPost/loadMoreComments/renderCommentsLoadMoreControl).
 const COMMENT_PAGE_SIZE = 20;
 
+// GÜVENLİK/UX DÜZELTMESİ (denetim raporu — hız sınırlama eksikliği): guardSubmit() yalnızca AYNI
+// ANDA devam eden bir gönderimi engelliyordu, zaman bazlı bir soğuma süresi yoktu — sunucu tarafında
+// artık gerçek bir sınır var (bkz. firestore.rules notForumRateLimited, 8sn). Bu istemci-taraflı ön
+// kontrol, kullanıcı sınıra takılırsa jenerik bir "yetkin yok" hatası yerine anlaşılır bir geri
+// sayım mesajı görsün diye — sunucudaki GERÇEK kısıtlamanın YERİNE değil, ONA EK.
+const FORUM_RATE_LIMIT_MS = 8000;
+let lastForumActionAtLocal = 0;
+function checkForumRateLimit() {
+  const remaining = Math.ceil((FORUM_RATE_LIMIT_MS - (Date.now() - lastForumActionAtLocal)) / 1000);
+  if (remaining > 0) {
+    showToast('⏳','rgba(255,159,10,.15)','Yavaş Ol','Art arda çok hızlı gönderim yapıyorsun, ' + remaining + ' saniye bekle.');
+    return false;
+  }
+  return true;
+}
+function markForumActionTimestamp() {
+  lastForumActionAtLocal = Date.now();
+  if (user) db.collection('teknohane_users').doc(user.uid).set({ lastForumActionAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }).catch(()=>{});
+}
+
 // ==== GÜVENLİK: Kullanıcı girdisini HTML'e güvenli şekilde yerleştirme ====
 // Kök sorun: post.title/body ve comment.body şimdiye kadar innerHTML'e HİÇ kaçışsız yazılıyordu —
 // bir kullanıcı başlığa/açıklamaya <img onerror=...> gibi bir HTML parçası yazarsa bu doğrudan
@@ -8749,11 +8769,14 @@ let forumSearchDebounceTimer = null;
 let forumCategory = 'tumu';
 let forumCatState = {}; // { [catKey]: { posts:[], lastDoc:null, hasMore:true, loading:false } }
 
-// Sekmeler (Yeni/Popüler/Çözüldü/Takip Ettiklerim) hepsi AYNI temel veriyi (son N gönderi) farklı
-// süzüyor/sıralıyor — bu yüzden sekme değiştirmek artık Firestore'a YENİDEN gitmiyor; zaten yüklü
-// ham veri varsa yalnızca istemci tarafında yeniden çizilir (bkz. rForum). Bu, "Yeni→Popüler→
-// Çözüldü→Takip Ettiklerim" arasında gezinirken 4 ayrı sorgu yerine tek bir sorgu yeterli olmasını
-// sağlar — gereksiz Firestore okumasını doğrudan ortadan kaldıran bir düzeltmedir.
+// UÇ DÜZELTMESİ (denetim raporu): "Popüler" ve "Çözülen" sekmeleri eskiden gerçek bir sunucu sorgusu
+// DEĞİL, yalnızca o ana kadar yüklenmiş "Tümü" penceresi üzerinde istemci tarafı filtre/sıralamaydı —
+// forum büyüdükçe (binlerce konu), eski ama çok beğenilmiş/çözülmüş bir konu kullanıcı yeterince
+// "Daha Fazla Yükle"ye basmadıkça hiç görünmezdi. Artık ikisi de BAĞIMSIZ, kendi sayfalamasına sahip
+// gerçek sorgular (bkz. loadForumTabPage) — "Yeni" sekmesi (forumPosts/loadForumPage) ve "Takip
+// Ettiklerim" (client-side, followingUids listesi zaten küçük ve `in` sorgusu 10 sınırına takılacağı
+// için bilinçli olarak öyle bırakıldı) DEĞİŞMEDİ.
+let forumTabState = {}; // { popular: {...}, resolved: {...} } — forumCatState ile AYNI şekil
 function switchForumTab(tab, el) {
   const wasSearching = forumSearchActive;
   forumCurrentTab = tab;
@@ -8762,11 +8785,54 @@ function switchForumTab(tab, el) {
   if (si) si.value = '';
   document.querySelectorAll('.forum-tab').forEach(t => t.classList.remove('on'));
   el.classList.add('on');
+  if (tab === 'popular' || tab === 'resolved') {
+    // Bu iki sekme artık GLOBAL (kategoriden bağımsız) sorgular — kategori seçiliyse "Tümü"ye
+    // sıfırlanır, aksi halde kullanıcı hangi veriye baktığını karıştırabilir.
+    if (forumCategory !== 'tumu') {
+      forumCategory = 'tumu';
+      document.querySelectorAll('#fcat-tabs .mtab').forEach((b,i) => b.className = i===0 ? 'mtab on' : 'mtab off');
+      const statsBar = document.getElementById('fcat-stats-bar');
+      if (statsBar) statsBar.style.display = 'none';
+    }
+    if (!forumTabState[tab]) forumTabState[tab] = { posts: [], lastDoc: null, hasMore: true, loading: false };
+    if (!wasSearching && forumTabState[tab].posts.length) rForum();
+    else loadForumTabPage(tab, true);
+    return;
+  }
   const usingCategory = forumCategory !== 'tumu';
   const hasData = usingCategory ? !!forumCatState[forumCategory]?.posts.length : forumPosts.length > 0;
   if (!wasSearching && hasData) rForum();
   else if (usingCategory) loadForumCategoryPage(forumCategory, true);
   else loadForumPage(true);
+}
+
+// loadForumCategoryPage'in BİREBİR aynı iskeleti — 'resolved' sunucu tarafında where('resolved','==',
+// true) + orderBy('createdAt','desc') (yeni bir composite index gerektirir, bkz. firestore.indexes.json),
+// 'popular' ise tek alanlı orderBy('likeCount','desc') (Firestore'un otomatik tekil alan indeksi
+// yeterli, ek bir composite index gerekmez).
+async function loadForumTabPage(tab, reset) {
+  if (!forumTabState[tab]) forumTabState[tab] = { posts: [], lastDoc: null, hasMore: true, loading: false };
+  const state = forumTabState[tab];
+  if (reset) { state.posts = []; state.lastDoc = null; state.hasMore = true; }
+  if (!state.hasMore) { rForum(); return; }
+  state.loading = true;
+  if (reset) rForum(); else renderForumLoadMoreControl();
+  try {
+    let q = db.collection('teknohane_posts');
+    q = tab === 'resolved' ? q.where('resolved', '==', true).orderBy('createdAt', 'desc') : q.orderBy('likeCount', 'desc');
+    if (state.lastDoc) q = q.startAfter(state.lastDoc);
+    const snap = await q.limit(20).get();
+    const newItems = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.archived !== true && p.approved !== false);
+    state.posts = reset ? newItems : [...state.posts, ...newItems.filter(n => !state.posts.some(p => p.id === n.id))];
+    state.lastDoc = snap.docs[snap.docs.length - 1] || state.lastDoc;
+    state.hasMore = snap.docs.length === 20;
+    state.loading = false;
+    rForum();
+  } catch (e) {
+    console.error('Forum sekmesi yüklenemedi:', tab, e);
+    state.loading = false;
+    renderForumLoadMoreControl();
+  }
 }
 
 // Kategori/alt-forum şeridi — "Tümü" seçiliyken eski davranış (forumPosts) aynen çalışır; bir
@@ -8777,6 +8843,12 @@ function scatForum(cat, el) {
   el.className = 'mtab on';
   const statsBar = document.getElementById('fcat-stats-bar');
   if (statsBar) statsBar.style.display = cat === 'tumu' ? 'none' : '';
+  // Popüler/Çözülen artık GLOBAL sorgular (bkz. switchForumTab) — bir kategori seçilince "Yeni"ye
+  // dönülür, aksi halde kategori seçiliyken hâlâ global veri gösterilmeye devam ederdi.
+  if (cat !== 'tumu' && (forumCurrentTab === 'popular' || forumCurrentTab === 'resolved')) {
+    forumCurrentTab = 'new';
+    document.querySelectorAll('.forum-tab').forEach((t,i) => t.classList.toggle('on', i===0));
+  }
   if (cat === 'tumu') {
     rForum();
     return;
@@ -8920,12 +8992,14 @@ function renderForumLoadMoreControl() {
   } else {
     list.appendChild(wrap);
   }
-  const usingCategory = forumCategory !== 'tumu';
-  const loading = usingCategory ? !!forumCatState[forumCategory]?.loading : forumLoading;
-  const hasMore = usingCategory ? !!forumCatState[forumCategory]?.hasMore : forumHasMore;
-  const triggerLoadMore = () => usingCategory ? loadForumCategoryPage(forumCategory, false) : loadForumPage(false);
+  const usingTabQuery = forumCurrentTab === 'popular' || forumCurrentTab === 'resolved';
+  const usingCategory = !usingTabQuery && forumCategory !== 'tumu';
+  const loading = usingTabQuery ? !!forumTabState[forumCurrentTab]?.loading : usingCategory ? !!forumCatState[forumCategory]?.loading : forumLoading;
+  const hasMore = usingTabQuery ? !!forumTabState[forumCurrentTab]?.hasMore : usingCategory ? !!forumCatState[forumCategory]?.hasMore : forumHasMore;
+  const triggerLoadMore = () => usingTabQuery ? loadForumTabPage(forumCurrentTab, false) : usingCategory ? loadForumCategoryPage(forumCategory, false) : loadForumPage(false);
+  const loadMoreOnclick = usingTabQuery ? `loadForumTabPage('${forumCurrentTab}',false)` : usingCategory ? `loadForumCategoryPage('${forumCategory}',false)` : 'loadForumPage(false)';
   if (loading) wrap.innerHTML = `<div class="spin" style="margin:0 auto"></div>`;
-  else if (hasMore) wrap.innerHTML = `<button class="apbtn" style="width:auto;padding:10px 24px;display:inline-block" onclick="${usingCategory ? `loadForumCategoryPage('${forumCategory}',false)` : 'loadForumPage(false)'}">Daha Fazla Yükle</button>`;
+  else if (hasMore) wrap.innerHTML = `<button class="apbtn" style="width:auto;padding:10px 24px;display:inline-block" onclick="${loadMoreOnclick}">Daha Fazla Yükle</button>`;
   else wrap.innerHTML = '';
   if (hasMore) observeLoadMoreOnScroll(wrap, triggerLoadMore);
 }
@@ -9072,18 +9146,17 @@ function rForum() {
   // etiket + kalan bir avuç etiket).
   const ptEl = document.getElementById('forum-popular-tags');
   if (ptEl) { if (forumSearchActive) ptEl.innerHTML = ''; else renderPopularForumTags(); }
-  // Kategori sekmesi seçiliyken kaynak "Tümü" penceresi (forumPosts) DEĞİL, o kategoriye özgü
-  // bağımsız akış (forumCatState) olur — bkz. scatForum/loadForumCategoryPage.
-  const usingCategory = forumCategory !== 'tumu';
-  const sourcePosts = usingCategory ? (forumCatState[forumCategory]?.posts || []) : forumPosts;
-  const sourceLoading = usingCategory ? !!forumCatState[forumCategory]?.loading : forumLoading;
+  // Popüler/Çözülen artık GLOBAL, kendi sayfalamasına sahip gerçek sorgular (bkz. loadForumTabPage) —
+  // kategori penceresinden (forumCatState) VEYA "Tümü" penceresinden (forumPosts) TAMAMEN bağımsız.
+  const usingTabQuery = forumCurrentTab === 'popular' || forumCurrentTab === 'resolved';
+  const usingCategory = !usingTabQuery && forumCategory !== 'tumu';
+  const sourcePosts = usingTabQuery ? (forumTabState[forumCurrentTab]?.posts || []) : usingCategory ? (forumCatState[forumCategory]?.posts || []) : forumPosts;
+  const sourceLoading = usingTabQuery ? !!forumTabState[forumCurrentTab]?.loading : usingCategory ? !!forumCatState[forumCategory]?.loading : forumLoading;
   if (!sourcePosts.length && sourceLoading) { list.innerHTML = forumSkeletonHTML(5); return; }
-  // Sekmeye özgü filtre/sıralama — artık burada (render anında), ham veri sekmeler arasında
-  // YENİDEN KULLANILIYOR, her sekme değişiminde yeni bir Firestore sorgusu atılmıyor.
+  // "Takip Ettiklerim" hâlâ istemci tarafında süzülüyor — bkz. yukarıdaki not (bilinçli, küçük ölçekli
+  // bir kısıtlama). Popüler/Çözülen artık ham veri ZATEN doğru sırada/filtrede geliyor, ek işlem yok.
   let items = sourcePosts;
-  if (forumCurrentTab === 'resolved') items = items.filter(p => p.resolved === true);
-  else if (forumCurrentTab === 'following') { const uids = new Set(myProfileData.followingUids || []); items = items.filter(p => uids.has(p.uid)); }
-  else if (forumCurrentTab === 'popular') items = [...items].sort((a,b) => (b.likeCount ?? (b.likes||[]).length) - (a.likeCount ?? (a.likes||[]).length));
+  if (forumCurrentTab === 'following') { const uids = new Set(myProfileData.followingUids || []); items = items.filter(p => uids.has(p.uid)); }
   if (!items.length) { list.innerHTML = `<div class="no">${forumSearchActive?'Sonuç bulunamadı':forumCurrentTab==='resolved'?'Henüz çözülen konu yok':forumCurrentTab==='following'?'Takip ettiğin kimsenin konusu yok':'Henüz konu yok — ilk sen aç!'}</div>`; return; }
   items = [...items].sort((a,b) => (b.pinned?1:0) - (a.pinned?1:0));
   list.innerHTML = items.map(forumPostCardHTML).join('');
@@ -9238,6 +9311,7 @@ async function submitPost() {
   const pollEnabled = document.getElementById('np-poll-toggle').checked;
   const pollTexts = pollEnabled ? pollOptionsDraft.map(t => t.trim()).filter(t => t) : [];
   if (pollEnabled && pollTexts.length < 2) { showToast('⚠️','rgba(255,69,58,.15)','Anket Eksik','En az 2 dolu seçenek girmelisin.'); return; }
+  if (!checkForumRateLimit()) return;
   if (!guardSubmit('post')) return;
   try {
     const data = {
@@ -9272,6 +9346,7 @@ async function submitPost() {
     }
     const ref = await db.collection('teknohane_posts').add(data);
     const savedPostId = ref.id;
+    markForumActionTimestamp();
     notifyAdminsNewForumPost(savedPostId, title, data.authorName);
     updateForumCatStats(currentPostCat, 'thread', { postId: savedPostId, title, authorName: data.authorName });
     // @Mentions: konu sahibine zaten gitmeyecek özel bir bildirim türü ("seni etiketledi") —
@@ -9594,7 +9669,7 @@ function renderComments() {
           ${canBest && isBest ? `<button class="unmark-best-btn" onclick="unmarkBest('${c.id}')">↺ Geri Al</button>` : ''}
           ${isCommentOwner ? `<button class="del-comment-btn" style="color:var(--cyan)" onclick="startEditComment('${c.id}')">Düzenle</button>` : ''}
           ${canDelComment ? `<button class="del-comment-btn" onclick="deleteComment('${c.id}')">Sil</button>` : ''}
-          ${user && !isCommentOwner ? `<button class="del-comment-btn" onclick="openReportModal('comment','${c.id}','${escapeJsAttr((c.body||'Yorum').slice(0,40).replace(/\n/g,' '))}','${c.uid||''}')">🚩</button>` : ''}
+          ${user && !isCommentOwner ? `<button class="del-comment-btn" onclick="openReportModal('comment','${c.id}','${escapeJsAttr((c.body||'Yorum').slice(0,40).replace(/\n/g,' '))}','${c.uid||''}','${p.id}')">🚩</button>` : ''}
         </div>
         <span style="font-size:11px;color:var(--text3)">${ts}${c.edited?' · düzenlendi':''}</span>
       </div>
@@ -9655,6 +9730,7 @@ async function submitComment() {
   const body = inp.value.trim();
   if (!body && !cmtPhotoB64) return;
   const replyingTo = replyingToComment; // submitComment sırasında değişebileceği için anlık kopya
+  if (!checkForumRateLimit()) return;
   if (!guardSubmit('comment')) return;
   try {
     const cdata = {
@@ -9682,6 +9758,7 @@ async function submitComment() {
       const ref = await db.collection('teknohane_posts').doc(p.id).collection('comments').add(cdata);
       commentId = ref.id;
     }
+    markForumActionTimestamp();
     await db.collection('teknohane_posts').doc(p.id).update({ answerCount: firebase.firestore.FieldValue.increment(1) });
     p.answerCount = (p.answerCount||0) + 1;
     updateForumCatStats(p.category, 'reply', { postId: p.id, title: p.title, authorName: cdata.authorName });
@@ -10465,9 +10542,9 @@ let reportContext = null; // { type, targetId, targetLabel, targetOwnerUid }
 let pendingReportId = null;
 let reportPhotoUrl = null;
 
-function openReportModal(type, targetId, targetLabel, targetOwnerUid) {
+function openReportModal(type, targetId, targetLabel, targetOwnerUid, parentPostId) {
   if (!user) { gt('profile'); return; }
-  reportContext = { type, targetId, targetLabel, targetOwnerUid };
+  reportContext = { type, targetId, targetLabel, targetOwnerUid, parentPostId };
   pendingReportId = db.collection('teknohane_complaints').doc().id;
   reportPhotoUrl = null;
   document.getElementById('report-target-label').textContent = `${COMPLAINT_TYPE_LABELS[type]||type}: ${targetLabel}`;
@@ -10526,6 +10603,11 @@ async function submitReport() {
       targetId: reportContext.targetId,
       targetLabel: reportContext.targetLabel,
       targetOwnerUid: reportContext.targetOwnerUid || null,
+      // ADMIN PANELİ EKSİĞİ DÜZELTMESİ (denetim raporu): yorum şikayetlerinde hangi KONUYA ait
+      // olduğu hiç saklanmıyordu — admin panelinde şikayet edilen yorumu görüntülemek için tıklanabilir
+      // bir bağlantı hiç kurulamıyordu (postId olmadan derin bağlantı imkansız). Yalnızca 'comment'
+      // türünde doludur.
+      parentPostId: reportContext.type === 'comment' ? (reportContext.parentPostId || null) : null,
       reporterUid: user.uid,
       reporterName: myProfileData.displayName || user.displayName || user.email,
       reasonCode, reasonLabel, description,
