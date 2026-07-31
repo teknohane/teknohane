@@ -636,8 +636,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 /* TOAST BİLDİRİM */
 #offline-bar{display:none;position:fixed;top:var(--st);left:0;right:0;z-index:550;background:rgba(255,149,0,.95);backdrop-filter:blur(8px);color:#000;font-size:12px;font-weight:700;text-align:center;padding:7px;letter-spacing:.2px;}
 #offline-bar.on{display:block;}
-#text-sel-toolbar{position:fixed;left:0;right:0;bottom:0;z-index:900;display:none;gap:6px;padding:8px 10px;background:var(--bg2);border-top:1px solid var(--border2);box-shadow:0 -4px 16px rgba(0,0,0,.25);}
-#text-sel-toolbar button{flex:1;background:var(--surf2);border:1px solid var(--border2);color:var(--text);font-size:12.5px;font-weight:600;font-family:inherit;padding:9px 4px;border-radius:10px;cursor:pointer;}
+/* v2: sabit alt şerit yerine, seçilen içeriğin hemen üzerinde/altında beliren kayan (floating)
+   bir araç çubuğu — konumu her zaman JS'ten left/top ile hesaplanır (bkz. showFloatingToolbar),
+   bu sayede ekranın altındaki başka hiçbir sabit düğmenin (ör. sohbet Gönder tuşu) üzerine binmez. */
+#text-sel-toolbar{position:fixed;z-index:900;display:none;gap:4px;padding:6px;background:var(--bg2);border:1px solid var(--border2);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.3);max-width:calc(100vw - 16px);}
+#text-sel-toolbar button{background:var(--surf2);border:none;color:var(--text);font-size:12px;font-weight:600;font-family:inherit;padding:8px 10px;border-radius:8px;cursor:pointer;white-space:nowrap;}
 #text-sel-toolbar button:disabled{opacity:.4;}
 
 #toast-wrap{position:fixed;top:calc(var(--st) + 64px);left:16px;right:16px;z-index:500;display:flex;flex-direction:column;gap:8px;pointer-events:none;}
@@ -1271,12 +1274,7 @@ body.tk-maintenance #maintenance-gate{
 <div id="app">
 <div id="offline-bar">📡 İnternet bağlantısı yok — bazı içerikler güncellenemiyor</div>
 <div id="toast-wrap"></div>
-<div id="text-sel-toolbar" style="display:none">
-  <button type="button" id="tst-cut" onmousedown="event.preventDefault()" onclick="tstAction('cut')">✂️ Kes</button>
-  <button type="button" id="tst-copy" onmousedown="event.preventDefault()" onclick="tstAction('copy')">📄 Kopyala</button>
-  <button type="button" onmousedown="event.preventDefault()" onclick="tstAction('paste')">📋 Yapıştır</button>
-  <button type="button" onmousedown="event.preventDefault()" onclick="tstAction('selectall')">🔘 Tümünü Seç</button>
-</div>
+<div id="text-sel-toolbar" style="display:none"></div>
 
 <!-- KARŞILAMA EKRANI -->
 <div id="welcome-mo">
@@ -12349,53 +12347,70 @@ document.addEventListener('focusout', e => {
   }, 0);
 });
 
-// ==== ÖZEL METİN SEÇİM ARAÇ ÇUBUĞU (Kes/Kopyala/Yapıştır/Tümünü Seç) ====
+// ==== ÖZEL METİN SEÇİM ARAÇ ÇUBUĞU v2 — bağlama duyarlı, kayan (floating) ====
 // KESİN KÖK NEDEN DÜZELTMESİ: Android'in native ActionMode metin seçim araç çubuğu, ekran
 // görüntüsüyle doğrulanan bir hata nedeniyle bu uygulamada güvenilir çalışmıyor (ekranın büyük bir
 // kısmını kaplayan boş/bozuk bir pencere açılıyor) — MainActivity.java'da TAMAMEN bastırıldı (bkz.
-// onWindowStartingActionMode, TYPE_FLOATING → null). Native araç çubuğuna hiç ihtiyaç duymayan,
-// tamamen kendi HTML/JS'imizle çalışan bir alternatif: herhangi bir input/textarea odaklandığında
-// görünür, seçim durumuna göre Kes/Kopyala etkinleşir/pasifleşir. Metni SEÇMEK (sürükleme
-// tutamaçları) native mekanizmayla, yalnızca ARIZALI araç çubuğu penceresi devre dışı — bu yüzden
-// burada yalnızca eylemler (kes/kopyala/yapıştır/tümünü seç) uygulanıyor, seçimin kendisi değil.
-let tstTarget = null;
-// Edge-to-edge açık olduğu için klavye artık içerik alanını otomatik küçültmüyor (IME inset olarak
-// raporlanıyor) — araç çubuğunun klavyenin ALTINDA gizli kalmaması için visualViewport'un kendi
-// resize/scroll olaylarıyla klavye yüksekliği izlenip konum buna göre güncelleniyor.
-function updateTextSelToolbarPosition() {
+// onWindowStartingActionMode, TYPE_FLOATING → null). Metni SEÇMEK (sürükleme tutamaçları) native
+// mekanizmayla, yalnızca ARIZALI araç çubuğu penceresi devre dışı.
+//
+// v1'İN İKİ EKSİĞİ (kullanıcı ekran görüntüsüyle bildirdi) — v2'DEKİ DÜZELTME:
+// 1) v1 yalnızca input/textarea odaklandığında görünüyordu — sayfadaki NORMAL metinler (forum
+//    gönderisi, yorum, bildirim vb.) bu kapsamın DIŞINDAYDI, o yüzden oralarda eski bozuk native
+//    pencere hâlâ açılabiliyordu. v2'de kapsam TÜM seçilebilir içeriğe genişletildi: input/textarea
+//    dışında kalan salt-okunur seçimler window.getSelection() ile ayrıca izleniyor.
+// 2) v1 ekranın ALTINA sabit TEK bir şeritti — bu, aynı anda ekranın altında duran başka bir arayüzün
+//    (ör. sohbetin "Gönder" düğmesi) üzerine biniyordu. v2'de şerit artık seçilen İÇERİĞİN KENDİSİNİN
+//    hemen üzerinde/altında beliriyor (konum her zaman ilgili elemanın/Range'in getBoundingClientRect
+//    değerinden hesaplanıyor) — başka bir sabit düğmeyle ASLA çakışmaz.
+let tstTarget = null;       // odaklı input/textarea (varsa)
+let tstReadonlyRange = null; // salt-okunur bir metin seçiliyse aktif Range
+
+// Edge-to-edge açık olduğu için klavye açıldığında layout viewport'un kendisi küçülmeyebiliyor
+// (IME inset olarak raporlanıyor) — bu yüzden hesaplanan konum, visualViewport'un görünür alanına
+// (klavyenin ÜSTÜNde kalan kısma) ekstra bir adımda sıkıştırılıyor.
+function showFloatingToolbar(rect, buttonsHtml) {
   const bar = document.getElementById('text-sel-toolbar');
-  if (!bar || !window.visualViewport) return;
-  const vv = window.visualViewport;
-  const kbHeight = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-  bar.style.bottom = kbHeight + 'px';
-}
-if (window.visualViewport) {
-  window.visualViewport.addEventListener('resize', updateTextSelToolbarPosition);
-  window.visualViewport.addEventListener('scroll', updateTextSelToolbarPosition);
-}
-function showTextSelToolbar(el) {
-  tstTarget = el;
-  const bar = document.getElementById('text-sel-toolbar');
-  if (!bar) return;
+  if (!bar || !rect || (rect.width === 0 && rect.height === 0)) { hideTextSelToolbar(); return; }
+  bar.innerHTML = buttonsHtml;
   bar.style.display = 'flex';
-  updateTextSelToolbarPosition();
-  updateTextSelToolbarState();
+  const barRect = bar.getBoundingClientRect();
+  const margin = 8;
+  let left = rect.left + rect.width / 2 - barRect.width / 2;
+  left = Math.max(margin, Math.min(left, window.innerWidth - barRect.width - margin));
+  let top = rect.top - barRect.height - margin;
+  const vv = window.visualViewport;
+  const visTop = vv ? vv.offsetTop : 0;
+  const visBottom = vv ? vv.offsetTop + vv.height : window.innerHeight;
+  if (top < visTop + margin) top = rect.bottom + margin; // üstte yer yoksa altına düşer
+  top = Math.max(visTop + margin, Math.min(top, visBottom - barRect.height - margin));
+  bar.style.left = left + 'px';
+  bar.style.top = top + 'px';
 }
 function hideTextSelToolbar() {
   tstTarget = null;
+  tstReadonlyRange = null;
   const bar = document.getElementById('text-sel-toolbar');
   if (bar) bar.style.display = 'none';
 }
-function updateTextSelToolbarState() {
+
+function editableToolbarHtml(hasSel) {
+  return `
+    <button type="button" id="tst-cut" onmousedown="event.preventDefault()" onclick="tstAction('cut')" ${hasSel ? '' : 'disabled'}>✂️ Kes</button>
+    <button type="button" id="tst-copy" onmousedown="event.preventDefault()" onclick="tstAction('copy')" ${hasSel ? '' : 'disabled'}>📄 Kopyala</button>
+    <button type="button" onmousedown="event.preventDefault()" onclick="tstAction('paste')">📋 Yapıştır</button>
+    <button type="button" onmousedown="event.preventDefault()" onclick="tstAction('selectall')">🔘 Tümünü Seç</button>`;
+}
+function updateEditableToolbar() {
   if (!tstTarget) return;
   const hasSel = tstTarget.selectionStart !== tstTarget.selectionEnd;
-  const cutBtn = document.getElementById('tst-cut');
-  const copyBtn = document.getElementById('tst-copy');
-  if (cutBtn) cutBtn.disabled = !hasSel;
-  if (copyBtn) copyBtn.disabled = !hasSel;
+  showFloatingToolbar(tstTarget.getBoundingClientRect(), editableToolbarHtml(hasSel));
 }
 document.addEventListener('focusin', e => {
-  if (e.target.matches?.('input, textarea')) showTextSelToolbar(e.target);
+  if (!e.target.matches?.('input, textarea')) return;
+  tstReadonlyRange = null;
+  tstTarget = e.target;
+  updateEditableToolbar();
 });
 document.addEventListener('focusout', e => {
   if (!e.target.matches?.('input, textarea')) return;
@@ -12404,20 +12419,39 @@ document.addEventListener('focusout', e => {
     if (!active || !active.matches?.('input, textarea')) hideTextSelToolbar();
   }, 0);
 });
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', () => { if (tstTarget) updateEditableToolbar(); });
+  window.visualViewport.addEventListener('scroll', () => { if (tstTarget) updateEditableToolbar(); });
+}
+
+// Salt-okunur metin (input/textarea DIŞINDAKİ herhangi bir seçilebilir içerik, ör. forum gönderisi/
+// yorum/bildirim metni) için — burada yalnızca "Kopyala" gösterilir (Kes/Yapıştır/Tümünü Seç salt
+// okunur içerikte anlamsız).
+function updateReadonlyToolbar() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || sel.rangeCount === 0) { hideTextSelToolbar(); return; }
+  const anchorEl = sel.anchorNode?.nodeType === 1 ? sel.anchorNode : sel.anchorNode?.parentElement;
+  if (anchorEl?.closest('input, textarea, #text-sel-toolbar')) return; // input içi seçim ayrı yolla yönetiliyor
+  tstReadonlyRange = sel.getRangeAt(0);
+  tstTarget = null;
+  showFloatingToolbar(tstReadonlyRange.getBoundingClientRect(),
+    `<button type="button" onmousedown="event.preventDefault()" onclick="tstAction('copy')">📄 Kopyala</button>`);
+}
 document.addEventListener('selectionchange', () => {
-  if (tstTarget && document.activeElement === tstTarget) updateTextSelToolbarState();
+  if (tstTarget) { if (document.activeElement === tstTarget) updateEditableToolbar(); return; }
+  updateReadonlyToolbar();
 });
+
 // KESİN KÖK NEDEN DÜZELTMESİ — YENİ KATMAN: Java/Android pencere seviyesinde denenen HER şey
 // (ActionMode türünü değiştirmek, tamamen bastırmak, splash ekranını zorla temizletmek) etkisiz
 // kaldı — bu, sorunun o katmanda OLMADIĞINI kanıtlıyor. WebView'in motoru (Chromium), uzun basma
 // algıladığında native ActionMode'u TALEP ETMEDEN ÖNCE, standart bir web platformu olayı olan
 // 'contextmenu'yu tetikler — bunu preventDefault() ile durdurmak, native tarafa hiç ulaşmadan,
 // tamamen JS/DOM seviyesinde (Android sürümünden/OEM'den bağımsız) araç çubuğu talebini engeller.
-// Metni SEÇMEK (sürükleme tutamaçları) bundan etkilenmez — yalnızca ARAÇ ÇUBUĞU talebi iptal edilir,
-// eylemler zaten kendi #text-sel-toolbar'ımızdan yürütülüyor.
-document.addEventListener('contextmenu', e => {
-  if (e.target.matches?.('input, textarea')) e.preventDefault();
-});
+// v1'de yalnızca input/textarea'da engelleniyordu (bkz. yukarıdaki not, madde 1) — v2'de SAYFANIN
+// TAMAMINDA engelleniyor, böylece normal metinlerde de bozuk pencere asla açılmıyor. Metni SEÇMEK
+// (sürükleme tutamaçları) bundan etkilenmez — yalnızca ARAÇ ÇUBUĞU talebi iptal edilir.
+document.addEventListener('contextmenu', e => e.preventDefault());
 async function tstClipboardWrite(text) {
   if (isNativeApp() && window.Capacitor?.Plugins?.Clipboard) {
     await Capacitor.Plugins.Clipboard.write({ string: text });
@@ -12435,8 +12469,18 @@ async function tstClipboardRead() {
   return '';
 }
 async function tstAction(action) {
+  // Salt-okunur bir metin seçiliyse (tstTarget yok) tek geçerli eylem "copy" — Range'in kendi
+  // metnini kopyalar, hiçbir değeri değiştirmez.
+  if (!tstTarget) {
+    if (action === 'copy' && tstReadonlyRange) {
+      const text = tstReadonlyRange.toString();
+      if (text) { try { await tstClipboardWrite(text); } catch(e) {} }
+      hideTextSelToolbar();
+      window.getSelection()?.removeAllRanges();
+    }
+    return;
+  }
   const el = tstTarget;
-  if (!el) return;
   const start = el.selectionStart, end = el.selectionEnd;
   const selected = el.value.slice(start, end);
   try {
@@ -12460,7 +12504,7 @@ async function tstAction(action) {
     }
   } catch(e) {}
   el.focus();
-  updateTextSelToolbarState();
+  updateEditableToolbar();
 }
 
 // ==== YEREL PAKET + ARKA PLANDA İÇERİK GÜNCELLEME (Madde 7 — performans raporu) ====
