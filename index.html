@@ -11456,10 +11456,19 @@ function rcmptbl() {
 //  - 'not_found'/'not_found_cached' → MobileAPI.dev'de bu isimle eşleşme yok, tekrar denenmez
 const CMP_RICH_KEYS = ['chip','ram','storage','cam','bat','scr','wt','os','intlPrice','imageUrl','raw'];
 
+// KÖK NEDEN DÜZELTMESİ ("yeni zengin kategoriler sonsuza kadar dönen ikonda takılı kalıyordu"):
+// CMP_CATEGORIES'teki satırlar artık "raw.display.type" gibi NOKTALI yollar kullanıyor (cmpCellHTML
+// bunları "spec-raw-display-type-a" gibi tireli bir id'ye çeviriyor) — ama bu fonksiyon eskiden yalnızca
+// düz CMP_RICH_KEYS listesine (chip/ram/... gibi noktasız anahtarlar) bakıyordu, bu yüzden yeni
+// kategori hücrelerinin id'sini HİÇ bulamıyor, "kuyrukta"/"bulunamadı" mesajını hiç yazamıyordu — hücre
+// ilk render'daki dönen ikonda sonsuza dek kalıyordu. Artık CMP_CATEGORIES'in KENDİSİNDEN türetilen
+// tam satır anahtarı listesi kullanılıyor, böylece gösterilen HER hücre doğru şekilde güncellenir.
+const CMP_ALL_ROW_KEYS = CMP_CATEGORIES.flatMap(cat => cat.rows.map(r => r.k));
+
 function showSpecsPendingCells(p, side, render) {
-  CMP_RICH_KEYS.forEach(key => {
-    if (p[key]) return;
-    const el = document.getElementById(`spec-${key}-${side}`);
+  CMP_ALL_ROW_KEYS.forEach(key => {
+    if (getByPath(p, key)) return;
+    const el = document.getElementById(`spec-${key.replace(/\./g,'-')}-${side}`);
     if (el) el.innerHTML = render;
   });
 }
