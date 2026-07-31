@@ -12085,6 +12085,17 @@ document.addEventListener('focusout', e => {
 document.addEventListener('selectionchange', () => {
   if (tstTarget && document.activeElement === tstTarget) updateTextSelToolbarState();
 });
+// KESİN KÖK NEDEN DÜZELTMESİ — YENİ KATMAN: Java/Android pencere seviyesinde denenen HER şey
+// (ActionMode türünü değiştirmek, tamamen bastırmak, splash ekranını zorla temizletmek) etkisiz
+// kaldı — bu, sorunun o katmanda OLMADIĞINI kanıtlıyor. WebView'in motoru (Chromium), uzun basma
+// algıladığında native ActionMode'u TALEP ETMEDEN ÖNCE, standart bir web platformu olayı olan
+// 'contextmenu'yu tetikler — bunu preventDefault() ile durdurmak, native tarafa hiç ulaşmadan,
+// tamamen JS/DOM seviyesinde (Android sürümünden/OEM'den bağımsız) araç çubuğu talebini engeller.
+// Metni SEÇMEK (sürükleme tutamaçları) bundan etkilenmez — yalnızca ARAÇ ÇUBUĞU talebi iptal edilir,
+// eylemler zaten kendi #text-sel-toolbar'ımızdan yürütülüyor.
+document.addEventListener('contextmenu', e => {
+  if (e.target.matches?.('input, textarea')) e.preventDefault();
+});
 async function tstClipboardWrite(text) {
   if (isNativeApp() && window.Capacitor?.Plugins?.Clipboard) {
     await Capacitor.Plugins.Clipboard.write({ string: text });
