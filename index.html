@@ -4273,6 +4273,11 @@ async function doregister() {
     await auth.setPersistence(remember ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION);
     const c=await auth.createUserWithEmailAndPassword(e,p); await c.user.updateProfile({displayName:n});
     tryStorePasswordCredential(e,p,n);
+    // KULLANIŞLILIK DÜZELTMESİ (kullanıcı bildirdi: doğrulama e-postası hiç otomatik gitmiyordu,
+    // kullanıcı ancak ilan/konu göndermeye çalışıp engellendiğinde bundan haberdar oluyordu —
+    // form doldurmaya harcanan zaman boşa gidiyordu). Kayıt anında hemen gönderiliyor; hata olursa
+    // (nadir) sessizce yutuluyor — kullanıcı profil ekranından/ilan gönderirken yine tekrar deneyebilir.
+    c.user.sendEmailVerification().catch(()=>{});
   }
   catch(ex) {
     if (err) {
