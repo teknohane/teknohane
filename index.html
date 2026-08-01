@@ -2373,10 +2373,23 @@ const VAPID_KEY = 'BPt5vY5P3Dr9DG2zHOQwhQKnH6V5UruqGisQRTlGWxkNaAYtYKAEG9xiTHn78
 // altyapısını kullanıyordu (sık sık spam'e düşüyordu). Artık idToken bu Worker'a gönderiliyor, Worker
 // admin yetkiyle link üretip Brevo ile marka+Türkçe e-posta gönderiyor (bkz. cloudflare-push-worker.js).
 async function sendVerificationEmailViaWorker(u) {
-  const idToken = await u.getIdToken();
-  const res = await fetch(EMAIL_VERIFY_API, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken })
-  });
+  // HATA AYIKLAMA (GEÇİCİ): "Failed to fetch" hatasının TAM olarak hangi adımda oluştuğunu
+  // (idToken alma mı, worker'a fetch mi) ayırt etmek için adımlar ayrı try/catch'lere bölündü —
+  // kök neden bulununca bu iki blok tekrar sadeleştirilecek.
+  let idToken;
+  try {
+    idToken = await u.getIdToken();
+  } catch (e) {
+    throw new Error('[1/2 idToken] ' + (e?.message || String(e)));
+  }
+  let res;
+  try {
+    res = await fetch(EMAIL_VERIFY_API, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken })
+    });
+  } catch (e) {
+    throw new Error('[2/2 fetch] ' + (e?.message || String(e)));
+  }
   const data = await res.json();
   if (!res.ok || data.error) throw new Error(data.error || 'E-posta gönderilemedi');
   return data;
