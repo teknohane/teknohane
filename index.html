@@ -2384,8 +2384,14 @@ async function sendVerificationEmailViaWorker(u) {
   }
   let res;
   try {
+    // KÖK NEDEN DÜZELTMESİ: 'Content-Type: application/json' başlığı tarayıcıda bir CORS
+    // "preflight" (OPTIONS) isteği ZORUNLU kılıyor — bazı ağ/güvenlik yazılımları (reklam/izleme
+    // engelleyiciler, kurumsal filtreler) bu OPTIONS isteklerini sessizce engelliyor, bu yüzden asıl
+    // istek hiç gönderilmiyordu (worker loglarında hiçbir zaman görünmüyordu). 'text/plain' CORS
+    // "basit istek" (preflight gerektirmeyen) listesinde olduğu için OPTIONS'a hiç ihtiyaç kalmıyor
+    // — Worker tarafında gövde yine JSON olarak ayrıştırılıyor, Content-Type'a bakılmıyor.
     res = await fetch(EMAIL_VERIFY_API, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken })
+      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, body: JSON.stringify({ idToken })
     });
   } catch (e) {
     throw new Error('[2/2 fetch] ' + (e?.message || String(e)));
