@@ -2364,7 +2364,10 @@ async function firestoreCount(query) {
   } catch (e) { return null; }
 }
 const PUSH_API = 'https://teknohane-push.yusuf-aykac.workers.dev/';
-const EMAIL_VERIFY_API = 'https://teknohane-push.yusuf-aykac.workers.dev/send-verification-email';
+// KÖK NEDEN DÜZELTMESİ: teknohane-push (adında "push" geçiyor) bazı mobil ağlarda/cihazlarda DNS
+// seviyesinde sessizce engelleniyor (worker logunda istek hiç görünmüyordu). Genel/istemciye açık
+// uç bu yüzden adında "push" geçmeyen teknohane-phones Worker'ına taşındı (bkz. phones-worker/worker.js).
+const EMAIL_VERIFY_API = 'https://teknohane-phones.yusuf-aykac.workers.dev/send-verification-email';
 const VAPID_KEY = 'BPt5vY5P3Dr9DG2zHOQwhQKnH6V5UruqGisQRTlGWxkNaAYtYKAEG9xiTHn78yGq1DlrsnWFSazOquL_9krdtjY';
 // KÖK NEDEN DÜZELTMESİ: client SDK'sının sendEmailVerification()'ı Firebase'in paylaşımlı gönderim
 // altyapısını kullanıyordu (sık sık spam'e düşüyordu). Artık idToken bu Worker'a gönderiliyor, Worker
