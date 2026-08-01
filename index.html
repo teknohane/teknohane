@@ -2373,31 +2373,39 @@ const VAPID_KEY = 'BPt5vY5P3Dr9DG2zHOQwhQKnH6V5UruqGisQRTlGWxkNaAYtYKAEG9xiTHn78
 // altyapısını kullanıyordu (sık sık spam'e düşüyordu). Artık idToken bu Worker'a gönderiliyor, Worker
 // admin yetkiyle link üretip Brevo ile marka+Türkçe e-posta gönderiyor (bkz. cloudflare-push-worker.js).
 async function sendVerificationEmailViaWorker(u) {
-  // HATA AYIKLAMA (GEÇİCİ): "Failed to fetch" hatasının TAM olarak hangi adımda oluştuğunu
-  // (idToken alma mı, worker'a fetch mi) ayırt etmek için adımlar ayrı try/catch'lere bölündü —
-  // kök neden bulununca bu iki blok tekrar sadeleştirilecek.
   let idToken;
   try {
     idToken = await u.getIdToken();
   } catch (e) {
     throw new Error('[1/2 idToken] ' + (e?.message || String(e)));
   }
-  let res;
+  let data;
   try {
-    // KÖK NEDEN DÜZELTMESİ: 'Content-Type: application/json' başlığı tarayıcıda bir CORS
-    // "preflight" (OPTIONS) isteği ZORUNLU kılıyor — bazı ağ/güvenlik yazılımları (reklam/izleme
-    // engelleyiciler, kurumsal filtreler) bu OPTIONS isteklerini sessizce engelliyor, bu yüzden asıl
-    // istek hiç gönderilmiyordu (worker loglarında hiçbir zaman görünmüyordu). 'text/plain' CORS
-    // "basit istek" (preflight gerektirmeyen) listesinde olduğu için OPTIONS'a hiç ihtiyaç kalmıyor
-    // — Worker tarafında gövde yine JSON olarak ayrıştırılıyor, Content-Type'a bakılmıyor.
-    res = await fetch(EMAIL_VERIFY_API, {
-      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, body: JSON.stringify({ idToken })
-    });
+    // KÖK NEDEN DÜZELTMESİ (kanıtlanmış — kullanıcının cihazında hem düz fetch() hem de preflight'sız
+    // 'text/plain' varyantı SESSİZCE başarısız oluyordu, worker loglarında istek HİÇ görünmüyordu):
+    // sorun CORS/preflight değil, bu cihazda/ağda WebView'in kendi ağ katmanına özgü bir şey.
+    // Capacitor'ın yerleşik CapacitorHttp eklentisi isteği WebView'i TAMAMEN atlayıp doğrudan
+    // işletim sisteminin ağ yığınıyla (Android'de OkHttp) gönderiyor — bu sınıf sorunlardan bağımsız.
+    // Native olmayan (mobil web) kullanım için fetch() geri düşüşü korunuyor.
+    if (window.Capacitor?.Plugins?.CapacitorHttp && isNativeApp()) {
+      const resp = await Capacitor.Plugins.CapacitorHttp.request({
+        url: EMAIL_VERIFY_API, method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        data: { idToken }
+      });
+      data = typeof resp.data === 'string' ? JSON.parse(resp.data || '{}') : (resp.data || {});
+      if ((resp.status < 200 || resp.status >= 300) && !data.error) data.error = `HTTP ${resp.status}`;
+    } else {
+      const res = await fetch(EMAIL_VERIFY_API, {
+        method: 'POST', headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, body: JSON.stringify({ idToken })
+      });
+      data = await res.json();
+      if (!res.ok && !data.error) data.error = `HTTP ${res.status}`;
+    }
   } catch (e) {
-    throw new Error('[2/2 fetch] ' + (e?.message || String(e)));
+    throw new Error('[2/2 istek] ' + (e?.message || String(e)));
   }
-  const data = await res.json();
-  if (!res.ok || data.error) throw new Error(data.error || 'E-posta gönderilemedi');
+  if (data.error) throw new Error(data.error);
   return data;
 }
 let user = null;
