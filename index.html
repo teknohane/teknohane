@@ -787,6 +787,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .mcard-status-overlay{position:absolute;inset:0;background:rgba(3,6,14,.6);backdrop-filter:blur(1px);display:flex;align-items:center;justify-content:center;z-index:4;}
 .mcard-status-pill{background:rgba(255,69,58,.95);color:#fff;font-size:8.5px;font-weight:800;letter-spacing:.3px;padding:3px 8px;border-radius:20px;}
 .mcard-status-pill.pending{background:rgba(255,149,0,.95);}
+.mcard-status-pill.rejected{cursor:pointer;text-decoration:underline;text-underline-offset:2px;}
 .mcard-info{flex:1;min-width:0;padding:7px 10px 7px 9px;display:flex;flex-direction:column;justify-content:center;}
 .mcard-price{font-size:17px;font-weight:800;color:var(--text);letter-spacing:-.3px;line-height:1.1;}
 .mcard-price .cur{font-size:12.5px;font-weight:700;color:var(--cyan);}
@@ -7032,14 +7033,15 @@ function listingRemainingLabel(l) {
 function mcardHTML(l) {
   const mine = user && l.uid === user.uid;
   const fav = favs.has(l.id);
-  const pending = l.approved === false;
+  const rejected = !!l.rejected;
+  const pending = l.approved === false && !rejected;
   const isNew = l.condition === 'Sıfır';
   const remaining = !l.sold ? listingRemainingLabel(l) : null;
   return `<div class="mcard ${l.sold?'sold':''} ${l.showcase?'showcase':''} ${l.featured?'featured':''} ${l.urgent?'urgent-listing':''}" onclick="openDetail('${l.id}')">
     <div class="mcard-row">
       <div class="mcard-photo">
         ${l.photo1?`<img src="${escapeHtml(l.photo1)}" loading="lazy" decoding="async">`:'<div class="mcard-photo-empty"><img src="teknohane.png" alt="" onerror="this.style.display=\'none\'"><span>Fotoğraf Yok</span></div>'}
-        ${(l.sold||pending||isListingExpired(l))?`<div class="mcard-status-overlay"><div class="mcard-status-pill ${pending&&!l.sold?'pending':''}">${l.sold?'SATILDI':pending?'İNCELENİYOR':'SÜRESİ DOLDU'}</div></div>`:''}
+        ${(l.sold||pending||rejected||isListingExpired(l))?`<div class="mcard-status-overlay"><div class="mcard-status-pill ${pending&&!l.sold?'pending':''}${rejected?' rejected':''}"${rejected&&mine?` onclick="event.stopPropagation();showRejectReason('${l.id}')"`:''}>${l.sold?'SATILDI':rejected?'REDDEDİLDİ':pending?'İNCELENİYOR':'SÜRESİ DOLDU'}</div></div>`:''}
         ${l.condition?`<div class="mcard-badges"><div class="mcard-cnd ${isNew?'new':'used'}">${escapeHtml(l.condition)}</div></div>`:''}
         ${(l.showcase||l.featured||l.urgent||l.poolSystem)?`<div class="mcard-tag-row">
           ${l.showcase?'<div class="mcard-tag-ic showcase-ic" title="Vitrin">📌</div>':''}
@@ -7070,10 +7072,19 @@ function mcardHTML(l) {
   </div>`;
 }
 
+// Reddedilme sebebini kartın küçük "REDDEDİLDİ" rozetine dokununca gösterir — ilan sahibine NEDEN
+// reddedildiğini görme imkanı daha önce hiç yoktu (yalnızca bildirim metninde geçiyordu, kalıcı bir
+// yer yoktu). marketMineListings zaten bellekte olduğu için ek bir Firestore okuması gerekmiyor.
+function showRejectReason(id) {
+  const l = marketMineListings.find(x => x.id === id);
+  if (!l) return;
+  showToast('❌', 'rgba(255,69,58,.15)', 'İlan Reddedildi', `${l.rejectReasonLabel || 'Sebep belirtilmedi'}${l.rejectNote ? ' — ' + l.rejectNote : ''} Düzenleyip tekrar onaya gönderebilirsin.`, () => editListing(id), 8000);
+}
+
 // Bir ilan kartının GÖRSEL imzası — Pazar sekmesine her dönüşte (veri değişmese bile) tüm
 // kartların/görsellerin DOM'da yeniden yaratılmasını önlemek için (bkz. rlistings sonundaki kontrol).
 function listingCardSignature(l) {
-  return [l.id, l.price, l.sold, l.showcase, l.featured, l.urgent, l.poolSystem, l.photo1||''].join('|');
+  return [l.id, l.price, l.sold, l.showcase, l.featured, l.urgent, l.poolSystem, l.photo1||'', l.approved, l.rejected].join('|');
 }
 
 // ==== REKLAM ALTYAPISI (Pazar) ====
@@ -7685,6 +7696,20 @@ async function submitListing() {
       // Firestore Rules seviyesinde zaten isAdmin() herhangi bir ilanı güncelleyebiliyor (bkz.
       // firestore.rules), burada yalnızca istemci tarafı UI erişimi aynı yetkiyle sınırlanıyor.
       if (!old || (isAdminEdit && !hasPermission('manageListings'))) { editingListingId = null; return; }
+      // KÖK NEDEN DÜZELTMESİ (kullanıcı raporu: reddedilen bir ilan düzenlenip kaydedildiğinde
+      // sonsuza kadar "REDDEDİLDİ" durumunda kalıyordu, tekrar onaya gönderilmiyordu): reddedilmiş
+      // bir ilan düzenlenip (admin hariç, kendi düzenlemesinde) kaydedildiğinde otomatik olarak
+      // yeniden "onay bekliyor" durumuna alınır — kullanıcının ayrıca bir "tekrar gönder" adımı
+      // aramasına gerek kalmaz. Zaten onaylı bir ilanı düzenlemek bu davranışı TETİKLEMEZ (küçük bir
+      // fiyat düzeltmesi yüzünden ilan yeniden inceleme kuyruğuna düşmesin diye kasıtlı).
+      const wasRejected = !isAdminEdit && !!old.rejected;
+      if (wasRejected) {
+        data.approved = false;
+        data.rejected = false;
+        data.rejectReasonCode = firebase.firestore.FieldValue.delete();
+        data.rejectReasonLabel = firebase.firestore.FieldValue.delete();
+        data.rejectNote = firebase.firestore.FieldValue.delete();
+      }
       // REKABET ANALİZİ DÜZELTMESİ (Sahibinden karşılaştırması — foto limiti 4'ten 8'e çıkarıldı):
       // photo1..4'ü tek tek yazmak yerine photos[] dizisinin uzunluğu kadar döngüyle yazılıyor —
       // slot sayısı ileride tekrar değişirse tek satır (photos dizisinin ilk tanımı) yeterli olsun diye.
@@ -7696,7 +7721,11 @@ async function submitListing() {
       // bu yüzden burada gerçek photos[] dizisindeki güncel değerlerle açıkça değiştiriliyor.
       const photoSyncFields = {};
       photos.forEach((p, i) => { photoSyncFields['photo' + (i+1)] = p || undefined; });
-      syncListingFieldEverywhere(editingListingId, { ...data, ...photoSyncFields, videoUrl: listingVideoUrl || undefined });
+      // wasRejected dalında data içindeki reject alanları FieldValue.delete() "sentinel" nesneleri
+      // taşıyor (bkz. yukarıdaki photo yorumu — aynı risk) — yerel önbellekte gerçekten silinmiş gibi
+      // görünmesi için burada da undefined ile eziliyor.
+      const rejectSyncFields = wasRejected ? { rejectReasonCode: undefined, rejectReasonLabel: undefined, rejectNote: undefined } : {};
+      syncListingFieldEverywhere(editingListingId, { ...data, ...photoSyncFields, ...rejectSyncFields, videoUrl: listingVideoUrl || undefined });
       if (isAdminEdit) adminLog('admin_edit_listing', 'listing', editingListingId, model, { model: old.model, price: old.price }, { model, price }, 'success');
 
       // Fiyat düştüyse, bu ilanı favorileyen HERKESE kalıcı bildirim gönder (çevrimdışı olsalar bile)
@@ -7710,7 +7739,7 @@ async function submitListing() {
         });
       }
 
-      showToast('✓', 'rgba(48,209,88,.15)', 'İlan Güncellendi', `${model} güncellendi.`);
+      showToast('✓', 'rgba(48,209,88,.15)', wasRejected ? 'Tekrar Onaya Gönderildi' : 'İlan Güncellendi', wasRejected ? `${model} güncellendi ve tekrar incelemeye gönderildi.` : `${model} güncellendi.`);
     } else {
       photos.forEach((p, i) => { if (p) data['photo' + (i+1)] = p; });
       if (listingVideoUrl) data.videoUrl = listingVideoUrl;
