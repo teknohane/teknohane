@@ -1692,7 +1692,10 @@ body.tk-maintenance #maintenance-gate{
       <div class="chatbtn2" style="padding:0;flex:0 0 auto;border-radius:50%;width:38px;height:38px;justify-content:center" onclick="document.getElementById('community-chat-photo-input').click()">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
       </div>
-      <textarea id="community-chat-input" placeholder="Topluluğa mesaj yaz... (@isim ile bahset)" rows="1" style="flex:1 1 auto;min-width:0;width:auto" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendCommunityMessage();}"></textarea>
+      <div style="flex:1 1 auto;min-width:0;display:flex;flex-direction:column">
+        <textarea id="community-chat-input" placeholder="Topluluğa mesaj yaz... (@isim ile bahset)" rows="1" style="width:auto" oninput="onMentionInput('community-chat-input')" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendCommunityMessage();}"></textarea>
+        <div class="mention-suggest" id="mention-suggest-community" style="display:none"></div>
+      </div>
       <button class="sbtn2" style="padding:10px 16px;width:auto;flex:0 0 auto;white-space:nowrap" onclick="sendCommunityMessage()">Gönder</button>
     </div>
   </div>
@@ -6511,6 +6514,30 @@ let unsubCommunityMessages = null;
 let communityMessages = [];
 let communityMetaCache = null;
 let lastCommunityActionAtLocal = 0;
+// Forum'un pendingMentions[] dizisiyle KASITLI olarak AYRI — paylaşımlı olsaydı, biri Forum'da yarım
+// bıraktığı bir gönderide birini etiketleyip Topluluk Sohbeti'ne geçip mesaj atarsa, o eski/alakasız
+// etiketleme sessizce buraya sızardı (bkz. görev raporu).
+let communityPendingMentions = [];
+
+// Forum'daki paylaşımlı @bahsetme sistemine (runMentionSearch → burası) bağlanan seçim işleyicisi —
+// selectMention() ile AYNI iskelet, yalnızca pendingMentions yerine communityPendingMentions'a yazıyor.
+function selectCommunityMention(textareaId, uid, displayName) {
+  const ta = document.getElementById(textareaId);
+  if (!ta) return;
+  const caret = ta.selectionStart;
+  const upToCaret = ta.value.slice(0, caret);
+  const m = upToCaret.match(/@([^\s@]{1,30})$/);
+  if (m) {
+    const start = caret - m[0].length;
+    const insertText = `@${displayName} `;
+    ta.value = ta.value.slice(0, start) + insertText + ta.value.slice(caret);
+    const newPos = start + insertText.length;
+    ta.setSelectionRange(newPos, newPos);
+  }
+  if (!communityPendingMentions.some(p => p.uid === uid)) communityPendingMentions.push({ uid, displayName });
+  hideMentionSuggest(textareaId);
+  ta.focus();
+}
 
 function subscribeCommunityChatBadge() {
   unsubCommunityMeta?.();
@@ -6580,27 +6607,22 @@ function exitCommunityChat() {
   document.getElementById('community-chat-mo').classList.remove('on');
 }
 
-// @İsim bahsetmeleri KASITLI olarak basit tutuldu — otomatik tamamlama/seçici YOK, kullanıcı serbest
-// metin olarak yazıyor. Yalnızca gönderim ANINDA, displayNameLower alanına önek eşleşmesiyle
-// kullanıcıya çevrilip SADECE o kişilere bildirim gitmesi için kullanılıyor (herkese push atmamak
-// için — bkz. görev raporu, "her mesajda bildirim WhatsApp grubunun en büyük şikayeti").
-async function extractMentionUids(text) {
-  const names = [...new Set((text.match(/@([\p{L}0-9_]{2,30})/gu) || []).map(s => s.slice(1).toLowerCase()))].slice(0, 5);
-  if (!names.length) return [];
-  const uids = new Set();
-  for (const name of names) {
-    try {
-      const snap = await db.collection('teknohane_users')
-        .where('displayNameLower', '>=', name).where('displayNameLower', '<=', name + '')
-        .limit(3).get();
-      snap.docs.forEach(d => { if (d.id !== user.uid) uids.add(d.id); });
-    } catch(e) {}
-  }
-  return [...uids];
-}
-
-function communityMentionHTML(text) {
-  return escapeHtml(text || '').replace(/(^|[\s])@([\p{L}0-9_]{2,30})/gu, (m, pre, name) => `${pre}<span style="color:var(--cyan);font-weight:600">@${name}</span>`);
+// KÖK NEDEN DÜZELTMESİ (kullanıcı raporu: "etiketleme çalışmıyor"): burada eskiden serbest metinden
+// @isim ayrıştırılıp teknohane_users'ta sorgulanıyordu — o koleksiyonda LİSTE sorgusu yalnızca
+// adminlere açık (bkz. firestore.rules), normal kullanıcılarda sessizce reddediliyordu. Artık
+// bahsetmeler tamamen YAPISAL (bkz. selectCommunityMention/communityPendingMentions) — metinde ne
+// yazdığını AYRIŞTIRMAYA hiç gerek yok, hangi kullanıcıların seçildiği zaten biliniyor. Bu fonksiyon
+// yalnızca GÖRÜNTÜLEME amaçlı: gönderilen mesajla birlikte kaydedilen gerçek isimleri (mentionNames)
+// metinde arayıp vurguluyor — regex yerine düz metin eşleştirme kullanılıyor ki boşluklu adlarda
+// (ör. "Yusuf Aykaç") kelime sınırında kesilme sorunu olmasın.
+function communityMentionHTML(text, mentionNames) {
+  let escaped = escapeHtml(text || '');
+  (mentionNames || []).forEach(name => {
+    if (!name) return;
+    const safe = escapeHtml(name);
+    escaped = escaped.split('@' + safe).join(`<span style="color:var(--cyan);font-weight:600">@${safe}</span>`);
+  });
+  return escaped;
 }
 
 function communityMsgBubbleHTML(m) {
@@ -6611,7 +6633,7 @@ function communityMsgBubbleHTML(m) {
     : (m.authorName||'?')[0]?.toUpperCase();
   const body = (m.imageUrl || m._localImagePreview)
     ? `<img src="${escapeHtml(m.imageUrl || m._localImagePreview)}" alt="Gönderilen fotoğraf" ${m.imageUrl?`onclick="event.stopPropagation();openFullscreen('${escapeJsAttr(m.imageUrl)}')"`:''} style="max-width:100%;border-radius:10px;display:block;cursor:${m.imageUrl?'pointer':'default'};${m._status==='sending'?'opacity:.55':''}" loading="lazy" decoding="async">`
-    : `<div>${communityMentionHTML(m.text)}</div>`;
+    : `<div>${communityMentionHTML(m.text, m.mentionNames)}</div>`;
   const nameJs = escapeJsAttr(m.authorName || 'Kullanıcı');
   const isLocal = String(m.id).startsWith('local_');
   const actionIcon = mine
@@ -6655,24 +6677,31 @@ async function sendCommunityMessage() {
   if (!text) return;
   if (!checkCommunityChatRateLimit()) return;
   inp.value = '';
+  hideMentionSuggest('community-chat-input');
+  // Bahsetmeler artık YAPISAL — selectCommunityMention'da zaten uid+isim eşleşmesi kesinleşmiş
+  // durumda, gönderim anında ayrıca bir arama/ayrıştırma yapmaya gerek yok (bkz. communityMentionHTML
+  // üzerindeki kök neden notu).
+  const mentionsToNotify = communityPendingMentions.slice();
+  communityPendingMentions = [];
+  const mentionNames = mentionsToNotify.map(m => m.displayName);
   lastCommunityActionAtLocal = Date.now();
   const myName = myProfileData.displayName || user.displayName || user.email?.split('@')[0] || 'Kullanıcı';
-  const localMsg = { id: 'local_'+Date.now()+'_'+Math.random().toString(36).slice(2), uid: user.uid, authorName: myName, authorPhotoURL: myProfileData.photoURL||null, text, createdAt: { toDate:()=>new Date() }, _status: 'sending' };
+  const localMsg = { id: 'local_'+Date.now()+'_'+Math.random().toString(36).slice(2), uid: user.uid, authorName: myName, authorPhotoURL: myProfileData.photoURL||null, text, mentionNames, createdAt: { toDate:()=>new Date() }, _status: 'sending' };
   communityMessages.push(localMsg);
   renderCommunityMessages();
   scrollCommunityMessagesToBottom();
   try {
     await db.collection('teknohane_community_messages').add({
       uid: user.uid, authorName: myName, authorPhotoURL: myProfileData.photoURL || null,
-      text, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      text, mentionNames, createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     db.collection('teknohane_users').doc(user.uid).set({ lastChatActionAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }).catch(()=>{});
     db.collection('teknohane_community_meta').doc('room').set({
       lastMessageAt: firebase.firestore.FieldValue.serverTimestamp(),
       lastMessageText: text.slice(0, 60), lastMessageAuthorName: myName
     }, { merge: true }).catch(()=>{});
-    extractMentionUids(text).then(uids => {
-      uids.forEach(uid => notifyUser(uid, 'community_mention', `${myName} seni Topluluk Sohbeti'nde bahsetti: "${text.slice(0,80)}"`, null, null, user.uid, myName, myProfileData.photoURL));
+    mentionsToNotify.forEach(m => {
+      notifyUser(m.uid, 'community_mention', `${myName} seni Topluluk Sohbeti'nde bahsetti: "${text.slice(0,80)}"`, null, null, user.uid, myName, myProfileData.photoURL);
     });
   } catch(e) {
     localMsg._status = 'failed';
@@ -9014,7 +9043,9 @@ function fmtLink(textareaId) {
 // displayNameLower prefix sorgusu, 300ms debounce). Seçim yapısal: metne kozmetik "@AdSoyad" eklenir,
 // gerçek referans pendingMentions[] dizisinde tutulur (currentPostTags'ın aynı birikim deseni).
 function mentionSuffix(textareaId) {
-  return textareaId === 'np-body' ? 'np' : 'cmt';
+  if (textareaId === 'np-body') return 'np';
+  if (textareaId === 'community-chat-input') return 'community';
+  return 'cmt';
 }
 function onMentionInput(textareaId) {
   const ta = document.getElementById(textareaId);
@@ -9037,10 +9068,18 @@ async function runMentionSearch(textareaId, query) {
       .limit(6).get();
     if (mentionActiveTextareaId !== textareaId) return;
     if (snap.empty) { box.style.display = 'none'; return; }
+    // KÖK NEDEN DÜZELTMESİ (kullanıcı raporu: "etiketleme çalışmıyor"): Topluluk Sohbeti önceleri
+    // kendi basit serbest-metin ayrıştırmasıyla teknohane_users'ı sorguluyordu — o koleksiyonda LİSTE
+    // sorgusu yalnızca adminlere açık (bkz. firestore.rules), normal kullanıcılarda sessizce
+    // permission-denied alıp hiç eşleşme bulamıyordu. Artık Forum'daki AYNI, çalışan sistemi
+    // (teknohane_user_index + gerçek otomatik tamamlama) paylaşıyor — tıklama işleyicisi sohbet
+    // kutusu için ayrı bir fonksiyona (selectCommunityMention) yönlendiriliyor ki paylaşımlı
+    // pendingMentions dizisi (Forum'un taslak durumu) Topluluk Sohbeti ile karışmasın.
+    const selectFn = textareaId === 'community-chat-input' ? 'selectCommunityMention' : 'selectMention';
     box.innerHTML = snap.docs.map(d => {
       const u = d.data();
       const name = u.displayName || 'Kullanıcı';
-      return `<div class="mention-suggest-row" onclick="selectMention('${textareaId}','${d.id}','${escapeJsAttr(name)}')">${u.photoURL?`<img src="${u.photoURL}" alt="">`:`<span class="mention-suggest-av">${escapeHtml(name[0]||'?').toUpperCase()}</span>`}<span>${escapeHtml(name)}</span></div>`;
+      return `<div class="mention-suggest-row" onclick="${selectFn}('${textareaId}','${d.id}','${escapeJsAttr(name)}')">${u.photoURL?`<img src="${u.photoURL}" alt="">`:`<span class="mention-suggest-av">${escapeHtml(name[0]||'?').toUpperCase()}</span>`}<span>${escapeHtml(name)}</span></div>`;
     }).join('');
     box.style.display = 'block';
   } catch(e) { box.style.display = 'none'; }
