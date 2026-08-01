@@ -2373,12 +2373,7 @@ const VAPID_KEY = 'BPt5vY5P3Dr9DG2zHOQwhQKnH6V5UruqGisQRTlGWxkNaAYtYKAEG9xiTHn78
 // altyapısını kullanıyordu (sık sık spam'e düşüyordu). Artık idToken bu Worker'a gönderiliyor, Worker
 // admin yetkiyle link üretip Brevo ile marka+Türkçe e-posta gönderiyor (bkz. cloudflare-push-worker.js).
 async function sendVerificationEmailViaWorker(u) {
-  let idToken;
-  try {
-    idToken = await u.getIdToken();
-  } catch (e) {
-    throw new Error('[1/2 idToken] ' + (e?.message || String(e)));
-  }
+  const idToken = await u.getIdToken();
   let data;
   try {
     // KÖK NEDEN DÜZELTMESİ (kanıtlanmış — kullanıcının cihazında hem düz fetch() hem de preflight'sız
@@ -2403,10 +2398,24 @@ async function sendVerificationEmailViaWorker(u) {
       if (!res.ok && !data.error) data.error = `HTTP ${res.status}`;
     }
   } catch (e) {
-    throw new Error('[2/2 istek] ' + (e?.message || String(e)));
+    throw new Error(e?.message || String(e));
   }
   if (data.error) throw new Error(data.error);
   return data;
+}
+
+// KÖK NEDEN DÜZELTMESİ: bazı cihazlarda/ağlarda WebView'in kendi fetch()'i CORS'tan bağımsız,
+// sessizce başarısız olabiliyor (bkz. e-posta doğrulama ucundaki kök neden düzeltmesi — kanıtlanmış,
+// gerçek cihazda doğrulandı). Paylaşılan Cloudflare Worker API'lerine (YouTube/haberler/fiyat/telefon
+// kataloğu) yapılan TÜM GET istekleri artık bu ortak yardımcıdan geçiyor — Capacitor'ın native HTTP
+// eklentisi mevcutsa WebView'i tamamen atlıyor, değilse normal fetch()'e geri düşüyor.
+async function tkGetJson(url) {
+  if (window.Capacitor?.Plugins?.CapacitorHttp && isNativeApp()) {
+    const resp = await Capacitor.Plugins.CapacitorHttp.request({ url, method: 'GET' });
+    return typeof resp.data === 'string' ? JSON.parse(resp.data || '{}') : (resp.data || {});
+  }
+  const r = await fetch(url);
+  return r.json();
 }
 let user = null;
 let myProfileData = {};
@@ -10721,7 +10730,7 @@ const fs=n=>{n=parseInt(n)||0;if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1000)
 // aynı anda çağrılsa bile (bkz. rhome()) ağ isteği yalnızca BİR kez yapılır.
 let ytFetchPromise = null;
 function fetchYoutubeData() {
-  if (!ytFetchPromise) ytFetchPromise = fetch(YT_API).then(r => r.json());
+  if (!ytFetchPromise) ytFetchPromise = tkGetJson(YT_API);
   return ytFetchPromise;
 }
 
@@ -10753,8 +10762,7 @@ async function loadExtraPhones() {
   if (extraPhonesLoaded) return;
   extraPhonesLoaded = true;
   try {
-    const r = await fetch(PHONES_API);
-    const data = await r.json();
+    const data = await tkGetJson(PHONES_API);
     const existingKeys = new Set(PHONES.map(p => (p.brand + p.name).toLowerCase()));
     (data.phones || []).forEach(p => {
       const key = (p.brand + p.name).toLowerCase();
@@ -10769,8 +10777,7 @@ let newsArticleCache = {};
 
 async function lnews() {
   if (newsCache) return newsCache;
-  const r = await fetch(NEWS_API);
-  const d = await r.json();
+  const d = await tkGetJson(NEWS_API);
   newsCache = d.items || [];
   return newsCache;
 }
@@ -10799,8 +10806,7 @@ async function openNewsArticle(idx) {
   try {
     let data = newsArticleCache[item.link];
     if (!data) {
-      const r = await fetch(NEWS_API + '?article=' + encodeURIComponent(item.link));
-      data = await r.json();
+      data = await tkGetJson(NEWS_API + '?article=' + encodeURIComponent(item.link));
       newsArticleCache[item.link] = data;
     }
     const title = data.title || item.title;
@@ -11535,8 +11541,7 @@ async function fetchLivePrice(side) {
   const original = el.textContent;
   el.textContent = '…';
   try {
-    const r = await fetch(PRICE_API + '?url=' + encodeURIComponent(p.cimriUrl));
-    const data = await r.json();
+    const data = await tkGetJson(PRICE_API + '?url=' + encodeURIComponent(p.cimriUrl));
     if (data.price) {
       el.textContent = data.price + ' (canlı)';
     } else {
@@ -11622,9 +11627,7 @@ async function fetchMissingSpecs(p, side) {
   if (complete || p._specsFetchTried) return;
   p._specsFetchTried = true;
   try {
-    const r = await fetch(PHONES_API + '?brand=' + encodeURIComponent(p.brand || '') + '&name=' + encodeURIComponent(p.name));
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const d = await r.json();
+    const d = await tkGetJson(PHONES_API + '?brand=' + encodeURIComponent(p.brand || '') + '&name=' + encodeURIComponent(p.name));
 
     if (d.source === 'queued') {
       p._specsFetchTried = false; // sonraki bir görüntülemede tekrar denensin
