@@ -1652,7 +1652,49 @@ body.tk-maintenance #maintenance-gate{
       <span class="fs-title" id="chat-list-title">Mesajlar</span>
       <div style="width:32px"></div>
     </div>
+    <div class="chat-row" id="community-chat-row" onclick="openCommunityChat()">
+      <div class="chat-row-av" style="background:linear-gradient(135deg,#00D4FF,#0091FF);display:flex;align-items:center;justify-content:center;font-size:18px">🌐</div>
+      <div class="chat-row-info">
+        <div class="chat-row-top">
+          <span class="chat-row-name">Topluluk Sohbeti</span>
+          <span class="chat-row-time" id="community-chat-time"></span>
+        </div>
+        <div class="chat-row-bottom">
+          <span class="chat-row-preview" id="community-chat-preview">Herkese açık, canlı sohbet — sor, tartış, yardımlaş</span>
+          <span class="chat-row-unread-badge" id="community-chat-unread-badge" style="display:none"></span>
+        </div>
+      </div>
+    </div>
+    <div style="height:1px;background:var(--border2);margin:2px 0 6px"></div>
     <div id="chat-list"></div>
+  </div>
+</div>
+
+<!-- TOPLULUK SOHBETİ — tek, paylaşımlı grup odası (WhatsApp grubuna uygulama-içi alternatif) -->
+<div class="mo" id="community-chat-mo" onclick="exitCommunityChat()">
+  <div class="det-sheet" onclick="event.stopPropagation()" style="display:flex;flex-direction:column;height:100dvh">
+    <div class="det-sticky">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="det-close" onclick="exitCommunityChat()" style="flex-shrink:0">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </div>
+        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#00D4FF,#0091FF);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0">🌐</div>
+        <div>
+          <div style="font-weight:700;font-size:15px">Topluluk Sohbeti</div>
+          <div style="font-size:11px;color:var(--text3)">Herkese açık</div>
+        </div>
+      </div>
+      <div style="width:32px"></div>
+    </div>
+    <div id="community-chat-messages" style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:10px"></div>
+    <div class="comment-input-area" style="padding:12px 20px calc(12px + var(--sb));border-top:1px solid var(--border2);margin-top:0;flex-shrink:0">
+      <input type="file" id="community-chat-photo-input" accept="image/*" style="display:none" onchange="sendCommunityImage(this)">
+      <div class="chatbtn2" style="padding:0;flex:0 0 auto;border-radius:50%;width:38px;height:38px;justify-content:center" onclick="document.getElementById('community-chat-photo-input').click()">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+      </div>
+      <textarea id="community-chat-input" placeholder="Topluluğa mesaj yaz... (@isim ile bahset)" rows="1" style="flex:1 1 auto;min-width:0;width:auto" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendCommunityMessage();}"></textarea>
+      <button class="sbtn2" style="padding:10px 16px;width:auto;flex:0 0 auto;white-space:nowrap" onclick="sendCommunityMessage()">Gönder</button>
+    </div>
   </div>
 </div>
 
@@ -2795,6 +2837,7 @@ auth.onAuthStateChanged(u => {
     syncUserProfile(u);
     subscribeNotifBadge(u.uid);
     subscribeChatBadge(u.uid);
+    subscribeCommunityChatBadge();
     startPresenceHeartbeat(u.uid);
     loadMyAdminRole(u.uid);
     loadActiveAnnouncements();
@@ -4498,7 +4541,7 @@ const NOTIF_TYPE_CATEGORY = {
   forum_post_resolved_by_admin: 'forum', comment_hidden: 'forum', comment_edited_by_admin: 'forum',
   badge_earned: 'system',
   admin_notification: 'system', admin_warning: 'system', complaint_update: 'system',
-  new_message: 'messages',
+  new_message: 'messages', community_mention: 'messages',
   pool_request: 'market', pool_reply: 'market',
   offer_received: 'market', offer_response: 'market',
 };
@@ -5249,6 +5292,7 @@ const NOTIF_ICONS = {
   admin_warning: { ic: '⚠️', bg: 'rgba(255,149,0,.15)' },
   complaint_update: { ic: '📋', bg: 'rgba(0,212,255,.12)' },
   new_message: { ic: '💬', bg: 'rgba(0,212,255,.12)' },
+  community_mention: { ic: '🌐', bg: 'rgba(0,212,255,.12)' },
   listing_expired: { ic: '⏰', bg: 'rgba(0,212,255,.12)' },
   listing_approved: { ic: '✅', bg: 'rgba(48,209,88,.15)' },
   listing_rejected: { ic: '❌', bg: 'rgba(255,69,58,.15)' },
@@ -5660,6 +5704,9 @@ async function clickNotifGroup(idsCsv, listingId, wasUnread, postId, type, fromU
     // kodu bu görevde değiştirilmedi, yalnızca zaten var olan genel arayüzü kullanılıyor.
     closemo('notif-mo');
     openChatWith(fromUid, fromName || 'Kullanıcı');
+  } else if (type === 'community_mention') {
+    closemo('notif-mo');
+    openCommunityChat();
   } else if (type === 'new_follower' && fromUid) {
     closemo('notif-mo');
     openPublicProfile(fromUid, fromName || 'Kullanıcı');
@@ -5688,6 +5735,20 @@ function chatIdFor(a, b) { return [a, b].sort().join('_'); }
 // vardı (biri her zaman açık rozet için, biri yalnızca liste ekranı açıkken); artık tek dinleyici var,
 // liste ekranı yalnızca zaten gelen veriyle render ediliyor, ikinci bir Firestore bağlantısı açılmıyor.
 let chatListCache = [];
+// Başlıktaki 💬 rozeti DM'lerin GERÇEK okunmamış SAYISINI, Topluluk Sohbeti'nin ise yalnızca "yeni
+// bir şey var" durumunu (● ile) yansıtır — ikisi TEK bir paylaşımlı fonksiyondan (bkz.
+// refreshChatHeaderBadge) güncellenir, DM sayısı her zaman önceliklidir.
+function refreshChatHeaderBadge() {
+  const badge = document.getElementById('chat-badge');
+  if (!badge || !user) return;
+  let unread = 0;
+  chatListCache.forEach(d => { if (!(d.data().hiddenFor||[]).includes(user.uid) && (d.data().unreadBy||[]).includes(user.uid)) unread++; });
+  if (unread > 0) { badge.textContent = unread > 9 ? '9+' : unread; badge.style.display = 'flex'; return; }
+  const communityLastAtMs = communityMetaCache?.lastMessageAt?.toDate ? communityMetaCache.lastMessageAt.toDate().getTime() : 0;
+  const communityLastReadMs = myProfileData.communityChatLastReadAt?.toDate ? myProfileData.communityChatLastReadAt.toDate().getTime() : 0;
+  if (communityLastAtMs > communityLastReadMs) { badge.textContent = '●'; badge.style.display = 'flex'; }
+  else badge.style.display = 'none';
+}
 function subscribeChatBadge(uid) {
   unsubChatBadge?.();
   unsubChatBadge = db.collection('teknohane_chats')
@@ -5695,13 +5756,7 @@ function subscribeChatBadge(uid) {
     .limit(300)
     .onSnapshot(snap => {
       chatListCache = snap.docs;
-      let unread = 0;
-      snap.docs.forEach(d => { if (!(d.data().hiddenFor||[]).includes(uid) && (d.data().unreadBy||[]).includes(uid)) unread++; });
-      const badge = document.getElementById('chat-badge');
-      if (badge) {
-        if (unread > 0) { badge.textContent = unread > 9 ? '9+' : unread; badge.style.display = 'flex'; }
-        else badge.style.display = 'none';
-      }
+      refreshChatHeaderBadge();
       // Sohbet listesi ekranı o an açıksa, aynı veriyle anında güncellenir — ayrı bir dinleyici açılmaz.
       if (document.getElementById('chat-list-mo')?.classList.contains('on')) renderChatList();
     }, () => {});
@@ -6440,6 +6495,234 @@ async function forwardMsgTo(targetUid, targetName) {
     }
     showToast('↪️','rgba(0,212,255,.12)','İletildi','Mesaj iletildi.');
   } catch(e) { showErrorToast(e); }
+}
+
+// ==== TOPLULUK SOHBETİ (tek, paylaşımlı grup odası — WhatsApp grubuna uygulama-içi alternatif) ====
+// teknohane_community_messages/{msgId} → uid, authorName, authorPhotoURL, text|imageUrl, createdAt.
+// teknohane_community_meta/room → lastMessageAt/lastMessageText/lastMessageAuthorName — okunmamış
+// rozeti BUNDAN hesaplanır (kullanıcının kendi communityChatLastReadAt'iyle karşılaştırılarak);
+// her mesaj için ayrı bir unreadBy dizisi tutmak, potansiyel olarak binlerce üyeli tek bir odada
+// ölçeklenmez, bu yüzden DM'lerdeki desenden kasıtlı olarak farklı. Forum'un aksine ÖNCEDEN ONAY
+// YOK — moderasyon rapor+admin silme ile SONRADAN yapılır (bkz. openReportModal tip:'message').
+const COMMUNITY_CHAT_PAGE_SIZE = 50;
+const COMMUNITY_CHAT_RATE_LIMIT_MS = 2000;
+let unsubCommunityMeta = null;
+let unsubCommunityMessages = null;
+let communityMessages = [];
+let communityMetaCache = null;
+let lastCommunityActionAtLocal = 0;
+
+function subscribeCommunityChatBadge() {
+  unsubCommunityMeta?.();
+  unsubCommunityMeta = db.collection('teknohane_community_meta').doc('room').onSnapshot(snap => {
+    communityMetaCache = snap.exists ? snap.data() : null;
+    renderCommunityChatRowPreview();
+    refreshChatHeaderBadge();
+  }, () => {});
+}
+
+function renderCommunityChatRowPreview() {
+  const timeEl = document.getElementById('community-chat-time');
+  const prevEl = document.getElementById('community-chat-preview');
+  const badgeEl = document.getElementById('community-chat-unread-badge');
+  if (!timeEl || !communityMetaCache) return;
+  const lastAt = communityMetaCache.lastMessageAt?.toDate ? communityMetaCache.lastMessageAt.toDate() : null;
+  timeEl.textContent = lastAt ? fd(lastAt.toISOString()) : '';
+  if (prevEl && communityMetaCache.lastMessageText) {
+    prevEl.textContent = `${communityMetaCache.lastMessageAuthorName ? communityMetaCache.lastMessageAuthorName + ': ' : ''}${communityMetaCache.lastMessageText}`;
+  }
+  const lastReadMs = myProfileData.communityChatLastReadAt?.toDate ? myProfileData.communityChatLastReadAt.toDate().getTime() : 0;
+  const isUnread = !!(lastAt && lastAt.getTime() > lastReadMs);
+  if (badgeEl) { badgeEl.style.display = isUnread ? 'flex' : 'none'; badgeEl.textContent = '●'; }
+}
+
+function isCommunityScrolledToBottom() {
+  const box = document.getElementById('community-chat-messages');
+  if (!box) return true;
+  return box.scrollHeight - box.scrollTop - box.clientHeight < 120;
+}
+function scrollCommunityMessagesToBottom() {
+  const box = document.getElementById('community-chat-messages');
+  if (box) box.scrollTop = box.scrollHeight;
+}
+
+function markCommunityChatRead() {
+  if (!user) return;
+  // İyimser yerel güncelleme — rozet, sunucu yanıtını beklemeden hemen kaybolur.
+  myProfileData.communityChatLastReadAt = { toDate: () => new Date() };
+  renderCommunityChatRowPreview();
+  refreshChatHeaderBadge();
+  db.collection('teknohane_users').doc(user.uid).set({ communityChatLastReadAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }).catch(()=>{});
+}
+
+function openCommunityChat() {
+  if (!user) { closemo('chat-list-mo'); gt('profile'); return; }
+  closemo('chat-list-mo');
+  document.getElementById('community-chat-mo').classList.add('on');
+  markCommunityChatRead();
+  if (!unsubCommunityMessages) {
+    document.getElementById('community-chat-messages').innerHTML = `<div class="load" style="margin:auto"><div class="spin"></div></div>`;
+    unsubCommunityMessages = db.collection('teknohane_community_messages')
+      .orderBy('createdAt', 'desc').limit(COMMUNITY_CHAT_PAGE_SIZE)
+      .onSnapshot(snap => {
+        communityMessages = snap.docs.map(d => ({ id: d.id, ...d.data() })).reverse();
+        const wasAtBottom = isCommunityScrolledToBottom();
+        renderCommunityMessages();
+        if (wasAtBottom) scrollCommunityMessagesToBottom();
+        if (document.getElementById('community-chat-mo').classList.contains('on')) markCommunityChatRead();
+      }, () => {});
+  } else {
+    renderCommunityMessages();
+    scrollCommunityMessagesToBottom();
+  }
+}
+function exitCommunityChat() {
+  document.getElementById('community-chat-mo').classList.remove('on');
+}
+
+// @İsim bahsetmeleri KASITLI olarak basit tutuldu — otomatik tamamlama/seçici YOK, kullanıcı serbest
+// metin olarak yazıyor. Yalnızca gönderim ANINDA, displayNameLower alanına önek eşleşmesiyle
+// kullanıcıya çevrilip SADECE o kişilere bildirim gitmesi için kullanılıyor (herkese push atmamak
+// için — bkz. görev raporu, "her mesajda bildirim WhatsApp grubunun en büyük şikayeti").
+async function extractMentionUids(text) {
+  const names = [...new Set((text.match(/@([\p{L}0-9_]{2,30})/gu) || []).map(s => s.slice(1).toLowerCase()))].slice(0, 5);
+  if (!names.length) return [];
+  const uids = new Set();
+  for (const name of names) {
+    try {
+      const snap = await db.collection('teknohane_users')
+        .where('displayNameLower', '>=', name).where('displayNameLower', '<=', name + '')
+        .limit(3).get();
+      snap.docs.forEach(d => { if (d.id !== user.uid) uids.add(d.id); });
+    } catch(e) {}
+  }
+  return [...uids];
+}
+
+function communityMentionHTML(text) {
+  return escapeHtml(text || '').replace(/(^|[\s])@([\p{L}0-9_]{2,30})/gu, (m, pre, name) => `${pre}<span style="color:var(--cyan);font-weight:600">@${name}</span>`);
+}
+
+function communityMsgBubbleHTML(m) {
+  const mine = user && m.uid === user.uid;
+  const time = m.createdAt?.toDate ? m.createdAt.toDate().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}) : '';
+  const avHtml = m.authorPhotoURL
+    ? `<img src="${escapeHtml(m.authorPhotoURL)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%" loading="lazy" decoding="async">`
+    : (m.authorName||'?')[0]?.toUpperCase();
+  const body = (m.imageUrl || m._localImagePreview)
+    ? `<img src="${escapeHtml(m.imageUrl || m._localImagePreview)}" alt="Gönderilen fotoğraf" ${m.imageUrl?`onclick="event.stopPropagation();openFullscreen('${escapeJsAttr(m.imageUrl)}')"`:''} style="max-width:100%;border-radius:10px;display:block;cursor:${m.imageUrl?'pointer':'default'};${m._status==='sending'?'opacity:.55':''}" loading="lazy" decoding="async">`
+    : `<div>${communityMentionHTML(m.text)}</div>`;
+  const nameJs = escapeJsAttr(m.authorName || 'Kullanıcı');
+  const isLocal = String(m.id).startsWith('local_');
+  const actionIcon = mine
+    ? (isLocal ? '' : `<span onclick="event.stopPropagation();deleteCommunityMessage('${m.id}')" style="cursor:pointer;opacity:.5" title="Sil">🗑️</span>`)
+    : `<span onclick="event.stopPropagation();openReportModal('message','${m.id}','${escapeJsAttr((m.text||'Fotoğraf').slice(0,60))}','${m.uid}')" style="cursor:pointer;opacity:.5" title="Şikayet et">🚩</span>`;
+  return `<div style="display:flex;gap:8px;align-self:${mine?'flex-end':'flex-start'};max-width:82%;flex-direction:${mine?'row-reverse':'row'}" data-mid="${m.id}">
+    ${!mine?`<div style="width:30px;height:30px;border-radius:50%;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--cyan);font-size:13px;flex-shrink:0;overflow:hidden;cursor:pointer" onclick="closemo('community-chat-mo');openPublicProfile('${m.uid}','${nameJs}')">${avHtml}</div>`:''}
+    <div class="msg-bubble" style="background:${mine?'var(--cdim)':'var(--surf2)'};color:var(--text);border:${mine?'1px solid rgba(0,212,255,.35)':'1px solid transparent'};padding:${(m.imageUrl||m._localImagePreview)?'6px':'9px 13px'};${mine?'border-bottom-right-radius:4px':'border-bottom-left-radius:4px'};font-size:14px;line-height:1.4;word-break:break-word">
+      ${!mine?`<div style="font-size:11.5px;font-weight:700;color:var(--cyan);margin-bottom:2px;cursor:pointer" onclick="closemo('community-chat-mo');openPublicProfile('${m.uid}','${nameJs}')">${escapeHtml(m.authorName||'Kullanıcı')}</div>`:''}
+      ${body}
+      <div style="font-size:10px;opacity:.6;margin-top:3px;display:flex;align-items:center;justify-content:flex-end;gap:6px">${actionIcon}${time}${m._status==='sending'?'<div class="msg-status-sending"></div>':m._status==='failed'?'⚠️':''}</div>
+    </div>
+  </div>`;
+}
+
+function renderCommunityMessages() {
+  const box = document.getElementById('community-chat-messages');
+  if (!box) return;
+  if (!communityMessages.length) { box.innerHTML = `<div class="no" style="margin:auto">Henüz mesaj yok, ilk mesajı sen yaz!</div>`; return; }
+  try {
+    box.innerHTML = communityMessages.map(communityMsgBubbleHTML).join('');
+  } catch(e) {
+    console.error('Topluluk sohbeti render hatası:', e);
+    box.innerHTML = `<div class="no" style="margin:auto">Mesajlar gösterilirken bir sorun oluştu.<br><span style="font-size:12px;color:var(--text3);cursor:pointer;text-decoration:underline" onclick="renderCommunityMessages()">Tekrar dene</span></div>`;
+  }
+}
+
+function checkCommunityChatRateLimit() {
+  const remaining = Math.ceil((COMMUNITY_CHAT_RATE_LIMIT_MS - (Date.now() - lastCommunityActionAtLocal)) / 1000);
+  if (remaining > 0) {
+    showToast('⏳','rgba(255,159,10,.15)','Yavaş Ol','Biraz yavaşla, ' + remaining + ' saniye bekle.');
+    return false;
+  }
+  return true;
+}
+
+async function sendCommunityMessage() {
+  if (!user) { gt('profile'); return; }
+  const inp = document.getElementById('community-chat-input');
+  const text = inp.value.trim();
+  if (!text) return;
+  if (!checkCommunityChatRateLimit()) return;
+  inp.value = '';
+  lastCommunityActionAtLocal = Date.now();
+  const myName = myProfileData.displayName || user.displayName || user.email?.split('@')[0] || 'Kullanıcı';
+  const localMsg = { id: 'local_'+Date.now()+'_'+Math.random().toString(36).slice(2), uid: user.uid, authorName: myName, authorPhotoURL: myProfileData.photoURL||null, text, createdAt: { toDate:()=>new Date() }, _status: 'sending' };
+  communityMessages.push(localMsg);
+  renderCommunityMessages();
+  scrollCommunityMessagesToBottom();
+  try {
+    await db.collection('teknohane_community_messages').add({
+      uid: user.uid, authorName: myName, authorPhotoURL: myProfileData.photoURL || null,
+      text, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    db.collection('teknohane_users').doc(user.uid).set({ lastChatActionAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }).catch(()=>{});
+    db.collection('teknohane_community_meta').doc('room').set({
+      lastMessageAt: firebase.firestore.FieldValue.serverTimestamp(),
+      lastMessageText: text.slice(0, 60), lastMessageAuthorName: myName
+    }, { merge: true }).catch(()=>{});
+    extractMentionUids(text).then(uids => {
+      uids.forEach(uid => notifyUser(uid, 'community_mention', `${myName} seni Topluluk Sohbeti'nde bahsetti: "${text.slice(0,80)}"`, null, null, user.uid, myName, myProfileData.photoURL));
+    });
+  } catch(e) {
+    localMsg._status = 'failed';
+    renderCommunityMessages();
+    showErrorToast(e);
+  }
+}
+
+async function sendCommunityImage(input) {
+  if (!user) { gt('profile'); return; }
+  const file = input.files[0];
+  input.value = '';
+  if (!file) return;
+  if (file.size > 50 * 1024 * 1024) { showToast('⚠️','rgba(255,69,58,.15)','Dosya Çok Büyük','Bu dosya işlenemeyecek kadar büyük.'); return; }
+  if (!checkCommunityChatRateLimit()) return;
+  lastCommunityActionAtLocal = Date.now();
+  const myName = myProfileData.displayName || user.displayName || user.email?.split('@')[0] || 'Kullanıcı';
+  const localPreview = URL.createObjectURL(file);
+  const localMsg = { id: 'local_'+Date.now()+'_'+Math.random().toString(36).slice(2), uid: user.uid, authorName: myName, authorPhotoURL: myProfileData.photoURL||null, _localImagePreview: localPreview, createdAt: { toDate:()=>new Date() }, _status: 'sending' };
+  communityMessages.push(localMsg);
+  renderCommunityMessages();
+  scrollCommunityMessagesToBottom();
+  try {
+    const imageUrl = await compressAndUploadPhoto(file, `community-chat-images/${user.uid}/${Date.now()}`, 800, 0.75);
+    await db.collection('teknohane_community_messages').add({
+      uid: user.uid, authorName: myName, authorPhotoURL: myProfileData.photoURL || null,
+      imageUrl, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    db.collection('teknohane_users').doc(user.uid).set({ lastChatActionAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }).catch(()=>{});
+    db.collection('teknohane_community_meta').doc('room').set({
+      lastMessageAt: firebase.firestore.FieldValue.serverTimestamp(),
+      lastMessageText: '📷 Fotoğraf', lastMessageAuthorName: myName
+    }, { merge: true }).catch(()=>{});
+  } catch(e) {
+    localMsg._status = 'failed';
+    renderCommunityMessages();
+    showErrorToast(e, 'Fotoğraf gönderilemedi.');
+  } finally {
+    URL.revokeObjectURL(localPreview);
+  }
+}
+
+async function deleteCommunityMessage(id) {
+  const ok = await confirmDialog('Bu mesajı silmek istiyor musun?', { title: 'Mesajı Sil', okLabel: 'Sil', cancelLabel: 'Vazgeç' });
+  if (!ok) return;
+  try {
+    await db.collection('teknohane_community_messages').doc(id).delete();
+    communityMessages = communityMessages.filter(m => m.id !== id);
+    renderCommunityMessages();
+  } catch(e) { showErrorToast(e, 'Mesaj silinemedi.'); }
 }
 
 // ---- ÇEVRİMİÇİ / TOPLAM KULLANICI SAYACI ----
