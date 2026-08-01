@@ -425,17 +425,30 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .lg-thumb.active{opacity:1;border-color:var(--cyan);}
 
 /* COMPARE */
-.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
-.cslot{background:var(--surf);border:1px solid var(--border);border-radius:16px;padding:16px;min-height:140px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer;}
+.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+/* v2: kayan/dashed "ekle" hissi yerine, tıklanabilirliği daha net anlatan hafif degrade çerçeveli
+   kart — dokunulduğunda büyüteç yerine gerçek bir CTA gibi hissettirsin diye .cslot:active eklendi. */
+.cslot{position:relative;background:var(--surf);border:1px solid var(--border2);border-radius:18px;padding:18px 14px;min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;cursor:pointer;transition:border-color .15s ease,transform .15s ease;}
+.cslot:not(.filled){background:linear-gradient(180deg,rgba(0,212,255,.05),rgba(0,212,255,0) 60%),var(--surf);border:1.5px dashed rgba(0,212,255,.3);}
+.cslot:not(.filled):active{transform:scale(.97);border-color:rgba(0,212,255,.55);}
 .cslot.filled{align-items:flex-start;cursor:default;}
-.cplus{width:40px;height:40px;border-radius:50%;border:2px dashed var(--text3);display:flex;align-items:center;justify-content:center;}
-.cplus svg{width:20px;height:20px;stroke:var(--text3);fill:none;stroke-width:2;}
-.clbl{font-size:12px;color:var(--text3);}
-.pbr{font-size:10px;color:var(--cyan);font-weight:600;text-transform:uppercase;}
+.cplus{width:42px;height:42px;border-radius:50%;background:var(--cdim);display:flex;align-items:center;justify-content:center;}
+.cplus svg{width:19px;height:19px;stroke:var(--cyan);fill:none;stroke-width:2;}
+.clbl{font-size:12.5px;font-weight:600;color:var(--text2);}
+.pbr{font-size:10px;color:var(--cyan);font-weight:600;text-transform:uppercase;letter-spacing:.3px;}
 .pnm{font-size:13px;font-weight:600;line-height:1.3;margin-top:2px;}
 .ppr{font-size:14px;font-weight:700;color:var(--cyan);margin-top:4px;}
-.clr{font-size:10px;color:var(--text3);margin-top:4px;padding:2px 6px;background:var(--surf3);border-radius:6px;border:none;cursor:pointer;font-family:inherit;}
-.ctbl{background:var(--surf);border-radius:16px;border:1px solid var(--border2);overflow:hidden;margin-bottom:20px;}
+.clr{font-size:10px;color:var(--text2);margin-top:auto;padding:5px 10px;background:var(--surf3);border-radius:8px;border:none;cursor:pointer;font-family:inherit;align-self:stretch;text-align:center;}
+/* Boş yuva(lar) varken beliren, hızlıca dokunulabilir "popüler" kısayol şeridi — tam listeyi açmadan
+   en sık aranan telefonlara tek dokunuşla erişim (bkz. renderCmpQuickPicks). */
+#cmp-quickpicks{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;margin-bottom:20px;scrollbar-width:none;}
+#cmp-quickpicks::-webkit-scrollbar{display:none;}
+.cqp-chip{flex:none;display:flex;align-items:center;gap:7px;background:var(--surf);border:1px solid var(--border2);border-radius:24px;padding:6px 14px 6px 6px;cursor:pointer;white-space:nowrap;}
+.cqp-chip:active{background:var(--surf2);}
+.cqp-badge{width:24px;height:24px;border-radius:50%;background:var(--cdim);color:var(--cyan);font-size:10.5px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.cqp-badge img{width:100%;height:100%;border-radius:50%;object-fit:cover;}
+.cqp-name{font-size:11.5px;font-weight:600;color:var(--text2);}
+.ctbl{background:var(--surf);border-radius:18px;border:1px solid var(--border2);overflow:hidden;margin-bottom:20px;}
 .live-price-btn{margin-left:6px;cursor:pointer;font-size:12px;}
 .cmp-price-note{font-size:11px;color:var(--text3);text-align:center;margin:-12px 0 16px;}
 .phone-reviews{margin-top:20px;padding:16px;background:var(--surf);border:1px solid var(--border2);border-radius:16px;}
@@ -460,47 +473,68 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .ccell{padding:11px;font-size:12px;}
 .ccell.lbl{color:var(--text2);font-weight:500;background:rgba(0,212,255,.03);}
 .ccell.val{font-weight:500;}
-/* Karşılaştırma — premium üst bölüm (iki telefon + VS). MobileAPI.dev'den zenginleştirilmiş
-   telefonlarda .cmp-hero-img gerçek ürün fotoğrafını gösterir; henüz zenginleştirilmemiş
-   telefonlarda .cmp-hero-badge sahte bir görsel değil, markanın baş harfini taşıyan nötr bir
-   rozet — uygulamanın başka yerlerindeki isim baş harfi rozetleriyle (Sohbet/Bildirimler) aynı ilke. */
-.cmp-hero{display:flex;align-items:flex-start;gap:8px;background:var(--surf);border:1px solid var(--border2);border-radius:16px;padding:18px 10px;margin-bottom:14px;}
+/* Karşılaştırma — premium üst bölüm (iki telefon + VS). Zenginleştirilmiş telefonlarda
+   .cmp-hero-img gerçek ürün fotoğrafını gösterir; henüz zenginleştirilmemiş telefonlarda
+   .cmp-hero-badge sahte bir görsel değil, markanın baş harfini taşıyan nötr bir rozet —
+   uygulamanın başka yerlerindeki isim baş harfi rozetleriyle (Sohbet/Bildirimler) aynı ilke. */
+.cmp-hero{position:relative;display:flex;align-items:flex-start;gap:6px;background:linear-gradient(180deg,rgba(0,212,255,.05),transparent 40%),var(--surf);border:1px solid var(--border2);border-radius:20px;padding:22px 10px 18px;margin-bottom:14px;overflow:hidden;}
 .cmp-hero-phone{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;text-align:center;gap:2px;}
-.cmp-hero-badge{width:60px;height:60px;border-radius:50%;background:var(--cdim);color:var(--cyan);font-size:24px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-bottom:6px;}
-.cmp-hero-img{width:60px;height:60px;object-fit:contain;margin-bottom:6px;}
-.cmp-hero-name{font-size:12.5px;font-weight:700;line-height:1.3;}
-.cmp-hero-brand{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-top:1px;}
-.cmp-hero-meta{display:flex;flex-direction:column;align-items:center;gap:2px;margin-top:8px;}
+.cmp-hero-badge{width:72px;height:72px;border-radius:50%;background:var(--cdim);color:var(--cyan);font-size:27px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-bottom:8px;box-shadow:0 0 0 1px var(--border2),0 6px 18px -6px var(--cglow);}
+.cmp-hero-img{width:72px;height:72px;object-fit:contain;margin-bottom:8px;filter:drop-shadow(0 6px 14px rgba(0,0,0,.35));}
+.cmp-hero-name{font-size:13px;font-weight:700;line-height:1.3;}
+.cmp-hero-brand{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-top:1px;}
+.cmp-hero-meta{display:flex;flex-direction:column;align-items:center;gap:2px;margin-top:10px;}
 .cmp-hero-yr{font-size:11px;color:var(--text3);}
-.cmp-hero-price{font-size:13px;font-weight:700;color:var(--cyan);}
+.cmp-hero-price{font-size:14px;font-weight:800;color:var(--cyan);}
 .cmp-hero-intl-price{margin-top:2px;font-size:9.5px;color:var(--text3);}
-.cmp-hero-score{margin-top:8px;font-size:9.5px;color:var(--text3);background:var(--surf2);padding:3px 8px;border-radius:20px;white-space:nowrap;}
-.cmp-vs{flex-shrink:0;width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),#0080ff);color:#000;font-size:10.5px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-top:14px;}
+.cmp-hero-score{margin-top:9px;font-size:9.5px;color:var(--text3);background:var(--surf2);padding:3px 9px;border-radius:20px;white-space:nowrap;}
+.cmp-vs{flex-shrink:0;width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),#0080ff);color:#000;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-top:17px;box-shadow:0 4px 14px -3px var(--cglow);}
 /* Kategori accordion — hafif, JS'siz max-height geçişi. İlk kategori varsayılan açık (bkz.
-   cmpCategoryAccordionHTML), diğerleri kapalı — "tek seferde yüzlerce satır" görülmesin diye. */
+   cmpCategoryAccordionHTML), diğerleri kapalı — "tek seferde yüzlerce satır" görülmesin diye.
+   İkon artık düz emoji değil, kendi renkli rozetinde — kategori başlıklarının tarama kolaylığı
+   ve genel görsel ağırlığı için (bkz. cmpCategoryAccordionHTML'deki .cmp-cat-ico ayrımı). */
 .cmp-cat{border-bottom:1px solid var(--border2);}
 .cmp-cat:last-child{border-bottom:none;}
-.cmp-cat-hdr{display:flex;align-items:center;justify-content:space-between;padding:13px 12px;font-size:13px;font-weight:700;cursor:pointer;}
+.cmp-cat-hdr{display:flex;align-items:center;gap:10px;padding:14px 12px;font-size:13px;font-weight:700;cursor:pointer;}
+.cmp-cat-hdr:active{background:var(--surf2);}
+.cmp-cat-ico{flex-shrink:0;width:28px;height:28px;border-radius:9px;background:var(--cdim);display:flex;align-items:center;justify-content:center;font-size:14px;}
+.cmp-cat-lbl{flex:1;}
 .cmp-cat-chev{flex-shrink:0;color:var(--text3);transition:transform .2s ease;}
 .cmp-cat.open .cmp-cat-chev{transform:rotate(180deg);}
 .cmp-cat-body{max-height:0;overflow:hidden;transition:max-height .25s ease;}
 .cmp-cat.open .cmp-cat-body{max-height:600px;}
-/* Kazanan hücre — hafif yeşil zemin + küçük ✔ rozeti, abartılı efekt yok. */
+/* Kazanan hücre — dolgu yerine sol vurgu çizgisi + hafif zemin, abartılı efekt yok. */
 .ccell-wrap{position:relative;min-width:0;}
-.ccell-wrap.win{background:rgba(48,209,88,.12);border-radius:8px;}
+.ccell-wrap.win{background:rgba(48,209,88,.1);box-shadow:inset 2px 0 0 #30D158;}
 .ccell-wrap.win .ccell.val{color:#30D158;font-weight:700;}
 .cmp-win-badge{position:absolute;top:1px;right:2px;font-size:9px;color:#30D158;}
-/* "Sadece farkları göster" — tamamen CSS ile, yeni bir render/sorgu yok (bkz. toggleCmpDiffOnly). */
-.cmp-diff-toggle{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text2);margin-bottom:12px;cursor:pointer;user-select:none;}
+/* "Sadece farkları göster" — anahtar (switch) görünümlü, tamamen CSS ile; yeni bir render/sorgu
+   yok (bkz. toggleCmpDiffOnly). Gerçek checkbox erişilebilirlik/durum için korunuyor, sr-only
+   yapılıp yerine .cdt-switch görsel olarak çiziliyor. */
+.cmp-diff-toggle{display:flex;align-items:center;gap:9px;font-size:12.5px;font-weight:600;color:var(--text2);margin-bottom:14px;cursor:pointer;user-select:none;}
+.cmp-diff-toggle input{position:absolute;opacity:0;width:1px;height:1px;}
+.cdt-switch{flex-shrink:0;width:36px;height:21px;border-radius:20px;background:var(--surf3);position:relative;transition:background .18s ease;}
+.cdt-switch::after{content:'';position:absolute;top:2px;left:2px;width:17px;height:17px;border-radius:50%;background:#fff;transition:transform .18s ease;box-shadow:0 1px 3px rgba(0,0,0,.3);}
+.cmp-diff-toggle input:checked + .cdt-switch{background:var(--cyan);}
+.cmp-diff-toggle input:checked + .cdt-switch::after{transform:translateX(15px);}
 .diff-only .crow[data-same="1"]{display:none;}
 .diff-only .cmp-cat:not(:has(.crow[data-same="0"])){display:none;}
-.plist{display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto;}
-.pitem{display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--surf);border-radius:12px;border:1px solid var(--border2);cursor:pointer;}
+.plist{display:flex;flex-direction:column;gap:8px;max-height:min(440px,54vh);overflow-y:auto;}
+.pitem{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surf);border-radius:12px;border:1px solid var(--border2);cursor:pointer;}
 .pitem:active{background:var(--surf2);}
-.pn{font-size:14px;font-weight:600;}
-.ps{font-size:11px;color:var(--text2);margin-top:2px;}
-.pp{font-size:13px;font-weight:700;color:var(--cyan);}
+.pitem-av{flex-shrink:0;width:36px;height:36px;border-radius:50%;background:var(--cdim);color:var(--cyan);font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.pitem-av img{width:100%;height:100%;object-fit:cover;}
+.pitem-main{flex:1;min-width:0;}
+.pitem-side{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.pn{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ps{font-size:11px;color:var(--text2);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pp{font-size:13px;font-weight:700;color:var(--cyan);white-space:nowrap;}
 .abdg{background:var(--cdim);color:var(--cyan);font-size:11px;font-weight:600;padding:4px 10px;border-radius:8px;border:1px solid rgba(0,212,255,.2);}
+/* Katalog arka planda yüklenirken (bkz. ensureFullCatalog) picker'ın kendi hafif iskelet
+   görünümü — boş liste yerine "yükleniyor" hissi versin diye. */
+.pitem-skel{height:58px;border-radius:12px;background:linear-gradient(90deg,var(--surf) 0%,var(--surf2) 50%,var(--surf) 100%);background-size:200% 100%;animation:pskel 1.3s ease-in-out infinite;}
+@keyframes pskel{0%{background-position:200% 0}100%{background-position:-200% 0}}
+#picker-count{font-size:11px;color:var(--text3);margin:-4px 0 10px;}
 .bfilters{display:flex;gap:6px;overflow-x:auto;margin-bottom:12px;padding-bottom:2px;}
 .bfilters::-webkit-scrollbar{display:none;}
 .bf{flex:none;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;}
@@ -1342,13 +1376,6 @@ body.tk-maintenance #maintenance-gate{
   <div class="screen" id="s-compare">
     <div class="sc">
       <div class="sh"><span class="st">Karşılaştır</span></div>
-      <div style="display:flex;align-items:flex-start;gap:10px;background:rgba(0,212,255,.07);border:1px solid rgba(0,212,255,.22);border-radius:14px;padding:12px 14px;margin-bottom:14px">
-        <span style="font-size:18px;line-height:1">🧪</span>
-        <div>
-          <div style="font-size:12.5px;font-weight:700;color:var(--cyan)">Karşılaştırma sistemi sürekli geliştiriliyor.</div>
-          <div style="font-size:11.5px;color:var(--text2);margin-top:2px;line-height:1.4">Yakında çok daha gelişmiş filtreleme ve karşılaştırma özellikleri eklenecektir.</div>
-        </div>
-      </div>
       <div class="cgrid">
         <div class="cslot" id="slot-a" onclick="opick('a')">
           <div class="cplus"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
@@ -1359,6 +1386,7 @@ body.tk-maintenance #maintenance-gate{
           <div class="clbl">Telefon ekle</div>
         </div>
       </div>
+      <div id="cmp-quickpicks" style="display:none"></div>
       <div id="cmp-res"></div>
     </div>
   </div>
@@ -2245,6 +2273,7 @@ body.tk-maintenance #maintenance-gate{
       <svg class="sico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input class="si" type="text" id="psrch" placeholder="Marka veya model…" oninput="fphn(this.value)">
     </div>
+    <div id="picker-count"></div>
     <div class="bfilters" id="bfilters"></div>
     <div class="plist" id="plist"></div>
   </div>
@@ -11005,16 +11034,26 @@ PHONES.forEach(p => { p.id = (p.brand + '-' + p.name).toLowerCase().replace(/[^a
 
 let pslot=null,pA=null,pB=null,fp=[...PHONES],abrand='Tümü';
 
-function opick(s) {
+// KÖK NEDEN DÜZELTMESİ (yalnızca ~111 telefon görünüyordu): tam katalog (687+ ek marka/model)
+// aslında zaten arka planda loadExtraPhones() ile PHONES dizisine ekleniyordu, ama opick() bunu
+// hiç BEKLEMEDEN anlık PHONES anlık görüntüsünü kopyalıyordu — kullanıcı seçiciyi sayfa
+// açıldıktan hemen sonra açarsa (arka plan isteği henüz bitmeden) yalnızca ilk küçük seti
+// görüyordu. Artık seçici İSKELET görünümüyle anında açılıyor, ardından tam katalog yüklemesi
+// (zaten önbelleklenmişse anında döner) beklenip liste ondan sonra dolduruluyor.
+async function opick(s) {
   pslot=s;
   document.getElementById('psrch').value='';
+  document.getElementById('picker-mo').classList.add('on');
+  const l=document.getElementById('plist');
+  l.innerHTML=Array.from({length:6}).map(()=>'<div class="pitem-skel"></div>').join('');
+  document.getElementById('picker-count').textContent='';
+  await loadExtraPhones();
   abrand='Tümü'; fp=[...PHONES];
   rbf(); rplist();
-  document.getElementById('picker-mo').classList.add('on');
 }
 
 function rbf() {
-  const brands=['Tümü',...new Set(PHONES.map(p=>p.brand))];
+  const brands=['Tümü',...new Set(PHONES.map(p=>p.brand))].sort((a,b)=>a==='Tümü'?-1:b==='Tümü'?1:a.localeCompare(b));
   const el=document.getElementById('bfilters');
   if(!el)return;
   el.innerHTML=brands.map(b=>`<button class="bf ${b===abrand?'on':'off'}" onclick="sbrand('${b}')">${b}</button>`).join('');
@@ -11032,11 +11071,19 @@ function fphn(q) {
   rbf(); rplist();
 }
 
+function pitemAvatarHTML(p) {
+  const initial=(p.brand||'?')[0].toUpperCase();
+  return p.imageUrl
+    ? `<img src="${escapeJsAttr(p.imageUrl)}" alt="" loading="lazy" onerror="this.parentElement.textContent='${initial}'">`
+    : initial;
+}
+
 function rplist() {
   const l=document.getElementById('plist');
+  document.getElementById('picker-count').textContent = fp.length ? `${fp.length} telefon` : '';
   if(!fp.length){l.innerHTML='<div class="no">Bulunamadı</div>';return;}
   const sorted=[...fp].sort((x,y)=>(y.yr||0)-(x.yr||0) || (parseInt((y.price||'0').replace(/[^\d]/g,''))||0)-(parseInt((x.price||'0').replace(/[^\d]/g,''))||0));
-  l.innerHTML=sorted.map(p=>`<div class="pitem" onclick="ppick(${PHONES.indexOf(p)})"><div><div class="pn">${p.brand} ${p.name}</div><div class="ps">${p.chip||'—'} · ${p.ram||'—'}</div></div><div style="display:flex;align-items:center;gap:8px"><div class="pp">${p.price||'—'}</div><div class="abdg">Ekle</div></div></div>`).join('');
+  l.innerHTML=sorted.map(p=>`<div class="pitem" onclick="ppick('${p.id}')"><div class="pitem-av">${pitemAvatarHTML(p)}</div><div class="pitem-main"><div class="pn">${p.brand} ${p.name}</div><div class="ps">${p.chip||'—'} · ${p.ram||'—'}</div></div><div class="pitem-side"><div class="pp">${p.price||'—'}</div><div class="abdg">Ekle</div></div></div>`).join('');
 }
 
 // ==== KARŞILAŞTIRMA — VERİ BİÇİMLENDİRME/KAZANAN YARDIMCILARI ====
@@ -11176,9 +11223,11 @@ function cmpCategoryAccordionHTML(a, b) {
       const wrapB = b ? `<div class="ccell-wrap${winner==='b'?' win':''}">${cellB}${winner==='b'?'<span class="cmp-win-badge">✔</span>':''}</div>` : '';
       return `<div class="crow" data-same="${same}"><div class="ccell lbl">${r.l}</div>${wrapA}${wrapB}</div>`;
     }).join('');
+    const [catIcon, ...catLabelParts] = cat.label.split(' ');
     return `<div class="cmp-cat${ci===0?' open':''}">
       <div class="cmp-cat-hdr" onclick="toggleCmpCategory(this)">
-        <span>${cat.label}</span>
+        <span class="cmp-cat-ico">${catIcon}</span>
+        <span class="cmp-cat-lbl">${catLabelParts.join(' ')}</span>
         <svg class="cmp-cat-chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
       </div>
       <div class="cmp-cat-body">${rowsHtml}</div>
@@ -11232,8 +11281,9 @@ function trackCompareUsage(a, b) {
   myProfileData.compareCount = (myProfileData.compareCount || 0) + 1;
 }
 
-function ppick(i) {
-  const p=PHONES[i];
+function ppick(id) {
+  const p=PHONES.find(x=>x.id===id);
+  if(!p) return;
   if(pslot==='a')pA=p;else pB=p;
   closemo('picker-mo');
   rslots();
@@ -11247,6 +11297,36 @@ function rslots() {
     if(p){el.className='cslot filled';el.onclick=null;el.innerHTML=`<div class="pbr">${p.brand}</div><div class="pnm">${p.name}</div><div class="ppr">${p.price||'—'}</div><button class="clr" onclick="cslot('${s}')">Kaldır</button>`;}
     else{el.className='cslot';el.onclick=()=>opick(s);el.innerHTML=`<div class="cplus"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div><div class="clbl">Telefon ekle</div>`;}
   });
+  renderCmpQuickPicks();
+}
+
+// Boş bir yuva olduğunda (henüz iki telefon da seçilmemişse) sık aranan birkaç telefonu tek
+// dokunuşla eklenebilir kısayollar olarak gösterir — tam listeyi açmaya gerek kalmadan.
+// Liste, PHONES içindeki en yeni modellerden (yr'ye göre), her markadan en fazla bir tanesiyle
+// çeşitlendirilerek türetilir (bkz. loadExtraPhones — bu noktada katalog genelde zaten yüklenmiş
+// olur, henüz değilse sonraki bir rslots() çağrısında otomatik dolar).
+function renderCmpQuickPicks() {
+  const wrap = document.getElementById('cmp-quickpicks');
+  if (!wrap) return;
+  if (pA && pB) { wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
+  const seenBrands = new Set();
+  const picks = [...PHONES]
+    .filter(p => p.id !== pA?.id && p.id !== pB?.id)
+    .sort((a, b) => (b.yr || 0) - (a.yr || 0))
+    .filter(p => { if (seenBrands.has(p.brand)) return false; seenBrands.add(p.brand); return true; })
+    .slice(0, 8);
+  if (!picks.length) { wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
+  const targetSlot = !pA ? 'a' : 'b';
+  wrap.style.display = 'flex';
+  wrap.innerHTML = picks.map(p => `<div class="cqp-chip" onclick="quickPick('${p.id}','${targetSlot}')"><div class="cqp-badge">${pitemAvatarHTML(p)}</div><span class="cqp-name">${p.name}</span></div>`).join('');
+}
+
+function quickPick(id, slot) {
+  const p = PHONES.find(x => x.id === id);
+  if (!p) return;
+  if (slot === 'a') pA = p; else pB = p;
+  rslots();
+  refreshCmp();
 }
 
 function cslot(s){if(s==='a')pA=null;else pB=null;rslots();refreshCmp();}
@@ -11435,7 +11515,7 @@ function rcmptbl() {
       <div class="cmp-vs">VS</div>
       ${cmpHeroPhoneHTML(b, 'b')}
     </div>
-    <label class="cmp-diff-toggle"><input type="checkbox" onchange="toggleCmpDiffOnly(this.checked)"> Sadece farkları göster</label>
+    <label class="cmp-diff-toggle"><input type="checkbox" onchange="toggleCmpDiffOnly(this.checked)"><span class="cdt-switch"></span> Sadece farkları göster</label>
     <div class="ctbl">${cmpCategoryAccordionHTML(a, b)}</div>
     <div class="cmp-price-note">🔄 simgesi olan fiyatlar Cimri.com'dan canlı kontrol edilebilir</div>
     <button class="share-btn" onclick="shareComparison()">
@@ -11997,7 +12077,7 @@ function gt(name) {
     hideMarketBanner();
   }
   if(name==='community' && !forumPosts.length && !forumLoading) loadForumPage(true);
-  if(name==='compare') loadExtraPhones();
+  if(name==='compare') { renderCmpQuickPicks(); loadExtraPhones().then(() => { if(!pA || !pB) renderCmpQuickPicks(); }); }
   if(name==='profile') {
     // Sayfa açılışında hafif, sıralı (stagger) fade animasyonu — yalnızca profile SEKMESİNE
     // yeni girildiğinde tetiklenir (privacy toggle gibi küçük iç güncellemelerde rprof() tekrar
