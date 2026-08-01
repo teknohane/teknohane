@@ -73,20 +73,20 @@
 [data-theme="light"] .new-btn,[data-theme="light"] .sbtn,[data-theme="light"] .sbtn2,[data-theme="light"] .wel-btn,[data-theme="light"] .filter-apply,[data-theme="light"] .admin-badge,[data-theme="light"] .share-btn{color:#FFFFFF;}
 [data-theme="light"] .share-btn svg{stroke:#FFFFFF;}
 [data-theme="light"] .gbtn{box-shadow:0 1px 2px rgba(0,0,0,0.06);}
-/* KÖK NEDEN DÜZELTMESİ (metin seçme/kopyalama/yapıştırma sorunu — TEMİZ BAŞLANGIÇ): önceki
-   oturumlarda burada "*{user-select:none}" ile TÜM sayfada seçim kapatılıp yalnızca input/textarea'nın
-   KENDİSİNDE geri açılıyordu. Bu YANLIŞ bir öncüldü: user-select CSS özelliği, input/textarea'nın
-   İÇ DEĞER metnini (value) hiçbir zaman etkilemez — tarayıcılar bu form kontrollerinin düzenleme
-   alanını CSS'ten bağımsız, her zaman kendi native metin seçim mekanizmasıyla yönetir. Yani ata
-   zincirinde user-select:none olması TEORİDE input/textarea içindeki seçimi bozmamalıydı — ama
-   pratikte Android WebView'da tam olarak bunu bozan, iyi bilinmeyen bir motor tuhaflığı olduğu
-   gözlemlendi ve önceki oturumlarda odak (focus) anında geçici olarak yeniden açan bir JS/CSS yaması
-   eklenmişti (bkz. tk-text-focus sınıfı) — ama bu yama odak OLAYININ JS'e ulaşma gecikmesiyle yarış
-   durumuna giriyordu ve sorunu güvenilir şekilde çözemedi. Kesin çözüm: sorunun kaynağını (global
-   user-select:none) baştan KALDIRMAK — tepkisel bir yama yerine. Kaybedilen tek şey, düğme/kart gibi
-   dokunmatik öğelere hızlı art arda dokunulduğunda nadiren görülebilecek kozmetik bir mavi vurgu
-   olasılığıdır; bu, çalışmayan kopyala/yapıştır'dan çok daha küçük bir bedel. */
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+/* KULLANIŞLILIK DÜZELTMESİ (kullanıcı bildirdi: herhangi bir sayfada herhangi bir arayüz metni
+   basılı tutulup seçilebiliyordu — "web sayfası" hissi veriyordu, native bir uygulamada olmaması
+   gereken bir davranış): aşağıdaki eski not, global "user-select:none" kuralının input/textarea
+   içindeki seçimi/kopyala-yapıştırı bozduğunu varsayıp kuralı TAMAMEN kaldırmıştı. O teşhis
+   YANLIŞTI — asıl suçlu, o dönem native ActionMode/Magnifier'ın açılış ekranı (splash) yüzey
+   arabelleğini yeniden kullanmasıydı (bkz. MainActivity.java'daki splash/pencere arka planı/açılış
+   ikonu düzeltmeleri, hepsi artık kalıcı olarak giderildi) — user-select CSS'i hiç suçlu değildi;
+   zaten standarda göre input/textarea'nın DÜZENLEME alanı ata zincirindeki user-select'ten muaftır.
+   Global kural şimdi GERİ EKLENİYOR; yalnızca gerçekten yazılabilen alanlarda (input/textarea/
+   [contenteditable]) ve kullanıcının kopyalamak isteyebileceği belirli "içerik" metinlerinde
+   (ilan açıklaması, forum gönderisi, yorum) seçim açıkça yeniden etkinleştiriliyor — arayüzün geri
+   kalanı (düğme, etiket, başlık, rozet vb.) artık basılı tutmayla seçilemiyor. */
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;}
+input,textarea,[contenteditable],.det-desc-text,.post-detail-body,.cmt-txt{user-select:text;-webkit-user-select:text;-webkit-touch-callout:default;}
 html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,sans-serif;overflow:hidden;transition:background-color .25s ease,color .25s ease;}
 #app{display:flex;flex-direction:column;height:100dvh;}
 
