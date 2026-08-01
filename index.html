@@ -2364,7 +2364,20 @@ async function firestoreCount(query) {
   } catch (e) { return null; }
 }
 const PUSH_API = 'https://teknohane-push.yusuf-aykac.workers.dev/';
+const EMAIL_VERIFY_API = 'https://teknohane-push.yusuf-aykac.workers.dev/send-verification-email';
 const VAPID_KEY = 'BPt5vY5P3Dr9DG2zHOQwhQKnH6V5UruqGisQRTlGWxkNaAYtYKAEG9xiTHn78yGq1DlrsnWFSazOquL_9krdtjY';
+// KÖK NEDEN DÜZELTMESİ: client SDK'sının sendEmailVerification()'ı Firebase'in paylaşımlı gönderim
+// altyapısını kullanıyordu (sık sık spam'e düşüyordu). Artık idToken bu Worker'a gönderiliyor, Worker
+// admin yetkiyle link üretip Brevo ile marka+Türkçe e-posta gönderiyor (bkz. cloudflare-push-worker.js).
+async function sendVerificationEmailViaWorker(u) {
+  const idToken = await u.getIdToken();
+  const res = await fetch(EMAIL_VERIFY_API, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken })
+  });
+  const data = await res.json();
+  if (!res.ok || data.error) throw new Error(data.error || 'E-posta gönderilemedi');
+  return data;
+}
 let user = null;
 let myProfileData = {};
 
@@ -3694,10 +3707,14 @@ async function removeCoverPhoto() {
 async function sendVerificationEmail() {
   if (!user || user.emailVerified) return;
   try {
-    await user.sendEmailVerification();
+    const data = await sendVerificationEmailViaWorker(user);
+    if (data.alreadyVerified) {
+      showToast('✓', 'rgba(48,209,88,.15)', 'Zaten Doğrulanmış', 'E-posta adresin zaten doğrulanmış görünüyor.');
+      return;
+    }
     // Kullanıcı geri bildirimi: doğrulama e-postaları sıkça spam/gereksiz klasörüne düşüyor —
     // bu uyarı fark edilsin diye normalden daha uzun süre (8sn) ekranda kalıyor, dokununca kapanıyor.
-    showToast('📬', 'rgba(48,209,88,.15)', 'Doğrulama E-postası Gönderildi', 'Birkaç dakika içinde gelen kutunda göremezsen SPAM/Gereksiz klasörünü mutlaka kontrol et — doğrulama e-postaları sık sık oraya düşüyor.', null, 8000);
+    showToast('📬', 'rgba(48,209,88,.15)', 'Doğrulama E-postası Gönderildi', 'Birkaç dakika içinde gelen kutunda göremezsen SPAM/Gereksiz klasörünü mutlaka kontrol et.', null, 8000);
   } catch (e) {
     showErrorToast(e, 'E-posta gönderilemedi.');
   }
@@ -4277,7 +4294,7 @@ async function doregister() {
     // kullanıcı ancak ilan/konu göndermeye çalışıp engellendiğinde bundan haberdar oluyordu —
     // form doldurmaya harcanan zaman boşa gidiyordu). Kayıt anında hemen gönderiliyor; hata olursa
     // (nadir) sessizce yutuluyor — kullanıcı profil ekranından/ilan gönderirken yine tekrar deneyebilir.
-    c.user.sendEmailVerification().catch(()=>{});
+    sendVerificationEmailViaWorker(c.user).catch(()=>{});
   }
   catch(ex) {
     if (err) {
