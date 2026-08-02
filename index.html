@@ -2813,6 +2813,67 @@ async function loadSystemSettings() {
   applyMaintenanceGate();
 }
 
+// ==== ADMOB (Google Reklamları) ====
+// Yalnızca native (Capacitor) ortamda çalışır — web/PWA'da AdMob eklentisi hiç bulunmaz, tüm
+// fonksiyonlar sessizce no-op'tur. Ad Unit ID'ler Firestore'dan (systemSettings.admobBannerUnitId/
+// admobInterstitialUnitId, admin panelinden değiştirilebilir) okunur; App ID ise yalnızca native
+// tarafta (AndroidManifest → strings.xml) sabittir, değiştirmek yeni bir derleme gerektirir.
+// KASITLI TASARIM: bir ilgili Ad Unit ID gerçekten GİRİLMEDEN o reklam türü (banner/interstitial)
+// hiçbir şekilde başlatılmaz/gösterilmez — otomatik bir "test reklamı" yedeği YOK. "Reklamları
+// Göster" açık olsa bile, ID alanı boşsa uygulama tamamen eskisi gibi (reklamsız) kalır; admin
+// isterse Google'ın kendi test ID'lerini elle Ayarlar'a girip deneyebilir.
+// GERİ GETİRME NOTU: bu bölüm bir önceki oturumda "belki Xiaomi/POCO/Redmi cihaz uyumsuzluğuna
+// AdMob/AD_ID sebep oluyordur" teorisiyle kaldırılmıştı — asıl kök neden Play Console'daki "Mağaza
+// girişi bütünlük kontrolleri" ayarı olduğu kanıtlanınca (kullanıcı gerçek cihazda doğruladı),
+// AdMob'un bununla hiç ilgisi olmadığı netleşti ve aynen geri eklendi.
+let admobReady = false;
+let admobInterstitialLoaded = false;
+let listingDetailOpenCount = 0;
+
+async function initAdMobIfEnabled() {
+  if (!isNativeApp() || !Capacitor.Plugins.AdMob || !systemSettings.adsEnabled) return;
+  if (!systemSettings.admobBannerUnitId && !systemSettings.admobInterstitialUnitId) return;
+  try {
+    await Capacitor.Plugins.AdMob.initialize();
+    admobReady = true;
+    prepareAdMobInterstitial();
+    if (document.getElementById('s-market')?.classList.contains('on')) showMarketBanner();
+  } catch(e) { console.error('AdMob başlatılamadı:', e); }
+}
+
+function showMarketBanner() {
+  if (!admobReady || !systemSettings.adsEnabled || !systemSettings.admobBannerUnitId) return;
+  Capacitor.Plugins.AdMob.showBanner({
+    adId: systemSettings.admobBannerUnitId,
+    adSize: 'ADAPTIVE_BANNER',
+    position: 'BOTTOM_CENTER',
+    margin: 0,
+  }).catch(e => console.error('Banner gösterilemedi:', e));
+}
+function hideMarketBanner() {
+  if (!admobReady) return;
+  Capacitor.Plugins.AdMob.hideBanner().catch(()=>{});
+}
+
+function prepareAdMobInterstitial() {
+  if (!admobReady || !systemSettings.adsEnabled || !systemSettings.admobInterstitialUnitId) return;
+  admobInterstitialLoaded = false;
+  Capacitor.Plugins.AdMob.prepareInterstitial({
+    adId: systemSettings.admobInterstitialUnitId,
+  }).then(() => { admobInterstitialLoaded = true; }).catch(e => console.error('Interstitial hazırlanamadı:', e));
+}
+
+// İlan detayı her yeni açılışta çağrılır (bkz. renderDetailPage) — interstitialFrequency'de bir
+// (varsayılan 5) hazır bekleyen geçiş reklamını gösterir, ardından bir sonraki gösterim için hemen
+// yeni bir tane hazırlar.
+function maybeShowInterstitial() {
+  if (!admobReady || !systemSettings.adsEnabled || !systemSettings.admobInterstitialUnitId) return;
+  const freq = parseInt(systemSettings.interstitialFrequency) || 5;
+  listingDetailOpenCount++;
+  if (listingDetailOpenCount % freq !== 0 || !admobInterstitialLoaded) return;
+  Capacitor.Plugins.AdMob.showInterstitial().catch(()=>{});
+  prepareAdMobInterstitial();
+}
 function applyMaintenanceGate() {
   document.body.classList.toggle('tk-maintenance', !!systemSettings.maintenanceMode && !isAdminNow());
 }
@@ -7424,10 +7485,10 @@ function listingCardSignature(l) {
 // ==== REKLAM ALTYAPISI (Pazar) ====
 // Yönetim panelinden (adsEnabled/adFrequency, bkz. systemSettings) kontrol edilir. Yalnızca Pazar'ın
 // "Tümü" sekmesinde gösterilir — Favorilerim/İlanlarım gibi kişisel listelerde hiç reklam gösterilmez.
-// Doğrudan anlaşmalı görsel+link reklamlar (teknohane_direct_ads, admin panelinden yönetilir) —
-// AdMob artık kullanılmıyor (kaldırıldı, bkz. görev raporu). Aktif bir doğrudan reklam VARSA o
-// gösterilir; yoksa (admin "Reklamları Göster"ı açtı ama henüz içerik eklemedi) basit bir
-// "📢 Reklam Alanı" yer tutucusu gösterilir.
+// İki katman var: (1) AdMob (banner/interstitial, ayrı — bkz. initAdMobIfEnabled), (2) burada:
+// doğrudan anlaşmalı görsel+link reklamlar (teknohane_direct_ads, admin panelinden yönetilir).
+// Aktif bir doğrudan reklam VARSA o gösterilir; yoksa (admin "Reklamları Göster"ı açtı ama henüz
+// içerik eklemedi) basit bir "📢 Reklam Alanı" yer tutucusu gösterilir.
 let directAds = [];
 async function loadDirectAds() {
   try {
@@ -8441,6 +8502,7 @@ function renderDetailPage(l) {
   currentListing = l;
   const id = l.id;
   const isNewOpen = openListingId !== id;
+  if (isNewOpen) maybeShowInterstitial();
   const mine = user && l.uid === user.uid;
   const isAdmin = isAdminNow();
   const pending = l.approved === false;
@@ -12423,6 +12485,7 @@ function gt(name) {
     else if (mktab === 'mine' && !marketMineLoaded) loadMarketMine();
     else rlistings();
     document.getElementById('market-dot')?.classList.remove('on');
+    showMarketBanner();
     // Doğrudan reklamlar yalnızca uygulama AÇILIRKEN bir kez çekiliyordu — admin yeni bir reklam
     // ekleyip kaydettiğinde, uygulaması zaten açık olan kullanıcılar yeniden başlatana kadar hiç
     // görmüyordu. Artık Pazar'a her girişte tazeleniyor; render önbelleği (grid._renderedSig) de
@@ -12432,6 +12495,8 @@ function gt(name) {
       if (grid) grid._renderedSig = null;
       rlistings();
     });
+  } else {
+    hideMarketBanner();
   }
   if(name==='community' && !forumPosts.length && !forumLoading) loadForumPage(true);
   if(name==='compare') { renderCmpQuickPicks(); loadExtraPhones().then(() => { if(!pA || !pB) renderCmpQuickPicks(); }); }
@@ -12960,7 +13025,7 @@ async function tkCheckForContentUpdate() {
 initTheme();
 rhome();
 handleSharedListingLink();
-loadSystemSettings();
+loadSystemSettings().then(initAdMobIfEnabled);
 loadDirectAds();
 setTimeout(() => loadExtraPhones(), 3000); // arka planda, sayfa yüklenip biraz sakinleştikten sonra
 checkOnboarding();
