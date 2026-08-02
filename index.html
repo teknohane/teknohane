@@ -943,6 +943,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .mini-stat-ic{font-size:22px;margin-bottom:6px;}
 .mini-stat-n{font-size:18px;font-weight:800;}
 .mini-stat-lbl{font-size:11px;color:var(--text2);margin-top:2px;}
+/* Sayısız eylem kartı ("Hemen İlan Ver") — kardeş kartlarla (flex:stretch) AYNI yüksekliğe
+   otomatik uzuyor, içeriği yalnızca dikeyde ortalanıyor; hafif cyan vurgusu diğerlerinden
+   "tıklanabilir bir eylem" olduğunu ayırt ediyor. */
+.mini-stat-cta{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;border-color:rgba(0,212,255,.25);background:rgba(0,212,255,.06);}
+.mini-stat-cta .mini-stat-ic{font-size:20px;margin-bottom:5px;}
 /* Ana sayfa — ⭐ Öne Çıkan İlan (admin'in teknohane_listings.featured bayrağıyla işaretlediği TEK
    ilan; Editörün Seçimi/Günün Fırsatı kavramları bununla birleştirildi, ayrı bir admin-bakım yükü
    yaratılmadı). Amber vurgu YALNIZCA bu rozet/kenarlıkta — geri kalan renk dili değişmiyor. */
@@ -12081,27 +12086,25 @@ function forumTopicCardHTML(p) {
   </div>`;
 }
 
-// Mini istatistik şeridi — ÜÇ GERÇEK sayı (kullanıcı geri bildirimiyle dörtten üçe indirildi, daha
-// ferah/sıkışık olmayan bir ilk izlenim için). Sayılar render edildikten sonra sayarak dolan (count-up)
-// bir mikro animasyonla beliriyor — Firestore sorgu sayısı DEĞİŞMEDİ, yalnızca görsel katman.
+// Mini istatistik şeridi — İKİ GERÇEK sayı + bir eylem kartı. "Üyeler" kartı kaldırıldı: uygulama
+// henüz küçük olduğu için (129 kayıtlı kullanıcı, 8 onaylı forum konusu) ham bir üye/konu sayısı
+// göstermek "kimse yok" izlenimi yaratma riski taşıyordu. Üçüncü slota SAYI GEREKTİRMEYEN bir
+// eylem kartı ("Hemen İlan Ver") kondu — hem bu riski tamamen ortadan kaldırıyor hem pasif bir
+// istatistikten daha kullanışlı. Sayılar render edildikten sonra sayarak dolan (count-up) bir
+// mikro animasyonla beliriyor.
 async function renderHomeMiniStats() {
   const el = document.getElementById('home-mini-stats');
   if (!el) return;
   const cards = [];
   try {
-    const [userCount, listingCount, postCount] = await Promise.all([
-      firestoreCount(db.collection('teknohane_users')),
+    const [listingCount, postCount] = await Promise.all([
       firestoreCount(db.collection('teknohane_listings').where('approved', '==', true)),
       firestoreCount(db.collection('teknohane_posts').where('approved', '==', true)),
     ]);
-    // "Topluluk" etiketi, uygulamanın geri kalanında artık Sohbet özelliğine ayrılan isimle
-    // karışmasın diye "Üyeler" olarak adlandırıldı — kart hâlâ toplam kayıtlı kullanıcı sayısını
-    // gösteriyor, Forum'a götürüyor (davranış DEĞİŞMEDİ, yalnızca etiket).
-    if (userCount) cards.push(miniStatCardHTML('👥', userCount, 'Üyeler', "gt('community')"));
     if (listingCount) cards.push(miniStatCardHTML('🛒', listingCount, 'İlanlar', "gt('market')"));
     if (postCount) cards.push(miniStatCardHTML('💬', postCount, 'Forum', "gt('community')"));
   } catch(e) {}
-  if (!cards.length) { hideHomeSection(el); return; }
+  cards.push(miniStatCtaCardHTML());
   showHomeSection(el);
   el.innerHTML = cards.join('');
   el.querySelectorAll('.mini-stat-n[data-target]').forEach(n => animateCountUp(n, parseInt(n.dataset.target, 10)));
@@ -12111,6 +12114,15 @@ function miniStatCardHTML(icon, n, label, onclick) {
     <div class="mini-stat-ic">${icon}</div>
     <div class="mini-stat-n" data-target="${n}">0</div>
     <div class="mini-stat-lbl">${label}</div>
+  </div>`;
+}
+// Sayı göstermeyen eylem kartı — diğer mini-stat kartlarıyla AYNI görsel dilde (.mini-stat-card),
+// yalnızca ortasında bir sayı yerine büyükçe bir "+" ikonu var. newListing() zaten Pazar
+// ekranındaki "İlan Ver" butonunun kullandığı AYNI fonksiyon, yeni bir akış icat edilmedi.
+function miniStatCtaCardHTML() {
+  return `<div class="mini-stat-card mini-stat-cta" onclick="gt('market');setTimeout(()=>newListing(),50)">
+    <div class="mini-stat-ic">➕</div>
+    <div class="mini-stat-lbl" style="font-weight:700;color:var(--text)">Hemen İlan Ver</div>
   </div>`;
 }
 // Küçük, paylaşılan bir "sayarak dolma" mikro animasyonu — yalnızca metin içeriğini günceller
