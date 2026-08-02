@@ -884,6 +884,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .pool-badge{font-size:13px;font-weight:700;color:var(--cyan);}
 .pool-info-q{width:20px;height:20px;border-radius:50%;background:var(--surf2);color:var(--text2);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;}
 .pool-buy-btn{width:100%;background:var(--cyan);color:#000;font-size:14px;font-weight:700;padding:12px;border-radius:12px;border:none;cursor:pointer;font-family:inherit;margin-top:10px;}
+/* Sohbet banner'ı (eskiden Mesajlar listesindeki gömülü satır, Forum'un üstüne taşındı) — Sohbet'in
+   marka rengiyle (🌐 ikonunun AYNI gradient'i) tutarlı, Forum'daki diğer kartlardan BİLİNÇLİ olarak
+   daha öne çıkan (gradient dolgu, beyaz metin) bir tasarım. */
+.community-forum-banner{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#00D4FF,#0091FF);border-radius:14px;padding:12px 14px;margin-bottom:14px;cursor:pointer;color:#fff;}
+.community-forum-banner-ic{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
 .det-desc-text{font-size:15.5px;color:var(--text2);line-height:1.65;padding:14px;background:var(--surf);border-radius:14px;margin:16px 0 0;max-height:112px;overflow:hidden;position:relative;transition:max-height .25s ease;}
 .det-desc-text.expanded{max-height:800px;}
 .det-desc-text.clamped::after{content:'';position:absolute;left:0;right:0;bottom:0;height:36px;background:linear-gradient(to top, var(--surf), transparent);}
@@ -1402,6 +1407,20 @@ body.tk-maintenance #maintenance-gate{
           Konu Aç
         </button>
       </div>
+      <!-- SOHBET BANNER — Topluluk Sohbeti'nin Forum'un üstüne taşınmış giriş noktası (eskiden
+           Mesajlar listesinde gömülü bir satırdı, bkz. openCommunityChat). Sohbetin kendisi
+           (#community-chat-mo) hiç değişmedi, yalnızca buraya götüren giriş kapısı taşındı. -->
+      <div class="community-forum-banner" onclick="openCommunityChat()">
+        <div class="community-forum-banner-ic">🌐</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-weight:800;font-size:14.5px">Sohbet</span>
+            <span id="community-banner-badge" style="display:none;width:8px;height:8px;border-radius:50%;background:#fff;flex-shrink:0"></span>
+          </div>
+          <div id="community-banner-preview" style="font-size:12px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Herkese açık, canlı sohbet — sor, tartış, yardımlaş</div>
+        </div>
+        <span id="community-banner-time" style="font-size:11px;opacity:.75;flex-shrink:0"></span>
+      </div>
       <div class="sw" style="margin-bottom:10px">
         <svg class="sico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input class="si" type="text" id="forum-search-inp" placeholder="Konu başlığında ara…" oninput="onForumSearchInput(this.value)">
@@ -1652,20 +1671,6 @@ body.tk-maintenance #maintenance-gate{
       <span class="fs-title" id="chat-list-title">Mesajlar</span>
       <div style="width:32px"></div>
     </div>
-    <div class="chat-row" id="community-chat-row" onclick="openCommunityChat()">
-      <div class="chat-row-av" style="background:linear-gradient(135deg,#00D4FF,#0091FF);display:flex;align-items:center;justify-content:center;font-size:18px">🌐</div>
-      <div class="chat-row-info">
-        <div class="chat-row-top">
-          <span class="chat-row-name">Topluluk Sohbeti</span>
-          <span class="chat-row-time" id="community-chat-time"></span>
-        </div>
-        <div class="chat-row-bottom">
-          <span class="chat-row-preview" id="community-chat-preview">Herkese açık, canlı sohbet — sor, tartış, yardımlaş</span>
-          <span class="chat-row-unread-badge" id="community-chat-unread-badge" style="display:none"></span>
-        </div>
-      </div>
-    </div>
-    <div style="height:1px;background:var(--border2);margin:2px 0 6px"></div>
     <div id="chat-list"></div>
   </div>
 </div>
@@ -1680,7 +1685,7 @@ body.tk-maintenance #maintenance-gate{
         </div>
         <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#00D4FF,#0091FF);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0">🌐</div>
         <div>
-          <div style="font-weight:700;font-size:15px">Topluluk Sohbeti</div>
+          <div style="font-weight:700;font-size:15px">Sohbet</div>
           <div style="font-size:11px;color:var(--text3)">Herkese açık<span id="community-online-count"></span></div>
         </div>
       </div>
@@ -6025,18 +6030,15 @@ function chatIdFor(a, b) { return [a, b].sort().join('_'); }
 // vardı (biri her zaman açık rozet için, biri yalnızca liste ekranı açıkken); artık tek dinleyici var,
 // liste ekranı yalnızca zaten gelen veriyle render ediliyor, ikinci bir Firestore bağlantısı açılmıyor.
 let chatListCache = [];
-// Başlıktaki 💬 rozeti DM'lerin GERÇEK okunmamış SAYISINI, Topluluk Sohbeti'nin ise yalnızca "yeni
-// bir şey var" durumunu (● ile) yansıtır — ikisi TEK bir paylaşımlı fonksiyondan (bkz.
-// refreshChatHeaderBadge) güncellenir, DM sayısı her zaman önceliklidir.
+// Başlıktaki 💬 rozeti yalnızca GERÇEK DM'lerin okunmamış SAYISINI yansıtıyor — Sohbet artık
+// Forum'un üstündeki kendi banner'ında (bkz. renderCommunityForumBanner) okunmamışlığını ayrıca
+// gösteriyor, bu ikisini birleştirmek (Sohbet'e artık buradan hiç gidilemediği için) yanıltıcı olurdu.
 function refreshChatHeaderBadge() {
   const badge = document.getElementById('chat-badge');
   if (!badge || !user) return;
   let unread = 0;
   chatListCache.forEach(d => { if (!(d.data().hiddenFor||[]).includes(user.uid) && (d.data().unreadBy||[]).includes(user.uid)) unread++; });
-  if (unread > 0) { badge.textContent = unread > 9 ? '9+' : unread; badge.style.display = 'flex'; return; }
-  const communityLastAtMs = communityMetaCache?.lastMessageAt?.toDate ? communityMetaCache.lastMessageAt.toDate().getTime() : 0;
-  const communityLastReadMs = myProfileData.communityChatLastReadAt?.toDate ? myProfileData.communityChatLastReadAt.toDate().getTime() : 0;
-  if (communityLastAtMs > communityLastReadMs) { badge.textContent = '●'; badge.style.display = 'flex'; }
+  if (unread > 0) { badge.textContent = unread > 9 ? '9+' : unread; badge.style.display = 'flex'; }
   else badge.style.display = 'none';
 }
 function subscribeChatBadge(uid) {
@@ -6828,16 +6830,18 @@ function subscribeCommunityChatBadge() {
   unsubCommunityMeta?.();
   unsubCommunityMeta = db.collection('teknohane_community_meta').doc('room').onSnapshot(snap => {
     communityMetaCache = snap.exists ? snap.data() : null;
-    renderCommunityChatRowPreview();
+    renderCommunityForumBanner();
     refreshChatHeaderBadge();
     renderCommunityPinnedBar();
   }, () => {});
 }
 
-function renderCommunityChatRowPreview() {
-  const timeEl = document.getElementById('community-chat-time');
-  const prevEl = document.getElementById('community-chat-preview');
-  const badgeEl = document.getElementById('community-chat-unread-badge');
+// Sohbet banner'ı artık Forum'un üstünde (bkz. #s-community, community-forum-banner) — eskiden
+// Mesajlar listesindeki bir satırı hedefleyen AYNI fonksiyon, yalnızca DOM id'leri değişti.
+function renderCommunityForumBanner() {
+  const timeEl = document.getElementById('community-banner-time');
+  const prevEl = document.getElementById('community-banner-preview');
+  const badgeEl = document.getElementById('community-banner-badge');
   if (!timeEl || !communityMetaCache) return;
   const lastAt = communityMetaCache.lastMessageAt?.toDate ? communityMetaCache.lastMessageAt.toDate() : null;
   timeEl.textContent = lastAt ? fd(lastAt.toISOString()) : '';
@@ -6846,7 +6850,7 @@ function renderCommunityChatRowPreview() {
   }
   const lastReadMs = myProfileData.communityChatLastReadAt?.toDate ? myProfileData.communityChatLastReadAt.toDate().getTime() : 0;
   const isUnread = !!(lastAt && lastAt.getTime() > lastReadMs);
-  if (badgeEl) { badgeEl.style.display = isUnread ? 'flex' : 'none'; badgeEl.textContent = '●'; }
+  if (badgeEl) badgeEl.style.display = isUnread ? 'block' : 'none';
 }
 
 function isCommunityScrolledToBottom() {
@@ -6863,14 +6867,13 @@ function markCommunityChatRead() {
   if (!user) return;
   // İyimser yerel güncelleme — rozet, sunucu yanıtını beklemeden hemen kaybolur.
   myProfileData.communityChatLastReadAt = { toDate: () => new Date() };
-  renderCommunityChatRowPreview();
+  renderCommunityForumBanner();
   refreshChatHeaderBadge();
   db.collection('teknohane_users').doc(user.uid).set({ communityChatLastReadAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }).catch(()=>{});
 }
 
 function openCommunityChat() {
-  if (!user) { closemo('chat-list-mo'); gt('profile'); return; }
-  closemo('chat-list-mo');
+  if (!user) { gt('profile'); return; }
   document.getElementById('community-chat-mo').classList.add('on');
   markCommunityChatRead();
   renderCommunityPinnedBar();
@@ -6910,7 +6913,7 @@ async function updateCommunityOnlineCount() {
 }
 
 function openCommunityRulesInfo() {
-  infoDialog(systemSettings.communityChatRules || 'Bu sohbet herkese açık — birbirinize saygılı olun, alım/satım dolandırıcılığına izin verilmez, kural ihlali gördüğünüzde mesajı şikayet edebilirsiniz.', '📌 Topluluk Kuralları');
+  infoDialog(systemSettings.communityChatRules || 'Bu sohbet herkese açık — birbirinize saygılı olun, alım/satım dolandırıcılığına izin verilmez, kural ihlali gördüğünüzde mesajı şikayet edebilirsiniz.', '📌 Sohbet Kuralları');
 }
 
 // KÖK NEDEN DÜZELTMESİ #2 (kullanıcı: "direkt kullanıcı adı yazmalı, etiket o kullanıcı adıyla
@@ -7243,7 +7246,7 @@ async function sendCommunityMessage() {
     // bulunursa gidiyor — hiçbir durumda odadaki herkese/tüm mesajlarda push atılmıyor (bkz. görev raporu).
     extractMentionsByUsername(text).then(mentions => {
       mentions.forEach(m => {
-        notifyUser(m.uid, 'community_mention', `${myName} seni Topluluk Sohbeti'nde bahsetti: "${text.slice(0,80)}"`, null, null, user.uid, myName, myProfileData.photoURL);
+        notifyUser(m.uid, 'community_mention', `${myName} seni Sohbet'te bahsetti: "${text.slice(0,80)}"`, null, null, user.uid, myName, myProfileData.photoURL);
       });
     });
     if (replyTo && replyTo.uid && replyTo.uid !== user.uid) {
@@ -12977,7 +12980,7 @@ function gt(name) {
   } else {
     hideMarketBanner();
   }
-  if(name==='community' && !forumPosts.length && !forumLoading) loadForumPage(true);
+  if(name==='community') { if (!forumPosts.length && !forumLoading) loadForumPage(true); renderCommunityForumBanner(); }
   if(name==='compare') { renderCmpQuickPicks(); loadExtraPhones().then(() => { if(!pA || !pB) renderCmpQuickPicks(); }); }
   if(name==='profile') {
     // Sayfa açılışında hafif, sıralı (stagger) fade animasyonu — yalnızca profile SEKMESİNE
