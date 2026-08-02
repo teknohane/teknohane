@@ -4561,6 +4561,7 @@ const NOTIF_TYPE_CATEGORY = {
   admin_notification: 'system', admin_warning: 'system', complaint_update: 'system',
   new_message: 'messages',
   pool_request: 'market', pool_reply: 'market',
+  pool_accepted: 'market', pool_declined: 'market', pool_shipped: 'market', pool_completed: 'market', pool_cancelled: 'market',
   offer_received: 'market', offer_response: 'market',
 };
 
@@ -4863,18 +4864,18 @@ async function notifyAdminsPoolRequest(listingId, listingModel, buyerName) {
 
 // Havuz Sistemi açıklaması — hem ilan formunda (satıcıya) hem ilan detayında (alıcıya) "?" ikonuna
 // dokunulduğunda gösterilir. Tek bir yerde tutulur, iki farklı metin İCAT EDİLMEZ.
-const POOL_SYSTEM_INFO = 'Havuz Sistemi, alıcı ile satıcı arasındaki güven problemini ortadan kaldırmak için tasarlanmıştır.\n\nAlıcı ödemeyi doğrudan satıcıya değil, Teknohane yönetimine gönderir. Telefon alıcıya sorunsuz şekilde ulaştıktan sonra ödeme tutarı satıcıya iletilir.\n\nBu özellik şu an için bir TALEP mekanizmasıdır — talebini ilettiğinde yönetici seninle iletişime geçip süreci birlikte yürütür.';
+const POOL_SYSTEM_INFO = 'Havuz Sistemi, alıcı ile satıcı arasındaki güven problemini azaltmak için tasarlanmıştır.\n\nSatıcı talebini kabul eder → kargoya verdiğinde takip bilgisini girer → alıcı ürünü teslim alınca "Teslim Aldım" diyerek onaylar. Ödeme hâlâ taraflar arasında (elden/havale) gerçekleşir — Teknohane parayı tutmuyor — ama tüm süreç karşılıklı onaylı ve kayıt altında ilerler.\n\nBir sorun yaşarsan her adımda "Sorun Bildir" ile yönetim ekibimize ulaşabilirsin.';
 
 function openPoolInfo() {
   infoDialog(POOL_SYSTEM_INFO, '🛡️ Havuz Sistemi Nedir?');
 }
 
 // İlan detayında alıcı "Havuz Sistemi ile Satın Al" butonuna dokununca form açılır (bkz.
-// pool-request-mo) — telefon + talep metni teknohane_pool_requests koleksiyonuna kaydedilir VE
-// yetkili adminlere bildirilir (bkz. notifyAdminsPoolRequest). Admin panelindeki "Havuz Talepleri"
-// sekmesinden yanıtlanır (bkz. replyToPoolRequest), yanıt alıcıya bildirim olarak ulaşır. Gerçek
-// ödeme/para tutma henüz entegre edilmedi (bkz. POOL_SYSTEM_INFO) — bu, o akış eklenene kadar
-// kullanılacak bir TALEP + iletişim mekanizması.
+// pool-request-mo) — teknohane_pool_requests'e kaydedilir VE yetkili adminlere bildirilir (bkz.
+// notifyAdminsPoolRequest). Süreç sonrası: satıcı kendi ilanının detayında (bkz.
+// loadListingPoolRequests/det-pool-section) talebi kabul/red eder, kabul ederse kargoya verir,
+// alıcı teslim alınca onaylar (bkz. confirmPoolReceipt) — teknohane_offers'daki satıcı-onaylar
+// deseninin çok-durumlu genişletilmiş hali. Ödeme hâlâ uygulama dışında.
 let poolReqTargetListingId = null;
 
 function openPoolRequestForm(listingId) {
@@ -4899,19 +4900,218 @@ async function submitPoolRequestForm() {
   // ilanlarda gösterilmiyor (bkz. renderDetailPage) ama sayfa satış ANINDAN hemen önce açılıp
   // önbellekte kalmış olabilir — bu yüzden gönderim anında da ikinci bir güvenlik ağı olarak kontrol edilir.
   if (l.sold) { err.textContent = 'Bu ilan satıldı, talep gönderilemez.'; err.classList.add('on'); return; }
+  if (l.poolActiveUid) { err.textContent = 'Bu ilan için zaten aktif bir Havuz anlaşması var.'; err.classList.add('on'); return; }
   const buyerName = myProfileData.displayName || user.displayName || user.email?.split('@')[0] || 'Bir kullanıcı';
   if (!guardSubmit('poolRequest')) return;
   try {
     await db.collection('teknohane_pool_requests').add({
       listingId, listingModel: l.model || '',
       buyerUid: user.uid, buyerName, buyerPhone: phone, buyerMessage: message,
+      sellerUid: l.uid, sellerName: l.ownerName || '', amount: l.price || 0,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       status: 'pending', adminReply: null, adminReplyBy: null, repliedAt: null,
     });
     await notifyAdminsPoolRequest(listingId, l.model || '', buyerName);
     closemo('pool-request-mo');
-    showToast('🛡️', 'rgba(0,212,255,.15)', 'Talebin İletildi', 'Yönetici ekibimiz en kısa sürede seninle iletişime geçecek.');
+    showToast('🛡️', 'rgba(0,212,255,.15)', 'Talebin İletildi', 'Satıcı talebini inceleyip yanıtlayacak.');
+    loadMyPoolRequest(listingId);
   } catch(e) { showErrorToast(e); } finally { releaseSubmit('poolRequest'); }
+}
+
+// ==== HAVUZ SİSTEMİ — SATICI TARAFI (det-pool-section, teknohane_offers'daki det-offers-section
+// ile aynı desen) ====
+let listingPoolRequestsCache = [];
+async function loadListingPoolRequests(listingId) {
+  const el = document.getElementById('det-pool-section');
+  if (!el) return;
+  el.innerHTML = `<div class="pool-banner"><div class="load" style="padding:10px 0"><div class="spin"></div></div></div>`;
+  try {
+    const snap = await db.collection('teknohane_pool_requests').where('listingId', '==', listingId).where('sellerUid', '==', user.uid).limit(30).get();
+    listingPoolRequestsCache = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
+    renderListingPoolRequests();
+  } catch(e) {
+    console.error('Havuz talepleri yüklenemedi:', e);
+    el.innerHTML = `<div class="pool-banner"><div style="font-size:12px;color:var(--text3)">Havuz talepleri yüklenemedi.</div></div>`;
+  }
+}
+
+const POOL_STATUS_LABELS = {
+  pending: 'Bekliyor', accepted: 'Kabul Edildi', declined: 'Reddedildi',
+  shipped: 'Kargoda', completed: 'Tamamlandı', cancelled: 'İptal Edildi',
+};
+
+function renderListingPoolRequests() {
+  const el = document.getElementById('det-pool-section');
+  if (!el) return;
+  if (!listingPoolRequestsCache.length) {
+    el.innerHTML = `<div class="pool-banner"><div class="pool-banner-top"><span class="pool-badge">🛡️ Havuz Sistemi</span></div><div style="font-size:12px;color:var(--text3);margin-top:6px">Henüz talep yok.</div></div>`;
+    return;
+  }
+  el.innerHTML = `<div class="pool-banner">
+    <div class="pool-banner-top"><span class="pool-badge">🛡️ Havuz Talepleri (${listingPoolRequestsCache.length})</span></div>
+    ${listingPoolRequestsCache.map(poolRequestSellerItemHTML).join('')}
+  </div>`;
+}
+
+function poolRequestSellerItemHTML(r) {
+  const dateStr = r.createdAt?.toDate ? r.createdAt.toDate().toLocaleDateString('tr-TR',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'}) : '';
+  const actions = {
+    pending: `<div style="display:flex;gap:8px;margin-top:8px">
+      <button class="apbtn" style="background:rgba(48,209,88,.1);border-color:rgba(48,209,88,.3);color:var(--green);margin-top:0;flex:1" onclick="acceptPoolRequest('${r.id}')">Kabul Et</button>
+      <button class="apbtn" style="background:rgba(255,69,58,.1);border-color:rgba(255,69,58,.3);color:var(--red);margin-top:0;flex:1" onclick="declinePoolRequest('${r.id}')">Reddet</button>
+    </div>`,
+    accepted: `<div style="display:flex;gap:8px;margin-top:8px">
+      <button class="apbtn" style="margin-top:0;flex:1" onclick="shipPoolRequest('${r.id}')">📦 Kargoya Verildi</button>
+      <button class="apbtn" style="background:rgba(255,69,58,.1);border-color:rgba(255,69,58,.3);color:var(--red);margin-top:0" onclick="cancelPoolRequestBySeller('${r.id}')">Vazgeç</button>
+    </div>`,
+    shipped: `<div style="display:flex;gap:8px;margin-top:8px">
+      <button class="apbtn" style="background:rgba(255,69,58,.1);border-color:rgba(255,69,58,.3);color:var(--red);margin-top:0;flex:1" onclick="cancelPoolRequestBySeller('${r.id}')">Vazgeç</button>
+    </div>`,
+  }[r.status] || '';
+  return `<div class="pacc-card" style="margin-top:8px">
+    <div class="pacc-row"><span class="pacc-lbl">Alıcı</span><span class="pacc-val">${escapeHtml(r.buyerName)} · ${escapeHtml(r.buyerPhone)}</span></div>
+    <div class="pacc-row"><span class="pacc-lbl">Tutar</span><span class="pacc-val">₺${(r.amount||0).toLocaleString('tr-TR')}</span></div>
+    <div class="pacc-row"><span class="pacc-lbl">Talep</span><span class="pacc-val">${escapeHtml(r.buyerMessage)}</span></div>
+    ${r.trackingInfo ? `<div class="pacc-row"><span class="pacc-lbl">Kargo</span><span class="pacc-val">${escapeHtml(r.trackingInfo)}</span></div>` : ''}
+    <div class="pacc-row"><span class="pacc-lbl">Durum</span><span class="pacc-val">${POOL_STATUS_LABELS[r.status]||r.status}</span></div>
+    <div class="pacc-row"><span class="pacc-lbl">Tarih</span><span class="pacc-val">${dateStr}</span></div>
+    ${actions}
+    <div style="margin-top:8px"><span class="pool-info-q" style="display:inline-block" onclick="openReportModal('pool_request','${r.id}','${escapeJsAttr(r.listingModel||'')}','${r.buyerUid}')">🚩 Sorun Bildir</span></div>
+  </div>`;
+}
+
+async function acceptPoolRequest(requestId) {
+  const r = listingPoolRequestsCache.find(x => x.id === requestId);
+  if (!r) return;
+  try {
+    const batch = db.batch();
+    batch.update(db.collection('teknohane_pool_requests').doc(requestId), { status: 'accepted', acceptedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    batch.update(db.collection('teknohane_listings').doc(r.listingId), { poolActiveUid: r.buyerUid });
+    const others = listingPoolRequestsCache.filter(x => x.id !== requestId && x.status === 'pending');
+    others.forEach(o => batch.update(db.collection('teknohane_pool_requests').doc(o.id), { status: 'declined', declinedAt: firebase.firestore.FieldValue.serverTimestamp() }));
+    await batch.commit();
+    const sellerName = myProfileData.displayName || user.displayName || 'Satıcı';
+    await notifyUser(r.buyerUid, 'pool_accepted', `${sellerName}, "${r.listingModel}" için Havuz talebini kabul etti.`, r.listingId, null, user.uid, sellerName, myProfileData.photoURL);
+    for (const o of others) await notifyUser(o.buyerUid, 'pool_declined', `"${o.listingModel}" için Havuz talebin, satıcı başka bir alıcıyla anlaştığı için reddedildi.`, o.listingId, null, user.uid, sellerName, myProfileData.photoURL);
+    r.status = 'accepted'; others.forEach(o => o.status = 'declined');
+    renderListingPoolRequests();
+    showToast('✓', 'rgba(48,209,88,.15)', 'Kabul Edildi', 'Alıcıya bildirim gönderildi.');
+  } catch(e) { showErrorToast(e); }
+}
+
+async function declinePoolRequest(requestId) {
+  const r = listingPoolRequestsCache.find(x => x.id === requestId);
+  if (!r) return;
+  try {
+    await db.collection('teknohane_pool_requests').doc(requestId).update({ status: 'declined', declinedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    const sellerName = myProfileData.displayName || user.displayName || 'Satıcı';
+    await notifyUser(r.buyerUid, 'pool_declined', `${sellerName}, "${r.listingModel}" için Havuz talebini reddetti.`, r.listingId, null, user.uid, sellerName, myProfileData.photoURL);
+    r.status = 'declined';
+    renderListingPoolRequests();
+    showToast('✓', 'rgba(255,69,58,.15)', 'Reddedildi', 'Alıcıya bildirim gönderildi.');
+  } catch(e) { showErrorToast(e); }
+}
+
+async function shipPoolRequest(requestId) {
+  const r = listingPoolRequestsCache.find(x => x.id === requestId);
+  if (!r) return;
+  const trackingInfo = (prompt('Kargo firması / takip numarası:', '') || '').trim().slice(0, 299);
+  if (!trackingInfo) return;
+  try {
+    await db.collection('teknohane_pool_requests').doc(requestId).update({ status: 'shipped', shippedAt: firebase.firestore.FieldValue.serverTimestamp(), trackingInfo });
+    const sellerName = myProfileData.displayName || user.displayName || 'Satıcı';
+    await notifyUser(r.buyerUid, 'pool_shipped', `${sellerName}, "${r.listingModel}" ürününü kargoya verdi: ${trackingInfo}`, r.listingId, null, user.uid, sellerName, myProfileData.photoURL);
+    r.status = 'shipped'; r.trackingInfo = trackingInfo;
+    renderListingPoolRequests();
+    showToast('📦', 'rgba(0,212,255,.15)', 'Kargoya Verildi', 'Alıcıya bildirim gönderildi.');
+  } catch(e) { showErrorToast(e); }
+}
+
+async function cancelPoolRequestBySeller(requestId) {
+  const r = listingPoolRequestsCache.find(x => x.id === requestId);
+  if (!r) return;
+  if (!confirm('Bu Havuz anlaşmasından vazgeçmek istediğine emin misin? İlan yeni Havuz taleplerine açılacak.')) return;
+  try {
+    const batch = db.batch();
+    batch.update(db.collection('teknohane_pool_requests').doc(requestId), { status: 'cancelled', cancelledAt: firebase.firestore.FieldValue.serverTimestamp() });
+    batch.update(db.collection('teknohane_listings').doc(r.listingId), { poolActiveUid: null });
+    await batch.commit();
+    const sellerName = myProfileData.displayName || user.displayName || 'Satıcı';
+    await notifyUser(r.buyerUid, 'pool_cancelled', `${sellerName}, "${r.listingModel}" için Havuz anlaşmasından vazgeçti.`, r.listingId, null, user.uid, sellerName, myProfileData.photoURL);
+    r.status = 'cancelled';
+    renderListingPoolRequests();
+    showToast('✓', 'rgba(255,69,58,.15)', 'Vazgeçildi', 'İlan yeni taleplere açıldı.');
+  } catch(e) { showErrorToast(e); }
+}
+
+// ==== HAVUZ SİSTEMİ — ALICI TARAFI (det-pool-section, mine===false durumunda) ====
+let myPoolRequestForListing = null;
+async function loadMyPoolRequest(listingId) {
+  const el = document.getElementById('det-pool-section');
+  if (!el) return;
+  try {
+    const snap = await db.collection('teknohane_pool_requests').where('listingId', '==', listingId).where('buyerUid', '==', user.uid).limit(5).get();
+    const docs = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
+    myPoolRequestForListing = docs[0] || null;
+    renderMyPoolRequest(listingId);
+  } catch(e) {
+    console.error('Havuz talebi yüklenemedi:', e);
+    myPoolRequestForListing = null;
+    renderMyPoolRequest(listingId);
+  }
+}
+
+function renderMyPoolRequest(listingId) {
+  const el = document.getElementById('det-pool-section');
+  if (!el) return;
+  const r = myPoolRequestForListing;
+  const buyBtn = `<button class="pool-buy-btn" onclick="openPoolRequestForm('${listingId}')">Havuz Sistemi ile Satın Al</button>`;
+  const header = `<div class="pool-banner-top"><span class="pool-badge">🛡️ Havuz Sistemi ile Güvenli Alışveriş</span><span class="pool-info-q" onclick="openPoolInfo()">?</span></div>`;
+  if (!r || r.status === 'declined' || r.status === 'cancelled') {
+    el.innerHTML = `<div class="pool-banner">${header}${r ? `<div style="font-size:12px;color:var(--text3);margin:6px 0">Önceki talebin: ${POOL_STATUS_LABELS[r.status]||r.status}.</div>` : ''}${buyBtn}</div>`;
+    return;
+  }
+  const reportBtn = `<div style="margin-top:8px"><span class="pool-info-q" style="display:inline-block" onclick="openReportModal('pool_request','${r.id}','${escapeJsAttr(r.listingModel||'')}','${r.sellerUid}')">🚩 Sorun Bildir</span></div>`;
+  let bodyHtml = '';
+  if (r.status === 'pending') {
+    bodyHtml = `<div style="font-size:12px;color:var(--text3);margin:6px 0">Talebin satıcıya iletildi, yanıtını bekliyoruz.</div>
+      <button class="apbtn" style="background:rgba(255,69,58,.1);border-color:rgba(255,69,58,.3);color:var(--red)" onclick="cancelPoolRequestByBuyer('${r.id}')">Talebi İptal Et</button>`;
+  } else if (r.status === 'accepted') {
+    bodyHtml = `<div style="font-size:12px;color:var(--text3);margin:6px 0">Satıcı kabul etti, kargoya vermesini bekliyoruz.</div>`;
+  } else if (r.status === 'shipped') {
+    bodyHtml = `<div style="font-size:12px;color:var(--text3);margin:6px 0">📦 Kargoda: ${escapeHtml(r.trackingInfo||'')}</div>
+      <button class="apbtn" onclick="confirmPoolReceipt('${r.id}')">Teslim Aldım, Onaylıyorum</button>`;
+  } else if (r.status === 'completed') {
+    bodyHtml = `<div style="font-size:12px;color:var(--green);margin:6px 0">✓ İşlem tamamlandı.</div>`;
+  }
+  el.innerHTML = `<div class="pool-banner">${header}${bodyHtml}${r.status !== 'completed' ? reportBtn : reportBtn}</div>`;
+}
+
+async function confirmPoolReceipt(requestId) {
+  const r = myPoolRequestForListing;
+  if (!r || r.id !== requestId) return;
+  try {
+    await db.collection('teknohane_pool_requests').doc(requestId).update({ status: 'completed', completedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    const buyerName = myProfileData.displayName || user.displayName || 'Alıcı';
+    await notifyUser(r.sellerUid, 'pool_completed', `${buyerName}, "${r.listingModel}" ürününü teslim aldığını onayladı. İlanını satıldı olarak işaretlemeyi unutma!`, r.listingId, null, user.uid, buyerName, myProfileData.photoURL);
+    notifyAdminsOfEvent('manageListings', '🎉 Havuz İşlemi Tamamlandı', `"${r.listingModel}" için Havuz işlemi alıcı tarafından tamamlandı olarak onaylandı.`, r.listingId);
+    r.status = 'completed';
+    renderMyPoolRequest(r.listingId);
+    showToast('🎉', 'rgba(48,209,88,.15)', 'Onaylandı', 'İşlem tamamlandı olarak işaretlendi.');
+  } catch(e) { showErrorToast(e); }
+}
+
+async function cancelPoolRequestByBuyer(requestId) {
+  const r = myPoolRequestForListing;
+  if (!r || r.id !== requestId) return;
+  if (!confirm('Talebini iptal etmek istediğine emin misin?')) return;
+  try {
+    await db.collection('teknohane_pool_requests').doc(requestId).update({ status: 'cancelled', cancelledAt: firebase.firestore.FieldValue.serverTimestamp() });
+    r.status = 'cancelled';
+    renderMyPoolRequest(r.listingId);
+    showToast('✓', 'rgba(255,69,58,.15)', 'İptal Edildi', '');
+  } catch(e) { showErrorToast(e); }
 }
 
 
@@ -5320,6 +5520,11 @@ const NOTIF_ICONS = {
   listing_question_answered: { ic: '↩️', bg: 'rgba(48,209,88,.15)' },
   pool_request: { ic: '🛡️', bg: 'rgba(0,212,255,.12)' },
   pool_reply: { ic: '🛡️', bg: 'rgba(48,209,88,.15)' },
+  pool_accepted: { ic: '✅', bg: 'rgba(48,209,88,.15)' },
+  pool_declined: { ic: '❌', bg: 'rgba(255,69,58,.15)' },
+  pool_shipped: { ic: '📦', bg: 'rgba(0,212,255,.12)' },
+  pool_completed: { ic: '🎉', bg: 'rgba(48,209,88,.15)' },
+  pool_cancelled: { ic: '🚫', bg: 'rgba(142,142,147,.15)' },
   offer_received: { ic: '🤝', bg: 'rgba(0,212,255,.12)' },
   offer_response: { ic: '🤝', bg: 'rgba(48,209,88,.15)' },
   followed_new_listing: { ic: '📦', bg: 'rgba(0,212,255,.12)' },
@@ -8140,6 +8345,7 @@ function openDetail(id) {
   if (cached) {
     renderDetailPage(cached);
     if (user && cached.uid === user.uid && cached.negotiable) loadListingOffers(id);
+    if (user && cached.poolSystem && !cached.sold) { if (cached.uid === user.uid) loadListingPoolRequests(id); else loadMyPoolRequest(id); }
     db.collection('teknohane_listings').doc(id).get().then(snap => {
       if (!snap.exists || !currentListing || currentListing.id !== id) return;
       const fresh = snap.data();
@@ -8159,6 +8365,7 @@ function openDetail(id) {
     const l = { id: snap.id, ...snap.data() };
     renderDetailPage(l);
     if (user && l.uid === user.uid && l.negotiable) loadListingOffers(id);
+    if (user && l.poolSystem && !l.sold) { if (l.uid === user.uid) loadListingPoolRequests(id); else loadMyPoolRequest(id); }
   }).catch(() => {
     showToast('❗','rgba(255,69,58,.12)','İlan Bulunamadı','Bu ilan kaldırılmış veya silinmiş olabilir.');
   });
@@ -8224,13 +8431,7 @@ function renderDetailPage(l) {
       ${l.location?`<div class="det-status-badge st-info">📍 ${escapeHtml(l.neighborhood ? l.location + ' · ' + l.neighborhood : l.location)}</div>`:''}
       ${(l.category||'telefon')==='telefon'?`<div class="det-status-badge st-info" style="cursor:pointer" onclick="openImeiInfo()">🔒 IMEI Kontrolü</div>`:''}
     </div>
-    ${l.poolSystem && !l.sold ? `<div class="pool-banner det-anim" style="animation-delay:.09s">
-      <div class="pool-banner-top">
-        <span class="pool-badge">🛡️ Havuz Sistemi ile Güvenli Alışveriş</span>
-        <span class="pool-info-q" onclick="openPoolInfo()">?</span>
-      </div>
-      ${!mine ? `<button class="pool-buy-btn" onclick="openPoolRequestForm('${id}')">Havuz Sistemi ile Satın Al</button>` : ''}
-    </div>` : ''}
+    ${l.poolSystem && !l.sold ? `<div id="det-pool-section" class="det-anim" style="animation-delay:.09s"></div>` : ''}
     ${l.negotiable && !mine && !l.sold ? `<div class="pool-banner det-anim" style="animation-delay:.095s">
       <div class="pool-banner-top">
         <span class="pool-badge">🤝 Pazarlığa Açık</span>
@@ -10646,7 +10847,7 @@ const COMPLAINT_REASONS = [
   { code: 'telif', label: 'Telif' },
   { code: 'diger', label: 'Diğer' },
 ];
-const COMPLAINT_TYPE_LABELS = { user: 'Kullanıcı', listing: 'İlan', forum_post: 'Forum Gönderisi', comment: 'Yorum', message: 'Mesaj' };
+const COMPLAINT_TYPE_LABELS = { user: 'Kullanıcı', listing: 'İlan', forum_post: 'Forum Gönderisi', comment: 'Yorum', message: 'Mesaj', pool_request: 'Havuz İşlemi' };
 
 let reportContext = null; // { type, targetId, targetLabel, targetOwnerUid }
 
