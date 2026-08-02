@@ -68,7 +68,7 @@
 [data-theme="light"] body{background:var(--bg);}
 [data-theme="light"] #hdr{background:rgba(242,242,247,.88);box-shadow:0 0.5px 0 var(--border2);backdrop-filter:saturate(180%) blur(20px);}
 [data-theme="light"] #tabs{background:rgba(249,249,251,.92);box-shadow:0 -0.5px 0 var(--border2);}
-[data-theme="light"] .lcard,[data-theme="light"] .vc,[data-theme="light"] .wc,[data-theme="light"] .mi,[data-theme="light"] .pitem,[data-theme="light"] .adm-row,[data-theme="light"] .adm-user-row,[data-theme="light"] .ud-item,[data-theme="light"] .ref-item,[data-theme="light"] .cmt,[data-theme="light"] .phero,[data-theme="light"] .ch-hero,[data-theme="light"] .apanel,[data-theme="light"] .theme-panel{box-shadow:0 1px 2px rgba(0,0,0,0.04);}
+[data-theme="light"] .lcard,[data-theme="light"] .vc,[data-theme="light"] .wc,[data-theme="light"] .mi,[data-theme="light"] .pitem,[data-theme="light"] .adm-row,[data-theme="light"] .adm-user-row,[data-theme="light"] .ud-item,[data-theme="light"] .ref-item,[data-theme="light"] .cmt,[data-theme="light"] .phero,[data-theme="light"] .apanel,[data-theme="light"] .theme-panel{box-shadow:0 1px 2px rgba(0,0,0,0.04);}
 [data-theme="light"] .feat,[data-theme="light"] .ctbl,[data-theme="light"] .cmp-hero,[data-theme="light"] .det-sheet,[data-theme="light"] .ms{box-shadow:0 8px 24px rgba(0,0,0,0.08);}
 [data-theme="light"] .new-btn,[data-theme="light"] .sbtn,[data-theme="light"] .sbtn2,[data-theme="light"] .wel-btn,[data-theme="light"] .filter-apply,[data-theme="light"] .admin-badge,[data-theme="light"] .share-btn{color:#FFFFFF;}
 [data-theme="light"] .share-btn svg{stroke:#FFFFFF;}
@@ -210,18 +210,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .load{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;gap:14px;color:var(--text2);font-size:14px;}
 .soon{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80%;text-align:center;padding:24px;}
 .sbtn2{width:100%;background:var(--cyan);color:#000;font-size:16px;font-weight:700;padding:14px;border-radius:14px;border:none;cursor:pointer;font-family:inherit;}
-
-/* CHANNEL STATS */
-.ch-hero{background:linear-gradient(135deg,var(--surf),var(--surf2));border-radius:20px;border:1px solid var(--border);padding:20px;margin-bottom:20px;}
-.ch-top{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
-.ch-av{width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid var(--cyan);animation:pg 3s ease-in-out infinite;}
-@keyframes pg{0%,100%{box-shadow:0 0 8px var(--cglow);}50%{box-shadow:0 0 20px var(--cglow);}}
-.ch-n{font-size:18px;font-weight:700;}
-.ch-h{font-size:13px;color:var(--text2);margin-top:2px;}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
-.stat{background:rgba(0,212,255,.05);border:1px solid var(--border);border-radius:12px;padding:10px;text-align:center;}
-.sn{font-size:18px;font-weight:700;color:var(--cyan);}
-.sl2{font-size:10px;color:var(--text2);margin-top:2px;text-transform:uppercase;letter-spacing:.5px;}
 
 /* FEATURED VIDEO */
 .feat{border-radius:20px;overflow:hidden;background:var(--surf);border:1px solid var(--border);margin-bottom:24px;cursor:pointer;box-shadow:0 8px 32px rgba(0,212,255,.08);}
@@ -894,25 +882,29 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
    daha öne çıkan (gradient dolgu, beyaz metin) bir tasarım. */
 .community-forum-banner{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#00D4FF,#0091FF);border-radius:14px;padding:12px 14px;margin-bottom:14px;cursor:pointer;color:#fff;}
 .community-forum-banner-ic{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
-/* Ana sayfa — Selamlama kartı: AYNI marka gradyanı (Sohbet banner'ı/kanal kartıyla tutarlı). */
-.home-greeting-card{background:linear-gradient(135deg,#00D4FF,#0091FF);border-radius:16px;padding:16px 18px;margin-bottom:18px;color:#fff;}
-/* Ana sayfa — Trendler: yatay kaydırılabilir, kompakt telefon kartları (admin-küratörlü). */
-#trend-strip{display:flex;gap:10px;overflow-x:auto;padding-bottom:2px;margin-bottom:18px;scrollbar-width:none;}
+/* Ana sayfa — Selamlama kartı: uygulamanın marka gradyanı, .feat ile AYNI "hero" ağırlığında
+   (cyan glow gölge + 24px alt boşluk ritmi) — vitrin hissi için tüm ana sayfa kartları bu tek
+   ritme (24px) hizalanıyor. */
+.home-greeting-card{background:linear-gradient(135deg,#00D4FF,#0091FF);border-radius:18px;padding:20px 20px 22px;margin-bottom:24px;color:#fff;box-shadow:0 10px 28px rgba(0,212,255,.18);}
+/* Ana sayfa — Trendler: yatay kaydırılabilir, kompakt telefon kartları (admin-küratörlü) — .mcard
+   ile AYNI ince cyan-kenarlı gölge dili, uygulamanın geri kalanıyla tutarlı. */
+#trend-strip{display:flex;gap:10px;overflow-x:auto;padding-bottom:2px;margin-bottom:24px;scrollbar-width:none;}
 #trend-strip::-webkit-scrollbar{display:none;}
-.trend-card{flex:0 0 auto;width:140px;background:var(--surf);border:1px solid var(--border2);border-radius:14px;padding:12px;cursor:pointer;}
-.trend-card:active{background:var(--surf2);}
-.trend-card-brand{font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.03em;font-weight:700;}
-.trend-card-name{font-size:13px;font-weight:700;margin-top:2px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-.trend-card-price{font-size:12px;color:var(--cyan);font-weight:700;margin-top:6px;}
+.trend-card{flex:0 0 auto;width:148px;background:var(--surf);border:1px solid var(--border2);border-radius:16px;padding:14px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.2),0 0 0 1px rgba(0,212,255,.04);transition:transform .15s ease;}
+.trend-card:active{transform:scale(.97);}
+.trend-card-brand{font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;font-weight:700;}
+.trend-card-name{font-size:13.5px;font-weight:700;margin-top:3px;line-height:1.32;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:35px;}
+.trend-card-price{font-size:12.5px;color:var(--cyan);font-weight:800;margin-top:8px;}
 /* Ana sayfa — Pazarda Yeni İlanlar: hafif, keşif amaçlı kartlar (mcardHTML'in Pazar ızgarası için
-   tasarlanmış ağır sürümü DEĞİL). */
-#home-market-strip{display:flex;gap:10px;overflow-x:auto;padding-bottom:2px;margin-bottom:18px;scrollbar-width:none;}
+   tasarlanmış ağır sürümü DEĞİL), AYNI görsel gölge dili. */
+#home-market-strip{display:flex;gap:10px;overflow-x:auto;padding-bottom:2px;margin-bottom:24px;scrollbar-width:none;}
 #home-market-strip::-webkit-scrollbar{display:none;}
-.home-mkt-card{flex:0 0 auto;width:130px;cursor:pointer;}
-.home-mkt-photo{width:130px;height:130px;border-radius:14px;overflow:hidden;background:var(--surf2);}
+.home-mkt-card{flex:0 0 auto;width:140px;cursor:pointer;transition:transform .15s ease;}
+.home-mkt-card:active{transform:scale(.97);}
+.home-mkt-photo{width:140px;height:140px;border-radius:16px;overflow:hidden;background:var(--surf2);box-shadow:0 2px 10px rgba(0,0,0,.2),0 0 0 1px rgba(0,212,255,.04);}
 .home-mkt-photo img{width:100%;height:100%;object-fit:cover;display:block;}
-.home-mkt-photo-empty{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:22px;}
-.home-mkt-price{font-size:13.5px;font-weight:800;margin-top:6px;}
+.home-mkt-photo-empty{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:24px;}
+.home-mkt-price{font-size:14px;font-weight:800;margin-top:8px;}
 .home-mkt-title{font-size:11.5px;color:var(--text2);line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 .det-desc-text{font-size:15.5px;color:var(--text2);line-height:1.65;padding:14px;background:var(--surf);border-radius:14px;margin:16px 0 0;max-height:112px;overflow:hidden;position:relative;transition:max-height .25s ease;}
 .det-desc-text.expanded{max-height:800px;}
@@ -11743,28 +11735,12 @@ function checkNewVideo() {
 // önbellek varsa ANINDA (ağ beklemeden) gösterilir, ARDINDAN arka planda taze veri çekilip aynı DOM
 // sessizce güncellenir ("anında-sonra-tazele"). Ağ isteği başarısız olursa ve önbellekten zaten bir
 // şey gösterildiyse ekran hata mesajına çevrilmez — kullanıcı biraz eski ama gerçek içerikle kalır.
-const YT_CACHE_CHAN = 'tekno_yt_chan_v1';
 const YT_CACHE_VIDS = 'tekno_yt_vids_v1';
 function readYtCache(key) {
   try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : null; } catch(e) { return null; }
 }
 function writeYtCache(key, data) {
   try { localStorage.setItem(key, JSON.stringify(data)); } catch(e) { /* localStorage dolu/kapalı olabilir, sessizce geç */ }
-}
-function renderChannelHero(data) {
-  const heroSlot = document.getElementById('ch-hero-slot');
-  if (!heroSlot || !data) return;
-  const sn = data.sn || {}, st = data.st || {};
-  heroSlot.innerHTML = `
-      <div class="ch-top">
-        <img class="ch-av" src="${sn.thumbUrl||''}" alt="" onerror="this.src='teknohane.png'" loading="lazy" decoding="async">
-        <div><div class="ch-n">${sn.title||'Teknohane'}</div><div class="ch-h">${YH}</div></div>
-      </div>
-      <div class="stats">
-        <div class="stat"><div class="sn">${fs(st.subscriberCount)}</div><div class="sl2">Abone</div></div>
-        <div class="stat"><div class="sn">${fv(st.viewCount)}</div><div class="sl2">İzlenme</div></div>
-        <div class="stat"><div class="sn">${parseInt(st.videoCount||0)}</div><div class="sl2">Video</div></div>
-      </div>`;
 }
 function renderVideoSection(vids) {
   if (!vids || !vids.length) return;
@@ -11792,10 +11768,10 @@ async function loadHomeGreeting() {
   let countLine = '';
   try {
     const n = await firestoreCount(db.collection('teknohane_listings').where('approved', '==', true).where('createdAt', '>=', todayStart));
-    if (n) countLine = `<div style="font-size:12.5px;opacity:.9;margin-top:4px">Bugün Pazar'a ${n} yeni ilan eklendi</div>`;
+    if (n) countLine = `<div style="font-size:13px;opacity:.92;margin-top:6px">Bugün Pazar'a ${n} yeni ilan eklendi</div>`;
   } catch(e) {}
   el.innerHTML = `<div class="home-greeting-card">
-    <div style="font-weight:800;font-size:16px">👋 Hoş Geldin${firstName ? ' ' + escapeHtml(firstName) : ''}</div>
+    <div style="font-weight:800;font-size:19px;letter-spacing:-.3px">👋 Hoş Geldin${firstName ? ' ' + escapeHtml(firstName) : ''}</div>
     ${countLine}
   </div>`;
 }
@@ -11852,8 +11828,10 @@ function homeMarketCardHTML(l) {
 // Ana sayfa sırası (KASITLI): Selamlama → Trendler → Pazarda Yeni İlanlar → Öne Çıkan Video →
 // Diğer Videolar → Haberler. Keşif odaklı bölümler (trend telefon + yeni ilan) içerik tüketimi
 // (video/haber) bölümlerinin ÖNÜNE alındı — ikisi de uygulamanın asıl işine (Pazar) yönlendiriyor,
-// eskiden Pazar'a hiç değinmeyen bir ana sayfa vardı. Video/haber akışının kendisi (renderChannelHero/
-// renderVideoSection/rnewslist, önbellek-sonra-tazele deseni) HİÇ DEĞİŞMEDİ, yalnızca ekrandaki yeri.
+// eskiden Pazar'a hiç değinmeyen bir ana sayfa vardı. Kanal istatistik kartı (abone/izlenme/video
+// sayısı) KASITLI OLARAK KALDIRILDI — ilgi çekici bulunmadı, Öne Çıkan Video zaten videoya giden tek
+// giriş noktası. Video/haber akışının kendisi (renderVideoSection/rnewslist, önbellek-sonra-tazele
+// deseni) HİÇ DEĞİŞMEDİ, yalnızca ekrandaki yeri.
 async function rhome() {
   const c=document.getElementById('home-c');
   let renderedFromCache = false;
@@ -11864,14 +11842,12 @@ async function rhome() {
       <div id="trend-strip"></div>
       <div class="sh"><span class="st">🛒 Pazarda Yeni İlanlar</span><span class="sl" onclick="gt('market')">Tümü →</span></div>
       <div id="home-market-strip"></div>
-      <div class="ch-hero" id="ch-hero-slot"><div class="load"><div class="spin"></div></div></div>
-      <div class="sh"><span class="st">Son Video</span><span class="sl" onclick="ol('https://youtube.com/${YH}')">Tümü →</span></div>
+      <div class="sh"><span class="st">▶️ Öne Çıkan Video</span><span class="sl" onclick="ol('https://youtube.com/${YH}')">Tümü →</span></div>
       <div id="feat-slot"><div class="load"><div class="spin"></div></div></div>
-      <div class="glow"></div>
-      <div class="sh"><span class="st">Diğer Videolar</span></div>
+      <div class="sh" style="margin-top:28px"><span class="st">🎥 Diğer Videolar</span></div>
       <div class="sw"><svg class="sico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input class="si" type="text" placeholder="Video ara…" oninput="fvid(this.value)"></div>
       <div class="vlist hscroll" id="vlist"></div>
-      <div class="sh" style="margin-top:24px"><span class="st">📰 Teknoloji Haberleri</span></div>
+      <div class="sh" style="margin-top:28px"><span class="st">📰 Teknoloji Haberleri</span></div>
       <div class="vlist" id="newslist"><div class="load"><div class="spin"></div></div></div>`;
     lnews().then(news => {
       const el = document.getElementById('newslist');
@@ -11886,17 +11862,14 @@ async function rhome() {
     renderTrendingPhones().catch(()=>{});
     loadHomeMarketPreview().catch(()=>{});
 
-    const cachedChan = readYtCache(YT_CACHE_CHAN);
+    // KANAL KARTI (abone/izlenme/video sayısı) KASITLI OLARAK KALDIRILDI — kullanıcı YouTube
+    // istatistiklerini ilgi çekici bulmadı, "Öne Çıkan Video" zaten videoya giden tek giriş noktası
+    // olarak yeterli. lchan() YİNE DE çağrılıyor çünkü lvids() içeride onun doldurduğu kanal/playlist
+    // bilgisine ihtiyaç duyuyor — yalnızca GÖRÜNTÜLEME kaldırıldı, veri akışı aynı.
     const cachedVids = readYtCache(YT_CACHE_VIDS);
-    if (cachedChan) { renderChannelHero(cachedChan); renderedFromCache = true; }
     if (cachedVids && cachedVids.length) { renderVideoSection(cachedVids); renderedFromCache = true; }
 
     await lchan();
-    const ch=cc,st=ch?.statistics||{},sn=ch?.snippet||{};
-    const chanData = { sn: { title: sn.title, thumbUrl: sn.thumbnails?.high?.url||'' }, st: { subscriberCount: st.subscriberCount, viewCount: st.viewCount, videoCount: st.videoCount } };
-    renderChannelHero(chanData);
-    writeYtCache(YT_CACHE_CHAN, chanData);
-
     const vids = await lvids();
     renderVideoSection(vids);
     writeYtCache(YT_CACHE_VIDS, vids);
