@@ -1681,10 +1681,10 @@ body.tk-maintenance #maintenance-gate{
         <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#00D4FF,#0091FF);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0">🌐</div>
         <div>
           <div style="font-weight:700;font-size:15px">Topluluk Sohbeti</div>
-          <div style="font-size:11px;color:var(--text3)">Herkese açık</div>
+          <div style="font-size:11px;color:var(--text3)">Herkese açık<span id="community-online-count"></span></div>
         </div>
       </div>
-      <div style="width:32px"></div>
+      <div style="font-size:11px;color:var(--cyan);cursor:pointer;flex-shrink:0;white-space:nowrap" onclick="openCommunityRulesInfo()">📌 Kurallar</div>
     </div>
     <div id="community-chat-messages" style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:10px"></div>
     <div id="community-reply-preview" style="display:none;padding:8px 20px 0;flex-shrink:0">
@@ -6862,9 +6862,28 @@ function openCommunityChat() {
     renderCommunityMessages();
     scrollCommunityMessagesToBottom();
   }
+  updateCommunityOnlineCount();
+  clearInterval(communityOnlineCountTimer);
+  communityOnlineCountTimer = setInterval(updateCommunityOnlineCount, 60000);
 }
 function exitCommunityChat() {
   document.getElementById('community-chat-mo').classList.remove('on');
+  clearInterval(communityOnlineCountTimer);
+}
+
+// teknohane_presence herkese açık okunabiliyor (bkz. firestore.rules) ve firestoreCount() zaten
+// var — canlı bir dinleyici GEREKMİYOR, sohbet açıkken 60 saniyede bir tazeleniyor (openCommunityChat).
+let communityOnlineCountTimer = null;
+async function updateCommunityOnlineCount() {
+  const el = document.getElementById('community-online-count');
+  if (!el) return;
+  const threshold = new Date(Date.now() - PRESENCE_ONLINE_WINDOW_MS);
+  const count = await firestoreCount(db.collection('teknohane_presence').where('lastActive', '>=', threshold));
+  if (count !== null) el.textContent = ` · ${count} kişi çevrimiçi`;
+}
+
+function openCommunityRulesInfo() {
+  infoDialog(systemSettings.communityChatRules || 'Bu sohbet herkese açık — birbirinize saygılı olun, alım/satım dolandırıcılığına izin verilmez, kural ihlali gördüğünüzde mesajı şikayet edebilirsiniz.', '📌 Topluluk Kuralları');
 }
 
 // KÖK NEDEN DÜZELTMESİ #2 (kullanıcı: "direkt kullanıcı adı yazmalı, etiket o kullanıcı adıyla
@@ -6914,7 +6933,7 @@ function communityMsgBubbleHTML(m) {
   return `<div style="display:flex;gap:8px;align-self:${mine?'flex-end':'flex-start'};max-width:82%;flex-direction:${mine?'row-reverse':'row'}" data-mid="${m.id}">
     ${!mine?`<div style="width:30px;height:30px;border-radius:50%;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--cyan);font-size:13px;flex-shrink:0;overflow:hidden;cursor:pointer" onclick="closemo('community-chat-mo');openPublicProfile('${m.uid}','${nameJs}')">${avHtml}</div>`:''}
     <div class="msg-bubble" style="background:${mine?'var(--cdim)':'var(--surf2)'};color:var(--text);border:${mine?'1px solid rgba(0,212,255,.35)':'1px solid transparent'};padding:${(m.imageUrl||m._localImagePreview)?'6px':'9px 13px'};${mine?'border-bottom-right-radius:4px':'border-bottom-left-radius:4px'};font-size:14px;line-height:1.4;word-break:break-word">
-      ${!mine?`<div style="font-size:11.5px;font-weight:700;color:var(--cyan);margin-bottom:2px;cursor:pointer" onclick="closemo('community-chat-mo');openPublicProfile('${m.uid}','${nameJs}')">${escapeHtml(m.authorName||'Kullanıcı')}${m.authorUsername?` <span style="font-weight:500;opacity:.65">@${escapeHtml(m.authorUsername)}</span>`:''}</div>`:''}
+      ${!mine?`<div style="font-size:11.5px;font-weight:700;color:var(--cyan);margin-bottom:2px;cursor:pointer" onclick="closemo('community-chat-mo');openPublicProfile('${m.uid}','${nameJs}')">${escapeHtml(m.authorName||'Kullanıcı')}${authorBadgesHTML(m.authorBadges)}${m.authorUsername?` <span style="font-weight:500;opacity:.65">@${escapeHtml(m.authorUsername)}</span>`:''}</div>`:''}
       ${replyQuoteHtml}
       ${body}
       <div style="font-size:10px;opacity:.6;margin-top:3px;display:flex;align-items:center;justify-content:flex-end;gap:6px">${replyIcon}${actionIcon}${time}${m._status==='sending'?'<div class="msg-status-sending"></div>':m._status==='failed'?'⚠️':''}</div>
@@ -6958,13 +6977,14 @@ async function sendCommunityMessage() {
   // etiketleyeceğini (bkz. extractMentionsByUsername) mesajlara bakarak kolayca görebilsin —
   // kullanıcı adı belirlememiş biri için bu alan boş kalır, isim satırında ekstra bir şey görünmez.
   const myUsername = myProfileData.username || null;
-  const localMsg = { id: 'local_'+Date.now()+'_'+Math.random().toString(36).slice(2), uid: user.uid, authorName: myName, authorUsername: myUsername, authorPhotoURL: myProfileData.photoURL||null, text, replyTo, createdAt: { toDate:()=>new Date() }, _status: 'sending' };
+  const myBadges = computeAuthorBadgeIcons();
+  const localMsg = { id: 'local_'+Date.now()+'_'+Math.random().toString(36).slice(2), uid: user.uid, authorName: myName, authorUsername: myUsername, authorPhotoURL: myProfileData.photoURL||null, authorBadges: myBadges, text, replyTo, createdAt: { toDate:()=>new Date() }, _status: 'sending' };
   communityMessages.push(localMsg);
   renderCommunityMessages();
   scrollCommunityMessagesToBottom();
   try {
     await db.collection('teknohane_community_messages').add({
-      uid: user.uid, authorName: myName, authorUsername: myUsername, authorPhotoURL: myProfileData.photoURL || null,
+      uid: user.uid, authorName: myName, authorUsername: myUsername, authorPhotoURL: myProfileData.photoURL || null, authorBadges: myBadges,
       text, ...(replyTo ? { replyTo } : {}), createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     db.collection('teknohane_users').doc(user.uid).set({ lastChatActionAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }).catch(()=>{});
@@ -7001,15 +7021,16 @@ async function sendCommunityImage(input) {
   lastCommunityActionAtLocal = Date.now();
   const myName = myProfileData.displayName || user.displayName || user.email?.split('@')[0] || 'Kullanıcı';
   const myUsername = myProfileData.username || null;
+  const myBadges = computeAuthorBadgeIcons();
   const localPreview = URL.createObjectURL(file);
-  const localMsg = { id: 'local_'+Date.now()+'_'+Math.random().toString(36).slice(2), uid: user.uid, authorName: myName, authorUsername: myUsername, authorPhotoURL: myProfileData.photoURL||null, _localImagePreview: localPreview, replyTo, createdAt: { toDate:()=>new Date() }, _status: 'sending' };
+  const localMsg = { id: 'local_'+Date.now()+'_'+Math.random().toString(36).slice(2), uid: user.uid, authorName: myName, authorUsername: myUsername, authorPhotoURL: myProfileData.photoURL||null, authorBadges: myBadges, _localImagePreview: localPreview, replyTo, createdAt: { toDate:()=>new Date() }, _status: 'sending' };
   communityMessages.push(localMsg);
   renderCommunityMessages();
   scrollCommunityMessagesToBottom();
   try {
     const imageUrl = await compressAndUploadPhoto(file, `community-chat-images/${user.uid}/${Date.now()}`, 800, 0.75);
     await db.collection('teknohane_community_messages').add({
-      uid: user.uid, authorName: myName, authorUsername: myUsername, authorPhotoURL: myProfileData.photoURL || null,
+      uid: user.uid, authorName: myName, authorUsername: myUsername, authorPhotoURL: myProfileData.photoURL || null, authorBadges: myBadges,
       imageUrl, ...(replyTo ? { replyTo } : {}), createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     db.collection('teknohane_users').doc(user.uid).set({ lastChatActionAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }).catch(()=>{});
