@@ -1686,6 +1686,7 @@ body.tk-maintenance #maintenance-gate{
       </div>
       <div style="font-size:11px;color:var(--cyan);cursor:pointer;flex-shrink:0;white-space:nowrap" onclick="openCommunityRulesInfo()">📌 Kurallar</div>
     </div>
+    <div id="community-pinned-bar"></div>
     <div id="community-chat-messages" style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:10px"></div>
     <div id="community-reply-preview" style="display:none;padding:8px 20px 0;flex-shrink:0">
       <div style="background:var(--surf2);border-left:3px solid var(--cyan);border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:8px">
@@ -1701,9 +1702,22 @@ body.tk-maintenance #maintenance-gate{
       <div class="chatbtn2" style="padding:0;flex:0 0 auto;border-radius:50%;width:38px;height:38px;justify-content:center" onclick="document.getElementById('community-chat-photo-input').click()">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
       </div>
+      <div class="chatbtn2" style="padding:0;flex:0 0 auto;border-radius:50%;width:38px;height:38px;justify-content:center;font-size:16px" onclick="openCommunityPollForm()">📊</div>
       <textarea id="community-chat-input" placeholder="Topluluğa mesaj yaz... (@kullaniciadi ile etiketle)" rows="1" style="flex:1 1 auto;min-width:0;width:auto" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendCommunityMessage();}"></textarea>
       <button class="sbtn2" style="padding:10px 16px;width:auto;flex:0 0 auto;white-space:nowrap" onclick="sendCommunityMessage()">Gönder</button>
     </div>
+  </div>
+</div>
+
+<div class="mo" id="community-poll-mo" onclick="closemo('community-poll-mo')">
+  <div class="ms" onclick="event.stopPropagation()" style="max-height:85vh">
+    <div class="mh"></div>
+    <div class="mtit">📊 Anket Oluştur</div>
+    <div class="fg"><label class="fl">Soru</label><input class="fi" id="cpoll-question" placeholder="Ne sormak istiyorsun?" maxlength="150"></div>
+    <div id="cpoll-options"></div>
+    <div style="font-size:12px;color:var(--cyan);cursor:pointer;margin-top:4px" onclick="addCommunityPollOption()">+ Seçenek Ekle</div>
+    <div class="aerr" id="cpoll-err"></div>
+    <button class="sbtn2" onclick="submitCommunityPoll()">Anketi Gönder</button>
   </div>
 </div>
 
@@ -3087,6 +3101,9 @@ function computeBadges(uid, profileData, isTargetAdmin, scoreInfo) {
     { id:'vip', icon:'💎', label:'VIP', done: isVipActive(profileData) },
     { id:'trusted-seller', icon:'🤝', label:'Güvenilir Satıcı', done: isTrustedSellerActive(profileData) },
     { id:'referrer', icon:'🔗', label:'Referans Kahramanı', done: (scoreInfo.referralCount||0)>=5 },
+    // Ham mesaj SAYISINA değil, FARKLI GÜN sayısına dayanıyor (bkz. bumpCommunityActiveDays) — spam
+    // atarak kazanılamaz, gerçek bir "düzenli katılım" sinyali.
+    { id:'community-regular', icon:'🗨️', label:'Topluluk Üyesi', done: (profileData.communityActiveDaysCount||0)>=5 },
     { id:'admin', icon:'🛡️', label:'Yönetici', done: !!isTargetAdmin },
     { id:'10-sales', icon:'🏆', label:'10 Satış', done:false, locked:true, info:'Satış takip sistemi henüz aktif değil, veri oluşunca bu rozet otomatik açılacak.' },
   ];
@@ -3104,7 +3121,7 @@ function computeAuthorBadgeIcons() {
   if (getPrivacy(myProfileData).hideBadges) return [];
   const scoreInfo = computeTeknohaneScore(user.uid, myProfileData, marketMineLoaded ? marketMineListings : []);
   const badges = computeBadges(user.uid, myProfileData, isAdminNow(), scoreInfo);
-  const priority = ['admin','vip','trusted-seller','community-contributor','forum-member','verified'];
+  const priority = ['admin','vip','trusted-seller','community-contributor','community-regular','forum-member','verified'];
   const doneById = {};
   badges.forEach(b => { doneById[b.id] = b; });
   const icons = [];
@@ -6779,6 +6796,14 @@ async function forwardMsgTo(targetUid, targetName) {
 // YOK — moderasyon rapor+admin silme ile SONRADAN yapılır (bkz. openReportModal tip:'message').
 const COMMUNITY_CHAT_PAGE_SIZE = 50;
 const COMMUNITY_CHAT_RATE_LIMIT_MS = 2000;
+// Tepki (reaction) — sabit küçük bir emoji seti, tam emoji picker DEĞİL (WhatsApp/Telegram'ın
+// basılı-tut menüsüyle aynı basitlikte). Kişi başı TEK tepki (reactions: {uid: emoji} haritası).
+const COMMUNITY_REACTION_EMOJIS = ['👍','❤️','😂','😮','😢'];
+let activeReactionPickerMsgId = null;
+// Anket oyları — {msgId: optionId|null}; hangi anketlerin oy durumu zaten kontrol edildiğini
+// communityPollVoteChecked ayrı tutuyor (null ile "henüz kontrol edilmedi" ayrımı yapabilmek için).
+let communityMyPollVotes = {};
+let communityPollVoteChecked = new Set();
 // Alıntı/yanıtlama — WhatsApp'taki "quote reply" davranışının aynısı: bir mesajın üstündeki ↩️
 // ikonuna dokunulunca bu değişkende { id, uid, authorName, previewText } tutulur, gönderim sırasında
 // hem yeni mesaja hem de (kendi mesajına yanıt vermiyorsa) orijinal yazara giden bildirime eklenir.
@@ -6805,6 +6830,7 @@ function subscribeCommunityChatBadge() {
     communityMetaCache = snap.exists ? snap.data() : null;
     renderCommunityChatRowPreview();
     refreshChatHeaderBadge();
+    renderCommunityPinnedBar();
   }, () => {});
 }
 
@@ -6847,6 +6873,7 @@ function openCommunityChat() {
   closemo('chat-list-mo');
   document.getElementById('community-chat-mo').classList.add('on');
   markCommunityChatRead();
+  renderCommunityPinnedBar();
   if (!unsubCommunityMessages) {
     document.getElementById('community-chat-messages').innerHTML = `<div class="load" style="margin:auto"><div class="spin"></div></div>`;
     unsubCommunityMessages = db.collection('teknohane_community_messages')
@@ -6916,13 +6943,15 @@ function communityMsgBubbleHTML(m) {
   const avHtml = m.authorPhotoURL
     ? `<img src="${escapeHtml(m.authorPhotoURL)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%" loading="lazy" decoding="async">`
     : (m.authorName||'?')[0]?.toUpperCase();
-  const body = (m.imageUrl || m._localImagePreview)
+  const body = m.poll ? communityPollBlockHTML(m)
+    : (m.imageUrl || m._localImagePreview)
     ? `<img src="${escapeHtml(m.imageUrl || m._localImagePreview)}" alt="Gönderilen fotoğraf" ${m.imageUrl?`onclick="event.stopPropagation();openFullscreen('${escapeJsAttr(m.imageUrl)}')"`:''} style="max-width:100%;border-radius:10px;display:block;cursor:${m.imageUrl?'pointer':'default'};${m._status==='sending'?'opacity:.55':''}" loading="lazy" decoding="async">`
     : `<div>${communityMentionHTML(m.text)}</div>`;
   const nameJs = escapeJsAttr(m.authorName || 'Kullanıcı');
   const isLocal = String(m.id).startsWith('local_');
-  const replyPreviewJs = escapeJsAttr((m.text || (m.imageUrl || m._localImagePreview ? '📷 Fotoğraf' : '')).slice(0, 80));
+  const replyPreviewJs = escapeJsAttr((m.text || (m.imageUrl || m._localImagePreview ? '📷 Fotoğraf' : (m.poll ? '📊 ' + m.poll.question : ''))).slice(0, 80));
   const replyIcon = isLocal ? '' : `<span onclick="event.stopPropagation();startCommunityReply('${m.id}','${m.uid}','${nameJs}','${replyPreviewJs}')" style="cursor:pointer;opacity:.5" title="Yanıtla">↩️</span>`;
+  const reactIcon = isLocal ? '' : `<span onclick="event.stopPropagation();toggleCommunityReactionPicker('${m.id}')" style="cursor:pointer;opacity:.5" title="Tepki ver">😀</span>`;
   const actionIcon = mine
     ? (isLocal ? '' : `<span onclick="event.stopPropagation();deleteCommunityMessage('${m.id}')" style="cursor:pointer;opacity:.5" title="Sil">🗑️</span>`)
     : `<span onclick="event.stopPropagation();openReportModal('message','${m.id}','${escapeJsAttr((m.text||'Fotoğraf').slice(0,60))}','${m.uid}')" style="cursor:pointer;opacity:.5" title="Şikayet et">🚩</span>`;
@@ -6936,9 +6965,212 @@ function communityMsgBubbleHTML(m) {
       ${!mine?`<div style="font-size:11.5px;font-weight:700;color:var(--cyan);margin-bottom:2px;cursor:pointer" onclick="closemo('community-chat-mo');openPublicProfile('${m.uid}','${nameJs}')">${escapeHtml(m.authorName||'Kullanıcı')}${authorBadgesHTML(m.authorBadges)}${m.authorUsername?` <span style="font-weight:500;opacity:.65">@${escapeHtml(m.authorUsername)}</span>`:''}</div>`:''}
       ${replyQuoteHtml}
       ${body}
-      <div style="font-size:10px;opacity:.6;margin-top:3px;display:flex;align-items:center;justify-content:flex-end;gap:6px">${replyIcon}${actionIcon}${time}${m._status==='sending'?'<div class="msg-status-sending"></div>':m._status==='failed'?'⚠️':''}</div>
+      ${communityReactionsHTML(m)}
+      <div style="font-size:10px;opacity:.6;margin-top:3px;display:flex;align-items:center;justify-content:flex-end;gap:6px">${reactIcon}${replyIcon}${actionIcon}${time}${m._status==='sending'?'<div class="msg-status-sending"></div>':m._status==='failed'?'⚠️':''}</div>
     </div>
   </div>`;
+}
+
+// Balonun altına, tepkiler VARSA gruplanmış sayaç ("👍 3 ❤️ 1") + kendi tepkini kaldırmak için
+// tıklanabilir, YOKSA hiçbir şey eklenmiyor. Seçici (picker) yalnızca activeReactionPickerMsgId bu
+// mesaja eşitse render ediliyor — durum bir JS değişkeninde tutulduğu için gerçek-zamanlı
+// onSnapshot yeniden render'ları (renderCommunityMessages her tik'te TÜM listeyi yeniden çiziyor)
+// açık picker'ı KAPATMIYOR, tutarlı kalıyor.
+function communityReactionsHTML(m) {
+  const reactions = m.reactions || {};
+  const counts = {};
+  Object.values(reactions).forEach(e => { counts[e] = (counts[e]||0) + 1; });
+  const summary = Object.keys(counts).length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">
+    ${Object.entries(counts).map(([emoji,count]) => `<span onclick="event.stopPropagation();reactToCommunityMessage('${m.id}','${emoji}')" style="background:rgba(0,0,0,.18);border-radius:10px;padding:2px 7px;font-size:11.5px;cursor:pointer;${user&&reactions[user.uid]===emoji?'border:1px solid var(--cyan)':''}">${emoji} ${count}</span>`).join('')}
+  </div>` : '';
+  const picker = activeReactionPickerMsgId === m.id ? `<div style="display:flex;gap:8px;margin-top:6px;background:rgba(0,0,0,.18);border-radius:10px;padding:5px 8px;width:fit-content">
+    ${COMMUNITY_REACTION_EMOJIS.map(e => `<span onclick="event.stopPropagation();reactToCommunityMessage('${m.id}','${e}')" style="cursor:pointer;font-size:17px">${e}</span>`).join('')}
+  </div>` : '';
+  return summary + picker;
+}
+
+function toggleCommunityReactionPicker(msgId) {
+  activeReactionPickerMsgId = activeReactionPickerMsgId === msgId ? null : msgId;
+  renderCommunityMessages();
+}
+
+async function reactToCommunityMessage(msgId, emoji) {
+  if (!user) { gt('profile'); return; }
+  activeReactionPickerMsgId = null;
+  const m = communityMessages.find(x => x.id === msgId);
+  const current = m?.reactions?.[user.uid];
+  try {
+    await db.collection('teknohane_community_messages').doc(msgId).update({
+      [`reactions.${user.uid}`]: current === emoji ? firebase.firestore.FieldValue.delete() : emoji
+    });
+  } catch(e) { showErrorToast(e); }
+}
+
+// ==== TOPLULUK SOHBETİ — ANKET ====
+// Forum 2.0 planında tasarlanmış (hiç uygulanmamış) anket şemasının community chat'e uyarlanmış
+// hali: poll: {question, options:{a:{text},...}, votes:{a:0,...}, totalVotes} + kişi başı bir oy
+// için pollVotes/{uid} alt koleksiyonu (doküman ID uid olduğundan doğal tekillik garantisi).
+let communityPollDraftOptions = ['', ''];
+function openCommunityPollForm() {
+  if (!user) { gt('profile'); return; }
+  communityPollDraftOptions = ['', ''];
+  document.getElementById('cpoll-question').value = '';
+  const err = document.getElementById('cpoll-err'); err.textContent = ''; err.classList.remove('on');
+  renderCommunityPollOptionsInputs();
+  document.getElementById('community-poll-mo').classList.add('on');
+}
+function renderCommunityPollOptionsInputs() {
+  const wrap = document.getElementById('cpoll-options');
+  wrap.innerHTML = communityPollDraftOptions.map((v, i) => `
+    <div class="fg" style="display:flex;gap:8px;align-items:center">
+      <input class="fi" style="flex:1" data-copt="${i}" value="${escapeHtml(v)}" placeholder="Seçenek ${i+1}" oninput="communityPollDraftOptions[${i}]=this.value">
+      ${communityPollDraftOptions.length > 2 ? `<span onclick="removeCommunityPollOption(${i})" style="cursor:pointer;opacity:.6">✕</span>` : ''}
+    </div>`).join('');
+}
+function addCommunityPollOption() {
+  if (communityPollDraftOptions.length >= 6) return;
+  communityPollDraftOptions.push('');
+  renderCommunityPollOptionsInputs();
+}
+function removeCommunityPollOption(idx) {
+  if (communityPollDraftOptions.length <= 2) return;
+  communityPollDraftOptions.splice(idx, 1);
+  renderCommunityPollOptionsInputs();
+}
+async function submitCommunityPoll() {
+  const err = document.getElementById('cpoll-err'); err.textContent = ''; err.classList.remove('on');
+  const question = document.getElementById('cpoll-question').value.trim();
+  const optionTexts = communityPollDraftOptions.map(v => v.trim()).filter(Boolean);
+  if (!question) { err.textContent = 'Bir soru yazmalısın.'; err.classList.add('on'); return; }
+  if (optionTexts.length < 2) { err.textContent = 'En az 2 seçenek girmelisin.'; err.classList.add('on'); return; }
+  if (!checkCommunityChatRateLimit()) return;
+  const optionKeys = 'abcdef'.slice(0, optionTexts.length).split('');
+  const options = {}; const votes = {};
+  optionKeys.forEach((k, i) => { options[k] = { text: optionTexts[i] }; votes[k] = 0; });
+  const myName = myProfileData.displayName || user.displayName || user.email?.split('@')[0] || 'Kullanıcı';
+  const myUsername = myProfileData.username || null;
+  const myBadges = computeAuthorBadgeIcons();
+  try {
+    await db.collection('teknohane_community_messages').add({
+      uid: user.uid, authorName: myName, authorUsername: myUsername, authorPhotoURL: myProfileData.photoURL || null, authorBadges: myBadges,
+      poll: { question, options, votes, totalVotes: 0 }, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    db.collection('teknohane_users').doc(user.uid).set({ lastChatActionAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }).catch(()=>{});
+    db.collection('teknohane_community_meta').doc('room').set({
+      lastMessageAt: firebase.firestore.FieldValue.serverTimestamp(),
+      lastMessageText: '📊 ' + question, lastMessageAuthorName: myName
+    }, { merge: true }).catch(()=>{});
+    bumpCommunityActiveDays();
+    closemo('community-poll-mo');
+  } catch(e) { err.textContent = e.message || 'Anket gönderilemedi'; err.classList.add('on'); }
+}
+
+function communityPollBlockHTML(m) {
+  const poll = m.poll;
+  const myVote = communityMyPollVotes[m.id];
+  const total = poll.totalVotes || 0;
+  return `<div style="min-width:210px">
+    <div style="font-weight:700;margin-bottom:8px">${escapeHtml(poll.question||'')}</div>
+    ${Object.keys(poll.options).map(k => {
+      const opt = poll.options[k];
+      const optVotes = poll.votes?.[k] || 0;
+      const pct = total > 0 ? Math.round(optVotes/total*100) : 0;
+      const isMine = myVote === k;
+      return `<div style="cursor:pointer;margin-bottom:7px" onclick="event.stopPropagation();voteCommunityPoll('${m.id}','${k}')">
+        <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:3px;gap:6px">
+          <span style="font-weight:${isMine?'700':'500'};color:${isMine?'var(--cyan)':'inherit'}">${escapeHtml(opt.text)}${isMine?' ✓':''}</span>
+          <span style="opacity:.7;flex-shrink:0">${pct}%</span>
+        </div>
+        <div style="height:6px;border-radius:3px;background:rgba(255,255,255,.1);overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:var(--cyan);border-radius:3px"></div>
+        </div>
+      </div>`;
+    }).join('')}
+    <div style="font-size:11px;opacity:.6;margin-top:2px">${total} oy</div>
+  </div>`;
+}
+
+async function voteCommunityPoll(msgId, optionId) {
+  if (!user) { gt('profile'); return; }
+  const msgRef = db.collection('teknohane_community_messages').doc(msgId);
+  const voteRef = msgRef.collection('pollVotes').doc(user.uid);
+  try {
+    await db.runTransaction(async (tx) => {
+      const [msgSnap, voteSnap] = await Promise.all([tx.get(msgRef), tx.get(voteRef)]);
+      if (!msgSnap.exists || !msgSnap.data().poll) return;
+      const poll = msgSnap.data().poll;
+      const prevOption = voteSnap.exists ? voteSnap.data().optionId : null;
+      if (prevOption === optionId) {
+        // Aynı seçeneğe tekrar dokunmak = oyu geri çekmek.
+        tx.delete(voteRef);
+        tx.update(msgRef, {
+          [`poll.votes.${optionId}`]: Math.max(0, (poll.votes?.[optionId]||0) - 1),
+          'poll.totalVotes': Math.max(0, (poll.totalVotes||0) - 1),
+        });
+      } else {
+        const updates = {};
+        if (prevOption) updates[`poll.votes.${prevOption}`] = Math.max(0, (poll.votes?.[prevOption]||0) - 1);
+        updates[`poll.votes.${optionId}`] = (poll.votes?.[optionId]||0) + 1;
+        updates['poll.totalVotes'] = prevOption ? (poll.totalVotes||0) : (poll.totalVotes||0) + 1;
+        tx.set(voteRef, { optionId, votedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        tx.update(msgRef, updates);
+      }
+    });
+    communityMyPollVotes[msgId] = communityMyPollVotes[msgId] === optionId ? null : optionId;
+    renderCommunityMessages();
+  } catch(e) { showErrorToast(e); }
+}
+
+// Sohbet ilk açıldığında/yeni anket mesajları geldiğinde, o ana kadar bu oturumda hiç kontrol
+// edilmemiş anketler için "bu kullanıcı daha önce oy verdi mi" tek seferlik okunuyor (pollVotes
+// herkese açık okunabiliyor). communityPollVoteChecked, AYNI anketi tekrar tekrar sorgulamayı önlüyor.
+async function ensureCommunityPollVotesLoaded() {
+  if (!user) return;
+  const toCheck = communityMessages.filter(m => m.poll && !communityPollVoteChecked.has(m.id));
+  if (!toCheck.length) return;
+  toCheck.forEach(m => communityPollVoteChecked.add(m.id));
+  const results = await Promise.all(toCheck.map(m =>
+    db.collection('teknohane_community_messages').doc(m.id).collection('pollVotes').doc(user.uid).get()
+      .then(snap => ({ id: m.id, optionId: snap.exists ? snap.data().optionId : null }))
+      .catch(() => ({ id: m.id, optionId: null }))
+  ));
+  let changed = false;
+  results.forEach(r => { if (r.optionId) { communityMyPollVotes[r.id] = r.optionId; changed = true; } });
+  if (changed) renderCommunityMessages();
+}
+
+// ==== TOPLULUK SOHBETİ — SABİTLENMİŞ MESAJ ====
+// Tek seferde yalnızca BİR mesaj sabit kalabiliyor — teknohane_community_meta/room üzerinde
+// (mesajın kendisinde DEĞİL), bu yüzden yeni bir sabitleme eskisinin üzerine otomatik yazıyor.
+// communityMetaCache zaten subscribeCommunityChatBadge() ile canlı güncelleniyor, buraya ek bir
+// dinleyici GEREKMİYOR.
+function renderCommunityPinnedBar() {
+  const el = document.getElementById('community-pinned-bar');
+  if (!el) return;
+  if (!communityMetaCache?.pinnedMessageId) { el.innerHTML = ''; return; }
+  el.innerHTML = `<div style="display:flex;align-items:center;gap:8px;padding:8px 20px;background:var(--cdim);border-bottom:1px solid var(--border2);cursor:pointer" onclick="scrollToCommunityMessage('${communityMetaCache.pinnedMessageId}')">
+    <span style="flex-shrink:0">📌</span>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:11px;font-weight:700;color:var(--cyan)">${escapeHtml(communityMetaCache.pinnedMessageAuthorName||'')}</div>
+      <div style="font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(communityMetaCache.pinnedMessageText||'')}</div>
+    </div>
+    ${hasPermission('manageComplaints') ? `<span onclick="event.stopPropagation();unpinCommunityMessage()" style="cursor:pointer;opacity:.6;flex-shrink:0">✕</span>` : ''}
+  </div>`;
+}
+function scrollToCommunityMessage(msgId) {
+  const el = document.querySelector(`[data-mid="${msgId}"]`);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+async function unpinCommunityMessage() {
+  if (!hasPermission('manageComplaints')) return;
+  try {
+    await db.collection('teknohane_community_meta').doc('room').set({
+      pinnedMessageId: firebase.firestore.FieldValue.delete(),
+      pinnedMessageText: firebase.firestore.FieldValue.delete(),
+      pinnedMessageAuthorName: firebase.firestore.FieldValue.delete(),
+      pinnedAt: firebase.firestore.FieldValue.delete(),
+    }, { merge: true });
+  } catch(e) { showErrorToast(e); }
 }
 
 function renderCommunityMessages() {
@@ -6951,6 +7183,7 @@ function renderCommunityMessages() {
     console.error('Topluluk sohbeti render hatası:', e);
     box.innerHTML = `<div class="no" style="margin:auto">Mesajlar gösterilirken bir sorun oluştu.<br><span style="font-size:12px;color:var(--text3);cursor:pointer;text-decoration:underline" onclick="renderCommunityMessages()">Tekrar dene</span></div>`;
   }
+  ensureCommunityPollVotesLoaded();
 }
 
 function checkCommunityChatRateLimit() {
@@ -6960,6 +7193,19 @@ function checkCommunityChatRateLimit() {
     return false;
   }
   return true;
+}
+
+// computeBadges()'daki 'community-regular' rozeti için — ham mesaj SAYISINA değil, kaç FARKLI
+// GÜNDE konuştuğuna dayanıyor: aynı gün içinde kaç mesaj atılırsa atılsın sayaç yalnızca bir kez
+// artıyor, bu yüzden spam mesaj atmak rozeti hızlandırmıyor.
+function bumpCommunityActiveDays() {
+  if (!user || !myProfileData) return;
+  const today = new Date().toISOString().slice(0, 10);
+  if (myProfileData.communityLastActiveDate === today) return;
+  const newCount = (myProfileData.communityActiveDaysCount || 0) + 1;
+  myProfileData.communityLastActiveDate = today;
+  myProfileData.communityActiveDaysCount = newCount;
+  db.collection('teknohane_users').doc(user.uid).set({ communityLastActiveDate: today, communityActiveDaysCount: newCount }, { merge: true }).catch(()=>{});
 }
 
 async function sendCommunityMessage() {
@@ -6992,6 +7238,7 @@ async function sendCommunityMessage() {
       lastMessageAt: firebase.firestore.FieldValue.serverTimestamp(),
       lastMessageText: text.slice(0, 60), lastMessageAuthorName: myName
     }, { merge: true }).catch(()=>{});
+    bumpCommunityActiveDays();
     // Bildirim KASITLI olarak yalnızca gerçek bir @kullaniciadi eşleşmesi VEYA bir alıntı/yanıt
     // bulunursa gidiyor — hiçbir durumda odadaki herkese/tüm mesajlarda push atılmıyor (bkz. görev raporu).
     extractMentionsByUsername(text).then(mentions => {
@@ -7038,6 +7285,7 @@ async function sendCommunityImage(input) {
       lastMessageAt: firebase.firestore.FieldValue.serverTimestamp(),
       lastMessageText: '📷 Fotoğraf', lastMessageAuthorName: myName
     }, { merge: true }).catch(()=>{});
+    bumpCommunityActiveDays();
     if (replyTo && replyTo.uid && replyTo.uid !== user.uid) {
       notifyUser(replyTo.uid, 'community_reply', `${myName} mesajına yanıt verdi: 📷 Fotoğraf`, null, null, user.uid, myName, myProfileData.photoURL);
     }
