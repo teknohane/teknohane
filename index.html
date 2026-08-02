@@ -116,7 +116,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
    bitene kadar (.32s) görünmez tutulup öyle gösteriliyor; kullanıcı zaten bu kadar hızlı kaydıramaz. */
 @keyframes notifSwipeDelIn{to{opacity:1;}}
 .notif-swipe-wrap .notif-item{position:relative;background:var(--bg2);touch-action:pan-y;}
-.msg-bubble{border-radius:14px;position:relative;background:var(--bg2);}
+.msg-bubble{border-radius:14px;position:relative;background:var(--bg2);min-width:0;max-width:100%;}
 /* Sohbet ekranı: mesaj listesi tam bağımsız kayabilsin, alt input her zaman sabit kalsın */
 #chat-thread-mo{align-items:stretch;background:var(--bg);backdrop-filter:none;-webkit-backdrop-filter:none;}
 #chat-thread-mo .det-sheet{overflow:hidden;display:flex;flex-direction:column;max-height:100dvh;height:100dvh;border-radius:0;border-top:none;animation:detpage .25s ease;}
@@ -1715,7 +1715,7 @@ body.tk-maintenance #maintenance-gate{
       <div style="font-size:11px;color:var(--cyan);cursor:pointer;flex-shrink:0;white-space:nowrap" onclick="openCommunityRulesInfo()">📌 Kurallar</div>
     </div>
     <div id="community-pinned-bar"></div>
-    <div id="community-chat-messages" style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:10px"></div>
+    <div id="community-chat-messages" style="flex:1;overflow-y:auto;overflow-x:hidden;padding:16px 20px;display:flex;flex-direction:column;gap:10px"></div>
     <div id="community-reply-preview" style="display:none;padding:8px 20px 0;flex-shrink:0">
       <div style="background:var(--surf2);border-left:3px solid var(--cyan);border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:8px">
         <div style="flex:1;min-width:0">
@@ -6994,7 +6994,7 @@ function communityMsgBubbleHTML(m) {
       ${replyQuoteHtml}
       ${body}
       ${communityReactionsHTML(m)}
-      <div style="margin-top:3px;display:flex;align-items:center;justify-content:flex-end;gap:6px">${reactIcon}${replyIcon}${actionIcon}<span style="font-size:10px;opacity:.6">${time}${m._status==='sending'?'<div class="msg-status-sending"></div>':m._status==='failed'?'⚠️':''}</span></div>
+      <div style="margin-top:3px;display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px">${reactIcon}${replyIcon}${actionIcon}<span style="font-size:10px;opacity:.6">${time}${m._status==='sending'?'<div class="msg-status-sending"></div>':m._status==='failed'?'⚠️':''}</span></div>
     </div>
   </div>`;
 }
@@ -7011,7 +7011,7 @@ function communityReactionsHTML(m) {
   const summary = Object.keys(counts).length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">
     ${Object.entries(counts).map(([emoji,count]) => `<span onclick="event.stopPropagation();reactToCommunityMessage('${m.id}','${emoji}')" style="background:rgba(0,0,0,.18);border-radius:10px;padding:2px 7px;font-size:11.5px;cursor:pointer;${user&&reactions[user.uid]===emoji?'border:1px solid var(--cyan)':''}">${emoji} ${count}</span>`).join('')}
   </div>` : '';
-  const picker = activeReactionPickerMsgId === m.id ? `<div style="display:flex;gap:8px;margin-top:6px;background:rgba(0,0,0,.18);border-radius:10px;padding:5px 8px;width:fit-content">
+  const picker = activeReactionPickerMsgId === m.id ? `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;background:rgba(0,0,0,.18);border-radius:10px;padding:5px 8px;max-width:100%">
     ${COMMUNITY_REACTION_EMOJIS.map(e => `<span onclick="event.stopPropagation();reactToCommunityMessage('${m.id}','${e}')" style="cursor:pointer;font-size:17px">${e}</span>`).join('')}
   </div>` : '';
   return summary + picker;
