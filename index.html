@@ -877,6 +877,12 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .pool-badge{font-size:13px;font-weight:700;color:var(--cyan);}
 .pool-info-q{width:20px;height:20px;border-radius:50%;background:var(--surf2);color:var(--text2);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;}
 .pool-buy-btn{width:100%;background:var(--cyan);color:#000;font-size:14px;font-weight:700;padding:12px;border-radius:12px;border:none;cursor:pointer;font-family:inherit;margin-top:10px;}
+/* Sohbet mesaj balonu eylem butonları (yanıtla/tepki/şikayet-sil) — düz opacity:.5 span yerine
+   .pool-info-q'nun dairesel-buton dilinden esinlenilmiş, ama balon arkaplanlarıyla (var(--cdim)/
+   var(--surf2)) aynı renk ailesine düşmemesi için yarı saydam BEYAZ overlay kullanılıyor, böylece
+   hem kendi mesajlarımda hem başkalarının mesajlarında kontrast garanti oluyor. */
+.msg-action-btn{width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.1);color:var(--text2);font-size:12.5px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;transition:transform .15s ease,background .15s ease;}
+.msg-action-btn:active{transform:scale(.88);background:rgba(255,255,255,.18);}
 /* Sohbet banner'ı (eskiden Mesajlar listesindeki gömülü satır, Forum'un üstüne taşındı) — Sohbet'in
    marka rengiyle (🌐 ikonunun AYNI gradient'i) tutarlı, Forum'daki diğer kartlardan BİLİNÇLİ olarak
    daha öne çıkan (gradient dolgu, beyaz metin) bir tasarım. */
@@ -6970,11 +6976,11 @@ function communityMsgBubbleHTML(m) {
   const nameJs = escapeJsAttr(m.authorName || 'Kullanıcı');
   const isLocal = String(m.id).startsWith('local_');
   const replyPreviewJs = escapeJsAttr((m.text || (m.imageUrl || m._localImagePreview ? '📷 Fotoğraf' : (m.poll ? '📊 ' + m.poll.question : ''))).slice(0, 80));
-  const replyIcon = isLocal ? '' : `<span onclick="event.stopPropagation();startCommunityReply('${m.id}','${m.uid}','${nameJs}','${replyPreviewJs}')" style="cursor:pointer;opacity:.5" title="Yanıtla">↩️</span>`;
-  const reactIcon = isLocal ? '' : `<span onclick="event.stopPropagation();toggleCommunityReactionPicker('${m.id}')" style="cursor:pointer;opacity:.5" title="Tepki ver">😀</span>`;
+  const replyIcon = isLocal ? '' : `<span class="msg-action-btn msg-reply-icon" onclick="event.stopPropagation();startCommunityReply('${m.id}','${m.uid}','${nameJs}','${replyPreviewJs}')" title="Yanıtla">↩️</span>`;
+  const reactIcon = isLocal ? '' : `<span class="msg-action-btn" onclick="event.stopPropagation();toggleCommunityReactionPicker('${m.id}')" title="Tepki ver">😀</span>`;
   const actionIcon = mine
-    ? (isLocal ? '' : `<span onclick="event.stopPropagation();deleteCommunityMessage('${m.id}')" style="cursor:pointer;opacity:.5" title="Sil">🗑️</span>`)
-    : `<span onclick="event.stopPropagation();openReportModal('message','${m.id}','${escapeJsAttr((m.text||'Fotoğraf').slice(0,60))}','${m.uid}')" style="cursor:pointer;opacity:.5" title="Şikayet et">🚩</span>`;
+    ? (isLocal ? '' : `<span class="msg-action-btn" onclick="event.stopPropagation();deleteCommunityMessage('${m.id}')" title="Sil">🗑️</span>`)
+    : `<span class="msg-action-btn" onclick="event.stopPropagation();openReportModal('message','${m.id}','${escapeJsAttr((m.text||'Fotoğraf').slice(0,60))}','${m.uid}')" title="Şikayet et">🚩</span>`;
   const replyQuoteHtml = m.replyTo ? `<div style="background:rgba(0,0,0,.18);border-left:2px solid var(--cyan);border-radius:6px;padding:5px 8px;margin-bottom:5px;font-size:12px;opacity:.9">
       <div style="font-weight:700;color:var(--cyan)">${escapeHtml(m.replyTo.authorName||'Kullanıcı')}</div>
       <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(m.replyTo.previewText||'')}</div>
@@ -6986,7 +6992,7 @@ function communityMsgBubbleHTML(m) {
       ${replyQuoteHtml}
       ${body}
       ${communityReactionsHTML(m)}
-      <div style="font-size:10px;opacity:.6;margin-top:3px;display:flex;align-items:center;justify-content:flex-end;gap:6px">${reactIcon}${replyIcon}${actionIcon}${time}${m._status==='sending'?'<div class="msg-status-sending"></div>':m._status==='failed'?'⚠️':''}</div>
+      <div style="margin-top:3px;display:flex;align-items:center;justify-content:flex-end;gap:6px">${reactIcon}${replyIcon}${actionIcon}<span style="font-size:10px;opacity:.6">${time}${m._status==='sending'?'<div class="msg-status-sending"></div>':m._status==='failed'?'⚠️':''}</span></div>
     </div>
   </div>`;
 }
@@ -7199,11 +7205,65 @@ function renderCommunityMessages() {
   if (!communityMessages.length) { box.innerHTML = `<div class="no" style="margin:auto">Henüz mesaj yok, ilk mesajı sen yaz!</div>`; return; }
   try {
     box.innerHTML = communityMessages.map(communityMsgBubbleHTML).join('');
+    attachCommunitySwipeReply(box);
   } catch(e) {
     console.error('Topluluk sohbeti render hatası:', e);
     box.innerHTML = `<div class="no" style="margin:auto">Mesajlar gösterilirken bir sorun oluştu.<br><span style="font-size:12px;color:var(--text3);cursor:pointer;text-decoration:underline" onclick="renderCommunityMessages()">Tekrar dene</span></div>`;
   }
   ensureCommunityPollVotesLoaded();
+}
+
+// WhatsApp tarzı sağa-kaydır-yanıtla — attachChatSwipeDelete'deki (DM sohbet listesi, sola-kaydır-sil)
+// AYNI dokunma-olayı/transform/eşik desenini kullanır, ama: yön TERS (sağa), hedef balon (liste
+// satırı değil), eylem yıkıcı olmadığı için onay diyaloğu YOK. Balonun içindeki (zaten var olan,
+// gizlice render edilen) yanıtla ikonunun onclick'i tetiklenir — startCommunityReply çağrısı burada
+// TEKRAR YAZILMAZ, ikonun kendi (zaten doğru escape'lenmiş) argümanları aynen kullanılır.
+function attachCommunitySwipeReply(box) {
+  const SWIPE_THRESHOLD = 60, SWIPE_MAX = 80;
+  box.querySelectorAll('[data-mid]').forEach(wrap => {
+    const bubble = wrap.querySelector('.msg-bubble');
+    if (!bubble) return;
+    let startX = 0, startY = 0, dx = 0, dragging = false, hint = null;
+    bubble.addEventListener('touchstart', e => {
+      startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+      dragging = true; dx = 0; bubble.style.transition = 'none';
+    }, { passive: true });
+    bubble.addEventListener('touchmove', e => {
+      if (!dragging) return;
+      const moveX = e.touches[0].clientX - startX;
+      const moveY = e.touches[0].clientY - startY;
+      // Dikey kaydırma (mesaj listesini yukarı/aşağı gezme) ile karışmasın diye yalnızca
+      // belirgin biçimde YATAY hareketler yanıtlama kaydırması olarak işleniyor.
+      if (Math.abs(moveY) > Math.abs(moveX)) return;
+      if (moveX <= 0) { dx = 0; bubble.style.transform = ''; return; }
+      dx = Math.min(moveX, SWIPE_MAX);
+      bubble.style.transform = `translateX(${dx}px)`;
+      if (!hint) {
+        hint = document.createElement('span');
+        hint.textContent = '↩️';
+        hint.style.cssText = 'position:absolute;font-size:15px;pointer-events:none;';
+        wrap.style.position = wrap.style.position || 'relative';
+        wrap.insertBefore(hint, wrap.firstChild);
+      }
+      const mine = wrap.style.flexDirection === 'row-reverse';
+      hint.style.left = mine ? 'auto' : '2px';
+      hint.style.right = mine ? '2px' : 'auto';
+      hint.style.top = '50%';
+      hint.style.transform = 'translateY(-50%)';
+      hint.style.opacity = String(Math.min(dx / SWIPE_THRESHOLD, 1));
+    }, { passive: true });
+    bubble.addEventListener('touchend', () => {
+      dragging = false;
+      bubble.style.transition = 'transform .2s ease';
+      bubble.style.transform = '';
+      if (hint) { hint.remove(); hint = null; }
+      if (dx >= SWIPE_THRESHOLD) {
+        const replyBtn = wrap.querySelector('.msg-reply-icon');
+        if (replyBtn) replyBtn.click();
+      }
+      dx = 0;
+    });
+  });
 }
 
 function checkCommunityChatRateLimit() {
