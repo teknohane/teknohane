@@ -4613,7 +4613,7 @@ const NOTIF_TYPE_CATEGORY = {
   admin_notification: 'system', admin_warning: 'system', complaint_update: 'system',
   new_message: 'messages', community_mention: 'messages', community_reply: 'messages',
   pool_request: 'market', pool_reply: 'market',
-  pool_accepted: 'market', pool_declined: 'market', pool_shipped: 'market', pool_completed: 'market', pool_cancelled: 'market',
+  pool_accepted: 'market', pool_declined: 'market', pool_shipped: 'market', pool_completed: 'market', pool_cancelled: 'market', pool_payment_confirmed: 'market',
   offer_received: 'market', offer_response: 'market',
 };
 
@@ -5014,18 +5014,27 @@ function poolRequestSellerItemHTML(r) {
       <button class="apbtn" style="background:rgba(255,69,58,.1);border-color:rgba(255,69,58,.3);color:var(--red);margin-top:0;flex:1" onclick="declinePoolRequest('${r.id}')">Reddet</button>
     </div>`,
     accepted: `<div style="display:flex;gap:8px;margin-top:8px">
-      <button class="apbtn" style="margin-top:0;flex:1" onclick="shipPoolRequest('${r.id}')">📦 Kargoya Verildi</button>
-      <button class="apbtn" style="background:rgba(255,69,58,.1);border-color:rgba(255,69,58,.3);color:var(--red);margin-top:0" onclick="cancelPoolRequestBySeller('${r.id}')">Vazgeç</button>
+      <button class="apbtn" style="background:rgba(255,69,58,.1);border-color:rgba(255,69,58,.3);color:var(--red);margin-top:0;flex:1" onclick="cancelPoolRequestBySeller('${r.id}')">Vazgeç</button>
     </div>`,
     shipped: `<div style="display:flex;gap:8px;margin-top:8px">
       <button class="apbtn" style="background:rgba(255,69,58,.1);border-color:rgba(255,69,58,.3);color:var(--red);margin-top:0;flex:1" onclick="cancelPoolRequestBySeller('${r.id}')">Vazgeç</button>
     </div>`,
   }[r.status] || '';
+  // "Kargoya verildi" artık satıcının kendi beyanıyla değil, yalnızca yöneticinin sağladığı kargo
+  // koduyla (Yönetim Paneli → Havuz) tetikleniyor — bu yüzden accepted durumunda satıcıya ödeme/kargo
+  // kodu aşamasının neresinde olunduğu bir bilgi satırıyla gösteriliyor, kendi kendine işlem
+  // yapabileceği bir buton YOK.
+  const stageInfo = r.status === 'accepted'
+    ? (r.paymentConfirmed
+        ? `<div class="pacc-row"><span class="pacc-lbl">Aşama</span><span class="pacc-val">✓ Ödeme onaylandı — kargo kodu hazırlanıyor</span></div>`
+        : `<div class="pacc-row"><span class="pacc-lbl">Aşama</span><span class="pacc-val">💳 Ödeme onayı bekleniyor</span></div>`)
+    : '';
   return `<div class="pacc-card" style="margin-top:8px">
     <div class="pacc-row"><span class="pacc-lbl">Alıcı</span><span class="pacc-val">${escapeHtml(r.buyerName)} · ${escapeHtml(r.buyerPhone)}</span></div>
     <div class="pacc-row"><span class="pacc-lbl">Tutar</span><span class="pacc-val">₺${(r.amount||0).toLocaleString('tr-TR')}</span></div>
     <div class="pacc-row"><span class="pacc-lbl">Talep</span><span class="pacc-val">${escapeHtml(r.buyerMessage)}</span></div>
-    ${r.trackingInfo ? `<div class="pacc-row"><span class="pacc-lbl">Kargo</span><span class="pacc-val">${escapeHtml(r.trackingInfo)}</span></div>` : ''}
+    ${stageInfo}
+    ${r.trackingInfo ? `<div class="pacc-row"><span class="pacc-lbl">Kargo Kodu</span><span class="pacc-val">${escapeHtml(r.trackingInfo)}</span></div>` : ''}
     <div class="pacc-row"><span class="pacc-lbl">Durum</span><span class="pacc-val">${POOL_STATUS_LABELS[r.status]||r.status}</span></div>
     <div class="pacc-row"><span class="pacc-lbl">Tarih</span><span class="pacc-val">${dateStr}</span></div>
     ${actions}
@@ -5062,21 +5071,6 @@ async function declinePoolRequest(requestId) {
     r.status = 'declined';
     renderListingPoolRequests();
     showToast('✓', 'rgba(255,69,58,.15)', 'Reddedildi', 'Alıcıya bildirim gönderildi.');
-  } catch(e) { showErrorToast(e); }
-}
-
-async function shipPoolRequest(requestId) {
-  const r = listingPoolRequestsCache.find(x => x.id === requestId);
-  if (!r) return;
-  const trackingInfo = (prompt('Kargo firması / takip numarası:', '') || '').trim().slice(0, 299);
-  if (!trackingInfo) return;
-  try {
-    await db.collection('teknohane_pool_requests').doc(requestId).update({ status: 'shipped', shippedAt: firebase.firestore.FieldValue.serverTimestamp(), trackingInfo });
-    const sellerName = myProfileData.displayName || user.displayName || 'Satıcı';
-    await notifyUser(r.buyerUid, 'pool_shipped', `${sellerName}, "${r.listingModel}" ürününü kargoya verdi: ${trackingInfo}`, r.listingId, null, user.uid, sellerName, myProfileData.photoURL);
-    r.status = 'shipped'; r.trackingInfo = trackingInfo;
-    renderListingPoolRequests();
-    showToast('📦', 'rgba(0,212,255,.15)', 'Kargoya Verildi', 'Alıcıya bildirim gönderildi.');
   } catch(e) { showErrorToast(e); }
 }
 
@@ -5130,7 +5124,9 @@ function renderMyPoolRequest(listingId) {
     bodyHtml = `<div style="font-size:12px;color:var(--text3);margin:6px 0">Talebin satıcıya iletildi, yanıtını bekliyoruz.</div>
       <button class="apbtn" style="background:rgba(255,69,58,.1);border-color:rgba(255,69,58,.3);color:var(--red)" onclick="cancelPoolRequestByBuyer('${r.id}')">Talebi İptal Et</button>`;
   } else if (r.status === 'accepted') {
-    bodyHtml = `<div style="font-size:12px;color:var(--text3);margin:6px 0">Satıcı kabul etti, kargoya vermesini bekliyoruz.</div>`;
+    bodyHtml = r.paymentConfirmed
+      ? `<div style="font-size:12px;color:var(--text3);margin:6px 0">✓ Ödemen onaylandı, kargo kodu hazırlanıyor.</div>`
+      : `<div style="font-size:12px;color:var(--text3);margin:6px 0">Satıcı kabul etti. Ödeme ve teslimat detayları için ekibimiz seninle iletişime geçecek — bildirimlerini takip et.</div>`;
   } else if (r.status === 'shipped') {
     bodyHtml = `<div style="font-size:12px;color:var(--text3);margin:6px 0">📦 Kargoda: ${escapeHtml(r.trackingInfo||'')}</div>
       <button class="apbtn" onclick="confirmPoolReceipt('${r.id}')">Teslim Aldım, Onaylıyorum</button>`;
@@ -5579,6 +5575,7 @@ const NOTIF_ICONS = {
   pool_shipped: { ic: '📦', bg: 'rgba(0,212,255,.12)' },
   pool_completed: { ic: '🎉', bg: 'rgba(48,209,88,.15)' },
   pool_cancelled: { ic: '🚫', bg: 'rgba(142,142,147,.15)' },
+  pool_payment_confirmed: { ic: '💳', bg: 'rgba(48,209,88,.15)' },
   offer_received: { ic: '🤝', bg: 'rgba(0,212,255,.12)' },
   offer_response: { ic: '🤝', bg: 'rgba(48,209,88,.15)' },
   followed_new_listing: { ic: '📦', bg: 'rgba(0,212,255,.12)' },
@@ -7105,6 +7102,18 @@ function handleSharedListingLink() {
   if (!sharedId) return;
   gt('market');
   setTimeout(() => openDetail(sharedId), 50);
+}
+
+// Yönetim panelindeki "💬 Alıcıyla/Satıcıyla Yazış" bağlantıları (${APP_URL}?chat=<uid>) için —
+// navigateFromNotificationUrl'deki ?chat= çözümü yalnızca push bildirimine dokunulduğunda çalışıyordu,
+// bu da düz bir linkle SOĞUK açılışta hiç ele alınmıyordu. AYNI "kullanıcı henüz hazır değilse
+// yeniden dene" deseni (bkz. navigateFromNotificationUrl, chatUid dalı) burada da uygulanıyor.
+function handleSharedChatLink(attempt) {
+  const chatUid = new URLSearchParams(location.search).get('chat');
+  if (!chatUid) return;
+  attempt = attempt || 0;
+  if (!user) { if (attempt < 10) setTimeout(() => handleSharedChatLink(attempt+1), 400); return; }
+  openChatWith(chatUid, '');
 }
 
 // İlan süresi dolunca sahibine bildirim — GERÇEK ZAMANLI/ANLIK değil (yeni bir sunucu taraflı
@@ -13226,6 +13235,7 @@ async function tkCheckForContentUpdate() {
 initTheme();
 rhome();
 handleSharedListingLink();
+handleSharedChatLink();
 loadSystemSettings().then(initAdMobIfEnabled);
 loadDirectAds();
 setTimeout(() => loadExtraPhones(), 3000); // arka planda, sayfa yüklenip biraz sakinleştikten sonra
