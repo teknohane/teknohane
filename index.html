@@ -2938,6 +2938,7 @@ auth.onAuthStateChanged(u => {
     document.getElementById('hbell').style.display = 'flex';
     document.getElementById('hchat').style.display = 'flex';
     renderHeaderAvatar(); // 'profile' henüz stale — nötr durumda kalır, eski Auth fotoğrafı gösterilmez
+    refreshHomeGreetingName(); // Ana ekran zaten render edilmişse (soğuk başlatma yarışı), isim şimdi tamamlanır
 
     // UI'ı hemen güncelle, Firestore işlemlerini bekleme — rlistings/checkMyExpiredListings artık
     // kendi hazır olma durumunu kendisi yönetiyor (bkz. marketAllLoadedOnce/marketMineLoaded),
@@ -3000,6 +3001,7 @@ async function syncUserProfile(u) {
     checkBanStatus(); // ban kontrolü mümkün olan en erken noktada, diğer her şeyden önce
     rlistings(); // favoriler geldi, listeyi güncelle (kalp ikonları doğru görünsün)
     renderHeaderAvatar(); // eski Auth fotoğrafı değil, artık gerçek Firestore verisiyle
+    refreshHomeGreetingName(); // Firestore'daki gerçek displayName ile ana ekran selamlamasını tamamla
     requestProfileRerender();
 
     // Son görülme ve bu cihazın oturum kaydı: throttle'a tabi DEĞİL, her girişte güncellenir
@@ -11831,9 +11833,21 @@ async function loadHomeGreeting() {
     if (n) countLine = `<div style="font-size:13px;opacity:.92;margin-top:6px">Bugün Pazar'a ${n} yeni ilan eklendi</div>`;
   } catch(e) {}
   el.innerHTML = `<div class="home-greeting-card">
-    <div style="font-weight:800;font-size:19px;letter-spacing:-.3px">👋 Hoş Geldin${firstName ? ' ' + escapeHtml(firstName) : ''}</div>
+    <div id="home-greeting-name" style="font-weight:800;font-size:19px;letter-spacing:-.3px">👋 Hoş Geldin${firstName ? ' ' + escapeHtml(firstName) : ''}</div>
     ${countLine}
   </div>`;
+}
+
+// KÖK NEDEN DÜZELTMESİ: soğuk başlatmada rhome()/loadHomeGreeting() genellikle Firebase Auth
+// oturumu geri yüklenmeden (user/myProfileData henüz boşken) çalışıyordu — "Hoş Geldin" isimsiz
+// görünüyor, sayfa yenilenince (o an auth zaten hazır olduğu için) isim doğru çıkıyordu. Auth/profil
+// verisi hazır olduğunda bu fonksiyon YENİDEN bir Firestore sorgusu YAPMADAN (yalnızca DOM metnini
+// güncelleyerek) isim kısmını tamamlıyor — bugünkü ilan sayacı tekrar çekilmiyor.
+function refreshHomeGreetingName() {
+  const nameEl = document.getElementById('home-greeting-name');
+  if (!nameEl) return;
+  const firstName = (myProfileData?.displayName || user?.displayName || '').trim().split(' ')[0];
+  nameEl.textContent = firstName ? `👋 Hoş Geldin ${firstName}` : '👋 Hoş Geldin';
 }
 
 // Trendler — GERÇEK bir kullanım-popülerliği verisi yok (bkz. trackCompareUsage, yalnızca kişisel
