@@ -190,6 +190,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .tab.on svg{stroke:var(--cyan);width:24px;height:24px;}
 .tab.on span{color:var(--cyan);}
 .tab.on .tco{background:var(--cdim);transform:scale(1.08);box-shadow:0 0 14px var(--cglow);}
+.tab:active .tco{transform:scale(.88);}
+.tab.on:active .tco{transform:scale(.96);}
 
 /* SCREENS */
 #screens{flex:1;overflow:hidden;position:relative;margin-top:calc(var(--st) + 58px);margin-bottom:calc(var(--tab) + var(--sb));}
@@ -202,6 +204,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 /* UTILS */
 .sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
 .st{font-size:20px;font-weight:700;letter-spacing:-.4px;}
+/* Ana ekran bölüm başlıklarındaki emoji ikonları — çıplak karakterler farklı glif oranları
+   yüzünden aynı font-size'da bile göze farklı boyutta/hizada görünüyordu. Sabit genişlikli bir
+   kutuya alınıp tek bir font-size'a sabitlenerek başlıklar arası tutarlılık sağlanıyor. */
+.sh-ic{display:inline-block;width:24px;text-align:center;font-size:18px;vertical-align:-3px;}
 .sl{font-size:13px;font-weight:500;color:var(--cyan);cursor:pointer;}
 .glow{height:1px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);margin:20px 0;opacity:.3;}
 .spin{width:28px;height:28px;border:2px solid var(--border);border-top-color:var(--cyan);border-radius:50%;animation:spin .8s linear infinite;}
@@ -232,6 +238,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .vlist{display:flex;flex-direction:column;gap:12px;}
 .vc{display:flex;gap:12px;background:var(--surf);border-radius:16px;overflow:hidden;border:1px solid var(--border2);cursor:pointer;}
 .vc:active{background:var(--surf2);}
+/* Haber listesine serpiştirilen "Haftanın Popüler Konusu" kartı — .vc'nin AYNI yerleşimi, yalnızca
+   ince bir cyan vurgu ile ayırt ediliyor (yeni bir kart dili icat edilmedi). */
+.news-highlight-card{border-color:rgba(0,212,255,.3);background:linear-gradient(90deg,rgba(0,212,255,.07),transparent 65%),var(--surf);}
+.news-highlight-card .vth{background:var(--cdim);}
 .vth{position:relative;width:120px;min-width:120px;aspect-ratio:16/9;background:var(--surf2);}
 .vth img{width:100%;height:100%;object-fit:cover;display:block;}
 .vd{position:absolute;bottom:5px;right:5px;background:rgba(0,0,0,.85);color:#fff;font-size:10px;font-weight:600;padding:2px 5px;border-radius:4px;}
@@ -892,10 +902,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
    (cyan glow gölge + 24px alt boşluk ritmi) — vitrin hissi için tüm ana sayfa kartları bu tek
    ritme (24px) hizalanıyor. */
 .home-greeting-card{background:linear-gradient(135deg,#00D4FF,#0091FF);border-radius:18px;padding:20px 20px 22px;color:#fff;box-shadow:0 10px 28px rgba(0,212,255,.18);}
-/* Selamlama kartı — kontrol paneli satırları: isim altında ince bir ayraç + tıklanabilir
-   ilan/mesaj/forum özet satırları. Veri yoksa (0/boş) satır JS tarafında hiç basılmıyor. */
-.hg-divider{height:1px;background:rgba(255,255,255,.15);margin:12px 0 8px;}
-.hg-row{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s ease;}
+/* Selamlama kartı — isim altında TEK bir özet cümlesi (bugünkü ilan+konu sayısı) + (varsa)
+   tıklanabilir okunmamış-mesaj satırı. Veri yoksa (0/boş) hiç basılmıyor. */
+.hg-summary{font-size:13.5px;opacity:.92;margin-top:6px;line-height:1.4;}
+.hg-row{display:flex;align-items:center;gap:8px;padding:6px 0;margin-top:4px;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s ease;}
 .hg-row:active{opacity:.7;}
 .hg-row-ic{font-size:15px;flex-shrink:0;}
 .hg-row-txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -927,12 +937,12 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 /* Ana sayfa — Mini istatistik şeridi (cam efekti/glassmorphism, Selamlama'nın hemen altında). */
 #home-mini-stats{display:flex;gap:10px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;scroll-snap-type:x proximity;}
 #home-mini-stats::-webkit-scrollbar{display:none;}
-.mini-stat-card{flex:0 0 auto;scroll-snap-align:start;min-width:96px;background:rgba(255,255,255,.04);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px 16px;cursor:pointer;transition:transform .15s ease;}
+.mini-stat-card{flex:0 0 auto;scroll-snap-align:start;min-width:104px;background:rgba(255,255,255,.04);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:15px 16px;cursor:pointer;transition:transform .15s ease;}
 [data-theme="light"] .mini-stat-card{background:rgba(0,0,0,.03);border-color:rgba(0,0,0,.08);}
 .mini-stat-card:active{transform:scale(.96);}
-.mini-stat-ic{font-size:18px;margin-bottom:4px;}
-.mini-stat-n{font-size:17px;font-weight:800;}
-.mini-stat-lbl{font-size:10.5px;color:var(--text2);margin-top:1px;}
+.mini-stat-ic{font-size:22px;margin-bottom:6px;}
+.mini-stat-n{font-size:18px;font-weight:800;}
+.mini-stat-lbl{font-size:11px;color:var(--text2);margin-top:2px;}
 /* Ana sayfa — ⭐ Öne Çıkan İlan (admin'in teknohane_listings.featured bayrağıyla işaretlediği TEK
    ilan; Editörün Seçimi/Günün Fırsatı kavramları bununla birleştirildi, ayrı bir admin-bakım yükü
    yaratılmadı). Amber vurgu YALNIZCA bu rozet/kenarlıkta — geri kalan renk dili değişmiyor. */
@@ -11815,12 +11825,41 @@ function shareNewsArticle() {
   openShareMenu(currentNewsArticle.title, `${currentNewsArticle.title}\nTeknohane'de okundu:`, currentNewsArticle.link);
 }
 
-function rnewslist(items) {
+// Ana ekranda tek-tip ilerleyen haber listesi uzun kaydırmada monotonlaşıyordu — isteğe bağlı
+// `highlightPost` (GERÇEK veri: en beğenilen forum konusu, bkz. fetchHomeNewsHighlight) 4. sıraya
+// serpiştirilerek akış bölünüyor. Uydurma/sahte bir "en çok incelenen telefon" kartı EKLENMEDİ
+// (bu proje genelinde uygulanan gerçek-veri disiplini korunuyor) — highlightPost yoksa (hiç
+// beğenilen konu yoksa) liste sessizce normal haline döner.
+function rnewslist(items, highlightPost) {
   if (!items || !items.length) return '<div class="no">Haber bulunamadı</div>';
-  return items.map((n,i) => `<div class="vc" onclick="openNewsArticle(${i})">
+  const cards = items.map((n,i) => `<div class="vc" onclick="openNewsArticle(${i})">
     <div class="vth">${n.image ? `<img src="${n.image}" alt="" loading="lazy">` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:22px">📰</div>`}</div>
     <div class="vi"><div class="vtit">${n.title}</div><div class="vm"><span>${n.pubDate ? fd(n.pubDate) : ''}</span></div></div>
-  </div>`).join('');
+  </div>`);
+  if (highlightPost) cards.splice(Math.min(3, cards.length), 0, newsHighlightCardHTML(highlightPost));
+  return cards.join('');
+}
+function newsHighlightCardHTML(p) {
+  return `<div class="vc news-highlight-card" onclick="gt('community');openPost('${p.id}')">
+    <div class="vth" style="display:flex;align-items:center;justify-content:center;font-size:26px">🔥</div>
+    <div class="vi">
+      <div style="font-size:10.5px;color:var(--cyan);font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Haftanın Popüler Konusu</div>
+      <div class="vtit">${escapeHtml(p.title || '')}</div>
+      <div class="vm"><span>👍 ${p.likeCount || 0}</span></div>
+    </div>
+  </div>`;
+}
+// rnewslist'in highlightPost'u için — Popüler Forum Konuları bölümüyle AYNI sıralama (likeCount
+// desc), tek ve ucuz bir ek sorgu (limit 1). Beğenilen konu yoksa (likeCount>0 hiçbiri) null döner,
+// highlight kartı hiç eklenmez.
+async function fetchHomeNewsHighlight() {
+  try {
+    const snap = await db.collection('teknohane_posts').where('approved', '==', true).orderBy('likeCount', 'desc').limit(1).get();
+    if (snap.empty) return null;
+    const d = snap.docs[0];
+    const p = { id: d.id, ...d.data() };
+    return (p.likeCount || 0) > 0 ? p : null;
+  } catch(e) { return null; }
 }
 
 function checkNewVideo() {
@@ -11870,36 +11909,32 @@ function renderVideoSection(vids) {
   const vlistEl = document.getElementById('vlist');
   if (vlistEl) vlistEl.innerHTML = rvlist(rest.slice(0,7));
 }
-// Selamlama kartı → mini kontrol paneli: isim + ayraç + tıklanabilir özet satırları (bugünkü ilan
-// sayısı, okunmamış mesaj sayısı, en son forum konusu). Her satır veri yoksa/boşsa HİÇ basılmıyor
-// (mevcut "N=0 ise satır gösterme" ilkesiyle birebir aynı) — kart hiçbir zaman sahte/boş bir
-// istatistikle "vitrin" hissini bozmuyor.
+// Selamlama kartı → mini kontrol paneli: isim + TEK bir özet cümlesi (bugünkü ilan+konu sayısı,
+// tek Firestore count() çifti — Promise.all ile paralel) + (varsa) okunmamış mesaj satırı. Hem
+// özet cümlesi hem mesaj satırı veri yoksa/0 ise HİÇ basılmıyor (mevcut "N=0 ise gösterme"
+// ilkesiyle birebir aynı) — kart hiçbir zaman sahte/boş bir istatistikle "vitrin" hissini bozmuyor.
 async function loadHomeGreeting() {
   const el = document.getElementById('home-greeting');
   if (!el) return;
   const firstName = (myProfileData?.displayName || user?.displayName || '').trim().split(' ')[0];
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  let listingRow = '';
+  let summaryRow = '';
   try {
-    const n = await firestoreCount(db.collection('teknohane_listings').where('approved', '==', true).where('createdAt', '>=', todayStart));
-    if (n) listingRow = `<div class="hg-row" onclick="gt('market')"><span class="hg-row-ic">📱</span><span class="hg-row-txt">${n} yeni ilan</span></div>`;
-  } catch(e) {}
-  // 🔥 satırı: "bugünün popülerı" yerine bilinçli olarak EN SON konu seçildi — sessiz günlerde boş
-  // kalabilecek bir "bugün en beğenilen" sorgusundan daha güvenilir/her zaman dolu bir sinyal.
-  let topicRow = '';
-  try {
-    const snap = await db.collection('teknohane_posts').where('approved', '==', true).orderBy('createdAt', 'desc').limit(1).get();
-    if (!snap.empty) {
-      const doc = snap.docs[0];
-      const title = (doc.data().title || '').trim();
-      if (title) topicRow = `<div class="hg-row" onclick="gt('community');openPost('${doc.id}')"><span class="hg-row-ic">🔥</span><span class="hg-row-txt">${escapeHtml(title)}</span></div>`;
-    }
+    const [newListings, newTopics] = await Promise.all([
+      firestoreCount(db.collection('teknohane_listings').where('approved', '==', true).where('createdAt', '>=', todayStart)),
+      firestoreCount(db.collection('teknohane_posts').where('approved', '==', true).where('createdAt', '>=', todayStart)),
+    ]);
+    let text = '';
+    if (newListings && newTopics) text = `Bugün ${newListings} yeni ilan, ${newTopics} yeni konu seni bekliyor.`;
+    else if (newListings) text = `Bugün ${newListings} yeni ilan seni bekliyor.`;
+    else if (newTopics) text = `Bugün ${newTopics} yeni konu seni bekliyor.`;
+    if (text) summaryRow = `<div class="hg-summary">${text}</div>`;
   } catch(e) {}
   el.innerHTML = `<div class="home-greeting-card">
     <div id="home-greeting-name" style="font-weight:800;font-size:19px;letter-spacing:-.3px">👋 Hoş Geldin${firstName ? ' ' + escapeHtml(firstName) : ''}</div>
-    <div class="hg-divider"></div>
-    ${listingRow}<div id="home-unread-row"></div>${topicRow}
+    ${summaryRow}
+    <div id="home-unread-row"></div>
   </div>`;
   refreshHomeUnreadRow();
 }
@@ -12046,9 +12081,9 @@ function forumTopicCardHTML(p) {
   </div>`;
 }
 
-// Mini istatistik şeridi — dört GERÇEK sayı (günlük artış YOK, sade tutuluyor — 4 ayrı count()
-// sorgusunu 8'e çıkarmamak için). Video sayısı Firestore'dan DEĞİL, rhome()'un zaten kullandığı
-// önbellekli YouTube listesinden (readYtCache) geliyor, ekstra istek açmıyor.
+// Mini istatistik şeridi — ÜÇ GERÇEK sayı (kullanıcı geri bildirimiyle dörtten üçe indirildi, daha
+// ferah/sıkışık olmayan bir ilk izlenim için). Sayılar render edildikten sonra sayarak dolan (count-up)
+// bir mikro animasyonla beliriyor — Firestore sorgu sayısı DEĞİŞMEDİ, yalnızca görsel katman.
 async function renderHomeMiniStats() {
   const el = document.getElementById('home-mini-stats');
   if (!el) return;
@@ -12059,22 +12094,38 @@ async function renderHomeMiniStats() {
       firestoreCount(db.collection('teknohane_listings').where('approved', '==', true)),
       firestoreCount(db.collection('teknohane_posts').where('approved', '==', true)),
     ]);
-    if (userCount) cards.push(miniStatCardHTML('👥', userCount, 'Topluluk', "gt('community')"));
+    // "Topluluk" etiketi, uygulamanın geri kalanında artık Sohbet özelliğine ayrılan isimle
+    // karışmasın diye "Üyeler" olarak adlandırıldı — kart hâlâ toplam kayıtlı kullanıcı sayısını
+    // gösteriyor, Forum'a götürüyor (davranış DEĞİŞMEDİ, yalnızca etiket).
+    if (userCount) cards.push(miniStatCardHTML('👥', userCount, 'Üyeler', "gt('community')"));
     if (listingCount) cards.push(miniStatCardHTML('🛒', listingCount, 'İlanlar', "gt('market')"));
-    const cachedVids = readYtCache(YT_CACHE_VIDS);
-    if (cachedVids && cachedVids.length) cards.push(miniStatCardHTML('📹', cachedVids.length, 'Videolar', "document.getElementById('feat-slot')?.scrollIntoView({behavior:'smooth'})"));
     if (postCount) cards.push(miniStatCardHTML('💬', postCount, 'Forum', "gt('community')"));
   } catch(e) {}
   if (!cards.length) { hideHomeSection(el); return; }
   showHomeSection(el);
   el.innerHTML = cards.join('');
+  el.querySelectorAll('.mini-stat-n[data-target]').forEach(n => animateCountUp(n, parseInt(n.dataset.target, 10)));
 }
 function miniStatCardHTML(icon, n, label, onclick) {
   return `<div class="mini-stat-card" onclick="${onclick}">
     <div class="mini-stat-ic">${icon}</div>
-    <div class="mini-stat-n">${n.toLocaleString('tr-TR')}</div>
+    <div class="mini-stat-n" data-target="${n}">0</div>
     <div class="mini-stat-lbl">${label}</div>
   </div>`;
+}
+// Küçük, paylaşılan bir "sayarak dolma" mikro animasyonu — yalnızca metin içeriğini günceller
+// (layout/reflow tetiklemez), ease-out ile ~700ms'de hedefe ulaşır.
+function animateCountUp(el, target) {
+  if (!target) { el.textContent = '0'; return; }
+  const duration = 700;
+  const start = performance.now();
+  function tick(now) {
+    const progress = Math.min((now - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    el.textContent = Math.round(target * eased).toLocaleString('tr-TR');
+    if (progress < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
 }
 
 // Ana sayfa sırası (KASITLI, premium yeniden tasarım v2): Selamlama (kontrol paneli) → Mini
@@ -12092,43 +12143,43 @@ async function rhome() {
   try {
     c.innerHTML = `
       <div class="home-section" style="animation-delay:0ms"><div id="home-greeting"></div></div>
-      <div class="home-section" style="animation-delay:40ms"><div id="home-mini-stats"></div></div>
-      <div class="home-section" style="animation-delay:80ms">
-        <div class="sh"><span class="st">🔥 Trendler</span></div>
+      <div class="home-section" style="animation-delay:25ms"><div id="home-mini-stats"></div></div>
+      <div class="home-section" style="animation-delay:50ms">
+        <div class="sh"><span class="st"><span class="sh-ic">🔥</span>Trendler</span></div>
         <div id="trend-strip"></div>
       </div>
-      <div class="home-section" style="animation-delay:120ms">
-        <div class="sh"><span class="st">⭐ Öne Çıkan İlan</span></div>
+      <div class="home-section" style="animation-delay:75ms">
+        <div class="sh"><span class="st"><span class="sh-ic">⭐</span>Öne Çıkan İlan</span></div>
         <div id="home-featured-listing"></div>
       </div>
-      <div class="home-section" style="animation-delay:160ms">
-        <div class="sh"><span class="st">🛒 Pazarda Yeni İlanlar</span><span class="sl" onclick="gt('market')">Tümü →</span></div>
+      <div class="home-section" style="animation-delay:100ms">
+        <div class="sh"><span class="st"><span class="sh-ic">🛒</span>Pazarda Yeni İlanlar</span><span class="sl" onclick="gt('market')">Tümü →</span></div>
         <div id="home-market-strip"></div>
       </div>
-      <div class="home-section" style="animation-delay:200ms">
-        <div class="sh"><span class="st">🔥 Popüler Forum Konuları</span><span class="sl" onclick="gt('community')">Tümü →</span></div>
+      <div class="home-section" style="animation-delay:125ms">
+        <div class="sh"><span class="st"><span class="sh-ic">🔥</span>Popüler Forum Konuları</span><span class="sl" onclick="gt('community')">Tümü →</span></div>
         <div id="home-forum-popular"></div>
       </div>
-      <div class="home-section" style="animation-delay:240ms">
-        <div class="sh"><span class="st">▶️ Öne Çıkan Video</span><span class="sl" onclick="ol('https://youtube.com/${YH}')">Tümü →</span></div>
+      <div class="home-section" style="animation-delay:150ms">
+        <div class="sh"><span class="st"><span class="sh-ic">▶️</span>Öne Çıkan Video</span><span class="sl" onclick="ol('https://youtube.com/${YH}')">Tümü →</span></div>
         <div id="feat-slot"><div class="load"><div class="spin"></div></div></div>
       </div>
-      <div class="home-section" style="animation-delay:280ms">
-        <div class="sh"><span class="st">🎥 Diğer Videolar</span></div>
+      <div class="home-section" style="animation-delay:175ms">
+        <div class="sh"><span class="st"><span class="sh-ic">🎥</span>Diğer Videolar</span></div>
         <div class="sw"><svg class="sico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input class="si" type="text" placeholder="Video ara…" oninput="fvid(this.value)"></div>
         <div class="vlist hscroll" id="vlist"></div>
       </div>
-      <div class="home-section" style="animation-delay:320ms">
-        <div class="sh"><span class="st">💬 Son Yorum Yapılan Konular</span><span class="sl" onclick="gt('community')">Tümü →</span></div>
+      <div class="home-section" style="animation-delay:200ms">
+        <div class="sh"><span class="st"><span class="sh-ic">💬</span>Son Yorum Yapılan Konular</span><span class="sl" onclick="gt('community')">Tümü →</span></div>
         <div id="home-forum-recent"></div>
       </div>
-      <div class="home-section" style="animation-delay:360ms">
-        <div class="sh"><span class="st">📰 Teknoloji Haberleri</span></div>
+      <div class="home-section" style="animation-delay:225ms">
+        <div class="sh"><span class="st"><span class="sh-ic">📰</span>Teknoloji Haberleri</span></div>
         <div class="vlist" id="newslist"><div class="load"><div class="spin"></div></div></div>
       </div>`;
-    lnews().then(news => {
+    Promise.all([lnews(), fetchHomeNewsHighlight().catch(()=>null)]).then(([news, highlight]) => {
       const el = document.getElementById('newslist');
-      if (el) el.innerHTML = rnewslist(news);
+      if (el) el.innerHTML = rnewslist(news, highlight);
     }).catch(() => {
       const el = document.getElementById('newslist');
       if (el) el.innerHTML = '<div class="no">Haberler yüklenemedi</div>';
