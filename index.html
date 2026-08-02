@@ -251,6 +251,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .vtit{font-size:13px;font-weight:500;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 .vm{font-size:11px;color:var(--text2);display:flex;gap:6px;}
 .vm span::after{content:'·';margin-left:6px;color:var(--text3);}
+/* Ana sayfadaki "Diğer Videolar" için dikeyden yataya çeviren EK sınıf — .vlist/.vc'nin başka
+   HİÇBİR kullanımını (haberler, admin panel vb.) etkilemez, yalnızca bu ek sınıf taşıyan kapsayıcı. */
+.vlist.hscroll{flex-direction:row;overflow-x:auto;gap:10px;padding-bottom:2px;scrollbar-width:none;}
+.vlist.hscroll::-webkit-scrollbar{display:none;}
+.vlist.hscroll .vc{flex:0 0 auto;width:250px;}
 .vm span:last-child::after{content:'';}
 
 /* SEARCH */
@@ -889,6 +894,26 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
    daha öne çıkan (gradient dolgu, beyaz metin) bir tasarım. */
 .community-forum-banner{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#00D4FF,#0091FF);border-radius:14px;padding:12px 14px;margin-bottom:14px;cursor:pointer;color:#fff;}
 .community-forum-banner-ic{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+/* Ana sayfa — Selamlama kartı: AYNI marka gradyanı (Sohbet banner'ı/kanal kartıyla tutarlı). */
+.home-greeting-card{background:linear-gradient(135deg,#00D4FF,#0091FF);border-radius:16px;padding:16px 18px;margin-bottom:18px;color:#fff;}
+/* Ana sayfa — Trendler: yatay kaydırılabilir, kompakt telefon kartları (admin-küratörlü). */
+#trend-strip{display:flex;gap:10px;overflow-x:auto;padding-bottom:2px;margin-bottom:18px;scrollbar-width:none;}
+#trend-strip::-webkit-scrollbar{display:none;}
+.trend-card{flex:0 0 auto;width:140px;background:var(--surf);border:1px solid var(--border2);border-radius:14px;padding:12px;cursor:pointer;}
+.trend-card:active{background:var(--surf2);}
+.trend-card-brand{font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.03em;font-weight:700;}
+.trend-card-name{font-size:13px;font-weight:700;margin-top:2px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.trend-card-price{font-size:12px;color:var(--cyan);font-weight:700;margin-top:6px;}
+/* Ana sayfa — Pazarda Yeni İlanlar: hafif, keşif amaçlı kartlar (mcardHTML'in Pazar ızgarası için
+   tasarlanmış ağır sürümü DEĞİL). */
+#home-market-strip{display:flex;gap:10px;overflow-x:auto;padding-bottom:2px;margin-bottom:18px;scrollbar-width:none;}
+#home-market-strip::-webkit-scrollbar{display:none;}
+.home-mkt-card{flex:0 0 auto;width:130px;cursor:pointer;}
+.home-mkt-photo{width:130px;height:130px;border-radius:14px;overflow:hidden;background:var(--surf2);}
+.home-mkt-photo img{width:100%;height:100%;object-fit:cover;display:block;}
+.home-mkt-photo-empty{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:22px;}
+.home-mkt-price{font-size:13.5px;font-weight:800;margin-top:6px;}
+.home-mkt-title{font-size:11.5px;color:var(--text2);line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 .det-desc-text{font-size:15.5px;color:var(--text2);line-height:1.65;padding:14px;background:var(--surf);border-radius:14px;margin:16px 0 0;max-height:112px;overflow:hidden;position:relative;transition:max-height .25s ease;}
 .det-desc-text.expanded{max-height:800px;}
 .det-desc-text.clamped::after{content:'';position:absolute;left:0;right:0;bottom:0;height:36px;background:linear-gradient(to top, var(--surf), transparent);}
@@ -11755,18 +11780,97 @@ function renderVideoSection(vids) {
   const vlistEl = document.getElementById('vlist');
   if (vlistEl) vlistEl.innerHTML = rvlist(rest.slice(0,7));
 }
+// Selamlama kartı — isim varsa ilk adla ("Hoş Geldin Yusuf"), yoksa isimsiz. Tek istatistik satırı
+// (bugünkü yeni ilan sayısı) admin dashboard'undaki AYNI firestoreCount() deseniyle, GERÇEK bir
+// sayı — 0 ise satır hiç gösterilmiyor (boş bir istatistikle vitrin izlenimi bozulmasın).
+async function loadHomeGreeting() {
+  const el = document.getElementById('home-greeting');
+  if (!el) return;
+  const firstName = (myProfileData?.displayName || user?.displayName || '').trim().split(' ')[0];
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  let countLine = '';
+  try {
+    const n = await firestoreCount(db.collection('teknohane_listings').where('approved', '==', true).where('createdAt', '>=', todayStart));
+    if (n) countLine = `<div style="font-size:12.5px;opacity:.9;margin-top:4px">Bugün Pazar'a ${n} yeni ilan eklendi</div>`;
+  } catch(e) {}
+  el.innerHTML = `<div class="home-greeting-card">
+    <div style="font-weight:800;font-size:16px">👋 Hoş Geldin${firstName ? ' ' + escapeHtml(firstName) : ''}</div>
+    ${countLine}
+  </div>`;
+}
+
+// Trendler — GERÇEK bir kullanım-popülerliği verisi yok (bkz. trackCompareUsage, yalnızca kişisel
+// rozet sayacı), bu yüzden admin-küratörlü: Yönetim Paneli → Ayarlar'daki serbest metin, satır
+// başına "Marka Model", PHONES kataloğuyla render anında eşleştiriliyor. Eşleşmeyen satırlar
+// (yazım hatası vb.) sessizce atlanır. Hiç eşleşme yoksa bölüm başlığı da (üstteki .sh) gizlenir.
+async function renderTrendingPhones() {
+  const el = document.getElementById('trend-strip');
+  if (!el) return;
+  const sectionHeader = el.previousElementSibling;
+  try {
+    if (!systemSettings || !Object.keys(systemSettings).length) await loadSystemSettings();
+    const lines = (systemSettings.trendingPhones || '').split('\n').map(s => s.trim()).filter(Boolean);
+    const matched = lines.map(line => PHONES.find(p => (p.brand + ' ' + p.name).toLowerCase() === line.toLowerCase())).filter(Boolean);
+    if (!matched.length) { el.innerHTML = ''; if (sectionHeader) sectionHeader.style.display = 'none'; return; }
+    if (sectionHeader) sectionHeader.style.display = '';
+    el.innerHTML = matched.map(p => `<div class="trend-card" onclick="gt('compare');quickPick('${p.id}','a')">
+      <div class="trend-card-brand">${escapeHtml(p.brand)}</div>
+      <div class="trend-card-name">${escapeHtml(p.name)}</div>
+      ${p.price?`<div class="trend-card-price">${escapeHtml(p.price)}</div>`:''}
+    </div>`).join('');
+  } catch(e) {
+    el.innerHTML = '';
+    if (sectionHeader) sectionHeader.style.display = 'none';
+  }
+}
+
+// Pazarda Yeni İlanlar — loadMarketPage()'in AYNI kanıtlanmış sorgu şekli (approved+orderBy),
+// bağımsız/küçük bir limit'le. mcardHTML() (favori/düzenle/sil vb. Pazar ızgarası için) yerine
+// hafif bir kart — yalnızca keşif amaçlı, dokununca ilan detayına gidiyor.
+async function loadHomeMarketPreview() {
+  const el = document.getElementById('home-market-strip');
+  if (!el) return;
+  el.innerHTML = `<div class="load" style="padding:10px 0"><div class="spin"></div></div>`;
+  try {
+    const snap = await db.collection('teknohane_listings').where('approved', '==', true).orderBy('createdAt', 'desc').limit(8).get();
+    const items = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(l => !l.sold && !l.paused && !isListingExpired(l));
+    if (!items.length) { el.innerHTML = '<div class="no">Henüz ilan yok</div>'; return; }
+    el.innerHTML = items.map(homeMarketCardHTML).join('');
+  } catch(e) {
+    el.innerHTML = '<div class="no">İlanlar yüklenemedi</div>';
+  }
+}
+function homeMarketCardHTML(l) {
+  return `<div class="home-mkt-card" onclick="gt('market');setTimeout(()=>openDetail('${l.id}'),50)">
+    <div class="home-mkt-photo">${l.photo1 ? `<img src="${escapeHtml(l.photo1)}" loading="lazy" decoding="async">` : '<div class="home-mkt-photo-empty">📷</div>'}</div>
+    <div class="home-mkt-price">₺${parseInt(l.price || 0).toLocaleString('tr-TR')}</div>
+    <div class="home-mkt-title">${escapeHtml(l.model)}</div>
+  </div>`;
+}
+
+// Ana sayfa sırası (KASITLI): Selamlama → Trendler → Pazarda Yeni İlanlar → Öne Çıkan Video →
+// Diğer Videolar → Haberler. Keşif odaklı bölümler (trend telefon + yeni ilan) içerik tüketimi
+// (video/haber) bölümlerinin ÖNÜNE alındı — ikisi de uygulamanın asıl işine (Pazar) yönlendiriyor,
+// eskiden Pazar'a hiç değinmeyen bir ana sayfa vardı. Video/haber akışının kendisi (renderChannelHero/
+// renderVideoSection/rnewslist, önbellek-sonra-tazele deseni) HİÇ DEĞİŞMEDİ, yalnızca ekrandaki yeri.
 async function rhome() {
   const c=document.getElementById('home-c');
   let renderedFromCache = false;
   try {
     c.innerHTML = `
+      <div id="home-greeting"></div>
+      <div class="sh"><span class="st">🔥 Trendler</span></div>
+      <div id="trend-strip"></div>
+      <div class="sh"><span class="st">🛒 Pazarda Yeni İlanlar</span><span class="sl" onclick="gt('market')">Tümü →</span></div>
+      <div id="home-market-strip"></div>
       <div class="ch-hero" id="ch-hero-slot"><div class="load"><div class="spin"></div></div></div>
       <div class="sh"><span class="st">Son Video</span><span class="sl" onclick="ol('https://youtube.com/${YH}')">Tümü →</span></div>
       <div id="feat-slot"><div class="load"><div class="spin"></div></div></div>
       <div class="glow"></div>
       <div class="sh"><span class="st">Diğer Videolar</span></div>
       <div class="sw"><svg class="sico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input class="si" type="text" placeholder="Video ara…" oninput="fvid(this.value)"></div>
-      <div class="vlist" id="vlist"></div>
+      <div class="vlist hscroll" id="vlist"></div>
       <div class="sh" style="margin-top:24px"><span class="st">📰 Teknoloji Haberleri</span></div>
       <div class="vlist" id="newslist"><div class="load"><div class="spin"></div></div></div>`;
     lnews().then(news => {
@@ -11776,6 +11880,11 @@ async function rhome() {
       const el = document.getElementById('newslist');
       if (el) el.innerHTML = '<div class="no">Haberler yüklenemedi</div>';
     });
+    // Selamlama/Trendler/Pazar önizlemesi — video/haber akışından TAMAMEN bağımsız, kendi
+    // hatalarını kendi içinde yutar (biri başarısız olursa geri kalan bölümler etkilenmez).
+    loadHomeGreeting().catch(()=>{});
+    renderTrendingPhones().catch(()=>{});
+    loadHomeMarketPreview().catch(()=>{});
 
     const cachedChan = readYtCache(YT_CACHE_CHAN);
     const cachedVids = readYtCache(YT_CACHE_VIDS);
