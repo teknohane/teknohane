@@ -2,8 +2,8 @@
   "name": "Teknohane",
   "short_name": "Teknohane",
   "description": "Telefon meraklıları topluluğu — videolar, karşılaştırma, pazar",
-  "start_url": "./",
-  "scope": "./",
+  "start_url": "/teknohane/",
+  "scope": "/teknohane/",
   "display": "standalone",
   "handle_links": "preferred",
   "orientation": "portrait",
@@ -69,14 +69,14 @@
       "name": "Son Videolar",
       "short_name": "Videolar",
       "description": "Teknohane son videolarını izle",
-      "url": "./?tab=home",
+      "url": "/teknohane/?tab=home",
       "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96" }]
     },
     {
       "name": "Topluluk",
       "short_name": "Topluluk",
       "description": "WhatsApp grupları ve sosyal medya",
-      "url": "./?tab=community",
+      "url": "/teknohane/?tab=community",
       "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96" }]
     }
   ]

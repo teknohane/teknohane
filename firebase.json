@@ -9,6 +9,9 @@
       "docs/**",
       "scripts/**",
       "README.md"
+    ],
+    "redirects": [
+      { "source": "/**", "destination": "https://teknohane.github.io/teknohane/", "type": 302 }
     ]
   }
 }
