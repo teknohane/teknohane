@@ -1,0 +1,14 @@
+{
+  "projects": {
+    "default": "maasgunu-bd353"
+  },
+  "targets": {
+    "maasgunu-bd353": {
+      "hosting": {
+        "web": [
+          "maasgunu-bd353"
+        ]
+      }
+    }
+  }
+}
