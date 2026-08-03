@@ -3062,6 +3062,21 @@ async function syncUserProfile(u) {
     refreshHomeUnreadRow();
     requestProfileRerender();
 
+    // Ad-soyaddan otomatik kullanıcı adı ataması — hem yeni kayıt olan (existingData henüz {})
+    // hem de daha önce hiç username seçmemiş eski bir kullanıcı (bir dahaki girişinde) burada
+    // yakalanıyor, TEK kod yoluyla. needsUpdate'in günde-1 sınırından BAĞIMSIZ çalışır ki eksikse
+    // en kısa sürede tamamlansın. existingData referans olarak myProfileData'ya da atandığı için
+    // (yukarıda), buradaki mutasyon ekranlara otomatik yansır.
+    if (!existingData.username) {
+      const autoDn = existingData.displayName || u.displayName || u.email?.split('@')[0] || 'Kullanıcı';
+      const assignedUsername = await autoAssignUsername(u.uid, autoDn, existingData.photoURL || u.photoURL || '');
+      if (assignedUsername) {
+        existingData.username = assignedUsername;
+        db.collection('teknohane_users').doc(u.uid).set({ username: assignedUsername }, { merge: true }).catch(()=>{});
+        db.collection('teknohane_user_index').doc(u.uid).set({ username: assignedUsername }, { merge: true }).catch(()=>{});
+      }
+    }
+
     // Son görülme ve bu cihazın oturum kaydı: throttle'a tabi DEĞİL, her girişte güncellenir
     // (Güvenlik Kartı'ndaki "Son Görülme"nin gerçek zamanlı ve senkron kalması için).
     const deviceLabel = detectDeviceLabel();
@@ -4092,6 +4107,35 @@ async function claimUsername(newUsernameLower, uid, oldUsernameLower, displayNam
     // yeni bir koleksiyon açmak yerine mevcut benzersizlik koleksiyonu bu amaçla da kullanılıyor.
     tx.set(newRef, { uid, ...usernameIndexFields(displayName, photoURL) });
   });
+}
+
+// Ad-soyaddan otomatik kullanıcı adı üretimi için — Türkçe karakterleri (ç/ğ/ı/ö/ş/ü ve büyük
+// harfli eşleniklerini, özellikle noktalı büyük İ→i) doğrudan ASCII'ye çevirir, ardından NFD
+// normalize + diyakritik temizleme ile diğer aksanlı Latin karakterleri (é, à vb.) de kapsar.
+function slugifyUsername(name) {
+  const TR_MAP = {'ç':'c','Ç':'c','ğ':'g','Ğ':'g','ı':'i','I':'i','İ':'i','ö':'o','Ö':'o','ş':'s','Ş':'s','ü':'u','Ü':'u'};
+  let s = (name || '').split('').map(ch => TR_MAP[ch] || ch).join('');
+  s = s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  return s.replace(/[^a-z0-9]/g, '').slice(0, 20);
+}
+
+// claimUsername()'ın transaction tabanlı benzersizlik kontrolünü YENİDEN YAZMADAN kullanır —
+// 'TAKEN' hatası alınca sıradaki adaya (isim + artan sayı) geçer. 30 denemede de tutmazsa (aşırı
+// olası değil) sessizce vazgeçer, kullanıcı username'siz kalır ve normal şekilde Profili
+// Düzenle'den kendisi seçebilir — kritik bir akış DEĞİL.
+async function autoAssignUsername(uid, displayName, photoURL) {
+  const base = slugifyUsername(displayName) || 'kullanici';
+  for (let i = 0; i < 30; i++) {
+    let candidate = (i === 0 ? base : base.slice(0, 16) + i).slice(0, 20);
+    if (candidate.length < 3) candidate = (candidate + '000').slice(0, 3);
+    try {
+      await claimUsername(candidate, uid, null, displayName, photoURL);
+      return candidate;
+    } catch (e) {
+      if (e.message !== 'TAKEN') return null; // beklenmeyen hata — sessizce vazgeç, akışı bozma
+    }
+  }
+  return null;
 }
 
 // ==== KULLANICI ARAMA DİZİNİ ====
