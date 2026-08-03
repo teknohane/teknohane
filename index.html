@@ -199,25 +199,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 
 /* SCREENS */
 #screens{flex:1;overflow:hidden;position:relative;margin-top:calc(var(--st) + 58px);margin-bottom:calc(var(--tab) + var(--sb));}
-/* Masaüstü/geniş pencere: alt sekme çubuğunu X (Twitter) web/Discord/Slack'teki gibi SOLA dikey
-   bir kenar çubuğuna çevir — mobil/native'de (genişlik <760px) bu blok hiç devreye girmiyor,
-   önceki davranış (alt bar) AYNEN kalıyor. İçerik sütunu (480px, ortalanmış) yerinde kalıyor,
-   sidebar onun SOL kenarının biraz dışına, üst üste binmeden yerleşiyor. .tab.on glow/scale,
-   spawnRipple dokunma efekti, gt() navigasyonu — hiçbiri değişmiyor, yalnızca dizilişi değişiyor.
-   Bu blok kasıtlı olarak #screens'in TABANINDAN SONRA duruyor ki aynı özgüllükteki
-   margin-bottom:0 override'ı kademede KAZANSIN (media query özgüllük eklemiyor, kaynak sırası
-   belirleyici). */
-@media (min-width: 760px) {
-  #tabs{
-    top:0;bottom:0;left:calc(50% - 240px - 88px - 24px);right:auto;
-    width:88px;max-width:88px;height:100%;
-    transform:none;padding-top:24px;
-    border-top:none;border-right:1px solid var(--border);
-  }
-  .tbar{flex-direction:column;justify-content:flex-start;gap:6px;}
-  .tab{padding:10px 0;}
-  #screens{margin-bottom:0;}
-}
 .screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;opacity:0;pointer-events:none;transition:opacity .2s;}
 #s-support{z-index:40;background:var(--bg);}
 .screen.on{opacity:1;pointer-events:all;}
