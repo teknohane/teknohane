@@ -8059,13 +8059,33 @@ async function loadMarketPage(reset) {
   try {
     let q = db.collection('teknohane_listings').where('approved', '==', true).orderBy('createdAt', 'desc').limit(MARKET_PAGE_SIZE);
     if (marketLastDoc) q = q.startAfter(marketLastDoc);
-    const snap = await q.get();
+    // KULLANIŞLILIK DÜZELTMESİ (kullanıcı raporu: eski bir ilan "Öne Çıkan" işaretlense de üst
+    // sıraya çıkmıyordu): rlistings()'teki showcase/featured sıralama önceliği yalnızca O AN
+    // belleğe (marketAllListings) yüklenmiş ilanlar arasında çalışıyor — sayfalama (20'şer) yüzünden
+    // henüz yüklenmemiş eski bir ilan, öne çıkarılsa bile sıralamaya hiç giremiyordu. 100.000+ ilan
+    // ölçeği için tasarlanmış ana sayfalamayı KALDIRMAK yerine (bkz. yukarıdaki mimari yorum), yalnızca
+    // ilk açılışta (reset), showcase/featured==true olan ilanları AYRI ve ucuz iki sorguyla (tipik
+    // olarak az sayıda kayıt, tek eşitlik filtresi — composite index gerektirmez) çekip normal
+    // sayfaya EKLİYORUZ; rlistings() zaten bunları üste sıralıyor, burada yalnızca sayfalama
+    // derinliğinden bağımsız biçimde belleğe girmelerini garanti ediyoruz.
+    const specialQueries = reset ? [
+      db.collection('teknohane_listings').where('approved', '==', true).where('featured', '==', true).get(),
+      db.collection('teknohane_listings').where('approved', '==', true).where('showcase', '==', true).get(),
+    ] : [];
+    const [snap, ...specialSnaps] = await Promise.all([q.get(), ...specialQueries]);
     const newItems = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     marketLastDoc = snap.docs[snap.docs.length - 1] || marketLastDoc;
     marketHasMore = snap.docs.length === MARKET_PAGE_SIZE;
     marketAllLoadedOnce = true;
     if (reset) {
-      marketAllListings = newItems;
+      const existingIds = new Set(newItems.map(l => l.id));
+      const extras = [];
+      specialSnaps.forEach(sSnap => {
+        sSnap.docs.forEach(d => {
+          if (!existingIds.has(d.id)) { existingIds.add(d.id); extras.push({ id: d.id, ...d.data() }); }
+        });
+      });
+      marketAllListings = [...extras, ...newItems];
       rlistings();
     } else {
       marketAllListings = [...marketAllListings, ...newItems];
