@@ -3960,21 +3960,23 @@ async function sendVerificationEmail() {
   }
 }
 
-// KÖK NEDEN DÜZELTMESİ ("bu işlem için yetkin yok" hatası — bazı kullanıcılarda ilan/konu
-// gönderirken): user.emailVerified istemci SDK'sındaki YEREL alan, e-posta doğrulandıktan sonra
-// reload() çağrılmadan taze kalmayabiliyor — DAHASI Firestore kuralları isteğin JWT'sindeki
-// email_verified CLAIM'ine bakıyor (bkz. firestore.rules), bu claim SDK'nın kendi ~1 saatlik
-// periyodik yenilemesi dışında asla otomatik tazelenmiyor. Sonuç: kullanıcı e-postasını doğruladıktan
-// hemen sonra (uygulamayı kapatıp açmadan) ilan/konu göndermeye çalışırsa, istemci kontrolü geçse
-// bile Firestore yazması hâlâ eski token'la reddediliyordu. Yalnızca HENÜZ doğrulanmamış görünüyorsa
-// çalışır (gereksiz ağ isteğinden kaçınmak için) — profili tazeler, GERÇEKTEN doğrulanmışsa ID
-// token'ı da zorla yeniler ki hemen ardından gelen yazma isteği güncel claim'i taşısın.
+// KÖK NEDEN DÜZELTMESİ v2 ("bu işlem için yetkin yok" hatası — ilk düzeltme (v1) eksik kaldı):
+// v1, yalnızca user.emailVerified HENÜZ false görünüyorsa çalışıyordu ("if (user.emailVerified)
+// return") — ama BAŞKA bir akış (saveProfileInfo, isim güncellemesi için KOŞULSUZ user.reload()
+// çağırıyor) user.emailVerified'ı token'ı hiç yenilemeden true'ya çevirebiliyor. Sonuç: kullanıcı
+// e-postasını doğruladıktan SONRA, ilan/konu göndermeden ÖNCE profilini düzenlerse, bu fonksiyon
+// "zaten true" sanıp erken çıkıyor, token'daki email_verified CLAIM'i (Firestore Rules'ın asıl
+// baktığı şey, bkz. firestore.rules) hâlâ eski/false kalıyor — yazma reddediliyor. v2, cached
+// boolean'a GÜVENMİYOR: token'ın KENDİ (network isteği yapmadan, önbellekteki) claim'ini okuyup
+// gerçekte ne taşıdığını kontrol ediyor, yalnızca GERÇEKTEN uyuşmazlık varsa zorla yeniliyor.
 async function refreshEmailVerifiedStatus() {
-  if (!user || user.emailVerified) return;
+  if (!user) return;
   try {
     await user.reload();
     user = auth.currentUser;
-    if (user.emailVerified) await user.getIdToken(true);
+    if (!user.emailVerified) return;
+    const tokenResult = await user.getIdTokenResult();
+    if (!tokenResult.claims.email_verified) await user.getIdToken(true);
   } catch(e) {}
 }
 
