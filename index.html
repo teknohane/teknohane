@@ -7181,9 +7181,20 @@ function enterCommunityChatRoom() {
   clearInterval(communityOnlineCountTimer);
   communityOnlineCountTimer = setInterval(updateCommunityOnlineCount, 60000);
 }
+// KÖK NEDEN DÜZELTMESİ (Firestore okuma maliyeti sızıntısı): unsubCommunityMessages hiçbir yerde
+// kapatılmıyordu — bir kullanıcı oturum boyunca sohbeti bir kez açtıysa, bu canlı dinleyici
+// uygulama tamamen kapanana kadar arka planda açık kalıyor, her yeni mesajda tüm bu "unutulmuş"
+// dinleyiciler için ekstra okuma oluşuyordu. Ayrıca sohbetten çıkışın 3 farklı yolu vardı
+// (exitCommunityChat + community-reaction-viewers-mo/community-msg-ctx-mo içindeki closemo('community-chat-mo')
+// çağrıları) ve yalnızca biri (exitCommunityChat) temizlik yapıyordu. teardownCommunityChat() artık
+// HER çıkış yolundan çağrılıyor (idempotent — unsubCommunityMessages null'sa hiçbir şey yapmaz).
+function teardownCommunityChat() {
+  clearInterval(communityOnlineCountTimer);
+  if (unsubCommunityMessages) { unsubCommunityMessages(); unsubCommunityMessages = null; }
+}
 function exitCommunityChat() {
   document.getElementById('community-chat-mo').classList.remove('on');
-  clearInterval(communityOnlineCountTimer);
+  teardownCommunityChat();
 }
 
 // teknohane_presence herkese açık okunabiliyor (bkz. firestore.rules) ve firestoreCount() zaten
@@ -13902,6 +13913,9 @@ function closemo(id) {
     const activeScreenName = document.querySelector('.screen.on')?.id?.replace('s-', '') || 'home';
     document.querySelector(`.tab[data-s="${activeScreenName}"]`)?.classList.add('on');
   }
+  // Sohbet, profil görüntüleme gibi eylemler yüzünden exitCommunityChat() DIŞINDAN da kapatılabiliyor
+  // (bkz. teardownCommunityChat tanımı) — hangi yoldan kapanırsa kapansın dinleyici/timer temizlensin.
+  if (id === 'community-chat-mo') teardownCommunityChat();
 }
 
 // ==== ÖZEL SEÇİM BİLEŞENİ (Custom Picker) ====
