@@ -3088,6 +3088,17 @@ async function syncUserProfile(u) {
     favs = new Set(existingData.favorites || []);
     startFavoritesListener(); // Favoriler bilindiği anda dar kapsamlı dinleyici kurulur
     myProfileData = existingData;
+    // KÖK NEDEN DÜZELTMESİ ("yetkin yok" yanlış alarmı — forum/yorum/sohbet gönderirken): istemci
+    // rate-limit sayaçları (lastForumActionAtLocal/lastCommunityActionAtLocal) yalnızca BU OTURUMDA
+    // başarılı bir gönderiden sonra güncelleniyordu, her uygulama açılışında/yeniden yüklemede (ör.
+    // self-update sonrası) sıfıra dönüyordu — istemci "son eylemden çok zaman geçmiş" sanıp hiç
+    // uyarmıyordu, ama Firestore Rules'taki GERÇEK 8sn/2sn sınır sunucuda kalıcı olan son eylem
+    // zamanını hâlâ hatırlıyordu. Sonuç: kullanıcı uyarı görmeden gönderiyor, sunucu reddediyor,
+    // jenerik "yetkin yok" hatası çıkıyor — birazdan (pencere geçince) tekrar deneyince sorunsuz
+    // gidiyor, sanki "hata var ama yine de gönderiliyor" gibi görünüyor. Profil yüklenir yüklenmez
+    // iki sayaç da sunucudaki gerçek son eylem zamanıyla senkronlanıyor.
+    lastForumActionAtLocal = existingData.lastForumActionAt?.toDate ? existingData.lastForumActionAt.toDate().getTime() : 0;
+    lastCommunityActionAtLocal = existingData.lastChatActionAt?.toDate ? existingData.lastChatActionAt.toDate().getTime() : 0;
     markDataFresh('profile'); // Firestore'dan doğrulanmış veri geldi (var ya da yok fark etmez) — artık gösterilebilir
     checkBanStatus(); // ban kontrolü mümkün olan en erken noktada, diğer her şeyden önce
     rlistings(); // favoriler geldi, listeyi güncelle (kalp ikonları doğru görünsün)
