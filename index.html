@@ -8171,6 +8171,31 @@ let marketRefListings = [];
 let marketRefLoaded = false;
 let marketRefLoading = false;
 
+// KÖK NEDEN DÜZELTMESİ (Firestore okuma kotası aşımı, doğrulandı 2026-08-06): loadMarketPage()'in
+// featured/showcase "ekstra" sorguları LIMIT'SİZDİ — admin ne kadar çok ilanı öne çıkarır/vitrine
+// koyarsa, HER Pazar ilk açılışında/pull-to-refresh yenilemesinde o kadar çok doküman okunuyordu,
+// üstelik hiç önbelleklenmiyordu (art arda birkaç pull-to-refresh, aynı sorguyu sıfırdan tekrar
+// tekrar çekiyordu). Artık her biri makul bir üst sınırla (30) sınırlı VE 5 dakikalık bir
+// önbellekle korunuyor.
+let marketFeaturedCache = null;
+let marketFeaturedCacheAt = 0;
+const MARKET_FEATURED_CACHE_MS = 5 * 60 * 1000;
+async function fetchMarketFeaturedExtras() {
+  if (marketFeaturedCache && (Date.now() - marketFeaturedCacheAt) < MARKET_FEATURED_CACHE_MS) return marketFeaturedCache;
+  const [featSnap, showcaseSnap] = await Promise.all([
+    db.collection('teknohane_listings').where('approved', '==', true).where('featured', '==', true).limit(30).get(),
+    db.collection('teknohane_listings').where('approved', '==', true).where('showcase', '==', true).limit(30).get(),
+  ]);
+  const seen = new Set();
+  const extras = [];
+  [featSnap, showcaseSnap].forEach(sSnap => sSnap.docs.forEach(d => {
+    if (!seen.has(d.id)) { seen.add(d.id); extras.push({ id: d.id, ...d.data() }); }
+  }));
+  marketFeaturedCache = extras;
+  marketFeaturedCacheAt = Date.now();
+  return extras;
+}
+
 async function loadMarketPage(reset) {
   if (marketLoading) return;
   if (reset) { marketAllListings = []; marketLastDoc = null; marketHasMore = true; }
@@ -8184,32 +8209,19 @@ async function loadMarketPage(reset) {
   try {
     let q = db.collection('teknohane_listings').where('approved', '==', true).orderBy('createdAt', 'desc').limit(MARKET_PAGE_SIZE);
     if (marketLastDoc) q = q.startAfter(marketLastDoc);
-    // KULLANIŞLILIK DÜZELTMESİ (kullanıcı raporu: eski bir ilan "Öne Çıkan" işaretlense de üst
-    // sıraya çıkmıyordu): rlistings()'teki showcase/featured sıralama önceliği yalnızca O AN
-    // belleğe (marketAllListings) yüklenmiş ilanlar arasında çalışıyor — sayfalama (20'şer) yüzünden
-    // henüz yüklenmemiş eski bir ilan, öne çıkarılsa bile sıralamaya hiç giremiyordu. 100.000+ ilan
-    // ölçeği için tasarlanmış ana sayfalamayı KALDIRMAK yerine (bkz. yukarıdaki mimari yorum), yalnızca
-    // ilk açılışta (reset), showcase/featured==true olan ilanları AYRI ve ucuz iki sorguyla (tipik
-    // olarak az sayıda kayıt, tek eşitlik filtresi — composite index gerektirmez) çekip normal
-    // sayfaya EKLİYORUZ; rlistings() zaten bunları üste sıralıyor, burada yalnızca sayfalama
-    // derinliğinden bağımsız biçimde belleğe girmelerini garanti ediyoruz.
-    const specialQueries = reset ? [
-      db.collection('teknohane_listings').where('approved', '==', true).where('featured', '==', true).get(),
-      db.collection('teknohane_listings').where('approved', '==', true).where('showcase', '==', true).get(),
-    ] : [];
-    const [snap, ...specialSnaps] = await Promise.all([q.get(), ...specialQueries]);
+    // rlistings()'teki showcase/featured sıralama önceliği yalnızca O AN belleğe (marketAllListings)
+    // yüklenmiş ilanlar arasında çalışıyor — sayfalama (20'şer) yüzünden henüz yüklenmemiş eski bir
+    // ilan, öne çıkarılsa bile sıralamaya hiç giremiyordu. 100.000+ ilan ölçeği için tasarlanmış ana
+    // sayfalamayı KALDIRMAK yerine, yalnızca ilk açılışta (reset), showcase/featured==true olan
+    // ilanları fetchMarketFeaturedExtras() ile (limitli+önbellekli) çekip normal sayfaya EKLİYORUZ.
+    const [snap, extrasResult] = await Promise.all([q.get(), reset ? fetchMarketFeaturedExtras() : Promise.resolve(null)]);
     const newItems = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     marketLastDoc = snap.docs[snap.docs.length - 1] || marketLastDoc;
     marketHasMore = snap.docs.length === MARKET_PAGE_SIZE;
     marketAllLoadedOnce = true;
     if (reset) {
       const existingIds = new Set(newItems.map(l => l.id));
-      const extras = [];
-      specialSnaps.forEach(sSnap => {
-        sSnap.docs.forEach(d => {
-          if (!existingIds.has(d.id)) { existingIds.add(d.id); extras.push({ id: d.id, ...d.data() }); }
-        });
-      });
+      const extras = (extrasResult || []).filter(l => !existingIds.has(l.id));
       marketAllListings = [...extras, ...newItems];
       rlistings();
     } else {
