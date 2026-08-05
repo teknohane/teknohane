@@ -3980,6 +3980,28 @@ async function refreshEmailVerifiedStatus() {
   } catch(e) {}
 }
 
+// KÖK NEDEN DÜZELTMESİ v3 ("bu işlem için yetkin yok" hatası ilan/konu gönderirken — v1/v2 hâlâ
+// eksik kaldı): v2, BİLİNEN bir bayat-token durumunu göndermeden ÖNCE tespit edip düzeltmeye
+// çalışıyordu, ama refreshEmailVerifiedStatus() KENDİSİ de bir ağ isteğine bağlı — tam o an token
+// başka bir sebeple (ör. sunucu saat kayması, henüz yayılmamış bir claim güncellemesi) taze
+// görünüp asıl yazma isteği yine de reddedilebiliyordu. Sonuç: kullanıcı "yetkin yok" hatası görüyor,
+// ama token birazdan gerçekten tazeleniyor ve kullanıcı fark etmeden (ya da tekrar deneyince) içerik
+// aslında gidiyor — hatanın kendisi yanlış alarm. Çözüm: yazmayı REDDEDEN taraf value'yu asıl kaynağa
+// (sunucu) sorup kesin cevap almak yerine, permission-denied ALINDIĞINDA token'ı sert şekilde
+// yenileyip aynı yazmayı SESSİZCE bir kez daha deniyoruz — kullanıcı bunu asla görmüyor, ya işlem
+// sorunsuz tamamlanıyor ya da (gerçekten banlıysa/yetkisizse) aynı hata en sonunda yine gösteriliyor.
+async function writeWithPermissionRetry(writeFn) {
+  try {
+    return await writeFn();
+  } catch (e) {
+    if (e && e.code === 'permission-denied' && user) {
+      try { await user.getIdToken(true); } catch (_) {}
+      return await writeFn();
+    }
+    throw e;
+  }
+}
+
 // Bu cihazdan/tarayıcıdan yapılan girişler `sessions` alt-koleksiyonuna kaydedilir (bkz. syncUserProfile).
 // Burada son 30 gün içinde aktif olan cihaz sayısını okuyup Güvenlik Kartı'nda gösteriyoruz.
 // Aktif oturum sayısı ve takipçi sayısı sorguları, önceden HER rprof() çağrısında (örn. tek bir
@@ -8970,7 +8992,7 @@ async function submitListing() {
       // isListingExpired/rlistings). Süre dolunca sahibine bildirim gider, tek tuşla yeniden
       // yayınlanabilir (bkz. checkMyExpiredListings/renewListing).
       data.expiresAt = firebase.firestore.Timestamp.fromDate(new Date(Date.now() + 30*24*60*60*1000));
-      const newListingRef = await db.collection('teknohane_listings').add(data);
+      const newListingRef = await writeWithPermissionRetry(() => db.collection('teknohane_listings').add(data));
       // DENORMALİZASYON (Genel Performans): admin kullanıcı listesi artık ilan sayısını TÜM
       // koleksiyonu tarayarak değil (bkz. rAdminUsers), bu sayaçtan okuyor. NOT (dürüstlük): bu alan
       // eklenmeden ÖNCE oluşturulmuş ilanlar sayılmaz — geriye dönük taşıma bu oturumun kapsamı dışında.
@@ -10613,7 +10635,7 @@ async function submitPost() {
       pollTexts.forEach((t, i) => { const oid = 'o' + i; options[oid] = { text: t }; votes[oid] = 0; });
       data.poll = { options, votes, totalVotes: 0 };
     }
-    const ref = await db.collection('teknohane_posts').add(data);
+    const ref = await writeWithPermissionRetry(() => db.collection('teknohane_posts').add(data));
     const savedPostId = ref.id;
     markForumActionTimestamp();
     notifyAdminsNewForumPost(savedPostId, title, data.authorName);
