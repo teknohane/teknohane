@@ -4030,6 +4030,23 @@ function logPermissionDenialDiagnostic(action, e) {
   } catch (_) {}
 }
 
+// KANITLANMIŞ KÖK NEDEN (teşhis logundan): forum/yorum reddi, çoğu zaman GERÇEKTEN hız sınırına
+// takılıyor — ama YARIŞ DURUMU yüzünden: checkForumRateLimit() gönderim ANINDA geçse bile (o an
+// lastForumActionAtLocal eskiyse), neredeyse eşzamanlı BAŞKA bir forum eylemi (ör. art arda iki
+// yorum/konu) sunucudaki lastForumActionAt'i bu yazma sunucuya ulaşmadan hemen önce güncelleyebilir
+// — sunucu haklı olarak reddeder, ama kullanıcı hiç uyarı görmediği için bunu jenerik "yetkin yok"
+// hatası sanır (içerik genelde az sonra/başka denemede zaten gidiyor). Reddedilme anında hâlâ hız
+// sınırı penceresi içindeysek (lastForumActionAtLocal o arada güncellenmiş olabilir), kullanıcıya
+// doğru ve sakinleştirici "Yavaş Ol" mesajını gösteriyoruz — jenerik, alarm verici mesaj yerine.
+function showForumPermissionError(e) {
+  if (e && e.code === 'permission-denied' && (Date.now() - lastForumActionAtLocal) < FORUM_RATE_LIMIT_MS) {
+    const remaining = Math.max(1, Math.ceil((FORUM_RATE_LIMIT_MS - (Date.now() - lastForumActionAtLocal)) / 1000));
+    showToast('⏳', 'rgba(255,159,10,.15)', 'Yavaş Ol', 'Art arda çok hızlı gönderim yapıyorsun, ' + remaining + ' saniye bekle.');
+  } else {
+    showErrorToast(e);
+  }
+}
+
 async function writeWithPermissionRetry(writeFn) {
   try {
     return await writeFn();
@@ -10751,7 +10768,7 @@ async function submitPost() {
     pollOptionsDraft = [];
 
     showToast('⏳','rgba(255,159,10,.15)','Konu Gönderildi','İncelendikten sonra foruma yayınlanacaktır.');
-  } catch(e) { logPermissionDenialDiagnostic('post', e); showErrorToast(e); } finally { releaseSubmit('post'); }
+  } catch(e) { logPermissionDenialDiagnostic('post', e); showForumPermissionError(e); } finally { releaseSubmit('post'); }
 }
 
 async function openPost(id) {
@@ -11169,7 +11186,7 @@ async function submitComment() {
       if (m.uid && m.uid !== user.uid) notifyUser(m.uid, 'mention', `${name} seni bir yorumda etiketledi: "${p.title}"`, null, p.id, user.uid, name, myProfileData.photoURL);
     });
     pendingMentions = [];
-  } catch(e) { logPermissionDenialDiagnostic('comment', e); showErrorToast(e); } finally { releaseSubmit('comment'); }
+  } catch(e) { logPermissionDenialDiagnostic('comment', e); showForumPermissionError(e); } finally { releaseSubmit('comment'); }
 }
 
 // "Takip Et": konuya yeni yorum geldiğinde bildirim almak için. followers[] alanı, konu oluşturulurken
