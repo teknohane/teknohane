@@ -4006,7 +4006,22 @@ async function writeWithPermissionRetry(writeFn) {
   } catch (e) {
     if (e && e.code === 'permission-denied' && user) {
       try { await user.getIdToken(true); } catch (_) {}
-      return await writeFn();
+      try {
+        return await writeFn();
+      } catch (e2) {
+        // TEŞHİS: ikinci deneme de (token sert yenilendikten SONRA) reddedilirse, bu artık bilinen
+        // "bayat token" senaryosu değil demektir — gerçek nedeni görebilmek için token'ın o anki
+        // claim'lerini de teknohane_error_logs'a yazıyoruz (bkz. görev raporu, hâlâ tekrarlıyor).
+        try {
+          const tr = await user.getIdTokenResult().catch(() => null);
+          logClientError(
+            'writeWithPermissionRetry: 2. deneme de reddedildi — ' + (e2?.code || '') + ' ' + (e2?.message || e2),
+            'emailVerifiedLocal=' + user.emailVerified + ' tokenClaimEmailVerified=' + tr?.claims?.email_verified + ' authTime=' + tr?.authTime + ' issuedAtTime=' + tr?.issuedAtTime + ' expTime=' + tr?.expirationTime,
+            'writeWithPermissionRetry'
+          );
+        } catch (_) {}
+        throw e2;
+      }
     }
     throw e;
   }
