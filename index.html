@@ -3690,7 +3690,8 @@ function rprof() {
       </div>
       <div class="psec-title" style="margin-top:4px">⚙️ Ayarlar</div>
       ${pushPanelHTML()}
-      ${themePanelHTML()}`;
+      ${themePanelHTML()}
+      ${contentUpdatePanelHTML()}`;
     updateThemeToggleUI();
     animateProfileStats();
     loadProfileExtrasIfNeeded();
@@ -14212,6 +14213,32 @@ async function tkCheckForContentUpdate() {
     const { uri } = await Capacitor.Plugins.Filesystem.getUri({ path: `content/${slot}`, directory: 'DATA' });
     tkScheduleContentSwitch(uri.replace(/^file:\/\//, ''));
   } catch(e) {}
+}
+
+// Profil > Ayarlar'daki manuel "Şimdi Kontrol Et" — tkCheckForContentUpdate() normalde saatte en
+// fazla 1 kez ağa gidiyor (bkz. yukarıdaki tk_last_update_check kontrolü); test ederken veya "neden
+// güncellenmedi" sorusunda bu saatlik sınırı beklemeden kullanıcının kendisinin tetikleyebilmesi için.
+function contentUpdatePanelHTML() {
+  if (!isNativeApp()) return '';
+  return `
+    <div class="theme-panel">
+      <div class="theme-title">İçerik Güncellemesi</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Uygulama içeriği normalde saatte bir otomatik kontrol edilir. Yeni bir güncelleme olup olmadığını hemen görmek için:</div>
+      <button class="apbtn" id="content-update-check-btn" onclick="manualCheckContentUpdate(this)">🔄 Şimdi Kontrol Et</button>
+    </div>`;
+}
+async function manualCheckContentUpdate(btn) {
+  if (!isNativeApp()) return;
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Kontrol ediliyor…'; }
+  const beforePending = localStorage.getItem('tk_pending_slot');
+  localStorage.removeItem('tk_last_update_check'); // bu manuel eylem saatlik sınırı atlar
+  await tkCheckForContentUpdate();
+  const afterPending = localStorage.getItem('tk_pending_slot');
+  const foundNew = !!afterPending && afterPending !== beforePending;
+  showToast(foundNew ? '✓' : 'ℹ️', foundNew ? 'rgba(48,209,88,.15)' : 'rgba(0,212,255,.15)',
+    foundNew ? 'Güncelleme Bulundu' : 'Güncel',
+    foundNew ? 'Yeni içerik indirildi, uygulama arka plana alınınca devreye girecek.' : 'Zaten en güncel içeriktesin.');
+  if (btn) { btn.disabled = false; btn.textContent = '🔄 Şimdi Kontrol Et'; }
 }
 
 // INIT
