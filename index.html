@@ -14077,12 +14077,15 @@ async function tkReconcileContentSlot() {
     // (eski, bozuk içerikli) bir teknohane.png bulunabilir. Bunun yerine ayrı bir SÜRÜM işaretçisi
     // tutulur — bu sabit her artırıldığında (varlık gerçekten değiştiğinde), TÜM kullanıcılar html
     // hash'inden bağımsız olarak, saat sınırına takılmadan, dosyayı BİR KEZ yeniden indirip üzerine yazar.
-    const TK_ASSET_VERSION = '3'; // teknohane.png yeniden kopyalama tetikleyicisi — bkz. yukarıdaki not
+    // v4: teknohane-sohbet.png (Sohbet bölümü rozeti) eklendi — mevcut kurulumlarda hiç
+    // indirilmemişti, <img onerror> yedeği yüzünden 🌐 emojisine düşüyordu (bkz. görev raporu).
+    const TK_ASSET_VERSION = '4'; // varlık listesi değiştiğinde artırılıp buraya bir satır eklenir
     if (window.Capacitor?.Plugins?.Filesystem && localStorage.getItem('tk_asset_version') !== TK_ASSET_VERSION) {
       const curPath = tkNormalizePath((await Capacitor.Plugins.WebView.getServerBasePath())?.path);
       const activeSlot = curPath.endsWith('/content/a') ? 'a' : curPath.endsWith('/content/b') ? 'b' : null;
       if (activeSlot) {
         await tkStageBinaryAssetToSlot('teknohane.png', activeSlot);
+        await tkStageBinaryAssetToSlot('teknohane-sohbet.png', activeSlot);
         localStorage.setItem('tk_asset_version', TK_ASSET_VERSION);
       }
     }
@@ -14175,6 +14178,7 @@ async function tkCheckForContentUpdate() {
     await Capacitor.Plugins.Filesystem.writeFile({ path: `content/${slot}/index.html`, data: html, directory: 'DATA', encoding: 'utf8', recursive: true });
     if (offlineHtml) await Capacitor.Plugins.Filesystem.writeFile({ path: `content/${slot}/offline.html`, data: offlineHtml, directory: 'DATA', encoding: 'utf8', recursive: true });
     await tkStageBinaryAssetToSlot('teknohane.png', slot);
+    await tkStageBinaryAssetToSlot('teknohane-sohbet.png', slot);
     const info = await Capacitor.Plugins.Filesystem.stat({ path: `content/${slot}/index.html`, directory: 'DATA' });
     if (info.type !== 'file' || info.size < 300000) return; // yazım doğrulaması başarısız
     localStorage.setItem('tk_pending_content_hash', hashHex);
