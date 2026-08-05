@@ -12042,9 +12042,13 @@ const fs=n=>{n=parseInt(n)||0;if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1000)
 
 // Worker'a tek bir istek atılır, hem lchan() hem lvids() aynı promise'i paylaşır — ikisi de
 // aynı anda çağrılsa bile (bkz. rhome()) ağ isteği yalnızca BİR kez yapılır.
+// KÖK NEDEN DÜZELTMESİ: istek başarısız olduğunda ytFetchPromise eskiden reddedilmiş haliyle
+// kalıyordu — bu yüzden "Tekrar Dene" butonu aslında hiçbir zaman yeni bir ağ isteği ATMIYOR,
+// aynı eski hatayı anında tekrar veriyordu. Artık başarısızlıkta sıfırlanıyor ki bir sonraki
+// çağrı gerçekten yeni bir istek atsın.
 let ytFetchPromise = null;
 function fetchYoutubeData() {
-  if (!ytFetchPromise) ytFetchPromise = tkGetJson(YT_API);
+  if (!ytFetchPromise) ytFetchPromise = tkGetJson(YT_API).catch(e => { ytFetchPromise = null; throw e; });
   return ytFetchPromise;
 }
 
@@ -12471,11 +12475,19 @@ function animateCountUp(el, target) {
 // Kanal istatistik kartı (abone/izlenme/video sayısı) KASITLI OLARAK KALDIRILDI — ilgi çekici
 // bulunmadı, Öne Çıkan Video zaten videoya giden tek giriş noktası. Video/haber akışının kendisi
 // (renderVideoSection/rnewslist, önbellek-sonra-tazele deseni) HİÇ DEĞİŞMEDİ, yalnızca ekrandaki yeri.
+// KÖK NEDEN DÜZELTMESİ (yeni kullanıcılarda "Connection reset" ile tüm İçerik ekranının çökmesi):
+// eskiden lchan()/lvids() (yalnızca YouTube Worker'a bağlı) başarısız olursa, dıştaki tek bir catch
+// TÜM home-c container'ının innerHTML'ini bir hata ekranıyla değiştiriyordu — bu, kendi hatasını
+// kendi içinde yutan Selamlama/Trendler/Pazar/Forum/Haber bölümlerini de (onlar başarıyla
+// yüklenmiş olsa bile) siliyordu. Önbelleği olan (daha önce en az bir kez videoyu başarıyla
+// çekmiş) kullanıcılarda bu görünmüyordu çünkü renderedFromCache koruması vardı — ama yeni
+// yükleyen kullanıcılarda hiç önbellek olmadığından, tek bir geçici ağ hatası (worker soğuk
+// başlangıcı, "Connection reset" vb.) bütün ana ekranı bir hata sayfasına çeviriyordu. Artık video
+// yükleme kendi try/catch'ine alındı; başarısızlıkta yalnızca video kartı (feat-slot) hata+"Tekrar
+// Dene" gösteriyor, geri kalan bölümler etkilenmiyor.
 async function rhome() {
   const c=document.getElementById('home-c');
-  let renderedFromCache = false;
-  try {
-    c.innerHTML = `
+  c.innerHTML = `
       <div class="home-section" style="animation-delay:0ms"><div id="home-greeting"></div></div>
       <div class="home-section" style="animation-delay:25ms"><div id="home-mini-stats"></div></div>
       <div class="home-section" style="animation-delay:50ms">
@@ -12511,40 +12523,45 @@ async function rhome() {
         <div class="sh"><span class="st"><span class="sh-ic">📰</span>Teknoloji Haberleri</span></div>
         <div class="vlist" id="newslist"><div class="load"><div class="spin"></div></div></div>
       </div>`;
-    Promise.all([lnews(), fetchHomeNewsHighlight().catch(()=>null)]).then(([news, highlight]) => {
-      const el = document.getElementById('newslist');
-      if (el) el.innerHTML = rnewslist(news, highlight);
-    }).catch(() => {
-      const el = document.getElementById('newslist');
-      if (el) el.innerHTML = '<div class="no">Haberler yüklenemedi</div>';
-    });
-    // Selamlama/Trendler/Pazar/⭐ Öne Çıkan İlan/Forum/Mini istatistik önizlemeleri — video/haber
-    // akışından TAMAMEN bağımsız, her biri kendi hatasını kendi içinde yutar (biri başarısız olursa
-    // geri kalanlar etkilenmez).
-    loadHomeGreeting().catch(()=>{});
-    renderHomeMiniStats().catch(()=>{});
-    renderTrendingPhones().catch(()=>{});
-    renderFeaturedListing().catch(()=>{});
-    loadHomeMarketPreview().catch(()=>{});
-    renderPopularForumTopics().catch(()=>{});
-    renderRecentlyCommentedTopics().catch(()=>{});
+  Promise.all([lnews(), fetchHomeNewsHighlight().catch(()=>null)]).then(([news, highlight]) => {
+    const el = document.getElementById('newslist');
+    if (el) el.innerHTML = rnewslist(news, highlight);
+  }).catch(() => {
+    const el = document.getElementById('newslist');
+    if (el) el.innerHTML = '<div class="no">Haberler yüklenemedi</div>';
+  });
+  // Selamlama/Trendler/Pazar/⭐ Öne Çıkan İlan/Forum/Mini istatistik önizlemeleri — video/haber
+  // akışından TAMAMEN bağımsız, her biri kendi hatasını kendi içinde yutar (biri başarısız olursa
+  // geri kalanlar etkilenmez).
+  loadHomeGreeting().catch(()=>{});
+  renderHomeMiniStats().catch(()=>{});
+  renderTrendingPhones().catch(()=>{});
+  renderFeaturedListing().catch(()=>{});
+  loadHomeMarketPreview().catch(()=>{});
+  renderPopularForumTopics().catch(()=>{});
+  renderRecentlyCommentedTopics().catch(()=>{});
 
-    // KANAL KARTI (abone/izlenme/video sayısı) KASITLI OLARAK KALDIRILDI — kullanıcı YouTube
-    // istatistiklerini ilgi çekici bulmadı, "Öne Çıkan Video" zaten videoya giden tek giriş noktası
-    // olarak yeterli. lchan() YİNE DE çağrılıyor çünkü lvids() içeride onun doldurduğu kanal/playlist
-    // bilgisine ihtiyaç duyuyor — yalnızca GÖRÜNTÜLEME kaldırıldı, veri akışı aynı.
-    const cachedVids = readYtCache(YT_CACHE_VIDS);
-    if (cachedVids && cachedVids.length) { renderVideoSection(cachedVids); renderedFromCache = true; }
+  // KANAL KARTI (abone/izlenme/video sayısı) KASITLI OLARAK KALDIRILDI — kullanıcı YouTube
+  // istatistiklerini ilgi çekici bulmadı, "Öne Çıkan Video" zaten videoya giden tek giriş noktası
+  // olarak yeterli. lchan() YİNE DE çağrılıyor çünkü lvids() içeride onun doldurduğu kanal/playlist
+  // bilgisine ihtiyaç duyuyor — yalnızca GÖRÜNTÜLEME kaldırıldı, veri akışı aynı.
+  const cachedVids = readYtCache(YT_CACHE_VIDS);
+  if (cachedVids && cachedVids.length) renderVideoSection(cachedVids);
 
+  // Video yükleme artık KENDİ try/catch'inde — başarısız olursa yalnızca video kartı (feat-slot)
+  // hata gösterir, Selamlama/Trendler/Pazar/Forum/Haber bölümleri (yukarıda zaten bağımsız
+  // yüklendi) etkilenmez.
+  try {
     await lchan();
     const vids = await lvids();
     renderVideoSection(vids);
     writeYtCache(YT_CACHE_VIDS, vids);
   } catch(e) {
-    // Önbellekten zaten gerçek içerik gösterildiyse ekranı hata mesajına çevirme — kullanıcı
+    // Önbellekten zaten gerçek video gösterildiyse kartı hata mesajına çevirme — kullanıcı
     // biraz eski ama gerçek içerikle kalsın, sessizce yeniden denenebilir kalsın.
-    if (!renderedFromCache) {
-      c.innerHTML=`<div class="load"><div style="font-size:36px">📡</div><div>${e.message}</div><button class="sbtn2" style="margin-top:16px;max-width:200px" onclick="retry()">Tekrar Dene</button></div>`;
+    if (!cachedVids || !cachedVids.length) {
+      const featSlot = document.getElementById('feat-slot');
+      if (featSlot) featSlot.outerHTML = `<div class="load" id="feat-slot" style="padding:28px 16px"><div style="font-size:30px">📡</div><div style="font-size:12px;text-align:center">${e.message}</div><button class="sbtn2" style="margin-top:12px;max-width:180px" onclick="retry()">Tekrar Dene</button></div>`;
     }
   }
 }
