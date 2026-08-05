@@ -4012,6 +4012,24 @@ async function refreshEmailVerifiedStatus() {
 // (sunucu) sorup kesin cevap almak yerine, permission-denied ALINDIĞINDA token'ı sert şekilde
 // yenileyip aynı yazmayı SESSİZCE bir kez daha deniyoruz — kullanıcı bunu asla görmüyor, ya işlem
 // sorunsuz tamamlanıyor ya da (gerçekten banlıysa/yetkisizse) aynı hata en sonunda yine gösteriliyor.
+// TEŞHİS: "yetkin yok" hatası hâlâ tekrarlıyor (birden fazla düzeltmeye rağmen) — hangi eylemde
+// (ilan/konu/yorum) ve hız-sınırı sayaçlarının o anki durumuyla birlikte kaydediyoruz ki bir
+// sonraki tekrarda tahmin değil gerçek veriye bakılabilsin.
+function logPermissionDenialDiagnostic(action, e) {
+  if (!e || e.code !== 'permission-denied') return;
+  try {
+    const now = Date.now();
+    logClientError(
+      action + ' reddedildi (permission-denied): ' + (e.message || e),
+      'emailVerified=' + (user && user.emailVerified) + ' lastForumActionAtLocal=' + lastForumActionAtLocal +
+        ' secSinceForumLocal=' + Math.round((now - lastForumActionAtLocal) / 1000) +
+        ' lastCommunityActionAtLocal=' + lastCommunityActionAtLocal +
+        ' secSinceCommunityLocal=' + Math.round((now - lastCommunityActionAtLocal) / 1000),
+      'permDenied:' + action
+    );
+  } catch (_) {}
+}
+
 async function writeWithPermissionRetry(writeFn) {
   try {
     return await writeFn();
@@ -9097,7 +9115,7 @@ async function submitListing() {
     // "İlanlarım" sekmesi artık ayrı yüklendiği için, bir sonraki girişte güncel veriyi çeksin diye işaretlenir.
     marketMineLoaded = false;
     if (mktab === 'mine') loadMarketMine();
-  } catch(e) { showErrorToast(e); } finally { releaseSubmit('listing'); }
+  } catch(e) { logPermissionDenialDiagnostic('listing', e); showErrorToast(e); } finally { releaseSubmit('listing'); }
 }
 
 async function editListing(id) {
@@ -10733,7 +10751,7 @@ async function submitPost() {
     pollOptionsDraft = [];
 
     showToast('⏳','rgba(255,159,10,.15)','Konu Gönderildi','İncelendikten sonra foruma yayınlanacaktır.');
-  } catch(e) { showErrorToast(e); } finally { releaseSubmit('post'); }
+  } catch(e) { logPermissionDenialDiagnostic('post', e); showErrorToast(e); } finally { releaseSubmit('post'); }
 }
 
 async function openPost(id) {
@@ -11151,7 +11169,7 @@ async function submitComment() {
       if (m.uid && m.uid !== user.uid) notifyUser(m.uid, 'mention', `${name} seni bir yorumda etiketledi: "${p.title}"`, null, p.id, user.uid, name, myProfileData.photoURL);
     });
     pendingMentions = [];
-  } catch(e) { showErrorToast(e); } finally { releaseSubmit('comment'); }
+  } catch(e) { logPermissionDenialDiagnostic('comment', e); showErrorToast(e); } finally { releaseSubmit('comment'); }
 }
 
 // "Takip Et": konuya yeni yorum geldiğinde bildirim almak için. followers[] alanı, konu oluşturulurken
