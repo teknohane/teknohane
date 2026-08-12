@@ -2556,33 +2556,52 @@ const VAPID_KEY = 'BPt5vY5P3Dr9DG2zHOQwhQKnH6V5UruqGisQRTlGWxkNaAYtYKAEG9xiTHn78
 // KÖK NEDEN DÜZELTMESİ: client SDK'sının sendEmailVerification()'ı Firebase'in paylaşımlı gönderim
 // altyapısını kullanıyordu (sık sık spam'e düşüyordu). Artık idToken bu Worker'a gönderiliyor, Worker
 // admin yetkiyle link üretip Brevo ile marka+Türkçe e-posta gönderiyor (bkz. cloudflare-push-worker.js).
+// KÖK NEDEN DÜZELTMESİ (kanıtlanmış — kullanıcının cihazında hem düz fetch() hem de preflight'sız
+// 'text/plain' varyantı SESSİZCE başarısız oluyordu, worker loglarında istek HİÇ görünmüyordu):
+// sorun CORS/preflight değil, bu cihazda/ağda WebView'in kendi ağ katmanına özgü bir şey.
+// Capacitor'ın yerleşik CapacitorHttp eklentisi isteği WebView'i TAMAMEN atlayıp doğrudan
+// işletim sisteminin ağ yığınıyla (Android'de OkHttp) gönderiyor — bu sınıf sorunlardan bağımsız.
+// Native olmayan (mobil web) kullanım için fetch() geri düşüşü korunuyor.
+async function sendVerificationEmailAttempt(idToken) {
+  if (window.Capacitor?.Plugins?.CapacitorHttp && isNativeApp()) {
+    const resp = await Capacitor.Plugins.CapacitorHttp.request({
+      url: EMAIL_VERIFY_API, method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: { idToken }
+    });
+    const data = typeof resp.data === 'string' ? JSON.parse(resp.data || '{}') : (resp.data || {});
+    if ((resp.status < 200 || resp.status >= 300) && !data.error) data.error = `HTTP ${resp.status}`;
+    return data;
+  } else {
+    const res = await fetch(EMAIL_VERIFY_API, {
+      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, body: JSON.stringify({ idToken })
+    });
+    const data = await res.json();
+    if (!res.ok && !data.error) data.error = `HTTP ${res.status}`;
+    return data;
+  }
+}
+// KÖK NEDEN DÜZELTMESİ (kullanıcı raporu: "Unable to parse TLS packet header" hatası): bu, worker'la
+// hiç ilgisi olmayan, native OkHttp ağ katmanının BAYAT (önceki isteğin havuzda kalmış, artık geçersiz)
+// bir bağlantıyı yeniden kullanmaya çalışmasından kaynaklanan, iyi bilinen geçici bir hata — özellikle
+// zayıf/değişken mobil veri bağlantılarında. Tek bir yeniden deneme YENİ bir bağlantı kurulmasını
+// zorlar ve neredeyse her zaman sorunu tek başına çözer; kullanıcı hiçbir hata görmeden devam eder.
+function isTransientNetworkError(msg) {
+  return /TLS packet header|unexpected end of stream|Connection reset|Software caused connection abort|failed to connect|Unable to resolve host/i.test(msg || '');
+}
 async function sendVerificationEmailViaWorker(u) {
   const idToken = await u.getIdToken();
   let data;
   try {
-    // KÖK NEDEN DÜZELTMESİ (kanıtlanmış — kullanıcının cihazında hem düz fetch() hem de preflight'sız
-    // 'text/plain' varyantı SESSİZCE başarısız oluyordu, worker loglarında istek HİÇ görünmüyordu):
-    // sorun CORS/preflight değil, bu cihazda/ağda WebView'in kendi ağ katmanına özgü bir şey.
-    // Capacitor'ın yerleşik CapacitorHttp eklentisi isteği WebView'i TAMAMEN atlayıp doğrudan
-    // işletim sisteminin ağ yığınıyla (Android'de OkHttp) gönderiyor — bu sınıf sorunlardan bağımsız.
-    // Native olmayan (mobil web) kullanım için fetch() geri düşüşü korunuyor.
-    if (window.Capacitor?.Plugins?.CapacitorHttp && isNativeApp()) {
-      const resp = await Capacitor.Plugins.CapacitorHttp.request({
-        url: EMAIL_VERIFY_API, method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        data: { idToken }
-      });
-      data = typeof resp.data === 'string' ? JSON.parse(resp.data || '{}') : (resp.data || {});
-      if ((resp.status < 200 || resp.status >= 300) && !data.error) data.error = `HTTP ${resp.status}`;
-    } else {
-      const res = await fetch(EMAIL_VERIFY_API, {
-        method: 'POST', headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, body: JSON.stringify({ idToken })
-      });
-      data = await res.json();
-      if (!res.ok && !data.error) data.error = `HTTP ${res.status}`;
-    }
+    data = await sendVerificationEmailAttempt(idToken);
   } catch (e) {
-    throw new Error(e?.message || String(e));
+    const msg = e?.message || String(e);
+    if (isTransientNetworkError(msg)) {
+      try { data = await sendVerificationEmailAttempt(idToken); }
+      catch (e2) { throw new Error(e2?.message || String(e2)); }
+    } else {
+      throw new Error(msg);
+    }
   }
   if (data.error) throw new Error(data.error);
   return data;
@@ -4800,6 +4819,11 @@ function firebaseErrorToTurkish(e) {
   const authMatch = msg.match(/auth\/[a-z-]+/);
   if (authMatch && FIREBASE_ERROR_TR[authMatch[0]]) return FIREBASE_ERROR_TR[authMatch[0]];
   if (/network/i.test(msg)) return 'İnternet bağlantını kontrol et.';
+  // KÖK NEDEN DÜZELTMESİ: "Unable to parse TLS packet header" gibi ham native OkHttp hata metinleri
+  // (bkz. sendVerificationEmailViaWorker'daki isTransientNetworkError) kullanıcıya hiçbir anlam
+  // ifade etmiyordu — artık tek bir yeniden deneme sonrası hâlâ başarısızsa bile anlaşılır bir
+  // mesaj gösteriliyor.
+  if (isTransientNetworkError(msg)) return 'Bağlantı zayıf görünüyor, lütfen tekrar dene.';
   if (/permission|insufficient/i.test(msg)) return 'Bu işlem için yetkin yok.';
   // HATA AYIKLAMA DÜZELTMESİ ("fotoğraf yüklenemedi" — gerçek neden hiç görünmüyordu): Firebase kodu
   // TAŞIMAYAN (yani bizim kendi elle attığımız, zaten Türkçe/okunabilir) Error nesneleri buraya kadar
