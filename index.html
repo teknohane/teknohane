@@ -2607,6 +2607,46 @@ async function sendVerificationEmailViaWorker(u) {
   return data;
 }
 
+// Şifre sıfırlama — sendVerificationEmailAttempt/ViaWorker ile AYNI mimari (bkz. yukarısı, aynı kök
+// neden düzeltmesi): client SDK'sının sendPasswordResetEmail()'ı Firebase'in paylaşımlı gönderim
+// altyapısını kullanıp spam'e düşüyordu. Giriş yapılmamış olduğundan idToken yerine e-posta gönderilir.
+const PASSWORD_RESET_API = 'https://teknohane-phones.yusuf-aykac.workers.dev/send-password-reset-email';
+async function sendPasswordResetAttempt(email) {
+  if (window.Capacitor?.Plugins?.CapacitorHttp && isNativeApp()) {
+    const resp = await Capacitor.Plugins.CapacitorHttp.request({
+      url: PASSWORD_RESET_API, method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: { email }
+    });
+    const data = typeof resp.data === 'string' ? JSON.parse(resp.data || '{}') : (resp.data || {});
+    if ((resp.status < 200 || resp.status >= 300) && !data.error) data.error = `HTTP ${resp.status}`;
+    return data;
+  } else {
+    const res = await fetch(PASSWORD_RESET_API, {
+      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, body: JSON.stringify({ email })
+    });
+    const data = await res.json();
+    if (!res.ok && !data.error) data.error = `HTTP ${res.status}`;
+    return data;
+  }
+}
+async function sendPasswordResetViaWorker(email) {
+  let data;
+  try {
+    data = await sendPasswordResetAttempt(email);
+  } catch (e) {
+    const msg = e?.message || String(e);
+    if (isTransientNetworkError(msg)) {
+      try { data = await sendPasswordResetAttempt(email); }
+      catch (e2) { throw new Error(e2?.message || String(e2)); }
+    } else {
+      throw new Error(msg);
+    }
+  }
+  if (data.error) throw new Error(data.error);
+  return data;
+}
+
 // KÖK NEDEN DÜZELTMESİ: bazı cihazlarda/ağlarda WebView'in kendi fetch()'i CORS'tan bağımsız,
 // sessizce başarısız olabiliyor (bkz. e-posta doğrulama ucundaki kök neden düzeltmesi — kanıtlanmış,
 // gerçek cihazda doğrulandı). Paylaşılan Cloudflare Worker API'lerine (YouTube/haberler/fiyat/telefon
@@ -4699,12 +4739,12 @@ async function forgotPassword() {
     return;
   }
   try {
-    await auth.sendPasswordResetEmail(email);
+    await sendPasswordResetViaWorker(email);
     if (err) { err.textContent = ''; err.classList.remove('on'); }
     showToast('📧','var(--cdim)','E-posta Gönderildi', `${email} adresine şifre sıfırlama linki gönderildi. Görmüyorsan spam/gereksiz klasörüne bak.`);
   } catch(ex) {
     if (err) {
-      const msg = (ex.code === 'auth/user-not-found' || ex.code === 'auth/invalid-email') ? 'Bu e-posta ile kayıtlı bir hesap bulunamadı' : 'İşlem başarısız, lütfen tekrar dene';
+      const msg = /kayıtlı bir hesap bulunamadı|Çok sık istek/.test(ex.message||'') ? ex.message : 'İşlem başarısız, lütfen tekrar dene';
       err.textContent = msg; err.classList.add('on');
     }
   }
