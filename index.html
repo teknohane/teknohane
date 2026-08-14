@@ -13887,6 +13887,59 @@ const ARENA_BADGE_LABELS = {
   'seri-bagimlisi': '🔥 Seri Bağımlısı', 'ilk-sampiyon': '🏆 İlk Şampiyon', 'kusursuz': '💯 Kusursuz',
 };
 
+// XP/Seviye eğrisi — cloudflare-push-worker.js'teki ARENA_XP_LEVEL_* sabitleriyle BİREBİR AYNI
+// (arenaClientIsoWeekStr'nin arenaIsoWeekStr'yi client'ta yeniden hesaplaması ile aynı desen —
+// sunucuya gitmeden anında UI göstermek için). Eğri değişirse İKİ yerin de güncellenmesi gerekir.
+const ARENA_XP_LEVEL_BASE = 100;
+const ARENA_XP_LEVEL_GROWTH = 1.10;
+const ARENA_XP_MAX_LEVEL = 50;
+const ARENA_XP_THRESHOLDS = (() => {
+  const t = [0];
+  let need = ARENA_XP_LEVEL_BASE, cumulative = 0;
+  for (let lvl = 2; lvl <= ARENA_XP_MAX_LEVEL; lvl++) {
+    cumulative += Math.round(need);
+    t.push(cumulative);
+    need *= ARENA_XP_LEVEL_GROWTH;
+  }
+  return t;
+})();
+function arenaXpToLevel(xp) {
+  let level = 1;
+  for (let i = 1; i < ARENA_XP_THRESHOLDS.length; i++) {
+    if (xp >= ARENA_XP_THRESHOLDS[i]) level = i + 1; else break;
+  }
+  return level;
+}
+function arenaXpForLevel(level) {
+  return ARENA_XP_THRESHOLDS[Math.min(Math.max(level, 1), ARENA_XP_MAX_LEVEL) - 1];
+}
+const ARENA_LEVEL_TITLES = [
+  { level: 1, title: 'Teknoloji Meraklısı' }, { level: 5, title: 'Teknoloji Takipçisi' },
+  { level: 10, title: 'Teknoloji Kurdu' }, { level: 20, title: 'Teknohane Uzmanı' },
+  { level: 30, title: 'Arena Ustası' }, { level: 50, title: 'Teknoloji Efsanesi' },
+];
+function arenaLevelTitle(level) {
+  let title = ARENA_LEVEL_TITLES[0].title;
+  for (const t of ARENA_LEVEL_TITLES) { if (level >= t.level) title = t.title; else break; }
+  return title;
+}
+// "12/3.000 XP" tarzı seviye-içi ilerleme çubuğu için ortak render parçası — Arena ana ekranı ve
+// profil kartı aynı işaretlemeyi kullanır.
+function arenaLevelProgressHtml(level, xp) {
+  const floor = arenaXpForLevel(level);
+  const ceil = level < ARENA_XP_MAX_LEVEL ? arenaXpForLevel(level + 1) : floor;
+  const span = Math.max(1, ceil - floor);
+  const pct = level >= ARENA_XP_MAX_LEVEL ? 100 : Math.round(Math.min(100, Math.max(0, ((xp - floor) / span) * 100)));
+  return `
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+      <span style="font-weight:700;font-size:13px">Seviye ${level} · ${escapeHtml(arenaLevelTitle(level))}</span>
+      <span style="font-size:11px;color:var(--text2)">${level>=ARENA_XP_MAX_LEVEL?`${xp} XP (maks. seviye)`:`${xp-floor} / ${span} XP`}</span>
+    </div>
+    <div style="height:6px;border-radius:4px;background:var(--surf2);overflow:hidden">
+      <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--cyan),#0091FF);border-radius:4px"></div>
+    </div>`;
+}
+
 let arenaView = 'home';
 let arenaQuiz = null;          // { quizId, questions: [...] } — arena-start'tan, correctIndex İÇERMEZ
 let arenaCurrentQ = 0;
@@ -13955,9 +14008,10 @@ async function loadProfileArenaStats() {
     const badges = s.badges || [];
     card.innerHTML = `
       <div class="psec-title" style="display:flex;align-items:center;justify-content:space-between">
-        <span>🎮 Arena <span style="font-size:11px;color:var(--text3);font-weight:400">· Seviye sistemi yakında</span></span>
+        <span>🎮 Arena</span>
         ${s.currentStreak>0?`<span style="font-size:12px;color:#FF9500;font-weight:700">🔥 ${s.currentStreak} günlük serin</span>`:''}
       </div>
+      <div style="margin-bottom:14px">${arenaLevelProgressHtml(s.level||1, s.xp||0)}</div>
       <div class="pbadge-row" style="margin-bottom:${badges.length?'14':'0'}px">
         <div class="pbadge-item"><div class="pbadge-ic" style="font-size:16px">🎮</div><div class="pbadge-lbl">${s.totalGames||0} Yarışma</div></div>
         <div class="pbadge-item"><div class="pbadge-ic" style="font-size:16px">🏆</div><div class="pbadge-lbl">${s.totalScore||0} Puan</div></div>
@@ -13978,15 +14032,21 @@ async function rArenaHome() {
   const body = document.getElementById('arena-body');
   if (!user) { body.innerHTML = `<div class="no">Arena'ya katılmak için giriş yapmalısın.</div>`; return; }
   body.innerHTML = `<div class="load"><div class="spin"></div></div>`;
-  let attempt = null;
+  let attempt = null, myStats = null;
   try {
-    const snap = await db.collection('teknohane_arena_attempts').doc(`${user.uid}_${arenaTodayStr()}`).get();
-    if (snap.exists) attempt = snap.data();
+    const [attemptSnap, statsSnap] = await Promise.all([
+      db.collection('teknohane_arena_attempts').doc(`${user.uid}_${arenaTodayStr()}`).get(),
+      db.collection('teknohane_arena_stats').doc(user.uid).get(),
+    ]);
+    if (attemptSnap.exists) attempt = attemptSnap.data();
+    if (statsSnap.exists) myStats = statsSnap.data();
   } catch (e) {}
+  // Seviye/XP kartı — Arena ana ekranında oynanma durumundan bağımsız her zaman en üstte.
+  const levelCard = `<div class="feat" style="padding:16px 18px;margin-bottom:14px">${arenaLevelProgressHtml(myStats?.level||1, myStats?.xp||0)}</div>`;
 
   if (attempt?.status === 'completed') {
     arenaResult = attempt;
-    body.innerHTML = `
+    body.innerHTML = levelCard + `
       <div class="feat" style="text-align:center;padding:28px 20px">
         <div style="font-size:38px;margin-bottom:8px">🏆</div>
         <div style="font-size:17px;font-weight:700;margin-bottom:4px">Bugünkü yarışmayı tamamladın!</div>
@@ -14003,7 +14063,7 @@ async function rArenaHome() {
     return;
   }
   if (attempt?.status === 'in_progress') {
-    body.innerHTML = `
+    body.innerHTML = levelCard + `
       <div class="feat" style="text-align:center;padding:28px 20px">
         <div style="font-size:38px;margin-bottom:8px">⏳</div>
         <div style="font-size:17px;font-weight:700;margin-bottom:4px">Bugünkü hakkın kullanılmış</div>
@@ -14012,7 +14072,7 @@ async function rArenaHome() {
     return;
   }
 
-  body.innerHTML = `
+  body.innerHTML = levelCard + `
     <div class="feat" style="text-align:center;padding:28px 20px">
       <div style="font-size:38px;margin-bottom:8px">🎮</div>
       <div style="font-size:18px;font-weight:700;margin-bottom:6px">Bugünkü Yarışma</div>
@@ -14164,6 +14224,9 @@ async function arenaFinishQuiz() {
     return;
   }
   arenaResult = data;
+  if (data.leveledUp) {
+    showToast('⭐', 'var(--cdim)', `Seviye ${data.level}!`, `Yeni unvanın: ${data.levelTitle||''}`);
+  }
   if (data.newBadges?.length) {
     showToast('🏅', 'var(--cdim)', 'Yeni Rozet Kazandın!', data.newBadges.map(b=>ARENA_BADGE_LABELS[b]||b).join(', '));
   }
@@ -14182,7 +14245,8 @@ function rArenaResult() {
       <div style="font-size:38px;margin-bottom:8px">🏆</div>
       <div style="font-size:18px;font-weight:700;margin-bottom:14px">Yarışma Tamamlandı!</div>
       <div style="font-size:34px;font-weight:800;color:var(--cyan);margin-bottom:4px">${r.totalScore||0} Puan</div>
-      <div style="color:var(--text2);font-size:13px;margin-bottom:18px">${r.correctCount||0} / ${total||10} Doğru · %${pct} Başarı${r.dailyRank?` · Bugünkü sıran: #${r.dailyRank}`:''}</div>
+      <div style="color:var(--text2);font-size:13px;margin-bottom:${r.xpEarned?'6px':'18px'}">${r.correctCount||0} / ${total||10} Doğru · %${pct} Başarı${r.dailyRank?` · Bugünkü sıran: #${r.dailyRank}`:''}</div>
+      ${r.xpEarned?`<div style="color:var(--cyan);font-size:12px;font-weight:600;margin-bottom:18px">+${r.xpEarned} XP kazandın${r.leveledUp?` · 🎉 Seviye ${r.level} oldun!`:''}</div>`:''}
       ${(r.perQuestion||r.answers||[]).length ? `<div style="text-align:left;display:flex;flex-direction:column;gap:10px;margin-bottom:18px">
         ${(r.perQuestion||r.answers).map((p,i)=>{
           // r.perQuestion yalnızca az önce bitirilen (arena-submit yanıtı) taze sonuçta var —
