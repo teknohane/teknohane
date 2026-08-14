@@ -13877,6 +13877,8 @@ function closeArenaPage() {
 // ═══════════════════════════════════════════════
 const ARENA_START_API = 'https://teknohane-phones.yusuf-aykac.workers.dev/arena-start';
 const ARENA_SUBMIT_API = 'https://teknohane-phones.yusuf-aykac.workers.dev/arena-submit';
+const ARENA_QOTD_START_API = 'https://teknohane-phones.yusuf-aykac.workers.dev/qotd-start';
+const ARENA_QOTD_ANSWER_API = 'https://teknohane-phones.yusuf-aykac.workers.dev/qotd-answer';
 const ARENA_CATEGORY_LABELS = {
   phones: '📱 Akıllı Telefonlar', cpu: '⚙️ İşlemciler', display: '🖥️ Ekran Teknolojileri',
   camera: '📷 Kamera', battery: '🔋 Batarya ve Şarj', android: '🤖 Android', apple: '🍎 Apple',
@@ -14098,8 +14100,9 @@ async function rArenaHome() {
   const levelCard = `<div class="feat" style="padding:16px 18px;margin-bottom:14px">
     ${arenaLevelProgressHtml(myStats?.level||1, myStats?.xp||0)}
     ${streak>0?`<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border2);font-size:12px;color:#FF9500;font-weight:700">🔥 ${streak} günlük serin devam ediyor${myStats?.longestStreak>streak?` <span style="color:var(--text3);font-weight:400">(en uzun: ${myStats.longestStreak})</span>`:''}</div>`:''}
-    <div style="text-align:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--border2)">
+    <div style="display:flex;justify-content:center;gap:16px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border2)">
       <span style="font-size:12px;color:var(--cyan);font-weight:600;cursor:pointer" onclick="rArenaBadges()">🏅 Rozetlerim (${(myStats?.badges||[]).length}/${Object.keys(ARENA_BADGE_LABELS).length}) →</span>
+      <span style="font-size:12px;color:var(--cyan);font-weight:600;cursor:pointer" onclick="rArenaQotd()">🗓️ Günün Sorusu →</span>
     </div>
   </div>`;
 
@@ -14381,6 +14384,70 @@ async function rArenaBadges() {
           </div>`;
         }).join('')}
       </div>
+      <button class="apbtn" style="margin-top:18px" onclick="rArenaHome()">Arena'ya Dön</button>
+    </div>`;
+}
+
+// ---- Günün Sorusu (QOTD) — ana günlük yarışmadan bağımsız, tek soruluk ayrı ekran ----
+let arenaQotdData = null; // /qotd-start yanıtı (soru veya zaten-cevaplanmış sonuç)
+async function rArenaQotd() {
+  arenaView = 'qotd';
+  arenaStopTimer();
+  const body = document.getElementById('arena-body');
+  body.innerHTML = `<div class="load"><div class="spin"></div></div>`;
+  const idToken = await user.getIdToken();
+  const data = await arenaApiCall(ARENA_QOTD_START_API, { idToken });
+  if (data.error === 'no_qotd_today') {
+    body.innerHTML = `<div class="no">Bugün için Günün Sorusu henüz yayınlanmadı.<br><span style="font-size:11px;color:var(--text3)">Daha sonra tekrar kontrol et.</span></div>
+      <button class="apbtn" style="margin-top:14px" onclick="rArenaHome()">Arena'ya Dön</button>`;
+    return;
+  }
+  if (data.error) {
+    body.innerHTML = `<div class="no">Yüklenemedi.<br><span style="font-size:11px;color:var(--text3)">${escapeHtml(data.error)}</span></div>
+      <button class="apbtn" style="margin-top:14px" onclick="rArenaHome()">Arena'ya Dön</button>`;
+    return;
+  }
+  arenaQotdData = data;
+  if (data.alreadyAnswered) { rArenaQotdResult(data); return; }
+  body.innerHTML = `
+    <div class="feat" style="padding:20px 18px">
+      <div style="font-size:13px;color:var(--cyan);font-weight:700;margin-bottom:10px;text-align:center">🗓️ Günün Sorusu</div>
+      <div style="display:flex;gap:6px;justify-content:center;margin-bottom:16px">
+        <span class="post-cat-badge">${ARENA_CATEGORY_LABELS[data.category]||data.category}</span>
+        <span class="post-cat-badge">${ARENA_DIFFICULTY_LABELS_APP[data.difficulty]||data.difficulty}</span>
+      </div>
+      <div style="font-size:15px;font-weight:700;margin-bottom:18px;text-align:center">${escapeHtml(data.text)}</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        ${data.options.map((opt,i)=>`<button class="arena-opt" onclick="arenaQotdAnswer(${i})">${escapeHtml(opt)}</button>`).join('')}
+      </div>
+    </div>`;
+}
+
+async function arenaQotdAnswer(index) {
+  const body = document.getElementById('arena-body');
+  body.innerHTML = `<div class="load"><div class="spin"></div><span>Kontrol ediliyor…</span></div>`;
+  const idToken = await user.getIdToken();
+  const data = await arenaApiCall(ARENA_QOTD_ANSWER_API, { idToken, selectedIndex: index });
+  if (data.error) { rArenaQotd(); return; }
+  rArenaQotdResult({ ...arenaQotdData, ...data });
+}
+
+function rArenaQotdResult(r) {
+  const body = document.getElementById('arena-body');
+  const opts = r.options || [];
+  const myText = (r.selectedIndex!==null && r.selectedIndex!==undefined && opts[r.selectedIndex]) ? opts[r.selectedIndex] : null;
+  const correctText = (r.correctIndex!==null && r.correctIndex!==undefined && opts[r.correctIndex]) ? opts[r.correctIndex] : null;
+  body.innerHTML = `
+    <div class="feat" style="padding:20px 18px;text-align:center">
+      <div style="font-size:38px;margin-bottom:8px">${r.correct?'✅':'❌'}</div>
+      <div style="font-size:15px;font-weight:700;margin-bottom:14px">${r.correct?'Doğru bildin!':'Yanlış cevap'}</div>
+      ${r.text?`<div style="font-size:13px;color:var(--text2);margin-bottom:14px;text-align:left">${escapeHtml(r.text)}</div>`:''}
+      <div style="text-align:left;font-size:12px;color:var(--text2);margin-bottom:14px">
+        ${myText?`Senin cevabın: <span style="color:${r.correct?'var(--green)':'var(--red)'}">${escapeHtml(myText)}</span><br>`:''}
+        ${(!r.correct && correctText)?`Doğru cevap: <span style="color:var(--green)">${escapeHtml(correctText)}</span>`:''}
+      </div>
+      ${r.explanation?`<div style="text-align:left;font-size:12px;color:var(--text2);padding-top:10px;border-top:1px solid var(--border2);margin-bottom:14px">💡 ${escapeHtml(r.explanation)}</div>`:''}
+      <div style="font-size:12px;color:var(--cyan);font-weight:600">Bugün bu soruyu %${r.correctPercent||0} oranında doğru bildi</div>
       <button class="apbtn" style="margin-top:18px" onclick="rArenaHome()">Arena'ya Dön</button>
     </div>`;
 }
