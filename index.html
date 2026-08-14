@@ -3726,6 +3726,7 @@ function rprof() {
         </div>
       </div>
       <div class="pbadge-card" id="profile-arena-card"><div class="load"><div class="spin"></div></div></div>
+      <div class="pbadge-card" id="profile-arena-category-card" style="display:none"></div>
       <div class="psec-title" style="margin-top:4px">📂 İçeriklerim</div>
       <div class="profile-tabs">
         <div class="ptab${profileTab==='mine'?' on':''}" onclick="switchProfileTab('mine',this)">İlanlarım</div>
@@ -14033,9 +14034,45 @@ async function loadProfileArenaStats() {
       ${badges.length ? `<div class="pbadge-row">
         ${badges.map(b=>`<div class="pbadge-item earned" title="${escapeHtml(ARENA_BADGE_LABELS[b]||b)}"><div class="pbadge-ic">${(ARENA_BADGE_LABELS[b]||b).split(' ')[0]}</div><div class="pbadge-lbl">${escapeHtml((ARENA_BADGE_LABELS[b]||b).split(' ').slice(1).join(' '))}</div></div>`).join('')}
       </div>` : ''}`;
+    renderProfileArenaCategoryStats(s.categoryStats || {});
   } catch (e) {
     card.innerHTML = `<div class="psec-title">🎮 Arena</div><div class="no" style="padding:12px 0">Yüklenemedi.</div>`;
   }
+}
+
+// Aşama 4 — kategori bazlı istatistikler. Ayrı bir Firestore okuması YAPMIYOR: loadProfileArenaStats()
+// zaten çektiği stats dokümanının categoryStats map alanını kullanıyor (tek okuma, iki kart).
+function renderProfileArenaCategoryStats(categoryStats) {
+  const card = document.getElementById('profile-arena-category-card');
+  if (!card) return;
+  const rows = Object.entries(categoryStats)
+    .map(([cat, c]) => ({ cat, answered: c.answered||0, correct: c.correct||0, points: c.points||0, pct: c.answered ? Math.round((c.correct||0)/c.answered*100) : 0 }))
+    .filter(r => r.answered > 0)
+    .sort((a,b) => b.answered - a.answered);
+  if (!rows.length) { card.style.display = 'none'; return; }
+  card.style.display = '';
+  // En güçlü/zayıf alan özeti — anlamlı bir örneklem olsun diye en az 3 soru cevaplanmış kategoriler arasından.
+  const eligible = rows.filter(r => r.answered >= 3);
+  const strongest = eligible.length ? eligible.reduce((a,b) => b.pct > a.pct ? b : a) : null;
+  const weakest = eligible.length > 1 ? eligible.reduce((a,b) => b.pct < a.pct ? b : a) : null;
+  card.innerHTML = `
+    <div class="psec-title">📊 Arena İstatistiklerim</div>
+    ${(strongest || (weakest && weakest.cat !== strongest?.cat)) ? `<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:14px;font-size:12px">
+      ${strongest?`<div><span style="color:var(--text2)">En güçlü alanın:</span> <b>${escapeHtml(ARENA_CATEGORY_LABELS[strongest.cat]||strongest.cat)}</b> — <span style="color:var(--green);font-weight:700">%${strongest.pct}</span></div>`:''}
+      ${weakest && weakest.cat !== strongest?.cat?`<div><span style="color:var(--text2)">Geliştirmen gereken alan:</span> <b>${escapeHtml(ARENA_CATEGORY_LABELS[weakest.cat]||weakest.cat)}</b> — <span style="color:var(--red);font-weight:700">%${weakest.pct}</span> <span style="color:var(--cyan);cursor:pointer;text-decoration:underline" onclick="openArenaPage()">geliştirmek ister misin?</span></div>`:''}
+    </div>` : ''}
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${rows.map(r => `
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+            <span>${escapeHtml(ARENA_CATEGORY_LABELS[r.cat]||r.cat)}</span>
+            <span style="color:var(--text2)">%${r.pct} · ${r.correct}/${r.answered} · ${r.points} puan</span>
+          </div>
+          <div style="height:5px;border-radius:3px;background:var(--surf2);overflow:hidden">
+            <div style="height:100%;width:${r.pct}%;background:linear-gradient(90deg,var(--cyan),#0091FF);border-radius:3px"></div>
+          </div>
+        </div>`).join('')}
+    </div>`;
 }
 
 async function rArenaHome() {
