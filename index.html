@@ -1163,6 +1163,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .apstat-n{font-size:18px;font-weight:700;color:#FFBE3C;}
 .apstat-l{font-size:10px;color:var(--text2);margin-top:2px;text-transform:uppercase;letter-spacing:.4px;}
 .apbtn{width:100%;background:var(--surf2);border:1px solid var(--border2);color:var(--text);font-size:13px;font-weight:600;padding:11px;border-radius:10px;cursor:pointer;font-family:inherit;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:6px;}
+/* Teknohane Arena — mobil öncelikli, büyük dokunma hedefli (min 44px) cevap seçenekleri. */
+.arena-opt{width:100%;min-height:52px;text-align:left;background:var(--surf);border:1.5px solid var(--border2);color:var(--text);font-size:14px;font-weight:600;padding:14px 16px;border-radius:14px;cursor:pointer;font-family:inherit;transition:.15s;}
+.arena-opt:active{transform:scale(.98);}
+.arena-opt-selected{background:var(--cdim);border-color:var(--cyan);box-shadow:0 0 14px var(--cglow);}
 .profile-tabs{display:flex;gap:8px;margin:20px 0 12px;}
 .ptab{flex:1;text-align:center;padding:10px 4px;border-radius:10px;background:var(--surf);border:1px solid var(--border2);font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;}
 .ptab.on{background:var(--cdim);color:var(--cyan);border-color:var(--cyan);}
@@ -1660,6 +1664,18 @@ body.tk-maintenance #maintenance-gate{
       </div>
       <div class="glow"></div>
       <div style="text-align:center;padding:16px 0;color:var(--text3);font-size:13px">Teknohane v1.0</div>
+    </div>
+  </div>
+
+  <div class="screen" id="s-arena">
+    <div class="sc">
+      <div class="sh" style="display:flex;align-items:center;gap:10px;justify-content:flex-start">
+        <div class="det-close" onclick="closeArenaPage()">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </div>
+        <span class="st">🎮 Teknohane Arena</span>
+      </div>
+      <div id="arena-body"><div class="load"><div class="spin"></div></div></div>
     </div>
   </div>
 
@@ -2962,7 +2978,7 @@ function handleAppForeground() {
 }
 
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden') appBackgroundedAt = Date.now();
+  if (document.visibilityState === 'hidden') { appBackgroundedAt = Date.now(); arenaHandleBackground(); }
   else if (document.visibilityState === 'visible') handleAppForeground();
 });
 
@@ -3674,6 +3690,9 @@ function rprof() {
         <div class="pqa-item" onclick="document.getElementById('phone-collection')?.scrollIntoView({behavior:'smooth'})">
           <div class="pqa-ic">📱</div><div class="pqa-lbl">Telefonlarım</div>
         </div>
+        <div class="pqa-item" onclick="openArenaPage()">
+          <div class="pqa-ic">🎮</div><div class="pqa-lbl">Arena</div>
+        </div>
       </div>
       <div class="pcol-card" id="phone-collection">
         <div class="psec-title" style="display:flex;align-items:center;justify-content:space-between">
@@ -3704,6 +3723,7 @@ function rprof() {
             </div>`).join('')}
         </div>
       </div>
+      <div class="pbadge-card" id="profile-arena-card"><div class="load"><div class="spin"></div></div></div>
       <div class="psec-title" style="margin-top:4px">📂 İçeriklerim</div>
       <div class="profile-tabs">
         <div class="ptab${profileTab==='mine'?' on':''}" onclick="switchProfileTab('mine',this)">İlanlarım</div>
@@ -3762,6 +3782,7 @@ function rprof() {
       if (el) el.innerHTML = renderTrustCardHTML(avg, count, { trustedSeller: myProfileData.trustedSeller, verified: user.emailVerified||myProfileData.adminVerified, joinedYear, uid: user.uid, displayName: myProfileData.displayName||user.displayName||'Ben' });
     }).catch(()=>{});
     ensureProfileTabDataLoaded();
+    loadProfileArenaStats();
     } catch(e) {
       console.error('Profil render hatası:', e);
       c.innerHTML = `<div class="load" style="padding:60px 24px"><div style="font-size:36px">📡</div><div>Profil yüklenirken bir sorun oluştu.</div><button class="sbtn2" style="margin-top:16px;max-width:200px" onclick="rprof()">Tekrar Dene</button></div>`;
@@ -12591,6 +12612,17 @@ async function rhome() {
   c.innerHTML = `
       <div class="home-section" style="animation-delay:0ms"><div id="home-greeting"></div></div>
       <div class="home-section" style="animation-delay:25ms"><div id="home-mini-stats"></div></div>
+      <div class="home-section" style="animation-delay:35ms">
+        <div class="feat" style="display:flex;align-items:center;gap:14px;padding:16px 18px;cursor:pointer" onclick="openArenaPage()">
+          <div style="font-size:32px;flex-shrink:0">🎮</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:700;font-size:15px;margin-bottom:2px">Teknohane Arena</div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:6px">Bugünün teknoloji yarışmasına katıl!</div>
+            <div style="font-size:11px;color:var(--cyan);font-weight:600">10 Soru • 2 Dakika • Ödüllü Puan</div>
+          </div>
+          <div style="color:var(--cyan);font-weight:700;font-size:13px;flex-shrink:0">Katıl →</div>
+        </div>
+      </div>
       <div class="home-section" style="animation-delay:50ms">
         <div class="sh"><span class="st"><span class="sh-ic">🔥</span>Trendler</span></div>
         <div id="trend-strip"></div>
@@ -13817,6 +13849,437 @@ function closeSupportPage() {
   document.getElementById('s-support').classList.remove('on');
 }
 
+// TEKNOHANE ARENA — Destek sayfasıyla BİREBİR aynı tam-ekran-sayfa deseni (openSupportPage/
+// closeSupportPage/supportPageOpen).
+let arenaPageOpen = false;
+function openArenaPage() {
+  arenaPageOpen = true;
+  document.getElementById('s-arena').classList.add('on');
+  history.pushState({ arenaPage: true }, '', location.pathname);
+  rArenaHome();
+}
+function closeArenaPage() {
+  arenaPageOpen = false;
+  document.getElementById('s-arena').classList.remove('on');
+  arenaStopTimer();
+}
+
+// ═══════════════════════════════════════════════
+// TEKNOHANE ARENA — günlük bilgi yarışması
+// Sunucu mimarisi: cloudflare-push-worker.js /internal/arena-start, /internal/arena-submit (bkz.
+// planlama oturumu) — doğru cevaplar istemciye YALNIZCA puanlama sonrası, o an cevaplanmış sorular
+// için gönderilir. arena-start çağrısı GÜNLÜK HAKKI KİLİTLER — bu yüzden yalnızca kullanıcı gerçekten
+// "Başla"ya bastığında çağrılır, ana görünüm açılırken DEĞİL (ana görünüm bugünkü durumu, rules'ın
+// zaten okumaya izin verdiği kendi teknohane_arena_attempts dokümanından, hiç kilitlemeden okur).
+// ═══════════════════════════════════════════════
+const ARENA_START_API = 'https://teknohane-phones.yusuf-aykac.workers.dev/arena-start';
+const ARENA_SUBMIT_API = 'https://teknohane-phones.yusuf-aykac.workers.dev/arena-submit';
+const ARENA_CATEGORY_LABELS = {
+  phones: '📱 Akıllı Telefonlar', cpu: '⚙️ İşlemciler', display: '🖥️ Ekran Teknolojileri',
+  camera: '📷 Kamera', battery: '🔋 Batarya ve Şarj', android: '🤖 Android', apple: '🍎 Apple',
+  computer: '💻 Bilgisayar', tech: '🎮 Teknoloji', general: '🌐 Genel Teknoloji',
+};
+const ARENA_DIFFICULTY_LABELS_APP = { kolay: 'Kolay', orta: 'Orta', zor: 'Zor' };
+const ARENA_BADGE_LABELS = {
+  'teknoloji-kurdu': '🧠 Teknoloji Kurdu', 'hizli-cevapci': '⚡ Hızlı Cevapçı',
+  'seri-bagimlisi': '🔥 Seri Bağımlısı', 'ilk-sampiyon': '🏆 İlk Şampiyon', 'kusursuz': '💯 Kusursuz',
+};
+
+let arenaView = 'home';
+let arenaQuiz = null;          // { quizId, questions: [...] } — arena-start'tan, correctIndex İÇERMEZ
+let arenaCurrentQ = 0;
+let arenaAnswers = [];
+let arenaSelectedIndex = null;
+let arenaQStartMs = 0;
+let arenaTimerHandle = null;
+let arenaTimeLeftMs = 0;
+let arenaResult = null;        // arena-submit'ten dönen ya da bugün zaten oynanmış denemeden okunan sonuç
+let arenaBackWarned = false;
+let arenaLbTab = 'daily';
+
+// KÖK NEDEN DÜZELTMESİ: bazı cihazlarda/ağlarda WebView'in kendi fetch()'i sessizce başarısız
+// olabiliyor (bkz. e-posta doğrulama/şifre sıfırlama uçlarındaki AYNI kök neden düzeltmesi) — Arena
+// uçları da AYNI CapacitorHttp-önce deseni kullanıyor.
+async function arenaApiAttempt(url, payload) {
+  if (window.Capacitor?.Plugins?.CapacitorHttp && isNativeApp()) {
+    const resp = await Capacitor.Plugins.CapacitorHttp.request({
+      url, method: 'POST', headers: { 'Content-Type': 'application/json' }, data: payload
+    });
+    const data = typeof resp.data === 'string' ? JSON.parse(resp.data || '{}') : (resp.data || {});
+    if ((resp.status < 200 || resp.status >= 300) && !data.error) data.error = `HTTP ${resp.status}`;
+    return data;
+  } else {
+    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, body: JSON.stringify(payload) });
+    const data = await res.json();
+    if (!res.ok && !data.error) data.error = `HTTP ${res.status}`;
+    return data;
+  }
+}
+// Diğer worker çağrılarından FARKLI olarak throw ETMİYOR — arena-start'ın "already_played"/
+// "in_progress"/"no_quiz_today" dönüşleri gerçek hata değil, anlamlı dallar; çağıran data.error'a bakar.
+async function arenaApiCall(url, payload) {
+  try {
+    return await arenaApiAttempt(url, payload);
+  } catch (e) {
+    const msg = e?.message || String(e);
+    if (isTransientNetworkError(msg)) {
+      try { return await arenaApiAttempt(url, payload); }
+      catch (e2) { return { error: e2?.message || String(e2) }; }
+    }
+    return { error: msg };
+  }
+}
+
+function arenaStopTimer() {
+  if (arenaTimerHandle) { clearInterval(arenaTimerHandle); arenaTimerHandle = null; }
+}
+function arenaTodayStr() { return new Date().toISOString().slice(0, 10); }
+
+// Profildeki "🎮 Arena" istatistik kartı — teknohane_arena_stats/{uid} kendi-doküman okuması
+// (rules buna izin veriyor), mevcut .pbadge-card/.pbadge-row/.pbadge-item sınıfları yeniden
+// kullanılıyor ki tasarım diğer rozet kartından (BADGES_DEF) hiç farklı görünmesin.
+async function loadProfileArenaStats() {
+  const card = document.getElementById('profile-arena-card');
+  if (!card || !user) return;
+  try {
+    const snap = await db.collection('teknohane_arena_stats').doc(user.uid).get();
+    const s = snap.exists ? snap.data() : null;
+    if (!s || !s.totalGames) {
+      card.innerHTML = `
+        <div class="psec-title">🎮 Arena</div>
+        <div class="no" style="padding:12px 0">Henüz Arena'da oynamadın. <span style="color:var(--cyan);cursor:pointer;text-decoration:underline" onclick="openArenaPage()">Hemen katıl →</span></div>`;
+      return;
+    }
+    const badges = s.badges || [];
+    card.innerHTML = `
+      <div class="psec-title" style="display:flex;align-items:center;justify-content:space-between">
+        <span>🎮 Arena <span style="font-size:11px;color:var(--text3);font-weight:400">· Seviye sistemi yakında</span></span>
+        ${s.currentStreak>0?`<span style="font-size:12px;color:#FF9500;font-weight:700">🔥 ${s.currentStreak} günlük serin</span>`:''}
+      </div>
+      <div class="pbadge-row" style="margin-bottom:${badges.length?'14':'0'}px">
+        <div class="pbadge-item"><div class="pbadge-ic" style="font-size:16px">🎮</div><div class="pbadge-lbl">${s.totalGames||0} Yarışma</div></div>
+        <div class="pbadge-item"><div class="pbadge-ic" style="font-size:16px">🏆</div><div class="pbadge-lbl">${s.totalScore||0} Puan</div></div>
+        <div class="pbadge-item"><div class="pbadge-ic" style="font-size:16px">✅</div><div class="pbadge-lbl">%${s.successRate||0} Başarı</div></div>
+        <div class="pbadge-item"><div class="pbadge-ic" style="font-size:16px">⭐</div><div class="pbadge-lbl">${s.bestScore||0} En İyi</div></div>
+      </div>
+      ${badges.length ? `<div class="pbadge-row">
+        ${badges.map(b=>`<div class="pbadge-item earned" title="${escapeHtml(ARENA_BADGE_LABELS[b]||b)}"><div class="pbadge-ic">${(ARENA_BADGE_LABELS[b]||b).split(' ')[0]}</div><div class="pbadge-lbl">${escapeHtml((ARENA_BADGE_LABELS[b]||b).split(' ').slice(1).join(' '))}</div></div>`).join('')}
+      </div>` : ''}`;
+  } catch (e) {
+    card.innerHTML = `<div class="psec-title">🎮 Arena</div><div class="no" style="padding:12px 0">Yüklenemedi.</div>`;
+  }
+}
+
+async function rArenaHome() {
+  arenaView = 'home';
+  arenaStopTimer();
+  const body = document.getElementById('arena-body');
+  if (!user) { body.innerHTML = `<div class="no">Arena'ya katılmak için giriş yapmalısın.</div>`; return; }
+  body.innerHTML = `<div class="load"><div class="spin"></div></div>`;
+  let attempt = null;
+  try {
+    const snap = await db.collection('teknohane_arena_attempts').doc(`${user.uid}_${arenaTodayStr()}`).get();
+    if (snap.exists) attempt = snap.data();
+  } catch (e) {}
+
+  if (attempt?.status === 'completed') {
+    arenaResult = attempt;
+    body.innerHTML = `
+      <div class="feat" style="text-align:center;padding:28px 20px">
+        <div style="font-size:38px;margin-bottom:8px">🏆</div>
+        <div style="font-size:17px;font-weight:700;margin-bottom:4px">Bugünkü yarışmayı tamamladın!</div>
+        <div style="color:var(--text2);font-size:13px;margin-bottom:18px">Yarın tekrar dene, serini bozma.</div>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:18px">
+          <div class="pstat-item"><div class="pstat-num">${attempt.totalScore||0}</div><div>Puan</div></div>
+          <div class="pstat-item"><div class="pstat-num" style="color:var(--green)">${attempt.correctCount||0}</div><div>Doğru</div></div>
+          <div class="pstat-item"><div class="pstat-num" style="color:var(--red)">${attempt.wrongCount||0}</div><div>Yanlış</div></div>
+          ${attempt.dailyRank?`<div class="pstat-item"><div class="pstat-num">#${attempt.dailyRank}</div><div>Sıra</div></div>`:''}
+        </div>
+        <button class="apbtn" style="background:var(--cdim);color:var(--cyan);border-color:var(--border)" onclick="rArenaResult()">Sonuçları Gör</button>
+        <button class="apbtn" onclick="rArenaLeaderboard()">🏆 Liderlik Tablosu</button>
+      </div>`;
+    return;
+  }
+  if (attempt?.status === 'in_progress') {
+    body.innerHTML = `
+      <div class="feat" style="text-align:center;padding:28px 20px">
+        <div style="font-size:38px;margin-bottom:8px">⏳</div>
+        <div style="font-size:17px;font-weight:700;margin-bottom:4px">Bugünkü hakkın kullanılmış</div>
+        <div style="color:var(--text2);font-size:13px">Bir önceki denemen yarıda kalmış. Yarın tekrar deneyebilirsin.</div>
+      </div>`;
+    return;
+  }
+
+  body.innerHTML = `
+    <div class="feat" style="text-align:center;padding:28px 20px">
+      <div style="font-size:38px;margin-bottom:8px">🎮</div>
+      <div style="font-size:18px;font-weight:700;margin-bottom:6px">Bugünkü Yarışma</div>
+      <div style="color:var(--text2);font-size:13px;margin-bottom:18px">Teknoloji bilgini test et, puanını yükselt ve sıralamada zirveye çık!</div>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:16px;font-size:12px;color:var(--text2)">
+        <span class="post-cat-badge">10 Soru</span><span class="post-cat-badge">Soru başına 15sn</span><span class="post-cat-badge">Ödüllü Puan</span>
+      </div>
+      <div style="font-size:11px;color:var(--text3);line-height:1.5;margin-bottom:18px">⚠️ Başladıktan sonra uygulamadan çıkarsan (arka plana atarsan) yarışma o an, kalan sorular cevapsız sayılarak biter — bugünkü hakkın kullanılmış olur.</div>
+      <button class="apbtn" style="background:linear-gradient(135deg,var(--cyan),#0091FF);color:#00040F;font-weight:700;border:none" onclick="arenaBeginQuiz()">Yarışmaya Katıl →</button>
+    </div>
+    <button class="apbtn" style="margin-top:14px" onclick="rArenaLeaderboard()">🏆 Liderlik Tablosu</button>`;
+}
+
+async function arenaBeginQuiz() {
+  const body = document.getElementById('arena-body');
+  body.innerHTML = `<div class="load"><div class="spin"></div><span>Yarışma hazırlanıyor…</span></div>`;
+  const idToken = await user.getIdToken();
+  const data = await arenaApiCall(ARENA_START_API, { idToken });
+  if (data.error === 'already_played') { rArenaHome(); return; }
+  if (data.error === 'arena_disabled') {
+    body.innerHTML = `<div class="no">Arena şu anda geçici olarak kapalı.<br><span style="font-size:11px;color:var(--text3)">Daha sonra tekrar kontrol et.</span></div>
+      <button class="apbtn" onclick="closeArenaPage()">Kapat</button>`;
+    return;
+  }
+  if (data.error === 'in_progress') {
+    body.innerHTML = `<div class="no">Bugünkü hakkın zaten kullanılmış.<br><span style="font-size:11px;color:var(--text3)">Yarın tekrar dene.</span></div>
+      <button class="apbtn" onclick="rArenaHome()">Geri Dön</button>`;
+    return;
+  }
+  if (data.error === 'no_quiz_today') {
+    body.innerHTML = `<div class="no">Bugün için henüz bir yarışma hazırlanmadı.<br><span style="font-size:11px;color:var(--text3)">Daha sonra tekrar kontrol et.</span></div>
+      <button class="apbtn" onclick="rArenaHome()">Geri Dön</button>`;
+    return;
+  }
+  if (data.error || !data.questions?.length) {
+    body.innerHTML = `<div class="no">Yarışma başlatılamadı.<br><span style="font-size:11px;color:var(--text3)">${escapeHtml(data.error||'Lütfen tekrar dene.')}</span></div>
+      <button class="apbtn" onclick="rArenaHome()">Geri Dön</button>`;
+    return;
+  }
+  arenaQuiz = { quizId: data.quizId, questions: data.questions };
+  arenaCurrentQ = 0;
+  arenaAnswers = [];
+  rArenaQuestion();
+}
+
+function rArenaQuestion() {
+  arenaView = 'question';
+  arenaSelectedIndex = null;
+  const q = arenaQuiz.questions[arenaCurrentQ];
+  const body = document.getElementById('arena-body');
+  body.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:12px;color:var(--text2)">
+      <span>Soru ${arenaCurrentQ+1}/${arenaQuiz.questions.length}</span>
+      <span id="arena-timer-txt" style="font-weight:700;color:var(--cyan)">${q.timeLimitSec}sn</span>
+    </div>
+    <div style="height:4px;background:var(--surf2);border-radius:99px;overflow:hidden;margin-bottom:16px">
+      <div id="arena-timer-bar" style="height:100%;background:var(--cyan);width:100%;transition:width 1s linear"></div>
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+      <span class="post-cat-badge">${ARENA_CATEGORY_LABELS[q.category]||q.category}</span>
+      <span class="post-cat-badge">${ARENA_DIFFICULTY_LABELS_APP[q.difficulty]||q.difficulty}</span>
+    </div>
+    <div style="font-size:17px;font-weight:700;line-height:1.4;margin-bottom:20px">${escapeHtml(q.text)}</div>
+    <div id="arena-options" style="display:flex;flex-direction:column;gap:10px">
+      ${q.options.map((opt,i)=>`<button class="arena-opt" id="arena-opt-${i}" onclick="arenaSelectAnswer(${i})">${escapeHtml(opt)}</button>`).join('')}
+    </div>`;
+  arenaQStartMs = Date.now();
+  arenaStartTimer(q.timeLimitSec);
+}
+
+function arenaStartTimer(seconds) {
+  arenaStopTimer();
+  const totalMs = seconds * 1000;
+  arenaTimeLeftMs = totalMs;
+  const txt = document.getElementById('arena-timer-txt');
+  const bar = document.getElementById('arena-timer-bar');
+  arenaTimerHandle = setInterval(() => {
+    arenaTimeLeftMs -= 100;
+    if (txt) txt.textContent = Math.max(0, Math.ceil(arenaTimeLeftMs/1000)) + 'sn';
+    if (bar) bar.style.width = Math.max(0, (arenaTimeLeftMs/totalMs)*100) + '%';
+    if (arenaTimeLeftMs <= 0) { arenaStopTimer(); arenaSelectAnswer(null); }
+  }, 100);
+}
+
+// KÖK NEDEN DÜZELTMESİ (anti-cheat, timer client tarafında manipüle edilse bile): burada gösterilen
+// geri sayım YALNIZCA UX'tir — gerçek süre kontrolü /internal/arena-submit'te sunucu tarafında,
+// denemenin gerçek başlangıç zamanına (startedAt) göre yapılıyor (bkz. worker'daki wallClockMs/
+// timingSuspicious mantığı). Bu yüzden istemcinin elapsedMs'i burada ne gönderdiği tek başına puanı
+// belirlemiyor.
+function arenaSelectAnswer(index) {
+  if (arenaSelectedIndex !== null) return;
+  arenaSelectedIndex = index;
+  arenaStopTimer();
+  const elapsedMs = Date.now() - arenaQStartMs;
+  const q = arenaQuiz.questions[arenaCurrentQ];
+  arenaAnswers.push({ questionId: q.id, selectedIndex: index, elapsedMs });
+  document.querySelectorAll('.arena-opt').forEach((btn,i) => {
+    btn.style.pointerEvents = 'none';
+    if (i === index) btn.classList.add('arena-opt-selected');
+  });
+  // Doğru/yanlış bu aşamada bilinmiyor (correctIndex istemciye hiç gelmedi) — kısa bir "cevap
+  // verildi" geçişinden sonra bir sonraki soruya geçilir; asıl doğru/yanlış geri bildirimi TÜM
+  // yarışma bittiğinde /arena-submit'in döndürdüğü perQuestion listesinden, sonuç ekranında
+  // gösterilir. Bu, "hızlı/kesintisiz" UX'i korurken doğru cevabın istemciye asla erken
+  // sızmaması ilkesini bozmuyor.
+  setTimeout(() => arenaAdvanceQuestion(), 500);
+}
+
+function arenaAdvanceQuestion() {
+  arenaCurrentQ++;
+  if (arenaCurrentQ >= arenaQuiz.questions.length) arenaFinishQuiz();
+  else rArenaQuestion();
+}
+
+// KULLANICI ONAYLI KURAL: soru ekranındayken uygulama arka plana atılırsa (kapatılırsa/başka
+// uygulamaya geçilirse) yarışma o an, kalan sorular cevapsız sayılarak sona erer — Arena açık
+// kaldığı ama SORU görünümünde olmadığı (ör. sonuç/liderlik ekranında) durumlarda bu tetiklenmez.
+// Bu, `document.visibilitychange` (web/genel) VE Capacitor'ın native `appStateChange`'i (Android
+// WebView'de visibilitychange'in güvenilmez olabildiği durumlar için yedek) tarafından çağrılır —
+// bkz. handleAppForeground'un hemen üstündeki/altındaki kayıt noktaları.
+function arenaHandleBackground() {
+  if (arenaPageOpen && arenaView === 'question') arenaForceEndQuiz();
+}
+
+function arenaForceEndQuiz() {
+  if (!arenaQuiz) return;
+  arenaStopTimer();
+  // Şu anki soru dahil, henüz cevaplanmamış tüm soruları "cevapsız" olarak işaretleyip gönder —
+  // worker'ın perQuestion/unansweredCount hesabı YALNIZCA gönderilen answers dizisine bakıyor,
+  // eksik gönderilen sorular sessizce sayılmaz.
+  for (let i = arenaCurrentQ; i < arenaQuiz.questions.length; i++) {
+    const q = arenaQuiz.questions[i];
+    if (!arenaAnswers.some(a => a.questionId === q.id)) {
+      arenaAnswers.push({ questionId: q.id, selectedIndex: null, elapsedMs: q.timeLimitSec * 1000 });
+    }
+  }
+  arenaFinishQuiz();
+}
+
+async function arenaFinishQuiz() {
+  arenaView = 'submitting';
+  const body = document.getElementById('arena-body');
+  body.innerHTML = `<div class="load"><div class="spin"></div><span>Puanlanıyor…</span></div>`;
+  const idToken = await user.getIdToken();
+  const data = await arenaApiCall(ARENA_SUBMIT_API, { idToken, answers: arenaAnswers });
+  if (data.error) {
+    body.innerHTML = `<div class="no">Sonuç hesaplanamadı.<br><span style="font-size:11px;color:var(--text3)">${escapeHtml(data.error)}</span></div>
+      <button class="apbtn" onclick="rArenaHome()">Arena'ya Dön</button>`;
+    return;
+  }
+  arenaResult = data;
+  if (data.newBadges?.length) {
+    showToast('🏅', 'var(--cdim)', 'Yeni Rozet Kazandın!', data.newBadges.map(b=>ARENA_BADGE_LABELS[b]||b).join(', '));
+  }
+  rArenaResult();
+}
+
+function rArenaResult() {
+  arenaView = 'result';
+  arenaStopTimer();
+  const r = arenaResult || {};
+  const body = document.getElementById('arena-body');
+  const total = (r.correctCount||0) + (r.wrongCount||0) + (r.unansweredCount||0);
+  const pct = total ? Math.round((r.correctCount/total)*100) : 0;
+  body.innerHTML = `
+    <div class="feat" style="text-align:center;padding:28px 20px">
+      <div style="font-size:38px;margin-bottom:8px">🏆</div>
+      <div style="font-size:18px;font-weight:700;margin-bottom:14px">Yarışma Tamamlandı!</div>
+      <div style="font-size:34px;font-weight:800;color:var(--cyan);margin-bottom:4px">${r.totalScore||0} Puan</div>
+      <div style="color:var(--text2);font-size:13px;margin-bottom:18px">${r.correctCount||0} / ${total||10} Doğru · %${pct} Başarı${r.dailyRank?` · Bugünkü sıran: #${r.dailyRank}`:''}</div>
+      ${r.perQuestion?.length ? `<div style="text-align:left;display:flex;flex-direction:column;gap:8px;margin-bottom:18px">
+        ${r.perQuestion.map((p,i)=>`<div style="display:flex;align-items:center;gap:8px;font-size:13px;padding:8px 10px;border-radius:10px;background:var(--surf2)">
+          <span>${p.correct?'✅':'❌'}</span><span style="flex:1;color:var(--text2)">Soru ${i+1}</span>
+          ${p.correct?`<span style="color:var(--green);font-weight:700">+${p.pointsAwarded}</span>`:''}
+        </div>`).join('')}
+      </div>` : ''}
+      <button class="apbtn" style="background:linear-gradient(135deg,var(--cyan),#0091FF);color:#00040F;font-weight:700;border:none" onclick="rArenaLeaderboard()">🏆 Liderlik Tablosu</button>
+      <button class="apbtn" onclick="rArenaHome()">Arena'ya Dön</button>
+    </div>`;
+}
+
+// ---- Liderlik tablosu — 4 periyot, kendi sıran her zaman görünür (kaydırmaya gerek yok) ----
+function arenaClientIsoWeekStr(d) {
+  const date = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  const dayNum = date.getUTCDay() || 7;
+  date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+  return `${date.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+}
+function arenaLbPeriodInfo(tab) {
+  const now = new Date();
+  if (tab === 'daily') return { collectionName: 'teknohane_arena_leaderboard_daily', periodField: 'date', periodValue: arenaTodayStr() };
+  if (tab === 'weekly') return { collectionName: 'teknohane_arena_leaderboard_weekly', periodField: 'isoWeek', periodValue: arenaClientIsoWeekStr(now) };
+  if (tab === 'monthly') return { collectionName: 'teknohane_arena_leaderboard_monthly', periodField: 'yyyyMM', periodValue: `${now.getUTCFullYear()}-${String(now.getUTCMonth()+1).padStart(2,'0')}` };
+  return { collectionName: 'teknohane_arena_leaderboard_alltime', periodField: null, periodValue: null };
+}
+
+async function rArenaLeaderboard(tab) {
+  arenaView = 'leaderboard';
+  arenaStopTimer();
+  if (tab) arenaLbTab = tab;
+  const body = document.getElementById('arena-body');
+  const tabs = [['daily','Günlük'],['weekly','Haftalık'],['monthly','Aylık'],['alltime','Tüm Zamanlar']];
+  body.innerHTML = `
+    <div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto">
+      ${tabs.map(([id,label])=>`<button class="post-cat-badge" style="cursor:pointer;white-space:nowrap;border:none;${arenaLbTab===id?'background:var(--cdim);color:var(--cyan)':'background:var(--surf2);color:var(--text2)'}" onclick="rArenaLeaderboard('${id}')">${label}</button>`).join('')}
+    </div>
+    <div id="arena-lb-list"><div class="load"><div class="spin"></div></div></div>
+    <div id="arena-lb-my-rank"></div>
+    <button class="apbtn" style="margin-top:14px" onclick="rArenaHome()">← Arena'ya Dön</button>`;
+
+  const { collectionName, periodField, periodValue } = arenaLbPeriodInfo(arenaLbTab);
+  try {
+    let q = db.collection(collectionName).orderBy('score', 'desc');
+    if (periodField) q = q.where(periodField, '==', periodValue);
+    const snap = await q.limit(50).get();
+    const rows = snap.docs.map(d => d.data());
+    renderArenaLbList(rows);
+    renderArenaLbMyRank(collectionName, periodField, periodValue, rows);
+  } catch (e) {
+    document.getElementById('arena-lb-list').innerHTML = `<div class="no">Liderlik tablosu yüklenemedi.<br><span style="font-size:11px;color:var(--text3)">Lütfen tekrar dene.</span></div>`;
+  }
+}
+
+function renderArenaLbList(rows) {
+  const list = document.getElementById('arena-lb-list');
+  if (!list) return;
+  if (!rows.length) { list.innerHTML = `<div class="no">Henüz kimse yarışmamış — ilk sen ol!</div>`; return; }
+  const medals = ['🥇','🥈','🥉'];
+  list.innerHTML = rows.map((r,i) => `
+    <div style="display:flex;align-items:center;gap:10px;padding:9px 6px;${r.uid===user?.uid?'background:var(--cdim);border-radius:10px':''}">
+      <span style="width:26px;text-align:center;font-weight:700;color:var(--text2)">${medals[i]||('#'+(i+1))}</span>
+      ${r.photoURL?`<img src="${r.photoURL}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0">`:`<div style="width:28px;height:28px;border-radius:50%;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${escapeHtml((r.displayName||'?').charAt(0).toUpperCase())}</div>`}
+      <span style="flex:1;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(r.displayName||'Kullanıcı')}</span>
+      <span style="font-weight:700;color:var(--cyan)">${r.score||0}</span>
+    </div>`).join('');
+}
+
+// Kullanıcının kendi sırası, üst-50 dışında kalsa bile listenin sonuna kadar kaydırmaya gerek
+// kalmadan sabit bir alt satır olarak gösterilir — sıra, tüm satırları çekip client'ta sıralamak
+// yerine bir COUNT toplulaştırma sorgusuyla hesaplanır (ölçeklenebilirlik).
+async function renderArenaLbMyRank(collectionName, periodField, periodValue, topRows) {
+  const wrap = document.getElementById('arena-lb-my-rank');
+  if (!wrap || !user) return;
+  const mineIdx = topRows.findIndex(r => r.uid === user.uid);
+  if (mineIdx !== -1) {
+    wrap.innerHTML = `<div class="row-time" style="text-align:center;margin-top:10px">Sen #${mineIdx+1} — ${topRows[mineIdx].score||0} puan</div>`;
+    return;
+  }
+  try {
+    const myDocRef = periodField ? db.collection(collectionName).doc(`${periodValue}_${user.uid}`) : db.collection(collectionName).doc(user.uid);
+    const myDoc = await myDocRef.get();
+    if (!myDoc.exists) { wrap.innerHTML = `<div class="row-time" style="text-align:center;margin-top:10px">Henüz bu periyotta oynamadın.</div>`; return; }
+    const myScore = myDoc.data().score || 0;
+    let higherQ = db.collection(collectionName).where('score', '>', myScore);
+    if (periodField) higherQ = higherQ.where(periodField, '==', periodValue);
+    const higherSnap = await higherQ.count().get();
+    const rank = higherSnap.data().count + 1;
+    wrap.innerHTML = `<div style="display:flex;align-items:center;gap:10px;padding:10px 6px;margin-top:10px;background:var(--cdim);border-radius:10px">
+      <span style="width:26px;text-align:center;font-weight:700;color:var(--cyan)">#${rank}</span>
+      <span style="flex:1;font-size:13px;font-weight:600">Sen</span>
+      <span style="font-weight:700;color:var(--cyan)">${myScore}</span>
+    </div>`;
+  } catch (e) {
+    wrap.innerHTML = '';
+  }
+}
+
 function gt(name) {
   // Alt sekme çubuğu artık Bildirimler/Yönetim/Mesajlar/Konu gibi tam ekran sayfalar açıkken de
   // görünür ve tıklanabilir kalıyor (bkz. .mo.fullscreen CSS'i) — kullanıcı doğrudan başka bir
@@ -14498,6 +14961,22 @@ window.addEventListener('popstate', () => {
     history.pushState(null, '', location.pathname);
     return;
   }
+  // Arena açıksa: KULLANICI ONAYLI davranış — yarışma ortasında geri basmak günlük hakkı geri
+  // vermiyor (deneme zaten sunucu tarafında /arena-start'ta kilitlendi), bu yüzden sessizce kapatmak
+  // yerine önce uyarı gösteriliyor.
+  if (arenaPageOpen) {
+    if (arenaView === 'question' && !arenaBackWarned) {
+      arenaBackWarned = true;
+      showToast('↩️', 'var(--surf2)', 'Sınavdan çıkarsan bugünkü hakkın kullanılmış sayılır', 'Çıkmak için tekrar geri bas');
+      history.pushState(null, '', location.href);
+      setTimeout(() => { arenaBackWarned = false; }, 2500);
+      return;
+    }
+    arenaBackWarned = false;
+    closeArenaPage();
+    history.pushState(null, '', location.pathname);
+    return;
+  }
   // Sohbet ekranı açıksa: kapat ve sohbet listesine/önceki ekrana dön
   if (chatThreadOpen) {
     exitChatThread();
@@ -14532,7 +15011,7 @@ if (isNativeApp()) {
     // Capacitor'ın kendi native appStateChange olayı daha güvenilir bir yedek sağlıyor.
     Capacitor.Plugins.App.addListener('appStateChange', (state) => {
       if (state.isActive) handleAppForeground();
-      else appBackgroundedAt = Date.now();
+      else { appBackgroundedAt = Date.now(); arenaHandleBackground(); }
     });
     // ANDROİD APP LINKS: paylaşılan bir ilan/konu/profil linkine (https://teknohane.github.io/teknohane/...)
     // dokunulduğunda artık tarayıcı yerine doğrudan uygulama açılıyor (bkz. AndroidManifest.xml'deki
