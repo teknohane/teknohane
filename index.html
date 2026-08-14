@@ -14246,7 +14246,7 @@ function renderArenaLbList(rows) {
   list.innerHTML = rows.map((r,i) => `
     <div style="display:flex;align-items:center;gap:10px;padding:9px 6px;${r.uid===user?.uid?'background:var(--cdim);border-radius:10px':''}">
       <span style="width:26px;text-align:center;font-weight:700;color:var(--text2)">${medals[i]||('#'+(i+1))}</span>
-      ${r.photoURL?`<img src="${r.photoURL}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0">`:`<div style="width:28px;height:28px;border-radius:50%;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${escapeHtml((r.displayName||'?').charAt(0).toUpperCase())}</div>`}
+      ${r.photoURL?`<img src="${escapeHtml(r.photoURL)}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${escapeJsAttr(avatarUrl(null, r.displayName, 56))}'">`:`<div style="width:28px;height:28px;border-radius:50%;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${escapeHtml((r.displayName||'?').charAt(0).toUpperCase())}</div>`}
       <span style="flex:1;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(r.displayName||'Kullanıcı')}</span>
       <span style="font-weight:700;color:var(--cyan)">${r.score||0}</span>
     </div>`).join('');
