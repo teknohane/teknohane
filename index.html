@@ -14041,8 +14041,13 @@ async function rArenaHome() {
     if (attemptSnap.exists) attempt = attemptSnap.data();
     if (statsSnap.exists) myStats = statsSnap.data();
   } catch (e) {}
-  // Seviye/XP kartı — Arena ana ekranında oynanma durumundan bağımsız her zaman en üstte.
-  const levelCard = `<div class="feat" style="padding:16px 18px;margin-bottom:14px">${arenaLevelProgressHtml(myStats?.level||1, myStats?.xp||0)}</div>`;
+  // Seviye/XP kartı — Arena ana ekranında oynanma durumundan bağımsız her zaman en üstte. Seri
+  // varsa (>=1 gün) hemen altında ayrı bir satırda gösteriliyor.
+  const streak = myStats?.currentStreak || 0;
+  const levelCard = `<div class="feat" style="padding:16px 18px;margin-bottom:14px">
+    ${arenaLevelProgressHtml(myStats?.level||1, myStats?.xp||0)}
+    ${streak>0?`<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border2);font-size:12px;color:#FF9500;font-weight:700">🔥 ${streak} günlük serin devam ediyor${myStats?.longestStreak>streak?` <span style="color:var(--text3);font-weight:400">(en uzun: ${myStats.longestStreak})</span>`:''}</div>`:''}
+  </div>`;
 
   if (attempt?.status === 'completed') {
     arenaResult = attempt;
@@ -14224,6 +14229,9 @@ async function arenaFinishQuiz() {
     return;
   }
   arenaResult = data;
+  if (data.newMilestones?.length) {
+    showToast('🔥', 'var(--cdim)', `${Math.max(...data.newMilestones)} Günlük Seri!`, 'Kilometre taşı bonus XP kazandın');
+  }
   if (data.leveledUp) {
     showToast('⭐', 'var(--cdim)', `Seviye ${data.level}!`, `Yeni unvanın: ${data.levelTitle||''}`);
   }
