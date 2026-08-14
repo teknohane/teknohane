@@ -14397,18 +14397,28 @@ function arenaLbPeriodInfo(tab) {
   if (tab === 'daily') return { collectionName: 'teknohane_arena_leaderboard_daily', periodField: 'date', periodValue: arenaTodayStr() };
   if (tab === 'weekly') return { collectionName: 'teknohane_arena_leaderboard_weekly', periodField: 'isoWeek', periodValue: arenaClientIsoWeekStr(now) };
   if (tab === 'monthly') return { collectionName: 'teknohane_arena_leaderboard_monthly', periodField: 'yyyyMM', periodValue: `${now.getUTCFullYear()}-${String(now.getUTCMonth()+1).padStart(2,'0')}` };
+  // Aşama 1: XP puanından bağımsız, hiç sıfırlanmayan kalıcı liderlik tablosu — alltime ile AYNI
+  // şekil (periyot alanı yok), bu yüzden mevcut render/my-rank fonksiyonları hiç değişmeden çalışıyor.
+  if (tab === 'xp') return { collectionName: 'teknohane_arena_leaderboard_xp', periodField: null, periodValue: null };
   return { collectionName: 'teknohane_arena_leaderboard_alltime', periodField: null, periodValue: null };
 }
 
-async function rArenaLeaderboard(tab) {
+let arenaLbScope = 'all'; // 'all' | 'friends' — Aşama 5 arkadaş filtresi
+
+async function rArenaLeaderboard(tab, scope) {
   arenaView = 'leaderboard';
   arenaStopTimer();
   if (tab) arenaLbTab = tab;
+  if (scope) arenaLbScope = scope;
   const body = document.getElementById('arena-body');
-  const tabs = [['daily','Günlük'],['weekly','Haftalık'],['monthly','Aylık'],['alltime','Tüm Zamanlar']];
+  const tabs = [['daily','Günlük'],['weekly','Haftalık'],['monthly','Aylık'],['alltime','Tüm Zamanlar'],['xp','XP']];
   body.innerHTML = `
-    <div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto">
+    <div style="display:flex;gap:6px;margin-bottom:10px;overflow-x:auto">
       ${tabs.map(([id,label])=>`<button class="post-cat-badge" style="cursor:pointer;white-space:nowrap;border:none;${arenaLbTab===id?'background:var(--cdim);color:var(--cyan)':'background:var(--surf2);color:var(--text2)'}" onclick="rArenaLeaderboard('${id}')">${label}</button>`).join('')}
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:14px">
+      <button class="post-cat-badge" style="cursor:pointer;flex:1;text-align:center;border:none;${arenaLbScope==='all'?'background:var(--cdim);color:var(--cyan)':'background:var(--surf2);color:var(--text2)'}" onclick="rArenaLeaderboard(null,'all')">🌐 Genel</button>
+      <button class="post-cat-badge" style="cursor:pointer;flex:1;text-align:center;border:none;${arenaLbScope==='friends'?'background:var(--cdim);color:var(--cyan)':'background:var(--surf2);color:var(--text2)'}" onclick="rArenaLeaderboard(null,'friends')">👥 Arkadaşlar</button>
     </div>
     <div id="arena-lb-list"><div class="load"><div class="spin"></div></div></div>
     <div id="arena-lb-my-rank"></div>
@@ -14416,6 +14426,10 @@ async function rArenaLeaderboard(tab) {
 
   const { collectionName, periodField, periodValue } = arenaLbPeriodInfo(arenaLbTab);
   try {
+    if (arenaLbScope === 'friends') {
+      await renderArenaLbFriends(collectionName, periodField, periodValue);
+      return;
+    }
     let q = db.collection(collectionName).orderBy('score', 'desc');
     if (periodField) q = q.where(periodField, '==', periodValue);
     const snap = await q.limit(50).get();
@@ -14424,6 +14438,31 @@ async function rArenaLeaderboard(tab) {
     renderArenaLbMyRank(collectionName, periodField, periodValue, rows);
   } catch (e) {
     document.getElementById('arena-lb-list').innerHTML = `<div class="no">Liderlik tablosu yüklenemedi.<br><span style="font-size:11px;color:var(--text3)">Lütfen tekrar dene.</span></div>`;
+  }
+}
+
+// Arkadaşlar sekmesi — mevcut takip grafiğini (myProfileData.followingUids) kullanıyor, tıpkı
+// "Takip Ettiklerim" forum filtresi gibi. Firestore 'in' sorgusu en fazla 10 değer aldığı için
+// (bkz. index.html'deki mevcut takip-listesi 'in' sorgusu deseni) ilk 10 takip edilenle sınırlı —
+// çoğu kullanıcı için yeterli, gerektiğinde ileride sayfalama eklenebilir.
+async function renderArenaLbFriends(collectionName, periodField, periodValue) {
+  const list = document.getElementById('arena-lb-list');
+  const myRankWrap = document.getElementById('arena-lb-my-rank');
+  if (myRankWrap) myRankWrap.innerHTML = '';
+  const following = (myProfileData?.followingUids || []).slice(0, 10);
+  const uids = [...new Set([user.uid, ...following])];
+  if (following.length === 0) {
+    list.innerHTML = `<div class="no">Henüz kimseyi takip etmiyorsun.<br><span style="font-size:11px;color:var(--text3)">Profillerden takip ettiğin kullanıcılar burada sıralanır.</span></div>`;
+    return;
+  }
+  try {
+    let q = db.collection(collectionName).where('uid', 'in', uids);
+    if (periodField) q = q.where(periodField, '==', periodValue);
+    const snap = await q.get();
+    const rows = snap.docs.map(d => d.data()).sort((a,b) => (b.score||0) - (a.score||0));
+    renderArenaLbList(rows);
+  } catch (e) {
+    list.innerHTML = `<div class="no">Arkadaş sıralaması yüklenemedi.</div>`;
   }
 }
 
