@@ -197,6 +197,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 #screens{flex:1;overflow:hidden;position:relative;margin-top:calc(var(--st) + 58px);margin-bottom:calc(var(--tab) + var(--sb));}
 .screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;opacity:0;pointer-events:none;transition:opacity .2s;}
 #s-support{z-index:40;background:var(--bg);}
+#s-arena{position:fixed;inset:0;z-index:1000;background:var(--bg);}
+#s-arena .sc{padding-top:calc(var(--st) + 16px);}
 .screen.on{opacity:1;pointer-events:all;}
 .screen::-webkit-scrollbar{display:none;}
 .sc{padding:16px 16px 32px;}
