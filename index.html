@@ -13885,6 +13885,18 @@ const ARENA_DIFFICULTY_LABELS_APP = { kolay: 'Kolay', orta: 'Orta', zor: 'Zor' }
 const ARENA_BADGE_LABELS = {
   'teknoloji-kurdu': '🧠 Teknoloji Kurdu', 'hizli-cevapci': '⚡ Hızlı Cevapçı',
   'seri-bagimlisi': '🔥 Seri Bağımlısı', 'ilk-sampiyon': '🏆 İlk Şampiyon', 'kusursuz': '💯 Kusursuz',
+  'arena-bagimlisi': '🎯 Arena Bağımlısı', 'teknoloji-efsanesi': '👑 Teknoloji Efsanesi',
+};
+// worker'daki ARENA_ACHIEVEMENTS'ın koşuluyla eşleşen, kullanıcıya gösterilecek kısa açıklama —
+// worker koşulu tek doğruluk kaynağı, bu yalnızca metin.
+const ARENA_BADGE_DESCRIPTIONS = {
+  'kusursuz': 'Bir yarışmada 10/10 doğru yap',
+  'teknoloji-kurdu': 'Toplamda 100 doğru cevap ver',
+  'seri-bagimlisi': '7 gün üst üste yarışmaya katıl',
+  'hizli-cevapci': 'Ortalama 7 saniyeden hızlı cevapla',
+  'ilk-sampiyon': 'Günlük liderlik tablosunda 1. ol',
+  'arena-bagimlisi': 'Toplam 50 yarışma tamamla',
+  'teknoloji-efsanesi': `Seviye 50'ye ulaş (maks. seviye)`,
 };
 
 // XP/Seviye eğrisi — cloudflare-push-worker.js'teki ARENA_XP_LEVEL_* sabitleriyle BİREBİR AYNI
@@ -14047,6 +14059,9 @@ async function rArenaHome() {
   const levelCard = `<div class="feat" style="padding:16px 18px;margin-bottom:14px">
     ${arenaLevelProgressHtml(myStats?.level||1, myStats?.xp||0)}
     ${streak>0?`<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border2);font-size:12px;color:#FF9500;font-weight:700">🔥 ${streak} günlük serin devam ediyor${myStats?.longestStreak>streak?` <span style="color:var(--text3);font-weight:400">(en uzun: ${myStats.longestStreak})</span>`:''}</div>`:''}
+    <div style="text-align:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--border2)">
+      <span style="font-size:12px;color:var(--cyan);font-weight:600;cursor:pointer" onclick="rArenaBadges()">🏅 Rozetlerim (${(myStats?.badges||[]).length}/${Object.keys(ARENA_BADGE_LABELS).length}) →</span>
+    </div>
   </div>`;
 
   if (attempt?.status === 'completed') {
@@ -14292,6 +14307,42 @@ function rArenaResult() {
       </div>` : ''}
       <button class="apbtn" style="background:linear-gradient(135deg,var(--cyan),#0091FF);color:#00040F;font-weight:700;border:none" onclick="rArenaLeaderboard()">🏆 Liderlik Tablosu</button>
       <button class="apbtn" onclick="rArenaHome()">Arena'ya Dön</button>
+    </div>`;
+}
+
+// ---- Rozetlerim — tüm mevcut rozetler (kazanılmış/kilitli), Arena içinde ayrı bir görünüm ----
+async function rArenaBadges() {
+  arenaView = 'badges';
+  arenaStopTimer();
+  const body = document.getElementById('arena-body');
+  body.innerHTML = `<div class="load"><div class="spin"></div></div>`;
+  let myBadges = [];
+  try {
+    const snap = await db.collection('teknohane_arena_stats').doc(user.uid).get();
+    if (snap.exists) myBadges = snap.data().badges || [];
+  } catch (e) {}
+  const ids = Object.keys(ARENA_BADGE_LABELS);
+  body.innerHTML = `
+    <div class="feat" style="padding:20px 18px">
+      <div style="font-size:18px;font-weight:700;margin-bottom:4px;text-align:center">🏅 Rozetlerim</div>
+      <div style="color:var(--text2);font-size:12px;margin-bottom:18px;text-align:center">${myBadges.length} / ${ids.length} rozet kazandın</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        ${ids.map(id => {
+          const earned = myBadges.includes(id);
+          const label = ARENA_BADGE_LABELS[id] || id;
+          const emoji = label.split(' ')[0];
+          const name = label.split(' ').slice(1).join(' ');
+          return `<div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;background:var(--surf2);opacity:${earned?1:0.45}">
+            <div style="font-size:26px;flex-shrink:0">${earned?emoji:'🔒'}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:700;font-size:13px">${escapeHtml(name)}</div>
+              <div style="font-size:11px;color:var(--text2)">${escapeHtml(ARENA_BADGE_DESCRIPTIONS[id]||'')}</div>
+            </div>
+            ${earned?`<div style="color:var(--green);font-size:16px;flex-shrink:0">✓</div>`:''}
+          </div>`;
+        }).join('')}
+      </div>
+      <button class="apbtn" style="margin-top:18px" onclick="rArenaHome()">Arena'ya Dön</button>
     </div>`;
 }
 
