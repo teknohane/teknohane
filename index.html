@@ -1019,6 +1019,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 /* MODAL */
 .mo{display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);align-items:flex-end;}
 .mo.on{display:flex;}
+/* Genel profil modalı, Arena (#s-arena, z-index:1000) gibi tam-ekran katmanların İÇİNDEN de
+   açılabiliyor (liderlik tablosu satırına dokunma) — .mo'nun standart z-index:300'ü bu durumda
+   Arena'nın ARKASINDA, görünmez kalırdı. Global bir profil görüntüleyici olarak her zaman en üstte
+   olmalı. */
+#pub-profile-mo{z-index:1050;}
 .ms{background:var(--bg2);border-radius:24px 24px 0 0;width:100%;padding:20px 20px calc(20px + var(--sb));border-top:1px solid var(--border);max-height:90vh;overflow-y:auto;animation:su .3s ease;}
 @keyframes su{from{transform:translateY(20px);opacity:0;}to{transform:translateY(0);opacity:1;}}
 .mh{width:36px;height:4px;border-radius:2px;background:var(--text3);margin:0 auto 20px;}
@@ -13972,6 +13977,10 @@ let arenaTimeLeftMs = 0;
 let arenaResult = null;        // arena-submit'ten dönen ya da bugün zaten oynanmış denemeden okunan sonuç
 let arenaBackWarned = false;
 let arenaLbTab = 'daily';
+// Arena içi geri tuşu — her ekran "geri" tuşuna basılınca gidilecek ekranı (parametresiz bir
+// render fonksiyonu) burada tutar. null = kök ekran (Arena ana ekranı), geri tuşu Arena'yı komple
+// kapatır. rArenaHome() bunu her zaman null'a sıfırlar.
+let arenaBackParent = null;
 
 // KÖK NEDEN DÜZELTMESİ: bazı cihazlarda/ağlarda WebView'in kendi fetch()'i sessizce başarısız
 // olabiliyor (bkz. e-posta doğrulama/şifre sıfırlama uçlarındaki AYNI kök neden düzeltmesi) — Arena
@@ -14096,6 +14105,7 @@ function renderProfileArenaCategoryStats(categoryStats) {
 
 async function rArenaHome() {
   arenaView = 'home';
+  arenaBackParent = null; // kök ekran — geri tuşu buradan Arena'yı komple kapatır
   arenaStopTimer();
   const body = document.getElementById('arena-body');
   if (!user) { body.innerHTML = `<div class="no">Arena'ya katılmak için giriş yapmalısın.</div>`; return; }
@@ -14316,6 +14326,7 @@ async function arenaFinishQuiz() {
 
 function rArenaResult() {
   arenaView = 'result';
+  arenaBackParent = rArenaHome;
   arenaStopTimer();
   const r = arenaResult || {};
   const body = document.getElementById('arena-body');
@@ -14371,6 +14382,7 @@ function rArenaResult() {
 // ---- Rozetlerim — tüm mevcut rozetler (kazanılmış/kilitli), Arena içinde ayrı bir görünüm ----
 async function rArenaBadges() {
   arenaView = 'badges';
+  arenaBackParent = rArenaHome;
   arenaStopTimer();
   const body = document.getElementById('arena-body');
   body.innerHTML = `<div class="load"><div class="spin"></div></div>`;
@@ -14408,6 +14420,7 @@ async function rArenaBadges() {
 let arenaQotdData = null; // /qotd-start yanıtı (soru veya zaten-cevaplanmış sonuç)
 async function rArenaQotd() {
   arenaView = 'qotd';
+  arenaBackParent = rArenaHome;
   arenaStopTimer();
   const body = document.getElementById('arena-body');
   body.innerHTML = `<div class="load"><div class="spin"></div></div>`;
@@ -14487,6 +14500,7 @@ let arenaDuelId = null, arenaDuelQuiz = null, arenaDuelCurrentQ = 0, arenaDuelAn
 
 async function rArenaDuels() {
   arenaView = 'duels';
+  arenaBackParent = rArenaHome;
   arenaStopTimer();
   const body = document.getElementById('arena-body');
   body.innerHTML = `<div class="load"><div class="spin"></div></div>`;
@@ -14578,6 +14592,7 @@ async function arenaDuelBegin(duelId) {
   arenaDuelQuiz = { questions: data.questions, opponentName: data.opponentName, opponentPhoto: data.opponentPhoto };
   arenaDuelCurrentQ = 0;
   arenaDuelAnswers = [];
+  arenaBackParent = rArenaDuels; // düello oynama/sonuç ekranlarından geri → Düellolarım listesi
   rArenaDuelQuestion();
 }
 
@@ -14690,6 +14705,7 @@ let arenaLbScope = 'all'; // 'all' | 'friends' — Aşama 5 arkadaş filtresi
 
 async function rArenaLeaderboard(tab, scope) {
   arenaView = 'leaderboard';
+  arenaBackParent = rArenaHome;
   arenaStopTimer();
   if (tab) arenaLbTab = tab;
   if (scope) arenaLbScope = scope;
@@ -14754,13 +14770,20 @@ function renderArenaLbList(rows) {
   if (!list) return;
   if (!rows.length) { list.innerHTML = `<div class="no">Henüz kimse yarışmamış — ilk sen ol!</div>`; return; }
   const medals = ['🥇','🥈','🥉'];
-  list.innerHTML = rows.map((r,i) => `
-    <div style="display:flex;align-items:center;gap:10px;padding:9px 6px;${r.uid===user?.uid?'background:var(--cdim);border-radius:10px':''}">
+  list.innerHTML = rows.map((r,i) => {
+    const isMe = r.uid === user?.uid;
+    const name = r.displayName || 'Kullanıcı';
+    return `
+    <div style="display:flex;align-items:center;gap:10px;padding:9px 6px;${isMe?'background:var(--cdim);border-radius:10px':''}">
       <span style="width:26px;text-align:center;font-weight:700;color:var(--text2)">${medals[i]||('#'+(i+1))}</span>
-      ${r.photoURL?`<img src="${escapeHtml(r.photoURL)}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${escapeJsAttr(avatarUrl(null, r.displayName, 56))}'">`:`<div style="width:28px;height:28px;border-radius:50%;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${escapeHtml((r.displayName||'?').charAt(0).toUpperCase())}</div>`}
-      <span style="flex:1;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(r.displayName||'Kullanıcı')}</span>
-      <span style="font-weight:700;color:var(--cyan)">${r.score||0}</span>
-    </div>`).join('');
+      <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer" onclick="openPublicProfile('${r.uid}','${escapeJsAttr(name)}')">
+        ${r.photoURL?`<img src="${escapeHtml(r.photoURL)}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${escapeJsAttr(avatarUrl(null, name, 56))}'">`:`<div style="width:28px;height:28px;border-radius:50%;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${escapeHtml(name.charAt(0).toUpperCase())}</div>`}
+        <span style="flex:1;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(name)}</span>
+      </div>
+      ${!isMe?`<span style="font-size:15px;cursor:pointer;flex-shrink:0" title="Düelloya davet et" onclick="event.stopPropagation();sendDuelChallenge('${r.uid}','${escapeJsAttr(name)}')">⚔️</span>`:''}
+      <span style="font-weight:700;color:var(--cyan);flex-shrink:0">${r.score||0}</span>
+    </div>`;
+  }).join('');
 }
 
 // Kullanıcının kendi sırası, üst-50 dışında kalsa bile listenin sonuna kadar kaydırmaya gerek
@@ -15486,6 +15509,16 @@ window.addEventListener('popstate', () => {
       return;
     }
     arenaBackWarned = false;
+    // Arena içi ekranlar (rozetler/günün sorusu/liderlik/düellolar/düello oynama) artık kendi
+    // "geri" hedefini arenaBackParent'a kaydediyor — geri tuşu Arena'yı komple kapatmak yerine
+    // BİR ÖNCEKİ Arena ekranına dönüyor. Yalnızca kök ekranda (arenaBackParent==null, yani Arena
+    // ana ekranı) geri tuşu gerçekten Arena'dan çıkıyor.
+    if (arenaBackParent) {
+      const parent = arenaBackParent;
+      history.pushState(null, '', location.href);
+      parent();
+      return;
+    }
     closeArenaPage();
     history.pushState(null, '', location.pathname);
     return;
