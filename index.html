@@ -11756,6 +11756,7 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
         ${!privacy.hideForumActivity?`<button class="sbtn2" style="padding:9px 16px;width:auto;background:var(--surf2);color:var(--text)" onclick="document.getElementById('pub-forum-section')?.scrollIntoView({behavior:'smooth'})">💬 Forum</button>`:''}
         <button class="sbtn2" id="pub-follow-btn" style="padding:9px 16px;width:auto;background:var(--surf2);color:${isFollowingUser?'var(--cyan)':'var(--text)'}" onclick="toggleFollow('${uid}')">${isFollowingUser?'✓ Takip Ediliyor':'➕ Takip Et'}</button>
         <button class="sbtn2" style="padding:9px 16px;width:auto;background:var(--surf2);color:var(--text)" onclick="shareProfile('${uid}','${escapeJsAttr(displayName)}')">🔗 Paylaş</button>
+        <button class="sbtn2" style="padding:9px 16px;width:auto;background:linear-gradient(135deg,var(--cyan),#0091FF);color:#00040F;font-weight:700" onclick="sendDuelChallenge('${uid}','${escapeJsAttr(displayName)}')">⚔️ Düelloya Davet Et</button>
       </div>
       <div style="text-align:center;margin-top:8px"><span onclick="openReportModal('user','${uid}','${escapeJsAttr(displayName)}','${uid}')" style="font-size:12px;color:var(--text3);cursor:pointer;text-decoration:underline">🚩 Kullanıcıyı Şikayet Et</span></div>` : `
       <div style="display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap">
@@ -13879,6 +13880,11 @@ const ARENA_START_API = 'https://teknohane-phones.yusuf-aykac.workers.dev/arena-
 const ARENA_SUBMIT_API = 'https://teknohane-phones.yusuf-aykac.workers.dev/arena-submit';
 const ARENA_QOTD_START_API = 'https://teknohane-phones.yusuf-aykac.workers.dev/qotd-start';
 const ARENA_QOTD_ANSWER_API = 'https://teknohane-phones.yusuf-aykac.workers.dev/qotd-answer';
+const ARENA_DUEL_CHALLENGE_API = 'https://teknohane-phones.yusuf-aykac.workers.dev/duel-challenge';
+const ARENA_DUEL_RESPOND_API = 'https://teknohane-phones.yusuf-aykac.workers.dev/duel-respond';
+const ARENA_DUEL_START_API = 'https://teknohane-phones.yusuf-aykac.workers.dev/duel-start';
+const ARENA_DUEL_SUBMIT_API = 'https://teknohane-phones.yusuf-aykac.workers.dev/duel-submit';
+const ARENA_DUEL_REMATCH_API = 'https://teknohane-phones.yusuf-aykac.workers.dev/duel-rematch';
 const ARENA_CATEGORY_LABELS = {
   phones: '📱 Akıllı Telefonlar', cpu: '⚙️ İşlemciler', display: '🖥️ Ekran Teknolojileri',
   camera: '📷 Kamera', battery: '🔋 Batarya ve Şarj', android: '🤖 Android', apple: '🍎 Apple',
@@ -14035,8 +14041,17 @@ async function loadProfileArenaStats() {
         <div class="pbadge-item"><div class="pbadge-ic" style="font-size:16px">⭐</div><div class="pbadge-lbl">${s.bestScore||0} En İyi</div></div>
         <div class="pbadge-item" style="cursor:pointer" onclick="openArenaPage()"><div class="pbadge-ic" style="font-size:16px">🏅</div><div class="pbadge-lbl">${badges.length} Rozet</div></div>
       </div>
-      ${badges.length ? `<div class="pbadge-row">
+      ${badges.length ? `<div class="pbadge-row" style="margin-bottom:${s.duelStats?.totalDuels?'14':'0'}px">
         ${badges.map(b=>`<div class="pbadge-item earned" title="${escapeHtml(ARENA_BADGE_LABELS[b]||b)}"><div class="pbadge-ic">${(ARENA_BADGE_LABELS[b]||b).split(' ')[0]}</div><div class="pbadge-lbl">${escapeHtml((ARENA_BADGE_LABELS[b]||b).split(' ').slice(1).join(' '))}</div></div>`).join('')}
+      </div>` : ''}
+      ${s.duelStats?.totalDuels ? `
+      <div style="font-size:12px;color:var(--text2);font-weight:700;margin-bottom:8px">⚔️ Düello İstatistikleri</div>
+      <div class="pbadge-row">
+        <div class="pbadge-item"><div class="pbadge-ic" style="font-size:16px">⚔️</div><div class="pbadge-lbl">${s.duelStats.totalDuels||0} Düello</div></div>
+        <div class="pbadge-item"><div class="pbadge-ic" style="font-size:16px">🏆</div><div class="pbadge-lbl">${s.duelStats.wins||0} Galibiyet</div></div>
+        <div class="pbadge-item"><div class="pbadge-ic" style="font-size:16px">💔</div><div class="pbadge-lbl">${s.duelStats.losses||0} Mağlubiyet</div></div>
+        <div class="pbadge-item"><div class="pbadge-ic" style="font-size:16px">✅</div><div class="pbadge-lbl">%${s.duelStats.totalDuels?Math.round((s.duelStats.wins||0)/s.duelStats.totalDuels*100):0} Kazanma</div></div>
+        <div class="pbadge-item"><div class="pbadge-ic" style="font-size:16px">🔥</div><div class="pbadge-lbl">${s.duelStats.longestWinStreak||0} En Uzun Seri</div></div>
       </div>` : ''}`;
     renderProfileArenaCategoryStats(s.categoryStats || {});
   } catch (e) {
@@ -14100,9 +14115,10 @@ async function rArenaHome() {
   const levelCard = `<div class="feat" style="padding:16px 18px;margin-bottom:14px">
     ${arenaLevelProgressHtml(myStats?.level||1, myStats?.xp||0)}
     ${streak>0?`<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border2);font-size:12px;color:#FF9500;font-weight:700">🔥 ${streak} günlük serin devam ediyor${myStats?.longestStreak>streak?` <span style="color:var(--text3);font-weight:400">(en uzun: ${myStats.longestStreak})</span>`:''}</div>`:''}
-    <div style="display:flex;justify-content:center;gap:16px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border2)">
+    <div style="display:flex;justify-content:center;gap:14px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border2);flex-wrap:wrap">
       <span style="font-size:12px;color:var(--cyan);font-weight:600;cursor:pointer" onclick="rArenaBadges()">🏅 Rozetlerim (${(myStats?.badges||[]).length}/${Object.keys(ARENA_BADGE_LABELS).length}) →</span>
       <span style="font-size:12px;color:var(--cyan);font-weight:600;cursor:pointer" onclick="rArenaQotd()">🗓️ Günün Sorusu →</span>
+      <span style="font-size:12px;color:var(--cyan);font-weight:600;cursor:pointer" onclick="rArenaDuels()">⚔️ Düellolarım →</span>
     </div>
   </div>`;
 
@@ -14449,6 +14465,204 @@ function rArenaQotdResult(r) {
       ${r.explanation?`<div style="text-align:left;font-size:12px;color:var(--text2);padding-top:10px;border-top:1px solid var(--border2);margin-bottom:14px">💡 ${escapeHtml(r.explanation)}</div>`:''}
       <div style="font-size:12px;color:var(--cyan);font-weight:600">Bugün bu soruyu %${r.correctPercent||0} oranında doğru bildi</div>
       <button class="apbtn" style="margin-top:18px" onclick="rArenaHome()">Arena'ya Dön</button>
+    </div>`;
+}
+
+// ---- Birebir Düello — Aşama 9/10. ASENKRON (canlı/gerçek-zamanlı DEĞİL): davet gönder, karşı
+// taraf kabul/red eder, kabul edilirse ikisi de AYNI 10 soruyu kendi zamanında oynar, biten
+// karşılaştırma sonucunu görür. Ana quiz'in arenaQuiz/arenaAnswers/arenaCurrentQ state'inden
+// BİLİNÇLİ OLARAK AYRI kendi state'i var (arenaDuel*) — biri sürerken diğerinin bozulmaması için.
+async function sendDuelChallenge(opponentUid, opponentName) {
+  if (!confirm(`${opponentName} kullanıcısına Arena düellosu göndermek istediğine emin misin?`)) return;
+  try {
+    const idToken = await user.getIdToken();
+    const data = await arenaApiCall(ARENA_DUEL_CHALLENGE_API, { idToken, opponentUid });
+    if (data.error === 'already_pending') { showMsg('Bu kullanıcıya zaten bekleyen bir davetin var'); return; }
+    if (data.error) { showMsg('Gönderilemedi: ' + data.error); return; }
+    showMsg(`${opponentName} kullanıcısına düello daveti gönderildi!`);
+  } catch (e) { showMsg('Gönderilemedi'); }
+}
+
+let arenaDuelId = null, arenaDuelQuiz = null, arenaDuelCurrentQ = 0, arenaDuelAnswers = [], arenaDuelQStartMs = 0, arenaDuelTimerHandle = null;
+
+async function rArenaDuels() {
+  arenaView = 'duels';
+  arenaStopTimer();
+  const body = document.getElementById('arena-body');
+  body.innerHTML = `<div class="load"><div class="spin"></div></div>`;
+  let duels = [];
+  try {
+    // orderBy kasıtlı olarak KULLANILMIYOR — iki ayrı eşitlik sorgusu (challenger/opponent) zaten
+    // client'ta birleştirilip sıralanacağı için Firestore tarafında yeni bir composite index
+    // gerektirmiyor (mevcut sıfır-yeni-index tasarım hedefiyle tutarlı).
+    const [asC, asO] = await Promise.all([
+      db.collection('teknohane_arena_duels').where('challengerUid', '==', user.uid).limit(50).get(),
+      db.collection('teknohane_arena_duels').where('opponentUid', '==', user.uid).limit(50).get(),
+    ]);
+    const map = new Map();
+    [...asC.docs, ...asO.docs].forEach(d => map.set(d.id, { id: d.id, ...d.data() }));
+    duels = [...map.values()].sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+  } catch (e) {}
+
+  const incoming = duels.filter(d => d.status === 'pending' && d.opponentUid === user.uid);
+  const outgoing = duels.filter(d => d.status === 'pending' && d.challengerUid === user.uid);
+  const active = duels.filter(d => d.status === 'accepted');
+  const finished = duels.filter(d => d.status === 'completed' || d.status === 'declined' || d.status === 'expired' || d.status === 'voided');
+
+  const oppOf = d => d.challengerUid === user.uid ? { name: d.opponentName, photo: d.opponentPhoto } : { name: d.challengerName, photo: d.challengerPhoto };
+  const rowHtml = (d, right) => {
+    const opp = oppOf(d);
+    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 6px">
+      ${opp.photo?`<img src="${escapeHtml(opp.photo)}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0" onerror="this.onerror=null;this.src='${escapeJsAttr(avatarUrl(null,opp.name,64))}'">`:`<div style="width:32px;height:32px;border-radius:50%;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">${escapeHtml((opp.name||'?').charAt(0).toUpperCase())}</div>`}
+      <span style="flex:1;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(opp.name||'Kullanıcı')}</span>
+      ${right}
+    </div>`;
+  };
+
+  body.innerHTML = `
+    <div style="text-align:center;margin-bottom:16px"><span style="font-size:16px;font-weight:700">⚔️ Düellolarım</span></div>
+    ${incoming.length ? `<div class="psec-title">📩 Bekleyen Davetler</div><div class="feat" style="padding:6px 10px;margin-bottom:16px">
+      ${incoming.map(d => rowHtml(d, `<button class="btn-sm-inline" style="background:var(--green);color:#000;border:none;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;margin-right:4px" onclick="arenaDuelRespond('${d.id}',true)">Kabul Et</button><button style="background:var(--surf2);color:var(--text2);border:none;border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer" onclick="arenaDuelRespond('${d.id}',false)">Reddet</button>`)).join('')}
+    </div>` : ''}
+    ${active.length ? `<div class="psec-title">⚡ Aktif Düellolar</div><div class="feat" style="padding:6px 10px;margin-bottom:16px">
+      ${active.map(d => rowHtml(d, `<button class="apbtn" style="width:auto;padding:6px 14px;font-size:12px;margin:0" onclick="arenaDuelBegin('${d.id}')">Oyna →</button>`)).join('')}
+    </div>` : ''}
+    ${outgoing.length ? `<div class="psec-title">⏳ Gönderdiğim Davetler</div><div class="feat" style="padding:6px 10px;margin-bottom:16px">
+      ${outgoing.map(d => rowHtml(d, `<span style="font-size:11px;color:var(--text3)">Yanıt bekleniyor</span>`)).join('')}
+    </div>` : ''}
+    ${finished.length ? `<div class="psec-title">📜 Geçmiş</div><div class="feat" style="padding:6px 10px;margin-bottom:16px">
+      ${finished.map(d => {
+        let resultTxt, resultColor = 'var(--text2)';
+        if (d.status === 'completed') {
+          if (d.winnerUid === user.uid) { resultTxt = '🏆 Kazandın'; resultColor = 'var(--green)'; }
+          else if (d.winnerUid === null) { resultTxt = 'Berabere'; }
+          else { resultTxt = 'Kaybettin'; resultColor = 'var(--red)'; }
+        } else if (d.status === 'declined') resultTxt = 'Reddedildi';
+        else if (d.status === 'expired') resultTxt = 'Süresi doldu';
+        else resultTxt = 'İptal edildi';
+        const canRematch = d.status === 'completed';
+        return rowHtml(d, `<span style="font-size:12px;font-weight:700;color:${resultColor};margin-right:8px">${resultTxt}</span>${canRematch?`<span style="font-size:11px;color:var(--cyan);cursor:pointer;text-decoration:underline" onclick="arenaDuelRematch('${d.id}')">Rövanş</span>`:''}`);
+      }).join('')}
+    </div>` : ''}
+    ${!incoming.length && !active.length && !outgoing.length && !finished.length ? `<div class="no">Henüz bir düellon yok.<br><span style="font-size:11px;color:var(--text3)">Bir kullanıcının profilinden "⚔️ Düelloya Davet Et" ile başlayabilirsin.</span></div>` : ''}
+    <button class="apbtn" style="margin-top:14px" onclick="rArenaHome()">← Arena'ya Dön</button>`;
+}
+
+async function arenaDuelRespond(duelId, accept) {
+  const idToken = await user.getIdToken();
+  const data = await arenaApiCall(ARENA_DUEL_RESPOND_API, { idToken, duelId, accept });
+  if (data.error) { showMsg('İşlem yapılamadı: ' + data.error); return; }
+  showMsg(accept ? 'Düello kabul edildi! Şimdi oynayabilirsin.' : 'Düello reddedildi');
+  rArenaDuels();
+}
+
+async function arenaDuelRematch(duelId) {
+  try {
+    const idToken = await user.getIdToken();
+    const data = await arenaApiCall(ARENA_DUEL_REMATCH_API, { idToken, duelId });
+    if (data.error) { showMsg(data.error.includes('zaten') ? 'Bu düello için zaten bir rövanş isteği var' : 'Rövanş istenemedi'); return; }
+    showMsg('Rövanş isteği gönderildi!');
+    rArenaDuels();
+  } catch (e) { showMsg('Rövanş istenemedi'); }
+}
+
+async function arenaDuelBegin(duelId) {
+  const body = document.getElementById('arena-body');
+  body.innerHTML = `<div class="load"><div class="spin"></div><span>Düello hazırlanıyor…</span></div>`;
+  const idToken = await user.getIdToken();
+  const data = await arenaApiCall(ARENA_DUEL_START_API, { idToken, duelId });
+  if (data.error === 'duel_expired') { showMsg('Bu düellonun süresi doldu'); rArenaDuels(); return; }
+  if (data.error) { showMsg('Başlatılamadı: ' + data.error); rArenaDuels(); return; }
+  if (data.alreadyCompleted) { showMsg('Bu düelloyu zaten tamamladın'); rArenaDuels(); return; }
+  arenaDuelId = duelId;
+  arenaDuelQuiz = { questions: data.questions, opponentName: data.opponentName, opponentPhoto: data.opponentPhoto };
+  arenaDuelCurrentQ = 0;
+  arenaDuelAnswers = [];
+  rArenaDuelQuestion();
+}
+
+function rArenaDuelQuestion() {
+  arenaView = 'duel-question';
+  const q = arenaDuelQuiz.questions[arenaDuelCurrentQ];
+  const body = document.getElementById('arena-body');
+  arenaDuelQStartMs = Date.now();
+  body.innerHTML = `
+    <div style="text-align:center;font-size:12px;color:var(--text2);margin-bottom:10px">⚔️ ${escapeHtml(arenaDuelQuiz.opponentName||'Rakip')}'e karşı · Soru ${arenaDuelCurrentQ+1}/${arenaDuelQuiz.questions.length}</div>
+    <div style="display:flex;gap:6px;justify-content:center;margin-bottom:14px">
+      <span class="post-cat-badge">${ARENA_CATEGORY_LABELS[q.category]||q.category}</span>
+      <span class="post-cat-badge">${ARENA_DIFFICULTY_LABELS_APP[q.difficulty]||q.difficulty}</span>
+      <span class="post-cat-badge" id="arena-duel-timer">${q.timeLimitSec||15}sn</span>
+    </div>
+    <div class="feat" style="padding:18px 16px;margin-bottom:16px">
+      <div style="font-size:15px;font-weight:700;text-align:center">${escapeHtml(q.text)}</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      ${q.options.map((opt,i)=>`<button class="arena-opt" onclick="arenaDuelSelectAnswer(${i})">${escapeHtml(opt)}</button>`).join('')}
+    </div>`;
+  let timeLeft = q.timeLimitSec || 15;
+  clearInterval(arenaDuelTimerHandle);
+  arenaDuelTimerHandle = setInterval(() => {
+    timeLeft--;
+    const el = document.getElementById('arena-duel-timer');
+    if (el) el.textContent = Math.max(0, timeLeft) + 'sn';
+    if (timeLeft <= 0) { clearInterval(arenaDuelTimerHandle); arenaDuelSelectAnswer(null); }
+  }, 1000);
+}
+
+function arenaDuelSelectAnswer(index) {
+  if (arenaDuelAnswers.length > arenaDuelCurrentQ) return; // zaten cevaplandı
+  clearInterval(arenaDuelTimerHandle);
+  const q = arenaDuelQuiz.questions[arenaDuelCurrentQ];
+  const elapsedMs = Date.now() - arenaDuelQStartMs;
+  arenaDuelAnswers.push({ questionId: q.id, selectedIndex: index, elapsedMs });
+  const opts = document.querySelectorAll('#arena-body .arena-opt');
+  opts.forEach((el,i) => { el.style.pointerEvents = 'none'; if (i===index) el.classList.add('arena-opt-selected'); });
+  setTimeout(() => {
+    arenaDuelCurrentQ++;
+    if (arenaDuelCurrentQ >= arenaDuelQuiz.questions.length) arenaDuelFinish();
+    else rArenaDuelQuestion();
+  }, 400);
+}
+
+async function arenaDuelFinish() {
+  arenaView = 'duel-submitting';
+  clearInterval(arenaDuelTimerHandle);
+  const body = document.getElementById('arena-body');
+  body.innerHTML = `<div class="load"><div class="spin"></div><span>Puanlanıyor…</span></div>`;
+  const idToken = await user.getIdToken();
+  const data = await arenaApiCall(ARENA_DUEL_SUBMIT_API, { idToken, duelId: arenaDuelId, answers: arenaDuelAnswers });
+  if (data.error) {
+    body.innerHTML = `<div class="no">Sonuç hesaplanamadı.<br><span style="font-size:11px;color:var(--text3)">${escapeHtml(data.error)}</span></div>
+      <button class="apbtn" onclick="rArenaDuels()">Düellolarım</button>`;
+    return;
+  }
+  rArenaDuelResult(data);
+}
+
+function rArenaDuelResult(r) {
+  arenaView = 'duel-result';
+  const body = document.getElementById('arena-body');
+  const total = (r.correctCount||0) + (r.wrongCount||0);
+  const pct = total ? Math.round((r.correctCount/total)*100) : 0;
+  const oppName = arenaDuelQuiz?.opponentName || 'Rakip';
+  body.innerHTML = `
+    <div class="feat" style="text-align:center;padding:28px 20px">
+      <div style="font-size:38px;margin-bottom:8px">⚔️</div>
+      <div style="font-size:18px;font-weight:700;margin-bottom:4px">Sen: ${r.totalScore||0} Puan</div>
+      <div style="color:var(--text2);font-size:13px;margin-bottom:14px">${r.correctCount||0} Doğru · %${pct} Başarı</div>
+      ${r.opponentDone ? `
+        <div style="font-size:15px;font-weight:700;margin:14px 0 6px">${escapeHtml(oppName)}: ${r.opponentScore||0} Puan</div>
+        <div style="font-size:16px;font-weight:800;margin-bottom:14px;color:${r.winnerUid===user.uid?'var(--green)':(r.winnerUid===null?'var(--text2)':'var(--red)')}">
+          ${r.winnerUid===user.uid?'🏆 Kazandın!':(r.winnerUid===null?'Berabere!':`${escapeHtml(oppName)} kazandı`)}
+        </div>` : `<div style="font-size:12px;color:var(--text3);margin-bottom:14px">Rakibin henüz oynamadı — bitirince sonuç burada güncellenecek.</div>`}
+      ${(r.perQuestion||[]).length ? `<div style="text-align:left;display:flex;flex-direction:column;gap:8px;margin-bottom:18px">
+        ${r.perQuestion.map((p,i)=>`<div style="display:flex;align-items:center;gap:8px;font-size:13px;padding:8px 10px;border-radius:10px;background:var(--surf2)">
+          <span>${p.correct?'✅':'❌'}</span><span style="flex:1;color:var(--text2)">Soru ${i+1}</span>
+          ${p.correct?`<span style="color:var(--green);font-weight:700">+${p.pointsAwarded}</span>`:''}
+        </div>`).join('')}
+      </div>` : ''}
+      <button class="apbtn" style="background:linear-gradient(135deg,var(--cyan),#0091FF);color:#00040F;font-weight:700;border:none" onclick="rArenaDuels()">⚔️ Düellolarım</button>
+      <button class="apbtn" onclick="rArenaHome()">Arena'ya Dön</button>
     </div>`;
 }
 
