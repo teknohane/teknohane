@@ -3778,7 +3778,7 @@ function rprof() {
           <div class="fg" id="aname-g" style="display:none"><label class="fl">Ad Soyad</label><input class="fi" type="text" id="aname" name="name" placeholder="Adınız" autocomplete="name"></div>
           <div class="fg"><label class="fl">E-posta</label><input class="fi" type="email" id="aemail" name="username" placeholder="ornek@mail.com" autocomplete="username"></div>
           <div class="fg"><label class="fl">Şifre</label><input class="fi" type="password" id="apass" name="password" placeholder="••••••••" autocomplete="current-password"></div>
-          <div id="afgt-wrap" style="text-align:right;margin:-8px 0 12px"><span onclick="forgotPassword()" style="font-size:12px;color:var(--cyan);cursor:pointer;text-decoration:underline">Şifremi unuttum?</span></div>
+          <div id="afgt-wrap" style="text-align:right;margin:-8px 0 12px"><span id="afgt-link" onclick="forgotPassword()" style="font-size:12px;color:var(--cyan);cursor:pointer;text-decoration:underline">Şifremi unuttum?</span></div>
           <label style="display:flex;align-items:center;gap:9px;cursor:pointer;margin:-4px 0 16px">
             <input type="checkbox" id="aremember" checked style="width:17px;height:17px;accent-color:var(--cyan);flex-shrink:0">
             <span style="font-size:13px;color:var(--text2)">Beni hatırla</span>
@@ -4731,13 +4731,24 @@ async function doregister() {
   }
 }
 
+let forgotPasswordInFlight = false;
+// KÖK NEDEN DÜZELTMESİ (kullanıcı raporu: "bazı kullanıcılarda tıklayınca uygulama tepki vermiyor"):
+// bağlantının hiçbir yükleniyor/devre dışı durumu yoktu — Worker zinciri (lookup → link üret →
+// Brevo'ya gönder) birkaç saniye sürebildiğinden, bu süre boyunca tıklama hiçbir görsel tepki
+// vermiyor, kullanıcı "çalışmıyor" sanıp vazgeçiyor ya da tekrar tıklayıp 60sn hız sınırlamasına
+// takılıyordu. Artık tıklanır tıklanmaz "Gönderiliyor…" gösterilip bağlantı devre dışı bırakılıyor.
 async function forgotPassword() {
+  if (forgotPasswordInFlight) return;
   const err = document.getElementById('aerr');
+  const link = document.getElementById('afgt-link');
   const email = document.getElementById('aemail')?.value?.trim();
   if (!email) {
     if (err) { err.textContent = 'Şifre sıfırlama linki göndermek için önce e-posta adresinizi yazın'; err.classList.add('on'); }
     return;
   }
+  forgotPasswordInFlight = true;
+  const originalLinkText = link?.textContent;
+  if (link) { link.textContent = 'Gönderiliyor…'; link.style.opacity = '0.6'; link.style.pointerEvents = 'none'; }
   try {
     await sendPasswordResetViaWorker(email);
     if (err) { err.textContent = ''; err.classList.remove('on'); }
@@ -4747,6 +4758,9 @@ async function forgotPassword() {
       const msg = /kayıtlı bir hesap bulunamadı|Çok sık istek/.test(ex.message||'') ? ex.message : 'İşlem başarısız, lütfen tekrar dene';
       err.textContent = msg; err.classList.add('on');
     }
+  } finally {
+    forgotPasswordInFlight = false;
+    if (link) { link.textContent = originalLinkText || 'Şifremi unuttum?'; link.style.opacity = ''; link.style.pointerEvents = ''; }
   }
 }
 
