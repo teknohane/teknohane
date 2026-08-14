@@ -14022,14 +14022,16 @@ async function loadProfileArenaStats() {
     card.innerHTML = `
       <div class="psec-title" style="display:flex;align-items:center;justify-content:space-between">
         <span>🎮 Arena</span>
-        ${s.currentStreak>0?`<span style="font-size:12px;color:#FF9500;font-weight:700">🔥 ${s.currentStreak} günlük serin</span>`:''}
+        ${s.currentStreak>0?`<span style="font-size:12px;color:#FF9500;font-weight:700">🔥 ${s.currentStreak} günlük serin${s.longestStreak>s.currentStreak?` <span style="color:var(--text3);font-weight:400">(en uzun: ${s.longestStreak})</span>`:''}</span>`:(s.longestStreak>0?`<span style="font-size:12px;color:var(--text3)">En uzun seri: ${s.longestStreak} gün</span>`:'')}
       </div>
       <div style="margin-bottom:14px">${arenaLevelProgressHtml(s.level||1, s.xp||0)}</div>
       <div class="pbadge-row" style="margin-bottom:${badges.length?'14':'0'}px">
         <div class="pbadge-item"><div class="pbadge-ic" style="font-size:16px">🎮</div><div class="pbadge-lbl">${s.totalGames||0} Yarışma</div></div>
         <div class="pbadge-item"><div class="pbadge-ic" style="font-size:16px">🏆</div><div class="pbadge-lbl">${s.totalScore||0} Puan</div></div>
+        <div class="pbadge-item"><div class="pbadge-ic" style="font-size:16px">🎯</div><div class="pbadge-lbl">${s.totalCorrect||0} Doğru</div></div>
         <div class="pbadge-item"><div class="pbadge-ic" style="font-size:16px">✅</div><div class="pbadge-lbl">%${s.successRate||0} Başarı</div></div>
         <div class="pbadge-item"><div class="pbadge-ic" style="font-size:16px">⭐</div><div class="pbadge-lbl">${s.bestScore||0} En İyi</div></div>
+        <div class="pbadge-item" style="cursor:pointer" onclick="openArenaPage()"><div class="pbadge-ic" style="font-size:16px">🏅</div><div class="pbadge-lbl">${badges.length} Rozet</div></div>
       </div>
       ${badges.length ? `<div class="pbadge-row">
         ${badges.map(b=>`<div class="pbadge-item earned" title="${escapeHtml(ARENA_BADGE_LABELS[b]||b)}"><div class="pbadge-ic">${(ARENA_BADGE_LABELS[b]||b).split(' ')[0]}</div><div class="pbadge-lbl">${escapeHtml((ARENA_BADGE_LABELS[b]||b).split(' ').slice(1).join(' '))}</div></div>`).join('')}
