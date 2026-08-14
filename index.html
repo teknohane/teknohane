@@ -14183,11 +14183,40 @@ function rArenaResult() {
       <div style="font-size:18px;font-weight:700;margin-bottom:14px">Yarışma Tamamlandı!</div>
       <div style="font-size:34px;font-weight:800;color:var(--cyan);margin-bottom:4px">${r.totalScore||0} Puan</div>
       <div style="color:var(--text2);font-size:13px;margin-bottom:18px">${r.correctCount||0} / ${total||10} Doğru · %${pct} Başarı${r.dailyRank?` · Bugünkü sıran: #${r.dailyRank}`:''}</div>
-      ${r.perQuestion?.length ? `<div style="text-align:left;display:flex;flex-direction:column;gap:8px;margin-bottom:18px">
-        ${r.perQuestion.map((p,i)=>`<div style="display:flex;align-items:center;gap:8px;font-size:13px;padding:8px 10px;border-radius:10px;background:var(--surf2)">
-          <span>${p.correct?'✅':'❌'}</span><span style="flex:1;color:var(--text2)">Soru ${i+1}</span>
-          ${p.correct?`<span style="color:var(--green);font-weight:700">+${p.pointsAwarded}</span>`:''}
-        </div>`).join('')}
+      ${(r.perQuestion||r.answers||[]).length ? `<div style="text-align:left;display:flex;flex-direction:column;gap:10px;margin-bottom:18px">
+        ${(r.perQuestion||r.answers).map((p,i)=>{
+          // r.perQuestion yalnızca az önce bitirilen (arena-submit yanıtı) taze sonuçta var —
+          // bu durumda correctIndex/explanation gelir ama selectedIndex gelmez, o da bu oturumda
+          // hâlâ bellekte olan arenaQuiz/arenaAnswers'tan çapraz referanslanır. Kullanıcı daha sonra
+          // "Sonuçları Gör" ile tekrar açtığında (rArenaHome → arenaResult=attempt) yalnızca
+          // r.answers vardır (selectedIndex var ama correctIndex/explanation hiç saklanmaz — bkz.
+          // worker: doğru cevap istemciye asla kalıcı olarak gönderilmiyor) — o zaman sade ✅/❌
+          // özetine düşülür, önceki davranışla aynı.
+          const isFresh = !!r.perQuestion;
+          const q = isFresh ? arenaQuiz?.questions?.[i] : null;
+          const opts = q?.options||[];
+          const myIdx = isFresh ? arenaAnswers?.[i]?.selectedIndex : p.selectedIndex;
+          const myText = (myIdx!==null && myIdx!==undefined && opts[myIdx]) ? opts[myIdx] : null;
+          const correctText = (p.correctIndex!==null && p.correctIndex!==undefined && opts[p.correctIndex]) ? opts[p.correctIndex] : null;
+          if (!isFresh) {
+            return `<div style="display:flex;align-items:center;gap:8px;font-size:13px;padding:8px 10px;border-radius:10px;background:var(--surf2)">
+              <span>${p.correct?'✅':'❌'}</span><span style="flex:1;color:var(--text2)">Soru ${i+1}</span>
+              ${p.correct?`<span style="color:var(--green);font-weight:700">+${p.pointsAwarded}</span>`:''}
+            </div>`;
+          }
+          return `<div style="font-size:13px;padding:10px 12px;border-radius:10px;background:var(--surf2)">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+              <span>${p.correct?'✅':'❌'}</span>
+              <span style="flex:1;font-weight:600">${q?escapeHtml(q.text):('Soru '+(i+1))}</span>
+              ${p.correct?`<span style="color:var(--green);font-weight:700;flex-shrink:0">+${p.pointsAwarded}</span>`:''}
+            </div>
+            <div style="color:var(--text2);font-size:12px;line-height:1.5">
+              ${myText?`Senin cevabın: <span style="color:${p.correct?'var(--green)':'var(--red)'}">${escapeHtml(myText)}</span>`:'<span style="color:var(--text3)">Cevap vermedin</span>'}
+              ${(!p.correct && correctText)?`<br>Doğru cevap: <span style="color:var(--green)">${escapeHtml(correctText)}</span>`:''}
+            </div>
+            ${p.explanation?`<div style="color:var(--text2);font-size:12px;line-height:1.5;margin-top:6px;padding-top:6px;border-top:1px solid var(--border2)">💡 ${escapeHtml(p.explanation)}</div>`:''}
+          </div>`;
+        }).join('')}
       </div>` : ''}
       <button class="apbtn" style="background:linear-gradient(135deg,var(--cyan),#0091FF);color:#00040F;font-weight:700;border:none" onclick="rArenaLeaderboard()">🏆 Liderlik Tablosu</button>
       <button class="apbtn" onclick="rArenaHome()">Arena'ya Dön</button>
