@@ -14606,7 +14606,18 @@ async function rArenaDuels() {
       ${incoming.map(d => rowHtml(d, `<button class="btn-sm-inline" style="background:var(--green);color:#000;border:none;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;margin-right:4px" onclick="arenaDuelRespond('${d.id}',true)">Kabul Et</button><button style="background:var(--surf2);color:var(--text2);border:none;border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer" onclick="arenaDuelRespond('${d.id}',false)">Reddet</button>`)).join('')}
     </div>` : ''}
     ${active.length ? `<div class="psec-title">⚡ Aktif Düellolar</div><div class="feat" style="padding:6px 10px;margin-bottom:16px">
-      ${active.map(d => rowHtml(d, `<button class="apbtn" style="width:auto;padding:6px 14px;font-size:12px;margin:0" onclick="arenaDuelBegin('${d.id}')">Oyna →</button>`)).join('')}
+      ${active.map(d => {
+        // HATA DÜZELTMESİ (canlı vakada yakalandı — "Oyna'ya basıyorum, hazırlanıyor diyor, aynı
+        // sayfaya geri dönüyor"): kendi tarafını ZATEN bitirmiş ama rakip henüz bitirmediği için
+        // düello genel durumu hâlâ 'accepted' (dolayısıyla "Aktif") kalan düellolarda "Oyna →"
+        // butonu yanıltıcıydı — tıklanınca worker doğru şekilde alreadyCompleted:true ile geri
+        // gönderiyordu ama bu küçük bir toast'tı, kullanıcıya "hiçbir şey olmadı" gibi görünüyordu.
+        const myAttempt = d.challengerUid === user.uid ? d.challengerAttempt : d.opponentAttempt;
+        const iAmDone = myAttempt?.status === 'completed';
+        return rowHtml(d, iAmDone
+          ? `<span style="font-size:11px;color:var(--text3)">⏳ Rakibin sırası, bekleniyor</span>`
+          : `<button class="apbtn" style="width:auto;padding:6px 14px;font-size:12px;margin:0" onclick="arenaDuelBegin('${d.id}')">Oyna →</button>`);
+      }).join('')}
     </div>` : ''}
     ${outgoing.length ? `<div class="psec-title">⏳ Gönderdiğim Davetler</div><div class="feat" style="padding:6px 10px;margin-bottom:16px">
       ${outgoing.map(d => rowHtml(d, `<span style="font-size:11px;color:var(--text3)">Yanıt bekleniyor</span>`)).join('')}
