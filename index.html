@@ -14005,8 +14005,14 @@ function arenaApiWithTimeout(promise, ms) {
     new Promise((_, reject) => setTimeout(() => reject(new Error('Bağlantı zaman aşımına uğradı')), ms))
   ]);
 }
-async function arenaApiAttempt(url, payload) {
-  if (window.Capacitor?.Plugins?.CapacitorHttp && isNativeApp()) {
+// HATA DÜZELTMESİ (canlı vakada doğrulandı — Yusuf Yeter/Mert Ocak'ta tekrarlayan "Connection
+// reset"/zaman aşımı): tarayıcıdan AYNI cihaz/ağdan hem eski hem yeni bir workers.dev alt alan
+// adına yapılan düz GET istekleri SORUNSUZ çalıştı — yani sorun ağ/DPI/domain engellemesi DEĞİL,
+// yalnızca uygulamanın native ağ istemcisinde (CapacitorHttp) bir şey bu cihazlarda başarısız
+// oluyor. `forceFetch` parametresiyle, CapacitorHttp başarısız olursa yeniden deneme tarayıcının
+// kendi kullandığı fetch()'e (WebView'in ağ yığını) geçiyor.
+async function arenaApiAttempt(url, payload, forceFetch) {
+  if (!forceFetch && window.Capacitor?.Plugins?.CapacitorHttp && isNativeApp()) {
     const resp = await arenaApiWithTimeout(Capacitor.Plugins.CapacitorHttp.request({
       url, method: 'POST', headers: { 'Content-Type': 'application/json' }, data: payload,
       connectTimeout: 15000, readTimeout: 15000
@@ -14028,11 +14034,12 @@ async function arenaApiCall(url, payload) {
     return await arenaApiAttempt(url, payload);
   } catch (e) {
     const msg = e?.message || String(e);
-    if (isTransientNetworkError(msg)) {
-      try { return await arenaApiAttempt(url, payload); }
-      catch (e2) { return { error: e2?.message || String(e2) }; }
-    }
-    return { error: msg };
+    // İlk denemedeki HERHANGİ bir hatada (yalnızca bilinen "geçici ağ hatası" metinlerinde değil —
+    // Mert Ocak'ın zaman aşımı hatası bu listeyle hiç eşleşmiyordu) yeniden deneme BİLEREK fetch()'e
+    // (forceFetch:true) geçiyor — CapacitorHttp'nin kendisi sorunlu olabileceği için aynı yöntemi
+    // tekrar denemek yerine tarayıcının da başarıyla kullandığı farklı bir ağ yoluyla deneniyor.
+    try { return await arenaApiAttempt(url, payload, true); }
+    catch (e2) { return { error: e2?.message || String(e2) }; }
   }
 }
 
