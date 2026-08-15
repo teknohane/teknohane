@@ -2574,7 +2574,7 @@ const PUSH_API = 'https://teknohane-push.yusuf-aykac.workers.dev/';
 // KÖK NEDEN DÜZELTMESİ: teknohane-push (adında "push" geçiyor) bazı mobil ağlarda/cihazlarda DNS
 // seviyesinde sessizce engelleniyor (worker logunda istek hiç görünmüyordu). Genel/istemciye açık
 // uç bu yüzden adında "push" geçmeyen teknohane-phones Worker'ına taşındı (bkz. phones-worker/worker.js).
-const EMAIL_VERIFY_API = 'https://teknohane-phones.yusuf-aykac.workers.dev/send-verification-email';
+const EMAIL_VERIFY_API = 'https://teknohane-api.yusuf-aykac.workers.dev/send-verification-email';
 const VAPID_KEY = 'BPt5vY5P3Dr9DG2zHOQwhQKnH6V5UruqGisQRTlGWxkNaAYtYKAEG9xiTHn78yGq1DlrsnWFSazOquL_9krdtjY';
 // KÖK NEDEN DÜZELTMESİ: client SDK'sının sendEmailVerification()'ı Firebase'in paylaşımlı gönderim
 // altyapısını kullanıyordu (sık sık spam'e düşüyordu). Artık idToken bu Worker'a gönderiliyor, Worker
@@ -2633,7 +2633,7 @@ async function sendVerificationEmailViaWorker(u) {
 // Şifre sıfırlama — sendVerificationEmailAttempt/ViaWorker ile AYNI mimari (bkz. yukarısı, aynı kök
 // neden düzeltmesi): client SDK'sının sendPasswordResetEmail()'ı Firebase'in paylaşımlı gönderim
 // altyapısını kullanıp spam'e düşüyordu. Giriş yapılmamış olduğundan idToken yerine e-posta gönderilir.
-const PASSWORD_RESET_API = 'https://teknohane-phones.yusuf-aykac.workers.dev/send-password-reset-email';
+const PASSWORD_RESET_API = 'https://teknohane-api.yusuf-aykac.workers.dev/send-password-reset-email';
 async function sendPasswordResetAttempt(email) {
   if (window.Capacitor?.Plugins?.CapacitorHttp && isNativeApp()) {
     const resp = await Capacitor.Plugins.CapacitorHttp.request({
@@ -12211,7 +12211,7 @@ let lastVideoId = null;
 let newsCache = null;
 const NEWS_API = 'https://teknohane-news.yusuf-aykac.workers.dev/';
 const PRICE_API = 'https://teknohane-price.yusuf-aykac.workers.dev/'; // ⚠️ Worker'ı deploy ettikten sonra kendi adresinle değiştir
-const PHONES_API = 'https://teknohane-phones.yusuf-aykac.workers.dev/'; // ⚠️ Worker'ı deploy ettikten sonra kendi adresinle değiştir
+const PHONES_API = 'https://teknohane-api.yusuf-aykac.workers.dev/'; // ⚠️ Worker'ı deploy ettikten sonra kendi adresinle değiştir
 
 let extraPhonesLoaded = false;
 async function loadExtraPhones() {
@@ -13888,15 +13888,15 @@ function closeArenaPage() {
 // "Başla"ya bastığında çağrılır, ana görünüm açılırken DEĞİL (ana görünüm bugünkü durumu, rules'ın
 // zaten okumaya izin verdiği kendi teknohane_arena_attempts dokümanından, hiç kilitlemeden okur).
 // ═══════════════════════════════════════════════
-const ARENA_START_API = 'https://teknohane-phones.yusuf-aykac.workers.dev/arena-start';
-const ARENA_SUBMIT_API = 'https://teknohane-phones.yusuf-aykac.workers.dev/arena-submit';
-const ARENA_QOTD_START_API = 'https://teknohane-phones.yusuf-aykac.workers.dev/qotd-start';
-const ARENA_QOTD_ANSWER_API = 'https://teknohane-phones.yusuf-aykac.workers.dev/qotd-answer';
-const ARENA_DUEL_CHALLENGE_API = 'https://teknohane-phones.yusuf-aykac.workers.dev/duel-challenge';
-const ARENA_DUEL_RESPOND_API = 'https://teknohane-phones.yusuf-aykac.workers.dev/duel-respond';
-const ARENA_DUEL_START_API = 'https://teknohane-phones.yusuf-aykac.workers.dev/duel-start';
-const ARENA_DUEL_SUBMIT_API = 'https://teknohane-phones.yusuf-aykac.workers.dev/duel-submit';
-const ARENA_DUEL_REMATCH_API = 'https://teknohane-phones.yusuf-aykac.workers.dev/duel-rematch';
+const ARENA_START_API = 'https://teknohane-api.yusuf-aykac.workers.dev/arena-start';
+const ARENA_SUBMIT_API = 'https://teknohane-api.yusuf-aykac.workers.dev/arena-submit';
+const ARENA_QOTD_START_API = 'https://teknohane-api.yusuf-aykac.workers.dev/qotd-start';
+const ARENA_QOTD_ANSWER_API = 'https://teknohane-api.yusuf-aykac.workers.dev/qotd-answer';
+const ARENA_DUEL_CHALLENGE_API = 'https://teknohane-api.yusuf-aykac.workers.dev/duel-challenge';
+const ARENA_DUEL_RESPOND_API = 'https://teknohane-api.yusuf-aykac.workers.dev/duel-respond';
+const ARENA_DUEL_START_API = 'https://teknohane-api.yusuf-aykac.workers.dev/duel-start';
+const ARENA_DUEL_SUBMIT_API = 'https://teknohane-api.yusuf-aykac.workers.dev/duel-submit';
+const ARENA_DUEL_REMATCH_API = 'https://teknohane-api.yusuf-aykac.workers.dev/duel-rematch';
 const ARENA_CATEGORY_LABELS = {
   phones: '📱 Akıllı Telefonlar', cpu: '⚙️ İşlemciler', display: '🖥️ Ekran Teknolojileri',
   camera: '📷 Kamera', battery: '🔋 Batarya ve Şarj', android: '🤖 Android', apple: '🍎 Apple',
