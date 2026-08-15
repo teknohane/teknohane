@@ -11284,9 +11284,9 @@ async function submitComment() {
     let commentId;
     if (cmtPhotoB64 && pendingCommentPhotoId) {
       commentId = pendingCommentPhotoId;
-      await db.collection('teknohane_posts').doc(p.id).collection('comments').doc(commentId).set(cdata);
+      await writeWithPermissionRetry(() => db.collection('teknohane_posts').doc(p.id).collection('comments').doc(commentId).set(cdata));
     } else {
-      const ref = await db.collection('teknohane_posts').doc(p.id).collection('comments').add(cdata);
+      const ref = await writeWithPermissionRetry(() => db.collection('teknohane_posts').doc(p.id).collection('comments').add(cdata));
       commentId = ref.id;
     }
     markForumActionTimestamp();
