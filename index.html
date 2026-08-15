@@ -14591,9 +14591,9 @@ async function rArenaDuels() {
   const finished = duels.filter(d => d.status === 'completed' || d.status === 'declined' || d.status === 'expired' || d.status === 'voided');
 
   const oppOf = d => d.challengerUid === user.uid ? { name: d.opponentName, photo: d.opponentPhoto } : { name: d.challengerName, photo: d.challengerPhoto };
-  const rowHtml = (d, right) => {
+  const rowHtml = (d, right, onRowClick) => {
     const opp = oppOf(d);
-    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 6px">
+    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 6px${onRowClick?';cursor:pointer':''}"${onRowClick?` onclick="${onRowClick}"`:''}>
       ${opp.photo?`<img src="${escapeHtml(opp.photo)}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0" onerror="this.onerror=null;this.src='${escapeJsAttr(avatarUrl(null,opp.name,64))}'">`:`<div style="width:32px;height:32px;border-radius:50%;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">${escapeHtml((opp.name||'?').charAt(0).toUpperCase())}</div>`}
       <span style="flex:1;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(opp.name||'Kullanıcı')}</span>
       ${right}
@@ -14622,11 +14622,49 @@ async function rArenaDuels() {
         else if (d.status === 'expired') resultTxt = 'Süresi doldu';
         else resultTxt = 'İptal edildi';
         const canRematch = d.status === 'completed';
-        return rowHtml(d, `<span style="font-size:12px;font-weight:700;color:${resultColor};margin-right:8px">${resultTxt}</span>${canRematch?`<span style="font-size:11px;color:var(--cyan);cursor:pointer;text-decoration:underline" onclick="arenaDuelRematch('${d.id}')">Rövanş</span>`:''}`);
+        // KÖK NEDEN DÜZELTMESİ ("düello tamamlandıktan sonra sonucu paylaş diyorum ama tepki
+        // vermiyor"): "Sonucu Paylaş" butonu önceden YALNIZCA kendi cevaplarını gönderdiğin ANDA
+        // rakibin de ZATEN bitirmiş olması durumunda görünüyordu — rakip senden SONRA bitirirse
+        // (çok sık rastlanan asenkron akış) sonucu tekrar görüp paylaşmanın hiçbir yolu yoktu,
+        // Geçmiş'teki satır tıklanamıyordu. Artık tamamlanmış her düello satırı tıklanabilir,
+        // tam sonuç ekranını (paylaşım butonuyla birlikte) yeniden açıyor.
+        return rowHtml(d, `<span style="font-size:12px;font-weight:700;color:${resultColor};margin-right:8px">${resultTxt}</span>${canRematch?`<span style="font-size:11px;color:var(--cyan);cursor:pointer;text-decoration:underline" onclick="event.stopPropagation();arenaDuelRematch('${d.id}')">Rövanş</span>`:''}`, d.status==='completed'?`arenaDuelViewResult('${d.id}')`:null);
       }).join('')}
     </div>` : ''}
     ${!incoming.length && !active.length && !outgoing.length && !finished.length ? `<div class="no">Henüz bir düellon yok.<br><span style="font-size:11px;color:var(--text3)">Bir kullanıcının profilinden "⚔️ Düelloya Davet Et" ile başlayabilirsin.</span></div>` : ''}
     <button class="apbtn" style="margin-top:14px" onclick="rArenaHome()">← Arena'ya Dön</button>`;
+}
+
+// Geçmiş'teki tamamlanmış bir düelloya tıklanınca — canlı oynanan bir düellodan FARKLI olarak
+// (rArenaDuelResult'ın doğrudan worker yanıtından beslendiği durum), burada özet veri doğrudan
+// düello dokümanının kendisinden (challengerAttempt/opponentAttempt) okunuyor. Soru bazlı kırılım
+// (perQuestion) düello dokümanında SAKLANMIYOR — yalnızca özet skorlar var, o yüzden boş geçiliyor;
+// rArenaDuelResult zaten bu alanı boşsa o bölümü hiç göstermiyor.
+async function arenaDuelViewResult(duelId) {
+  arenaView = 'duel-result';
+  arenaBackParent = rArenaDuels;
+  const body = document.getElementById('arena-body');
+  body.innerHTML = `<div class="load"><div class="spin"></div></div>`;
+  try {
+    const doc = await db.collection('teknohane_arena_duels').doc(duelId).get();
+    if (!doc.exists) { showMsg('Düello bulunamadı'); rArenaDuels(); return; }
+    const d = doc.data();
+    const isChallenger = d.challengerUid === user.uid;
+    const my = isChallenger ? d.challengerAttempt : d.opponentAttempt;
+    const opp = isChallenger ? d.opponentAttempt : d.challengerAttempt;
+    if (!my || my.status !== 'completed') { showMsg('Bu düelloyu tamamlamadın'); rArenaDuels(); return; }
+    arenaDuelId = duelId;
+    arenaDuelQuiz = {
+      opponentName: isChallenger ? d.opponentName : d.challengerName,
+      opponentPhoto: isChallenger ? d.opponentPhoto : d.challengerPhoto,
+      opponentUid: isChallenger ? d.opponentUid : d.challengerUid,
+    };
+    rArenaDuelResult({
+      totalScore: my.totalScore, correctCount: my.correctCount, wrongCount: my.wrongCount,
+      opponentDone: opp?.status === 'completed', opponentScore: opp?.totalScore,
+      winnerUid: d.winnerUid, perQuestion: [],
+    });
+  } catch (e) { showMsg('Sonuç yüklenemedi'); rArenaDuels(); }
 }
 
 async function arenaDuelRespond(duelId, accept) {
@@ -14861,7 +14899,14 @@ async function shareDuelResult() {
   ctx.font = '500 22px DM Sans, sans-serif';
   ctx.fillText('teknohane.github.io · Arena', W/2, H - 50);
 
+  // GÜVENCE: bazı WebView sürümlerinde canvas.toBlob geri çağırımı hiç tetiklenmeyebiliyor —
+  // önceden bu durumda kullanıcı "hiçbir şey olmuyor" hissiyle baş başa kalıyordu (bkz. görev
+  // raporu, "tepki vermiyor"). 6sn içinde blob üretilmezse en azından bir hata mesajı gösteriliyor.
+  let toBlobSettled = false;
+  setTimeout(() => { if (!toBlobSettled) showMsg('Görsel oluşturulamadı, tekrar dene'); }, 6000);
   canvas.toBlob(async (blob) => {
+    toBlobSettled = true;
+    if (!blob) { showMsg('Görsel oluşturulamadı, tekrar dene'); return; }
     const title = 'Teknohane Arena Düellosu';
     const text = tauntLines.join(' ');
     if (isNativeApp() && window.Capacitor?.Plugins?.Share && window.Capacitor?.Plugins?.Filesystem) {
