@@ -14209,7 +14209,14 @@ async function arenaBeginQuiz() {
     return;
   }
   if (data.error || !data.questions?.length) {
+    // HATA DÜZELTMESİ (canlı vakada doğrulandı — "Connection reset"): bu ekrana en sık düşen sebep
+    // geçici bir ağ kopukluğu (arenaApiCall zaten 1 kez otomatik yeniden deniyor, ikinci deneme de
+    // başarısız olursa buraya düşülüyor) — sunucuda hiçbir kilit/deneme kaydı OLUŞMADAN başarısız
+    // olduğu için kullanıcının kaybettiği bir şey yok, yalnızca tekrar denemesi yeterli. Önceden
+    // yalnızca "Geri Dön" vardı — kullanıcı Arena ana ekranına dönüp "Yarışmaya Katıl"a TEKRAR basmak
+    // zorunda kalıyordu; artık doğrudan burada "Tekrar Dene" butonu var.
     body.innerHTML = `<div class="no">Yarışma başlatılamadı.<br><span style="font-size:11px;color:var(--text3)">${escapeHtml(data.error||'Lütfen tekrar dene.')}</span></div>
+      <button class="apbtn" style="background:linear-gradient(135deg,var(--cyan),#0091FF);color:#00040F;font-weight:700;border:none" onclick="arenaBeginQuiz()">↻ Tekrar Dene</button>
       <button class="apbtn" onclick="rArenaHome()">Geri Dön</button>`;
     return;
   }
