@@ -5154,6 +5154,13 @@ function renderSplashAnnouncement(a) {
     ${a.linkUrl?`<button class="sbtn2" style="margin-bottom:8px" onclick="markAnnouncementRead('${a.id}');ol('${escapeJsAttr(a.linkUrl)}');closeSplashAnnouncement('${a.id}')">${escapeHtml(a.buttonText)||'Detay'}</button>`:''}
     <button class="apbtn" style="background:var(--surf2);color:var(--text)" onclick="closeSplashAnnouncement('${a.id}')">${a.linkUrl?'Kapat':'Tamam'}</button>`;
   document.getElementById('announcement-splash-mo').classList.add('on');
+  // HATA DÜZELTMESİ: kart sisteminde (renderAnnouncementCards) markAnnouncementRead() ekrana
+  // ÇİZİLDİĞİNDE otomatik çağrılıyordu, ama splash'te yalnızca (varsa) bağlantı butonuna
+  // tıklanırsa çağrılıyordu — kullanıcı doğrudan "Tamam/Kapat" ile kapatırsa "read" hiç
+  // yazılmıyordu. Sonuç: admin panelde "0 kişi gördü · 8 kişi kapattı" gibi tutarsız bir
+  // istatistik görünüyordu (kapatma read'den önce/onsuz gerçekleşiyordu). Şimdi tam ekran
+  // gerçekten göründüğü anda da (kart sistemiyle aynı mantıkla) işaretleniyor.
+  markAnnouncementRead(a.id);
 }
 
 function closeSplashAnnouncement(id) {
