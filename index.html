@@ -5192,6 +5192,7 @@ function navigateFromNotificationUrl(url, attempt) {
     const postId = u.searchParams.get('post');
     const profileUid = u.searchParams.get('profile');
     const chatUid = u.searchParams.get('chat');
+    const duelId = u.searchParams.get('duel');
     if (listingId) {
       // openDetail artık kendi tekil-doküman fallback'ini yapıyor (bkz. getListingById) — bellekte
       // hazır olsun olmasın, TEKRARLI SORGULAMA (retry-polling) GEREKMEDEN doğrudan çağrılabilir.
@@ -5205,6 +5206,9 @@ function navigateFromNotificationUrl(url, attempt) {
     } else if (profileUid) {
       if (!user && attempt < 10) { setTimeout(() => navigateFromNotificationUrl(url, attempt+1), 400); return; }
       openPublicProfile(profileUid);
+    } else if (duelId) {
+      if (!user && attempt < 10) { setTimeout(() => navigateFromNotificationUrl(url, attempt+1), 400); return; }
+      openArenaPage(); rArenaDuels();
     }
   } catch(e) { console.error('Bildirim yönlendirme URL\'si çözülemedi:', e); }
 }
@@ -6077,7 +6081,7 @@ function renderNotifGroupCard(g) {
     : meta.ic;
   return `<div class="notif-swipe-wrap" data-ids="${ids}">
     <div class="notif-swipe-del" onclick="event.stopPropagation();performNotifDelete(this.closest('.notif-swipe-wrap'))">🗑️</div>
-    <div class="notif-item msg-in ${anyUnread?'unread':''}" onclick="clickNotifGroup('${ids}','${first.listingId||''}',${anyUnread},'${first.postId||''}','${first.type}','${first.fromUid||''}','${fromNameJs}')">
+    <div class="notif-item msg-in ${anyUnread?'unread':''}" onclick="clickNotifGroup('${ids}','${first.listingId||''}',${anyUnread},'${first.postId||''}','${first.type}','${first.fromUid||''}','${fromNameJs}','${first.duelId||''}')">
       <div class="notif-ic" style="background:${first.fromPhotoURL?'var(--surf2)':meta.bg}">${icHtml}</div>
       <div class="notif-txt" style="flex:1"><div class="notif-msg">${label}</div><div class="notif-time">${anyUnread?'<span style="color:var(--cyan);font-weight:700">Yeni · </span>':''}${time}</div></div>
       ${anyUnread?'<div class="unread-dot"></div>':''}
@@ -6333,7 +6337,7 @@ async function markAllNotifsRead() {
   } catch(e) { showToast('⚠️', 'rgba(255,69,58,.15)', 'Hata', 'İşlem tamamlanamadı: ' + e.message); }
 }
 
-async function clickNotifGroup(idsCsv, listingId, wasUnread, postId, type, fromUid, fromName) {
+async function clickNotifGroup(idsCsv, listingId, wasUnread, postId, type, fromUid, fromName, duelId) {
   const ids = idsCsv.split(',');
   if (wasUnread) {
     const batch = db.batch();
@@ -6364,6 +6368,9 @@ async function clickNotifGroup(idsCsv, listingId, wasUnread, postId, type, fromU
     // profile değil, yalnızca kendi Profil ekranına yönlendirilir.
     closemo('notif-mo');
     gt('profile');
+  } else if (duelId) {
+    closemo('notif-mo');
+    openArenaPage(); rArenaDuels();
   }
 }
 
@@ -14485,6 +14492,13 @@ function rArenaQotdResult(r) {
 // taraf kabul/red eder, kabul edilirse ikisi de AYNI 10 soruyu kendi zamanında oynar, biten
 // karşılaştırma sonucunu görür. Ana quiz'in arenaQuiz/arenaAnswers/arenaCurrentQ state'inden
 // BİLİNÇLİ OLARAK AYRI kendi state'i var (arenaDuel*) — biri sürerken diğerinin bozulmaması için.
+// HATA DÜZELTMESİ: düello akışı hiç var olmayan bir showMsg() fonksiyonunu çağırıyordu — asıl toast
+// fonksiyonunun adı showToast(icon,iconBg,title,desc). Bu, örn. "Kabul Et" tıklandığında isteğin
+// sunucuda BAŞARIYLA işlenmesinden (düello gerçekten kabul ediliyordu) HEMEN SONRA bir
+// ReferenceError fırlatıp ekranı yenileyen rArenaDuels() çağrısını hiç çalıştırmadan kesiyordu —
+// kullanıcıya "hiçbir şey olmadı" izlenimi veriyordu. Basit bir sarmalayıcı ile düzeltildi.
+function showMsg(text) { showToast('🔔', 'var(--cdim)', 'Teknohane', text); }
+
 async function sendDuelChallenge(opponentUid, opponentName) {
   if (!confirm(`${opponentName} kullanıcısına Arena düellosu göndermek istediğine emin misin?`)) return;
   try {
