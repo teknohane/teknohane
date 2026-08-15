@@ -14703,7 +14703,10 @@ async function arenaDuelBegin(duelId) {
   const idToken = await user.getIdToken();
   const data = await arenaApiCall(ARENA_DUEL_START_API, { idToken, duelId });
   if (data.error === 'duel_expired') { showMsg('Bu düellonun süresi doldu'); rArenaDuels(); return; }
-  if (data.error) { showMsg('Başlatılamadı: ' + data.error); rArenaDuels(); return; }
+  // GÖZLEMLENEBİLİRLİK: arenaBeginQuiz()'deki (günlük yarışma) aynı loglama arenaDuelBegin'de hiç
+  // yoktu — bu yüzden "Oyna'ya basıyorum, hazırlanıyor diyor, geri dönüyor" raporu admin panelin
+  // Hatalar sekmesinde HİÇ görünmüyordu, yalnızca canlı Firestore sorgusuyla teşhis edilebildi.
+  if (data.error) { logClientError('duel-start başarısız: ' + data.error, null, 'arenaDuelBegin'); showMsg('Başlatılamadı: ' + data.error); rArenaDuels(); return; }
   if (data.alreadyCompleted) { showMsg('Bu düelloyu zaten tamamladın'); rArenaDuels(); return; }
   arenaDuelId = duelId;
   arenaDuelQuiz = { questions: data.questions, opponentName: data.opponentName, opponentPhoto: data.opponentPhoto, opponentUid: data.opponentUid };
