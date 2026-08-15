@@ -11264,6 +11264,13 @@ async function submitComment() {
   if (!user) return;
   const p = currentPost;
   if (p?.locked) { showToast('🔒','var(--cdim)','Konu Kilitli','Bu konu kilitlendiği için yorum yapılamaz.'); return; }
+  // HATA DÜZELTMESİ (canlı vakada yakalandı — Ahmet Karanfil, writeWithPermissionRetry'nin JETON
+  // YENİLENDİKTEN SONRAKİ 2. denemesi de reddedildi): e-posta doğrulanmamış hesaplar zaten kuralca
+  // yorum yazamıyor (ilan/konu oluşturmada olduğu GİBİ) ama yalnızca yorum akışında bu PROAKTİF
+  // kontrol hiç yoktu — kullanıcı yazıp gönderiyor, jeton yenilense bile gerçek kısıtlama
+  // değişmediği için yine reddediliyor, sonunda genel/anlaşılmaz bir hata görüyordu. İlan (satır
+  // ~9082) ve konu (satır ~10840) oluşturmadaki AYNI desen buraya da eklendi.
+  if (!user.emailVerified) { showToast('📧','rgba(255,159,10,.15)','E-posta Doğrulanmamış','Yorum yapabilmek için önce e-postanı doğrulaman gerekiyor. Doğrulama e-postası göndermek için dokun.', sendVerificationEmail, 6000); return; }
   const inp = document.getElementById('comment-inp');
   const body = inp.value.trim();
   if (!body && !cmtPhotoB64) return;
