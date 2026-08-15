@@ -14649,7 +14649,7 @@ async function arenaDuelBegin(duelId) {
   if (data.error) { showMsg('Başlatılamadı: ' + data.error); rArenaDuels(); return; }
   if (data.alreadyCompleted) { showMsg('Bu düelloyu zaten tamamladın'); rArenaDuels(); return; }
   arenaDuelId = duelId;
-  arenaDuelQuiz = { questions: data.questions, opponentName: data.opponentName, opponentPhoto: data.opponentPhoto };
+  arenaDuelQuiz = { questions: data.questions, opponentName: data.opponentName, opponentPhoto: data.opponentPhoto, opponentUid: data.opponentUid };
   arenaDuelCurrentQ = 0;
   arenaDuelAnswers = [];
   arenaBackParent = rArenaDuels; // düello oynama/sonuç ekranlarından geri → Düellolarım listesi
@@ -14720,6 +14720,11 @@ function rArenaDuelResult(r) {
   const total = (r.correctCount||0) + (r.wrongCount||0);
   const pct = total ? Math.round((r.correctCount/total)*100) : 0;
   const oppName = arenaDuelQuiz?.opponentName || 'Rakip';
+  const margin = r.opponentDone ? Math.abs((r.totalScore||0) - (r.opponentScore||0)) : null;
+  // Paylaşım butonu onclick'ine gömmek yerine global bir değişkende tutuluyor — rakip adı
+  // kullanıcı kontrollü olduğu için HTML özniteliğine JSON gömmek bir kaçış/enjeksiyon riski
+  // yaratırdı (bkz. shareDuelResult).
+  arenaLastDuelResultForShare = { totalScore: r.totalScore||0, opponentScore: r.opponentScore||0, winnerUid: r.winnerUid, oppName };
   body.innerHTML = `
     <div class="feat" style="text-align:center;padding:28px 20px">
       <div style="font-size:38px;margin-bottom:8px">⚔️</div>
@@ -14727,18 +14732,158 @@ function rArenaDuelResult(r) {
       <div style="color:var(--text2);font-size:13px;margin-bottom:14px">${r.correctCount||0} Doğru · %${pct} Başarı</div>
       ${r.opponentDone ? `
         <div style="font-size:15px;font-weight:700;margin:14px 0 6px">${escapeHtml(oppName)}: ${r.opponentScore||0} Puan</div>
-        <div style="font-size:16px;font-weight:800;margin-bottom:14px;color:${r.winnerUid===user.uid?'var(--green)':(r.winnerUid===null?'var(--text2)':'var(--red)')}">
+        <div style="font-size:16px;font-weight:800;margin-bottom:4px;color:${r.winnerUid===user.uid?'var(--green)':(r.winnerUid===null?'var(--text2)':'var(--red)')}">
           ${r.winnerUid===user.uid?'🏆 Kazandın!':(r.winnerUid===null?'Berabere!':`${escapeHtml(oppName)} kazandı`)}
-        </div>` : `<div style="font-size:12px;color:var(--text3);margin-bottom:14px">Rakibin henüz oynamadı — bitirince sonuç burada güncellenecek.</div>`}
+        </div>
+        ${margin>0?`<div style="font-size:12px;color:var(--text3);margin-bottom:10px">${margin} puan farkla</div>`:''}
+        <div id="arena-duel-h2h" style="font-size:12px;color:var(--text3);margin-bottom:14px">Bu rakibe karşı geçmiş yükleniyor…</div>` : `<div style="font-size:12px;color:var(--text3);margin-bottom:14px">Rakibin henüz oynamadı — bitirince sonuç burada güncellenecek.</div>`}
       ${(r.perQuestion||[]).length ? `<div style="text-align:left;display:flex;flex-direction:column;gap:8px;margin-bottom:18px">
         ${r.perQuestion.map((p,i)=>`<div style="display:flex;align-items:center;gap:8px;font-size:13px;padding:8px 10px;border-radius:10px;background:var(--surf2)">
           <span>${p.correct?'✅':'❌'}</span><span style="flex:1;color:var(--text2)">Soru ${i+1}</span>
           ${p.correct?`<span style="color:var(--green);font-weight:700">+${p.pointsAwarded}</span>`:''}
         </div>`).join('')}
       </div>` : ''}
+      ${r.opponentDone ? `<button class="apbtn" style="background:linear-gradient(135deg,#FF9500,#FF3B30);color:#fff;font-weight:700;border:none" onclick="shareDuelResult()">📤 Sonucu Paylaş</button>` : ''}
       <button class="apbtn" style="background:linear-gradient(135deg,var(--cyan),#0091FF);color:#00040F;font-weight:700;border:none" onclick="rArenaDuels()">⚔️ Düellolarım</button>
       <button class="apbtn" onclick="rArenaHome()">Arena'ya Dön</button>
     </div>`;
+  if (r.opponentDone && arenaDuelQuiz?.opponentUid) loadDuelHeadToHead(arenaDuelQuiz.opponentUid);
+}
+
+// Bu rakiple aradaki TÜM zamanların galibiyet/mağlubiyet/beraberlik sayısı — rekabeti körüklemek
+// için (kullanıcı isteği). challengerUid/opponentUid'nin HANGİ yönde olduğuna bakılmaksızın iki ayrı
+// eşitlik sorgusu client'ta birleştiriliyor (mevcut rArenaDuels() ile aynı desen) — salt eşitlik
+// filtreleri olduğu için yeni bir composite index gerekmiyor.
+async function loadDuelHeadToHead(opponentUid) {
+  const el = document.getElementById('arena-duel-h2h');
+  if (!el) return;
+  try {
+    const [asC, asO] = await Promise.all([
+      db.collection('teknohane_arena_duels').where('challengerUid', '==', user.uid).where('opponentUid', '==', opponentUid).where('status', '==', 'completed').get(),
+      db.collection('teknohane_arena_duels').where('challengerUid', '==', opponentUid).where('opponentUid', '==', user.uid).where('status', '==', 'completed').get(),
+    ]);
+    let wins = 0, losses = 0, ties = 0;
+    [...asC.docs, ...asO.docs].forEach(d => {
+      const w = d.data().winnerUid;
+      if (w === user.uid) wins++; else if (w === null) ties++; else losses++;
+    });
+    const total = wins + losses + ties;
+    el.textContent = total > 1
+      ? `Bu rakibe karşı geçmişin: ${wins}G ${losses}M${ties?` ${ties}B`:''} (${total} düello)`
+      : '';
+  } catch (e) { el.textContent = ''; }
+}
+
+// Kullanıcı isteği: düello sonucunun rakibe "meydan okuma"/"kızdırma" havasında, görsel olarak
+// paylaşılabilmesi — mevcut shareComparison() (telefon karşılaştırma) ile AYNI kanıtlanmış üç
+// kademeli desen (Capacitor Share dosya URI'si → navigator.share → indirme) yeniden kullanılıyor.
+let arenaLastDuelResultForShare = null;
+async function shareDuelResult() {
+  const r = arenaLastDuelResultForShare;
+  if (!r) return;
+  const won = r.winnerUid === user.uid;
+  const tie = r.winnerUid === null;
+  const myName = user.displayName || 'Ben';
+  const margin = Math.abs(r.totalScore - r.opponentScore);
+
+  const W = 1080, H = 1350;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+  bgGrad.addColorStop(0, '#00040F');
+  bgGrad.addColorStop(1, '#070D1A');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.fillStyle = '#00D4FF';
+  ctx.font = '700 44px DM Sans, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('⚔️ Teknohane Arena Düellosu', W/2, 100);
+
+  const avatar = (cx, cy, name, color) => {
+    ctx.beginPath();
+    ctx.arc(cx, cy, 90, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.fillStyle = '#00040F';
+    ctx.font = '700 64px DM Sans, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText((name||'?').charAt(0).toUpperCase(), cx, cy + 6);
+    ctx.textBaseline = 'alphabetic';
+  };
+  avatar(W/2 - 220, 280, myName, won ? '#30D158' : (tie ? '#8E9BB5' : '#FF3B30'));
+  avatar(W/2 + 220, 280, r.oppName, won ? '#FF3B30' : (tie ? '#8E9BB5' : '#30D158'));
+
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = '700 30px DM Sans, sans-serif';
+  wrapText(ctx, myName, W/2 - 220, 410, 260, 36);
+  wrapText(ctx, r.oppName, W/2 + 220, 410, 260, 36);
+
+  ctx.font = '700 56px DM Sans, sans-serif';
+  ctx.fillStyle = won ? '#30D158' : '#FFFFFF';
+  ctx.fillText(String(r.totalScore), W/2 - 220, 480);
+  ctx.fillStyle = (!won && !tie) ? '#30D158' : '#FFFFFF';
+  ctx.fillText(String(r.opponentScore), W/2 + 220, 480);
+
+  ctx.fillStyle = '#4A5568';
+  ctx.font = '700 34px DM Sans, sans-serif';
+  ctx.fillText('VS', W/2, 470);
+
+  // Kazanan bandı
+  ctx.fillStyle = won ? 'rgba(48,209,88,.15)' : (tie ? 'rgba(142,155,181,.15)' : 'rgba(255,59,48,.15)');
+  ctx.fillRect(60, 560, W - 120, 90);
+  ctx.fillStyle = won ? '#30D158' : (tie ? '#8E9BB5' : '#FF3B30');
+  ctx.font = '700 36px DM Sans, sans-serif';
+  ctx.fillText(won ? `🏆 ${myName} KAZANDI` : (tie ? 'BERABERE!' : `🏆 ${r.oppName} KAZANDI`), W/2, 618);
+
+  // Meydan okuma / kızdırma başlıklı alt metin — sonuca göre değişiyor.
+  const tauntLines = won
+    ? [`${r.oppName}'i ${margin} puan farkla ezdim! 🔥`, 'Cesaretin varsa rövanş iste 😏']
+    : tie
+    ? [`${myName} vs ${r.oppName}: berabere!`, 'Kim daha iyi, rövanşta belli olacak 🤔']
+    : [`${r.oppName} bu sefer kazandı...`, `Ama rövanşta hesap sorulacak 😤`];
+  ctx.fillStyle = '#8E9BB5';
+  ctx.font = '500 26px DM Sans, sans-serif';
+  ctx.fillText(tauntLines[0], W/2, 720);
+  ctx.fillText(tauntLines[1], W/2, 758);
+
+  ctx.fillStyle = '#4A5568';
+  ctx.font = '500 22px DM Sans, sans-serif';
+  ctx.fillText('teknohane.github.io · Arena', W/2, H - 50);
+
+  canvas.toBlob(async (blob) => {
+    const title = 'Teknohane Arena Düellosu';
+    const text = tauntLines.join(' ');
+    if (isNativeApp() && window.Capacitor?.Plugins?.Share && window.Capacitor?.Plugins?.Filesystem) {
+      try {
+        const b64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result.split(',')[1]);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+        const fileName = `teknohane-duello-${Date.now()}.png`;
+        await Capacitor.Plugins.Filesystem.writeFile({ path: fileName, data: b64, directory: 'CACHE' });
+        const { uri } = await Capacitor.Plugins.Filesystem.getUri({ path: fileName, directory: 'CACHE' });
+        await Capacitor.Plugins.Share.share({ title, text, url: uri, dialogTitle: title });
+        return;
+      } catch(e) { console.error('Düello paylaşım hatası:', e); }
+    }
+    const file = new File([blob], 'duello-sonucu.png', { type: 'image/png' });
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], title, text }); } catch(e) { /* kullanıcı iptal etti */ }
+    } else {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'teknohane-duello-sonucu.png';
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+  }, 'image/png');
 }
 
 // ---- Liderlik tablosu — 4 periyot, kendi sıran her zaman görünür (kaydırmaya gerek yok) ----
