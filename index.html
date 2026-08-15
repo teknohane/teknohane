@@ -14186,7 +14186,13 @@ async function arenaBeginQuiz() {
   body.innerHTML = `<div class="load"><div class="spin"></div><span>Yarışma hazırlanıyor…</span></div>`;
   const idToken = await user.getIdToken();
   const data = await arenaApiCall(ARENA_START_API, { idToken });
-  if (data.error === 'already_played') { rArenaHome(); return; }
+  // HATA DÜZELTMESİ: worker bugünkü yarışma zaten tamamlanmışsa hiç `error` alanı DÖNDÜRMÜYOR,
+  // yalnızca `alreadyCompletedToday:true` (bkz. cloudflare-push-worker.js /internal/arena-start).
+  // Buradaki `data.error === 'already_played'` kontrolü hiçbir zaman eşleşmeyen ölü kod olduğu
+  // için bu durum aşağıdaki genel "Yarışma başlatılamadı" hata ekranına düşüyordu — örn. kullanıcı
+  // başka bir sekme/cihazda bugünü zaten tamamlamışken bu ekranda hâlâ "Yarışmaya Katıl" butonuna
+  // basarsa. rArenaHome() zaten tamamlanmış denemeyi doğru şekilde (sonuç kartıyla) gösteriyor.
+  if (data.alreadyCompletedToday) { rArenaHome(); return; }
   if (data.error === 'arena_disabled') {
     body.innerHTML = `<div class="no">Arena şu anda geçici olarak kapalı.<br><span style="font-size:11px;color:var(--text3)">Daha sonra tekrar kontrol et.</span></div>
       <button class="apbtn" onclick="closeArenaPage()">Kapat</button>`;
