@@ -14229,6 +14229,11 @@ async function arenaBeginQuiz() {
     // olduğu için kullanıcının kaybettiği bir şey yok, yalnızca tekrar denemesi yeterli. Önceden
     // yalnızca "Geri Dön" vardı — kullanıcı Arena ana ekranına dönüp "Yarışmaya Katıl"a TEKRAR basmak
     // zorunda kalıyordu; artık doğrudan burada "Tekrar Dene" butonu var.
+    // GÖZLEMLENEBİLİRLİK: aynı kullanıcıda tekrarlayan raporları artık kullanıcıya SORMADAN admin
+    // panelindeki Hatalar sekmesinde (uid/platform/userAgent ile) görebilmek için, buraya düşen HER
+    // vaka logClientError ile kaydediliyor — önceden yalnızca yakalanmamış JS istisnaları/reddleri
+    // loglanıyordu, arena-start'ın kendi (yakalanmış) hata dalı hiç loglanmıyordu.
+    logClientError('arena-start başarısız: ' + (data.error || 'boş soru listesi döndü'), null, 'arenaBeginQuiz');
     body.innerHTML = `<div class="no">Yarışma başlatılamadı.<br><span style="font-size:11px;color:var(--text3)">${escapeHtml(data.error||'Lütfen tekrar dene.')}</span></div>
       <button class="apbtn" style="background:linear-gradient(135deg,var(--cyan),#0091FF);color:#00040F;font-weight:700;border:none" onclick="arenaBeginQuiz()">↻ Tekrar Dene</button>
       <button class="apbtn" onclick="rArenaHome()">Geri Dön</button>`;
