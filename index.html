@@ -14662,6 +14662,7 @@ async function arenaDuelViewResult(duelId) {
     rArenaDuelResult({
       totalScore: my.totalScore, correctCount: my.correctCount, wrongCount: my.wrongCount,
       opponentDone: opp?.status === 'completed', opponentScore: opp?.totalScore,
+      opponentCorrectCount: opp?.correctCount ?? null,
       winnerUid: d.winnerUid, perQuestion: [],
     });
   } catch (e) { showMsg('Sonuç yüklenemedi'); rArenaDuels(); }
@@ -14769,7 +14770,10 @@ function rArenaDuelResult(r) {
   // Paylaşım butonu onclick'ine gömmek yerine global bir değişkende tutuluyor — rakip adı
   // kullanıcı kontrollü olduğu için HTML özniteliğine JSON gömmek bir kaçış/enjeksiyon riski
   // yaratırdı (bkz. shareDuelResult).
-  arenaLastDuelResultForShare = { totalScore: r.totalScore||0, opponentScore: r.opponentScore||0, winnerUid: r.winnerUid, oppName };
+  arenaLastDuelResultForShare = {
+    totalScore: r.totalScore||0, opponentScore: r.opponentScore||0, winnerUid: r.winnerUid, oppName,
+    correctCount: r.correctCount||0, opponentCorrectCount: r.opponentCorrectCount, totalQuestions: total, h2h: null,
+  };
   body.innerHTML = `
     <div class="feat" style="text-align:center;padding:28px 20px">
       <div style="font-size:38px;margin-bottom:8px">⚔️</div>
@@ -14813,9 +14817,11 @@ async function loadDuelHeadToHead(opponentUid) {
       if (w === user.uid) wins++; else if (w === null) ties++; else losses++;
     });
     const total = wins + losses + ties;
-    el.textContent = total > 1
-      ? `Bu rakibe karşı geçmişin: ${wins}G ${losses}M${ties?` ${ties}B`:''} (${total} düello)`
-      : '';
+    const h2hText = total > 1 ? `${wins}G ${losses}M${ties?` ${ties}B`:''} (${total} düello)` : '';
+    el.textContent = h2hText ? `Bu rakibe karşı geçmişin: ${h2hText}` : '';
+    // Paylaşım kartı butona basıldığında hazır bulsun diye — bu sorgu asenkron olduğu için
+    // (render'dan hemen sonra bitmeyebilir) ayrı bir global yerine doğrudan paylaşım state'ine yazılıyor.
+    if (arenaLastDuelResultForShare) arenaLastDuelResultForShare.h2h = h2hText || null;
   } catch (e) { el.textContent = ''; }
 }
 
@@ -14830,59 +14836,113 @@ async function shareDuelResult() {
   const tie = r.winnerUid === null;
   const myName = user.displayName || 'Ben';
   const margin = Math.abs(r.totalScore - r.opponentScore);
+  const myColor = won ? '#30D158' : (tie ? '#00D4FF' : '#FF3B30');
+  const oppColor = won ? '#FF3B30' : (tie ? '#8E9BB5' : '#30D158');
 
-  const W = 1080, H = 1350;
+  const W = 1080, H = 1500;
   const canvas = document.createElement('canvas');
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
 
+  // Arka plan — köşelerde hafif renkli parlama, düz tek renkten daha "oyun" hissi versin diye.
   const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
   bgGrad.addColorStop(0, '#00040F');
-  bgGrad.addColorStop(1, '#070D1A');
+  bgGrad.addColorStop(0.5, '#050B1A');
+  bgGrad.addColorStop(1, '#00040F');
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, W, H);
+  const glow = ctx.createRadialGradient(W/2, 260, 40, W/2, 260, 500);
+  glow.addColorStop(0, won ? 'rgba(48,209,88,.14)' : (tie ? 'rgba(0,212,255,.10)' : 'rgba(255,59,48,.10)'));
+  glow.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, W, H);
 
-  ctx.fillStyle = '#00D4FF';
-  ctx.font = '700 44px DM Sans, sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('⚔️ Teknohane Arena Düellosu', W/2, 100);
+  ctx.fillStyle = '#00D4FF';
+  ctx.font = '700 38px DM Sans, sans-serif';
+  ctx.fillText('⚔️ TEKNOHANE ARENA', W/2, 78);
+  ctx.fillStyle = '#8E9BB5';
+  ctx.font = '600 22px DM Sans, sans-serif';
+  ctx.fillText('D Ü E L L O   S O N U C U', W/2, 112);
 
-  const avatar = (cx, cy, name, color) => {
+  const avatarR = 95, avatarY = 270;
+  const avatar = (cx, cy, name, color, isWinner) => {
+    if (isWinner) {
+      // Kazanana altın parlama halkası — kartın en dikkat çeken öğesi kazanan olsun diye.
+      ctx.beginPath();
+      ctx.arc(cx, cy, avatarR + 14, 0, Math.PI * 2);
+      ctx.strokeStyle = '#FFD60A';
+      ctx.lineWidth = 6;
+      ctx.stroke();
+    }
     ctx.beginPath();
-    ctx.arc(cx, cy, 90, 0, Math.PI * 2);
+    ctx.arc(cx, cy, avatarR, 0, Math.PI * 2);
     ctx.fillStyle = color;
     ctx.fill();
     ctx.fillStyle = '#00040F';
-    ctx.font = '700 64px DM Sans, sans-serif';
-    ctx.textAlign = 'center';
+    ctx.font = '700 68px DM Sans, sans-serif';
     ctx.textBaseline = 'middle';
     ctx.fillText((name||'?').charAt(0).toUpperCase(), cx, cy + 6);
     ctx.textBaseline = 'alphabetic';
+    if (isWinner) { ctx.font = '26px sans-serif'; ctx.fillText('🏆', cx, cy - avatarR - 22); }
   };
-  avatar(W/2 - 220, 280, myName, won ? '#30D158' : (tie ? '#8E9BB5' : '#FF3B30'));
-  avatar(W/2 + 220, 280, r.oppName, won ? '#FF3B30' : (tie ? '#8E9BB5' : '#30D158'));
+  const myX = W/2 - 230, oppX = W/2 + 230;
+  avatar(myX, avatarY, myName, myColor, won);
+  avatar(oppX, avatarY, r.oppName, oppColor, !won && !tie);
 
   ctx.fillStyle = '#FFFFFF';
   ctx.font = '700 30px DM Sans, sans-serif';
-  wrapText(ctx, myName, W/2 - 220, 410, 260, 36);
-  wrapText(ctx, r.oppName, W/2 + 220, 410, 260, 36);
+  wrapText(ctx, myName, myX, avatarY + 145, 280, 36);
+  wrapText(ctx, r.oppName, oppX, avatarY + 145, 280, 36);
 
-  ctx.font = '700 56px DM Sans, sans-serif';
-  ctx.fillStyle = won ? '#30D158' : '#FFFFFF';
-  ctx.fillText(String(r.totalScore), W/2 - 220, 480);
-  ctx.fillStyle = (!won && !tie) ? '#30D158' : '#FFFFFF';
-  ctx.fillText(String(r.opponentScore), W/2 + 220, 480);
-
+  const scoreY = avatarY + 235;
+  ctx.font = '700 60px DM Sans, sans-serif';
+  ctx.fillStyle = myColor;
+  ctx.fillText(String(r.totalScore), myX, scoreY);
+  ctx.fillStyle = oppColor;
+  ctx.fillText(String(r.opponentScore), oppX, scoreY);
   ctx.fillStyle = '#4A5568';
-  ctx.font = '700 34px DM Sans, sans-serif';
-  ctx.fillText('VS', W/2, 470);
+  ctx.font = '700 30px DM Sans, sans-serif';
+  ctx.fillText('VS', W/2, scoreY - 14);
+
+  // Doğru cevap alt satırı — rakibin doğru sayısı bilinmiyorsa (canlı akışta bazen olabiliyor) atlanıyor.
+  const correctY = scoreY + 42;
+  ctx.font = '500 24px DM Sans, sans-serif';
+  ctx.fillStyle = '#8E9BB5';
+  const totalQ = r.totalQuestions || 10;
+  ctx.fillText(`${r.correctCount}/${totalQ} doğru`, myX, correctY);
+  if (r.opponentCorrectCount != null) ctx.fillText(`${r.opponentCorrectCount}/${totalQ} doğru`, oppX, correctY);
+
+  // "Savaş çubuğu" — iki skorun oranını görsel olarak da anlatan, dolgu tarzı bir bar.
+  const barY = correctY + 40, barH = 30, barX = 90, barW = W - 180;
+  const scoreSum = Math.max(1, r.totalScore + r.opponentScore);
+  const myBarW = Math.round(barW * (r.totalScore / scoreSum));
+  ctx.fillStyle = 'rgba(255,255,255,.08)';
+  ctx.fillRect(barX, barY, barW, barH);
+  ctx.fillStyle = myColor;
+  ctx.fillRect(barX, barY, myBarW, barH);
+  ctx.fillStyle = oppColor;
+  ctx.fillRect(barX + myBarW, barY, barW - myBarW, barH);
 
   // Kazanan bandı
+  const bannerY = barY + 75;
   ctx.fillStyle = won ? 'rgba(48,209,88,.15)' : (tie ? 'rgba(142,155,181,.15)' : 'rgba(255,59,48,.15)');
-  ctx.fillRect(60, 560, W - 120, 90);
+  ctx.fillRect(60, bannerY, W - 120, 100);
   ctx.fillStyle = won ? '#30D158' : (tie ? '#8E9BB5' : '#FF3B30');
   ctx.font = '700 36px DM Sans, sans-serif';
-  ctx.fillText(won ? `🏆 ${myName} KAZANDI` : (tie ? 'BERABERE!' : `🏆 ${r.oppName} KAZANDI`), W/2, 618);
+  ctx.fillText(won ? `🏆 ${myName} KAZANDI` : (tie ? 'BERABERE!' : `🏆 ${r.oppName} KAZANDI`), W/2, bannerY + 48);
+  ctx.font = '500 22px DM Sans, sans-serif';
+  ctx.fillStyle = '#C7CFDD';
+  ctx.fillText(margin > 0 ? `${margin} puan farkla` : 'Nefes kesen bir eşitlik!', W/2, bannerY + 80);
+
+  // Bu rakibe karşı tüm-zamanlar geçmişi — varsa (bkz. loadDuelHeadToHead, rekabeti körükleme talebi).
+  let nextY = bannerY + 150;
+  if (r.h2h) {
+    ctx.fillStyle = '#00D4FF';
+    ctx.font = '600 26px DM Sans, sans-serif';
+    ctx.fillText(`📊 Bu rakibe karşı geçmiş: ${r.h2h}`, W/2, nextY);
+    nextY += 55;
+  }
 
   // Meydan okuma / kızdırma başlıklı alt metin — sonuca göre değişiyor.
   const tauntLines = won
@@ -14891,9 +14951,9 @@ async function shareDuelResult() {
     ? [`${myName} vs ${r.oppName}: berabere!`, 'Kim daha iyi, rövanşta belli olacak 🤔']
     : [`${r.oppName} bu sefer kazandı...`, `Ama rövanşta hesap sorulacak 😤`];
   ctx.fillStyle = '#8E9BB5';
-  ctx.font = '500 26px DM Sans, sans-serif';
-  ctx.fillText(tauntLines[0], W/2, 720);
-  ctx.fillText(tauntLines[1], W/2, 758);
+  ctx.font = '500 27px DM Sans, sans-serif';
+  ctx.fillText(tauntLines[0], W/2, nextY);
+  ctx.fillText(tauntLines[1], W/2, nextY + 40);
 
   ctx.fillStyle = '#4A5568';
   ctx.font = '500 22px DM Sans, sans-serif';
