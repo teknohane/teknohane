@@ -3019,12 +3019,27 @@ let mktab = 'all';
 
 // ==== SİSTEM AYARLARI (bakım modu vb.) — tek doküman, tek seferlik okuma, dinleyici YOK ====
 let systemSettings = {};
+// PERFORMANS DÜZELTMESİ: INIT'teki `loadSystemSettings().then(...)` çağrısı ile `renderTrendingPhones()`
+// içindeki "systemSettings boşsa yükle" koruması (satır ~12452) cold start'ta neredeyse eş zamanlı
+// çalışıyordu — ikisi de systemSettings'i henüz boş gördüğü için AYNI dokümanı İKİ AYRI istekle
+// okuyorlardı. Artık bir yükleme zaten sürüyorsa yeni bir çağrı YENİ bir istek başlatmak yerine
+// aynı devam eden Promise'i paylaşıyor; sonuç/davranış (systemSettings'in son hali, applyMaintenanceGate)
+// aynı kalıyor.
+let systemSettingsLoadPromise = null;
 async function loadSystemSettings() {
+  if (systemSettingsLoadPromise) return systemSettingsLoadPromise;
+  systemSettingsLoadPromise = (async () => {
+    try {
+      const snap = await db.collection('teknohane_settings').doc('global').get();
+      systemSettings = snap.exists ? snap.data() : {};
+    } catch(e) { systemSettings = {}; }
+    applyMaintenanceGate();
+  })();
   try {
-    const snap = await db.collection('teknohane_settings').doc('global').get();
-    systemSettings = snap.exists ? snap.data() : {};
-  } catch(e) { systemSettings = {}; }
-  applyMaintenanceGate();
+    await systemSettingsLoadPromise;
+  } finally {
+    systemSettingsLoadPromise = null;
+  }
 }
 
 // ==== ADMOB (Google Reklamları) ====
@@ -6084,7 +6099,7 @@ function renderNotifGroupCard(g) {
   // Profil fotoğrafı VARSA gösterilir (avatar + küçük olay rozeti); yoksa .notif-ic tek başına olay
   // ikonunu (emoji) taşımaya devam eder — sahte/varsayılan bir avatar ASLA üretilmez.
   const icHtml = first.fromPhotoURL
-    ? `<img src="${first.fromPhotoURL}" alt=""><span class="notif-ic-badge">${meta.ic}</span>`
+    ? `<img src="${first.fromPhotoURL}" alt="" loading="lazy" decoding="async"><span class="notif-ic-badge">${meta.ic}</span>`
     : meta.ic;
   return `<div class="notif-swipe-wrap" data-ids="${ids}">
     <div class="notif-swipe-del" onclick="event.stopPropagation();performNotifDelete(this.closest('.notif-swipe-wrap'))">🗑️</div>
@@ -11666,19 +11681,28 @@ async function openPublicProfile(uid, nameHint) {
     return;
   }
 
+  // PERFORMANS DÜZELTMESİ: presence ve ilan sorguları birbirinden BAĞIMSIZ (biri diğerinin
+  // sonucuna ihtiyaç duymuyor) ama sırayla await ediliyordu — Promise.all ile paralelleştirildi.
+  // Her biri KENDİ try/catch'i içinde kaldı ki biri başarısız olursa diğerini etkilemesin/
+  // Promise.all'u reddettirmesin — hata davranışı öncekiyle birebir aynı (sessizce varsayılana düşer).
   let presenceData = null;
-  try {
-    const pSnap = await db.collection('teknohane_presence').doc(uid).get();
-    if (pSnap.exists) presenceData = pSnap.data();
-  } catch (e) {}
-
   // Bu profildeki ilanlar — TÜM koleksiyonu taramak yerine (eski `listings` global dizisi) yalnızca
   // bu kullanıcıya ait dar kapsamlı bir sorgu (Pazar'ın "İlanlarım" sorgusuyla birebir aynı desen).
   let profileListings = [];
-  try {
-    const lSnap = await db.collection('teknohane_listings').where('uid', '==', uid).limit(100).get();
-    profileListings = lSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-  } catch (e) {}
+  await Promise.all([
+    (async () => {
+      try {
+        const pSnap = await db.collection('teknohane_presence').doc(uid).get();
+        if (pSnap.exists) presenceData = pSnap.data();
+      } catch (e) {}
+    })(),
+    (async () => {
+      try {
+        const lSnap = await db.collection('teknohane_listings').where('uid', '==', uid).limit(100).get();
+        profileListings = lSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      } catch (e) {}
+    })(),
+  ]);
 
   renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceData, profileListings);
 
@@ -12329,16 +12353,29 @@ function newsHighlightCardHTML(p) {
     </div>
   </div>`;
 }
-// rnewslist'in highlightPost'u için — Popüler Forum Konuları bölümüyle AYNI sıralama (likeCount
-// desc), tek ve ucuz bir ek sorgu (limit 1). Beğenilen konu yoksa (likeCount>0 hiçbiri) null döner,
-// highlight kartı hiç eklenmez.
+// PERFORMANS DÜZELTMESİ: bu fonksiyon ve renderPopularForumTopics() (aşağıda) AYNI sorguyu
+// (approved==true orderBy likeCount desc, yalnızca limit farklıydı: 1 vs 4) rhome()'da neredeyse
+// eş zamanlı, bağımsız olarak çalıştırıp gereksiz bir 2. ağ isteğine yol açıyordu. limit(4)'ün
+// sonucu limit(1)'i her zaman kapsadığı (ikisi de likeCount desc sıralı) için tek bir paylaşılan
+// sorguya (fetchPopularForumTopics) geçildi — sorgunun/filtrenin kendisi DEĞİŞMEDİ, yalnızca
+// tekrar okuma kaldırıldı. Promise her settle olduğunda sıfırlanıyor (bkz. tanım), yani bu YALNIZCA
+// aynı anki çağrıları birleştiren bir dedupe — sonraki bir rhome() çağrısında yine taze veri çekilir.
+let popularForumTopicsPromise = null;
+function fetchPopularForumTopics() {
+  if (!popularForumTopicsPromise) {
+    popularForumTopicsPromise = db.collection('teknohane_posts').where('approved', '==', true).orderBy('likeCount', 'desc').limit(4).get()
+      .then(snap => snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => (p.likeCount || 0) > 0))
+      .finally(() => { popularForumTopicsPromise = null; });
+  }
+  return popularForumTopicsPromise;
+}
+// rnewslist'in highlightPost'u için — Popüler Forum Konuları bölümüyle AYNI veri kaynağını
+// (fetchPopularForumTopics) paylaşır. Beğenilen konu yoksa (likeCount>0 hiçbiri) null döner,
+// highlight kartı hiç eklenmez — davranış öncekiyle birebir aynı.
 async function fetchHomeNewsHighlight() {
   try {
-    const snap = await db.collection('teknohane_posts').where('approved', '==', true).orderBy('likeCount', 'desc').limit(1).get();
-    if (snap.empty) return null;
-    const d = snap.docs[0];
-    const p = { id: d.id, ...d.data() };
-    return (p.likeCount || 0) > 0 ? p : null;
+    const items = await fetchPopularForumTopics();
+    return items[0] || null;
   } catch(e) { return null; }
 }
 
@@ -12534,8 +12571,7 @@ async function renderPopularForumTopics() {
   const el = document.getElementById('home-forum-popular');
   if (!el) return;
   try {
-    const snap = await db.collection('teknohane_posts').where('approved', '==', true).orderBy('likeCount', 'desc').limit(4).get();
-    const items = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => (p.likeCount || 0) > 0);
+    const items = await fetchPopularForumTopics();
     if (!items.length) { hideHomeSection(el); return; }
     showHomeSection(el);
     el.innerHTML = items.map(forumTopicCardHTML).join('');
@@ -15135,8 +15171,12 @@ async function renderArenaLbMyRank(collectionName, periodField, periodValue, top
     const myScore = myDoc.data().score || 0;
     let higherQ = db.collection(collectionName).where('score', '>', myScore);
     if (periodField) higherQ = higherQ.where(periodField, '==', periodValue);
-    const higherSnap = await higherQ.count().get();
-    const rank = higherSnap.data().count + 1;
+    // PERFORMANS/TUTARLILIK DÜZELTMESİ: doğrudan `.count().get()` yerine, uygulamanın geri kalanında
+    // zaten kullanılan `firestoreCount()` güvenlik ağı (count() SDK'da yoksa .get()+.size'a düşer) —
+    // sorgu/sonuç aynı, yalnızca eski SDK'larda sessizce "0" göstermek yerine doğru sayıyı üretir.
+    const higherCount = await firestoreCount(higherQ);
+    if (higherCount === null) { wrap.innerHTML = ''; return; }
+    const rank = higherCount + 1;
     wrap.innerHTML = `<div style="display:flex;align-items:center;gap:10px;padding:10px 6px;margin-top:10px;background:var(--cdim);border-radius:10px">
       <span style="width:26px;text-align:center;font-weight:700;color:var(--cyan)">#${rank}</span>
       <span style="flex:1;font-size:13px;font-weight:600">Sen</span>
