@@ -13753,18 +13753,39 @@ function setPrStar(side, n) {
   });
 }
 
+// PHASE 1D-5B (performans denetimi bulgusu): loadPhoneReviews aynı telefon için kısa sürede tekrar
+// tekrar aynı sorguyu çalıştırıyordu (tek telefon görünümünden karşılaştırmaya geçiş, A/B taraf
+// değişimi, aynı telefonun yeniden render edilmesi) — fetchSellerComments/sellerCommentsCache
+// (PHASE 1B) ile BİREBİR aynı desen, yalnızca anahtar sellerUid yerine phoneId.
+let phoneCommentsCache = {};
+let phoneCommentsLoadPromises = {};
+const PHONE_COMMENTS_CACHE_MS = 5 * 60 * 1000;
+function fetchPhoneComments(phoneId) {
+  const cached = phoneCommentsCache[phoneId];
+  if (cached && (Date.now() - cached.at) < PHONE_COMMENTS_CACHE_MS) return Promise.resolve(cached.docs);
+  if (phoneCommentsLoadPromises[phoneId]) return phoneCommentsLoadPromises[phoneId];
+  const p = db.collection('teknohane_comments').where('targetType', '==', 'phone').where('targetId', '==', phoneId).limit(20).get()
+    .then(snap => {
+      phoneCommentsCache[phoneId] = { docs: snap.docs, at: Date.now() };
+      delete phoneCommentsLoadPromises[phoneId];
+      return snap.docs;
+    })
+    .catch(e => { delete phoneCommentsLoadPromises[phoneId]; throw e; });
+  phoneCommentsLoadPromises[phoneId] = p;
+  return p;
+}
+function invalidatePhoneCommentsCache(phoneId) {
+  delete phoneCommentsCache[phoneId];
+}
+
 async function loadPhoneReviews(phoneId, containerId) {
   const el = document.getElementById(containerId);
   if (!el) return;
   try {
-    const snap = await db.collection('teknohane_comments')
-      .where('targetType', '==', 'phone')
-      .where('targetId', '==', phoneId)
-      .limit(20)
-      .get();
-    if (snap.empty) { el.innerHTML = `<div class="no" style="padding:10px 0">Henüz yorum yok, ilk yorumu sen yaz!</div>`; return; }
+    const rawDocs = await fetchPhoneComments(phoneId);
+    if (!rawDocs.length) { el.innerHTML = `<div class="no" style="padding:10px 0">Henüz yorum yok, ilk yorumu sen yaz!</div>`; return; }
     let totalStars = 0, count = 0;
-    const docs = [...snap.docs].sort((x, y) => {
+    const docs = [...rawDocs].sort((x, y) => {
       const tx = x.data().createdAt?.toMillis ? x.data().createdAt.toMillis() : 0;
       const ty = y.data().createdAt?.toMillis ? y.data().createdAt.toMillis() : 0;
       return ty - tx; // en yeni önce
@@ -13814,6 +13835,7 @@ async function submitPhoneReview(side) {
     textEl.value = '';
     prRating[side] = 0;
     document.querySelectorAll(`#pr-stars-${side} span`).forEach(el => el.textContent = '☆');
+    invalidatePhoneCommentsCache(phone.id);
     loadPhoneReviews(phone.id, `pr-list-${side}`);
   } catch(e) { showErrorToast(e); }
 }
@@ -13822,6 +13844,7 @@ async function deletePhoneReview(commentId, phoneId, containerId) {
   if (!(await confirmDialog('Yorum silinsin mi?'))) return;
   try {
     await db.collection('teknohane_comments').doc(commentId).delete();
+    invalidatePhoneCommentsCache(phoneId);
     loadPhoneReviews(phoneId, containerId);
   } catch(e) { showErrorToast(e); }
 }
