@@ -6111,12 +6111,19 @@ function renderNotifGroupCard(g) {
   </div>`;
 }
 
+// PERFORMANS DÜZELTMESİ ("Daha Fazla Yükle" her seferinde TÜM listeyi, tüm avatarlarıyla yeniden
+// çiziyordu): DM sohbetindeki signature-diff yaklaşımının aynısı, ama burada render birimi tek bir
+// bildirim değil — tarih başlığı VEYA bir bildirim GRUBU. Grup kimliği, grubun en yeni (ilk) öğesinin
+// id'si üzerinden kuruluyor: "Daha Fazla Yükle" ile eklenen eski sayfa, yalnızca EN SONDAKİ grubu
+// büyütebilir (grupla ma sıralı/bitişik çalışıyor), grubun ilk öğesi asla değişmez — bu yüzden anahtar
+// hep kararlı kalır, yalnızca imza (üye id listesi + okunmamış durumu) değişince o kart yeniden çizilir.
 function renderNotifList() {
   const list = document.getElementById('notif-list');
   const actions = document.getElementById('notif-actions');
   const loadMoreBtn = document.getElementById('notif-load-more');
   if (!notifAccumulatedDocs.length) {
     list.innerHTML = `<div class="no">Henüz bildirimin yok</div>`;
+    list._renderedUnits = null;
     actions.style.display = 'none';
     loadMoreBtn.style.display = 'none';
     return;
@@ -6124,17 +6131,59 @@ function renderNotifList() {
   actions.style.display = 'inline';
   loadMoreBtn.style.display = notifHasMore ? 'block' : 'none';
   if (notifHasMore) observeLoadMoreOnScroll(loadMoreBtn, () => loadNotifPage(false));
+
   const groups = groupNotifDocs(notifAccumulatedDocs);
+  const units = [];
   let lastBucket = null;
-  let html = '';
   groups.forEach(g => {
     const d = g.items[0].data().createdAt?.toDate ? g.items[0].data().createdAt.toDate() : new Date();
     const bucket = notifDateBucket(d);
-    if (bucket !== lastBucket) { html += `<div class="notif-date-hdr">${bucket}</div>`; lastBucket = bucket; }
-    html += renderNotifGroupCard(g);
+    if (bucket !== lastBucket) { units.push({ key: 'hdr:' + bucket, sig: bucket, html: `<div class="notif-date-hdr">${bucket}</div>`, isGroup: false }); lastBucket = bucket; }
+    const gid = g.items[0].id;
+    const sig = g.items.map(d2 => d2.id).join(',') + '|' + g.items.some(d2 => !d2.data().read);
+    units.push({ key: 'grp:' + gid, sig, html: renderNotifGroupCard(g), isGroup: true });
   });
-  list.innerHTML = html;
-  document.querySelectorAll('#notif-list .notif-swipe-wrap').forEach(wrap => attachSwipeDelete(wrap));
+
+  const prevUnits = list._renderedUnits;
+  // İlk çizim ya da boş-durumdan çıkış — tek seferlik tam kuruluma düş.
+  if (!prevUnits || list.querySelector('.no')) {
+    list.innerHTML = units.map(u => u.html).join('');
+    Array.from(list.children).forEach((child, i) => child.setAttribute('data-ukey', units[i].key));
+    list._renderedUnits = units.map(u => ({ key: u.key, sig: u.sig }));
+    document.querySelectorAll('#notif-list .notif-swipe-wrap').forEach(wrap => attachSwipeDelete(wrap));
+    return;
+  }
+
+  const prevMap = new Map(prevUnits.map(u => [u.key, u.sig]));
+  const newKeys = new Set();
+  let lastNode = null;
+  const newlyCreated = [];
+  units.forEach(u => {
+    newKeys.add(u.key);
+    let node = list.querySelector(`[data-ukey="${u.key}"]`);
+    const changed = prevMap.get(u.key) !== u.sig;
+    if (!node || changed) {
+      const temp = document.createElement('div');
+      temp.innerHTML = u.html;
+      const newNode = temp.firstElementChild;
+      newNode.setAttribute('data-ukey', u.key);
+      if (node) node.replaceWith(newNode); else { /* aşağıda doğru konuma eklenecek */ }
+      node = newNode;
+      if (u.isGroup) newlyCreated.push(node);
+    }
+    const wantedNext = lastNode ? lastNode.nextSibling : list.firstChild;
+    if (wantedNext !== node) list.insertBefore(node, wantedNext);
+    lastNode = node;
+  });
+
+  // Artık listede olmayan (silinmiş/limit dışında kalmış) eski node'ları temizle.
+  Array.from(list.children).forEach(child => {
+    const key = child.getAttribute('data-ukey');
+    if (key && !newKeys.has(key)) child.remove();
+  });
+
+  list._renderedUnits = units.map(u => ({ key: u.key, sig: u.sig }));
+  newlyCreated.forEach(node => attachSwipeDelete(node));
 }
 
 function setNotifCategory(cat) {
@@ -6158,7 +6207,7 @@ async function loadNotifPage(reset) {
   if (!notifHasMore) return;
   notifLoading = true;
   const list = document.getElementById('notif-list');
-  if (reset) list.innerHTML = notifSkeletonHTML();
+  if (reset) { list.innerHTML = notifSkeletonHTML(); list._renderedUnits = null; }
   try {
     let q = db.collection('teknohane_notifications').where('toUid', '==', user.uid);
     if (notifCurrentCategory !== 'all') q = q.where('category', '==', notifCurrentCategory);
@@ -7299,7 +7348,9 @@ function enterCommunityChatRoom() {
   markCommunityChatRead();
   renderCommunityPinnedBar();
   if (!unsubCommunityMessages) {
-    document.getElementById('community-chat-messages').innerHTML = `<div class="load" style="margin:auto"><div class="spin"></div></div>`;
+    const box = document.getElementById('community-chat-messages');
+    box.innerHTML = `<div class="load" style="margin:auto"><div class="spin"></div></div>`;
+    box._renderedIds = null; box._renderedSignatures = null;
     unsubCommunityMessages = db.collection('teknohane_community_messages')
       .orderBy('createdAt', 'desc').limit(COMMUNITY_CHAT_PAGE_SIZE)
       .onSnapshot(snap => {
@@ -7641,16 +7692,82 @@ async function unpinCommunityMessage() {
   } catch(e) { showErrorToast(e); }
 }
 
+// Bir mesajın görünümünü etkileyen HER ŞEY (mesaj alanları + o mesaja özgü dış durum: kendi anket
+// oyum, açık tepki seçici) tek bir imzada — DM sohbetindeki messageSignature ile aynı amaç, ama
+// tepkiler/anket/yanıt-alıntısı gibi topluluk sohbetine özgü alanları da kapsıyor.
+function communityMessageSignature(m) {
+  return JSON.stringify({
+    text: m.text || '', imageUrl: m.imageUrl || '', localPreview: m._localImagePreview || '', status: m._status || '',
+    reactions: m.reactions || null,
+    poll: m.poll ? { votes: m.poll.votes, totalVotes: m.poll.totalVotes } : null,
+    myVote: communityMyPollVotes[m.id] || null,
+    pickerOpen: activeReactionPickerMsgId === m.id,
+    replyTo: m.replyTo || null,
+    authorName: m.authorName || '', authorPhotoURL: m.authorPhotoURL || '', authorBadges: m.authorBadges || null, authorUsername: m.authorUsername || ''
+  });
+}
+
+// PERFORMANS DÜZELTMESİ ("her onSnapshot'ta 50 mesajın tamamı, tüm görselleriyle yeniden
+// çiziliyordu"): DM sohbetindeki (renderChatMessages) signature-diff yaklaşımının birebir aynısı —
+// değişmeyen mesajların DOM node'una hiç dokunulmuyor, yalnızca yeni/değişen mesajlar için node
+// oluşturuluyor/değiştiriliyor. Bu ayrıca kaydırma konumunu da EN AZ mevcut tam-yeniden-çizimden
+// daha stabil kılıyor: görünüm dışındaki değişmeyen mesajların yüksekliği/pikselleri hiç kıpırdamıyor.
 function renderCommunityMessages() {
   const box = document.getElementById('community-chat-messages');
   if (!box) return;
-  if (!communityMessages.length) { box.innerHTML = `<div class="no" style="margin:auto">Henüz mesaj yok, ilk mesajı sen yaz!</div>`; return; }
+  if (!communityMessages.length) { box.innerHTML = `<div class="no" style="margin:auto">Henüz mesaj yok, ilk mesajı sen yaz!</div>`; box._renderedIds = null; box._renderedSignatures = null; return; }
   try {
-    box.innerHTML = communityMessages.map(communityMsgBubbleHTML).join('');
-    attachCommunitySwipeReply(box);
+    const prevIds = box._renderedIds;
+    const prevSignatures = box._renderedSignatures;
+    if (!prevIds || !prevSignatures || box.querySelector('.no')) {
+      const newIds = new Set(), newSignatures = new Map();
+      box.innerHTML = communityMessages.map(m => {
+        newIds.add(m.id);
+        newSignatures.set(m.id, communityMessageSignature(m));
+        return communityMsgBubbleHTML(m);
+      }).join('');
+      box._renderedIds = newIds;
+      box._renderedSignatures = newSignatures;
+      attachCommunitySwipeReply(box);
+      ensureCommunityPollVotesLoaded();
+      return;
+    }
+
+    const newIds = new Set();
+    const newSignatures = new Map();
+    const newlyCreated = [];
+    let lastNode = null;
+    communityMessages.forEach(m => {
+      newIds.add(m.id);
+      const sig = communityMessageSignature(m);
+      newSignatures.set(m.id, sig);
+      let node = box.querySelector(`[data-mid="${m.id}"]`);
+      const changed = prevSignatures.get(m.id) !== sig;
+      if (!node || changed) {
+        const temp = document.createElement('div');
+        temp.innerHTML = communityMsgBubbleHTML(m);
+        const newNode = temp.firstElementChild;
+        if (node) node.replaceWith(newNode); else { /* aşağıda doğru konuma eklenecek */ }
+        node = newNode;
+        newlyCreated.push(node);
+      }
+      const wantedNext = lastNode ? lastNode.nextSibling : box.firstChild;
+      if (wantedNext !== node) box.insertBefore(node, wantedNext);
+      lastNode = node;
+    });
+
+    Array.from(box.children).forEach(child => {
+      const mid = child.getAttribute('data-mid');
+      if (mid && !newIds.has(mid)) child.remove();
+    });
+
+    box._renderedIds = newIds;
+    box._renderedSignatures = newSignatures;
+    attachCommunitySwipeReply(box, newlyCreated);
   } catch(e) {
     console.error('Topluluk sohbeti render hatası:', e);
     box.innerHTML = `<div class="no" style="margin:auto">Mesajlar gösterilirken bir sorun oluştu.<br><span style="font-size:12px;color:var(--text3);cursor:pointer;text-decoration:underline" onclick="renderCommunityMessages()">Tekrar dene</span></div>`;
+    box._renderedIds = null; box._renderedSignatures = null;
   }
   ensureCommunityPollVotesLoaded();
 }
@@ -7660,9 +7777,9 @@ function renderCommunityMessages() {
 // satırı değil), eylem yıkıcı olmadığı için onay diyaloğu YOK. Balonun içindeki (zaten var olan,
 // gizlice render edilen) yanıtla ikonunun onclick'i tetiklenir — startCommunityReply çağrısı burada
 // TEKRAR YAZILMAZ, ikonun kendi (zaten doğru escape'lenmiş) argümanları aynen kullanılır.
-function attachCommunitySwipeReply(box) {
+function attachCommunitySwipeReply(box, wraps) {
   const SWIPE_THRESHOLD = 60, SWIPE_MAX = 80;
-  box.querySelectorAll('[data-mid]').forEach(wrap => {
+  (wraps || Array.from(box.querySelectorAll('[data-mid]'))).forEach(wrap => {
     const bubble = wrap.querySelector('.msg-bubble');
     if (!bubble) return;
     let startX = 0, startY = 0, dx = 0, dragging = false, hint = null;
@@ -13568,6 +13685,33 @@ async function deletePhoneReview(commentId, phoneId, containerId) {
 // kaydı garanti edilir ve yeniden gönderim mevcut puanı günceller (silip yeniden eklemeye gerek yok).
 let srRating = 0;
 
+// PERFORMANS DÜZELTMESİ (loadSellerCard/loadSellerRatingSummary/loadSellerReviews AYNI satıcının
+// AYNI yorum sorgusunu — kısa sürede, ör. ilan detayı açılırken hepsi birden — bağımsız bağımsız
+// çalıştırıyordu): marketFeaturedCache ile aynı desende, uid bazlı 5 dakikalık TTL cache + eşzamanlı
+// çağrılar için in-flight promise paylaşımı (loadSystemSettings'teki desenle aynı). submitSellerReview
+// ve deleteSellerReview başarılı olduğunda ilgili satıcının girdisi hemen invalidate ediliyor —
+// aksi halde değerlendiren kişi kendi yeni puanını göremeden eski (cache'lenmiş) veriyi görürdü.
+let sellerCommentsCache = {};
+let sellerCommentsLoadPromises = {};
+const SELLER_COMMENTS_CACHE_MS = 5 * 60 * 1000;
+function fetchSellerComments(sellerUid) {
+  const cached = sellerCommentsCache[sellerUid];
+  if (cached && (Date.now() - cached.at) < SELLER_COMMENTS_CACHE_MS) return Promise.resolve(cached.docs);
+  if (sellerCommentsLoadPromises[sellerUid]) return sellerCommentsLoadPromises[sellerUid];
+  const p = db.collection('teknohane_comments').where('targetType', '==', 'seller').where('targetId', '==', sellerUid).limit(50).get()
+    .then(snap => {
+      sellerCommentsCache[sellerUid] = { docs: snap.docs, at: Date.now() };
+      delete sellerCommentsLoadPromises[sellerUid];
+      return snap.docs;
+    })
+    .catch(e => { delete sellerCommentsLoadPromises[sellerUid]; throw e; });
+  sellerCommentsLoadPromises[sellerUid] = p;
+  return p;
+}
+function invalidateSellerCommentsCache(sellerUid) {
+  delete sellerCommentsCache[sellerUid];
+}
+
 function renderSellerReviewForm(sellerUid) {
   if (!user) return `<div class="no" style="padding:10px 0">Puan vermek için giriş yap</div>`;
   if (user.uid === sellerUid) return '';
@@ -13615,13 +13759,13 @@ async function loadSellerCard(sellerUid, ownerName, mine, containerId) {
       </div>`:''}
     </div>`;
   try {
-    const [commentsSnap, listingCountVal, userSnap] = await Promise.all([
-      db.collection('teknohane_comments').where('targetType','==','seller').where('targetId','==',sellerUid).limit(50).get(),
+    const [commentDocs, listingCountVal, userSnap] = await Promise.all([
+      fetchSellerComments(sellerUid),
       firestoreCount(db.collection('teknohane_listings').where('uid','==',sellerUid)),
       db.collection('teknohane_users').doc(sellerUid).get(),
     ]);
     let total = 0, count = 0;
-    commentsSnap.docs.forEach(d => { const c = d.data(); if (c.rating) { total += c.rating; count++; } });
+    commentDocs.forEach(d => { const c = d.data(); if (c.rating) { total += c.rating; count++; } });
     const ratingText = count ? `⭐ ${(total/count).toFixed(1)} (${count} yorum)` : 'Henüz değerlendirme yok';
     const listingCount = listingCountVal ?? 0;
     const u = userSnap.exists ? userSnap.data() : {};
@@ -13737,14 +13881,10 @@ async function loadSellerRatingSummary(sellerUid, spanId) {
   const el = document.getElementById(spanId);
   if (!el) return;
   try {
-    const snap = await db.collection('teknohane_comments')
-      .where('targetType', '==', 'seller')
-      .where('targetId', '==', sellerUid)
-      .limit(50)
-      .get();
-    if (snap.empty) return;
+    const docs = await fetchSellerComments(sellerUid);
+    if (!docs.length) return;
     let total = 0, count = 0;
-    snap.docs.forEach(d => { const c = d.data(); if (c.rating) { total += c.rating; count++; } });
+    docs.forEach(d => { const c = d.data(); if (c.rating) { total += c.rating; count++; } });
     if (!count) return;
     const avg = total / count;
     el.innerHTML = ` · <span style="color:#FFCC00">⭐ ${avg.toFixed(1)}</span> <span style="color:var(--text3)">(${count})</span>`;
@@ -13755,14 +13895,10 @@ async function loadSellerReviews(sellerUid, containerId) {
   const el = document.getElementById(containerId);
   if (!el) return {avg:0,count:0};
   try {
-    const snap = await db.collection('teknohane_comments')
-      .where('targetType', '==', 'seller')
-      .where('targetId', '==', sellerUid)
-      .limit(50)
-      .get();
-    if (snap.empty) { el.innerHTML = `<div class="no" style="padding:10px 0">Henüz değerlendirme yok</div>`; updatePubRatingBadge(0,0); return {avg:0,count:0}; }
+    const rawDocs = await fetchSellerComments(sellerUid);
+    if (!rawDocs.length) { el.innerHTML = `<div class="no" style="padding:10px 0">Henüz değerlendirme yok</div>`; updatePubRatingBadge(0,0); return {avg:0,count:0}; }
     let totalStars = 0, count = 0;
-    const docs = [...snap.docs].sort((x, y) => {
+    const docs = [...rawDocs].sort((x, y) => {
       const tx = x.data().createdAt?.toMillis ? x.data().createdAt.toMillis() : 0;
       const ty = y.data().createdAt?.toMillis ? y.data().createdAt.toMillis() : 0;
       return ty - tx;
@@ -13822,6 +13958,7 @@ async function submitSellerReview(sellerUid) {
     const submittedRating = srRating;
     srRating = 0;
     document.querySelectorAll('#sr-stars span').forEach(el => el.textContent = '☆');
+    invalidateSellerCommentsCache(sellerUid);
     loadSellerReviews(sellerUid, 'sr-list');
     // NOT: mesaj metni bilinçli olarak "Birisi" diyor (değerlendiren kişi anonimleştiriliyor) — bu
     // yüzden burada fromUid/fromPhotoURL DE geçilmiyor, aksi halde profil fotoğrafı anonimliği bozardı.
@@ -13834,6 +13971,7 @@ async function deleteSellerReview(commentId, sellerUid, containerId) {
   if (!(await confirmDialog('Değerlendirmen silinsin mi?'))) return;
   try {
     await db.collection('teknohane_comments').doc(commentId).delete();
+    invalidateSellerCommentsCache(sellerUid);
     loadSellerReviews(sellerUid, containerId);
   } catch(e) { showErrorToast(e); }
 }
