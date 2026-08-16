@@ -6783,7 +6783,7 @@ function chatListingCardHTML(listingId) {
   if (!l) return `<div class="chat-listing-card" onclick="exitChatThread();gt('market');setTimeout(()=>openDetail('${listingId}'),50)"><div class="chat-listing-card-info"><div class="chat-listing-card-title">İlanı görüntülemek için dokun</div></div></div>`;
   const cityLabel = l.city || (l.location||'').split(',')[0] || 'Belirtilmedi';
   return `<div class="chat-listing-card" onclick="exitChatThread();gt('market');setTimeout(()=>openDetail('${l.id}'),50)">
-    ${l.photo1?`<img class="chat-listing-card-thumb" src="${l.photo1}" alt="" loading="lazy" decoding="async">`:'<div class="chat-listing-card-thumb" style="display:flex;align-items:center;justify-content:center;font-size:20px">📱</div>'}
+    ${l.photo1?`<img class="chat-listing-card-thumb" src="${l.photo1Thumb||l.photo1}" alt="" loading="lazy" decoding="async">`:'<div class="chat-listing-card-thumb" style="display:flex;align-items:center;justify-content:center;font-size:20px">📱</div>'}
     <div class="chat-listing-card-info">
       <div class="mcard-price" style="font-size:15px">₺${parseInt(l.price||0).toLocaleString('tr-TR')}</div>
       <div class="chat-listing-card-title">${escapeHtml(l.model||'')}</div>
@@ -6805,7 +6805,7 @@ async function openChatListingPicker() {
   const mine = marketMineListings.filter(l => !l.sold && l.approved !== false);
   list.innerHTML = mine.length ? mine.map(l => `
     <div class="clp-row" onclick="sendChatListingCard('${l.id}')">
-      ${l.photo1?`<img class="clp-thumb" src="${l.photo1}" alt="" loading="lazy" decoding="async">`:'<div class="clp-thumb" style="display:flex;align-items:center;justify-content:center;font-size:18px">📱</div>'}
+      ${l.photo1?`<img class="clp-thumb" src="${l.photo1Thumb||l.photo1}" alt="" loading="lazy" decoding="async">`:'<div class="clp-thumb" style="display:flex;align-items:center;justify-content:center;font-size:18px">📱</div>'}
       <div class="clp-info">
         <div class="clp-title">${escapeHtml(l.model||'')}</div>
         <div class="clp-price">₺${parseInt(l.price||0).toLocaleString('tr-TR')}</div>
@@ -7043,7 +7043,8 @@ function chatRowWrapHTML(d, forwardMsgId) {
   const time = c.lastAt?.toDate ? fd(c.lastAt.toDate().toISOString()) : '';
   const preview = (c.lastMessage||'').slice(0,40) + ((c.lastMessage||'').length>40?'…':'');
   const avHtml = otherAv ? `<img src="${escapeHtml(otherAv)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${escapeJsAttr(avatarUrl(null, otherName, 96))}'">` : escapeHtml(otherName)[0]?.toUpperCase();
-  const listingThumb = c.lastListingId ? getListingByIdSync(c.lastListingId)?.photo1 : null;
+  const lastListing = c.lastListingId ? getListingByIdSync(c.lastListingId) : null;
+  const listingThumb = lastListing ? (lastListing.photo1Thumb || lastListing.photo1) : null;
   const otherNameJs = escapeJsAttr(otherName);
   const rowClick = forwardMsgId ? `forwardMsgTo('${otherUid}','${otherNameJs}')` : `openChatThread('${otherUid}','${otherNameJs}')`;
   return `<div class="notif-swipe-wrap" data-id="${d.id}">
@@ -8659,7 +8660,7 @@ function mcardHTML(l) {
   return `<div class="mcard ${l.sold?'sold':''} ${l.showcase?'showcase':''} ${l.featured?'featured':''} ${l.urgent?'urgent-listing':''}" onclick="openDetail('${l.id}')">
     <div class="mcard-row">
       <div class="mcard-photo">
-        ${l.photo1?`<img src="${escapeHtml(l.photo1)}" loading="lazy" decoding="async">`:'<div class="mcard-photo-empty"><img src="teknohane.png" alt="" onerror="this.style.display=\'none\'"><span>Fotoğraf Yok</span></div>'}
+        ${l.photo1?`<img src="${escapeHtml(l.photo1Thumb||l.photo1)}" loading="lazy" decoding="async">`:'<div class="mcard-photo-empty"><img src="teknohane.png" alt="" onerror="this.style.display=\'none\'"><span>Fotoğraf Yok</span></div>'}
         ${(l.sold||pending||rejected||isListingExpired(l))?`<div class="mcard-status-overlay"><div class="mcard-status-pill ${pending&&!l.sold?'pending':''}${rejected?' rejected':''}"${rejected&&mine?` onclick="event.stopPropagation();showRejectReason('${l.id}')"`:''}>${l.sold?'SATILDI':rejected?'REDDEDİLDİ':pending?'İNCELENİYOR':'SÜRESİ DOLDU'}</div></div>`:''}
         ${l.condition?`<div class="mcard-badges"><div class="mcard-cnd ${isNew?'new':'used'}">${escapeHtml(l.condition)}</div></div>`:''}
         ${(l.showcase||l.featured||l.urgent||l.poolSystem)?`<div class="mcard-tag-row">
@@ -8703,7 +8704,7 @@ function showRejectReason(id) {
 // Bir ilan kartının GÖRSEL imzası — Pazar sekmesine her dönüşte (veri değişmese bile) tüm
 // kartların/görsellerin DOM'da yeniden yaratılmasını önlemek için (bkz. rlistings sonundaki kontrol).
 function listingCardSignature(l) {
-  return [l.id, l.price, l.sold, l.showcase, l.featured, l.urgent, l.poolSystem, l.photo1||'', l.approved, l.rejected].join('|');
+  return [l.id, l.price, l.sold, l.showcase, l.featured, l.urgent, l.poolSystem, l.photo1||'', l.photo1Thumb||'', l.approved, l.rejected].join('|');
 }
 
 // ==== REKLAM ALTYAPISI (Pazar) ====
@@ -9185,6 +9186,7 @@ function newListing() {
   document.getElementById('l-pool-system').checked = false;
   document.getElementById('l-negotiable').checked = false;
   photos.forEach((_, i) => { photos[i] = null; });
+  photosThumb.forEach((_, i) => { photosThumb[i] = null; });
   photos.forEach((_, i) => { const slot = document.getElementById('ps' + i); if (slot) slot.innerHTML = renderPhotoSlotHTML(i); });
   listingVideoUrl = null;
   renderListingVideoSlot();
@@ -9333,13 +9335,16 @@ async function submitListing() {
       // photo1..4'ü tek tek yazmak yerine photos[] dizisinin uzunluğu kadar döngüyle yazılıyor —
       // slot sayısı ileride tekrar değişirse tek satır (photos dizisinin ilk tanımı) yeterli olsun diye.
       photos.forEach((p, i) => { data['photo' + (i+1)] = p ? p : firebase.firestore.FieldValue.delete(); });
+      photosThumb.forEach((p, i) => { data['photo' + (i+1) + 'Thumb'] = p ? p : firebase.firestore.FieldValue.delete(); });
       data.videoUrl = listingVideoUrl ? listingVideoUrl : firebase.firestore.FieldValue.delete();
       await db.collection('teknohane_listings').doc(editingListingId).update(data);
-      // data içindeki photo1..8 alanları silinen fotoğraflar için FieldValue.delete() "sentinel"
-      // objesi taşıyabilir — bu, yerel state'e ham obje olarak yazılamaz (kırık <img> riski),
-      // bu yüzden burada gerçek photos[] dizisindeki güncel değerlerle açıkça değiştiriliyor.
+      // data içindeki photo1..8/photo1..8Thumb alanları silinen fotoğraflar için FieldValue.delete()
+      // "sentinel" objesi taşıyabilir — bu, yerel state'e ham obje olarak yazılamaz (kırık <img>
+      // riski), bu yüzden burada gerçek photos[]/photosThumb[] dizilerindeki güncel değerlerle
+      // açıkça değiştiriliyor.
       const photoSyncFields = {};
       photos.forEach((p, i) => { photoSyncFields['photo' + (i+1)] = p || undefined; });
+      photosThumb.forEach((p, i) => { photoSyncFields['photo' + (i+1) + 'Thumb'] = p || undefined; });
       // wasRejected dalında data içindeki reject alanları FieldValue.delete() "sentinel" nesneleri
       // taşıyor (bkz. yukarıdaki photo yorumu — aynı risk) — yerel önbellekte gerçekten silinmiş gibi
       // görünmesi için burada da undefined ile eziliyor.
@@ -9361,6 +9366,7 @@ async function submitListing() {
       showToast('✓', 'rgba(48,209,88,.15)', wasRejected ? 'Tekrar Onaya Gönderildi' : 'İlan Güncellendi', wasRejected ? `${model} güncellendi ve tekrar incelemeye gönderildi.` : `${model} güncellendi.`);
     } else {
       photos.forEach((p, i) => { if (p) data['photo' + (i+1)] = p; });
+      photosThumb.forEach((p, i) => { if (p) data['photo' + (i+1) + 'Thumb'] = p; });
       if (listingVideoUrl) data.videoUrl = listingVideoUrl;
       data.sold = false;
       data.approved = false;
@@ -9382,6 +9388,7 @@ async function submitListing() {
 
     closemo('listing-mo');
     photos.forEach((_, i) => { photos[i] = null; });
+    photosThumb.forEach((_, i) => { photosThumb[i] = null; });
     photos.forEach((_, i) => { const slot = document.getElementById('ps' + i); if (slot) slot.innerHTML = renderPhotoSlotHTML(i); });
     listingVideoUrl = null;
     renderListingVideoSlot();
@@ -9479,6 +9486,7 @@ async function editListing(id) {
     document.getElementById('dt-chevron')?.parentElement?.classList.add('open');
   }
   photos.forEach((_, i) => { photos[i] = l['photo' + (i+1)] || null; });
+  photosThumb.forEach((_, i) => { photosThumb[i] = l['photo' + (i+1) + 'Thumb'] || null; });
   photos.forEach((_, i) => { const slot = document.getElementById('ps' + i); if (slot) slot.innerHTML = renderPhotoSlotHTML(i); });
   listingVideoUrl = l.videoUrl || null;
   renderListingVideoSlot();
@@ -9500,6 +9508,10 @@ function toggleDetailFields() {
 // 8'e çıkarıldı. Slot sayısı buradaki dizinin uzunluğu — HTML'deki ps0..ps7/pf0..pf7 slotlarıyla
 // birlikte değişir.
 const photos = [null, null, null, null, null, null, null, null];
+// KÜÇÜK KART OPTİMİZASYONU (PHASE 1C): her slotun 1080px orijinaline paralel, ~320px'lik bir
+// thumbnail URL'i — yalnızca liste/kart ekranlarında kullanılır (bkz. photo{i}Thumb||photo{i}
+// deseni), detay sayfası her zaman photos[]/orijinali kullanmaya devam eder.
+const photosThumb = [null, null, null, null, null, null, null, null];
 
 // Bir slot'un (dolu/boş) HTML içeriğini üretir — addPhoto/rmPhoto/takas arasında tekrar kullanılır.
 function renderPhotoSlotHTML(idx) {
@@ -9530,6 +9542,7 @@ function onPslotTap(idx) {
   if (photoReorderSrc !== null) {
     if (photoReorderSrc !== idx) {
       const tmp = photos[idx]; photos[idx] = photos[photoReorderSrc]; photos[photoReorderSrc] = tmp;
+      const tmpThumb = photosThumb[idx]; photosThumb[idx] = photosThumb[photoReorderSrc]; photosThumb[photoReorderSrc] = tmpThumb;
       refreshPhotoSlot(idx); refreshPhotoSlot(photoReorderSrc);
       listingFormOnChange();
     }
@@ -9555,6 +9568,7 @@ async function uploadPhotoToSlot(idx, file) {
   const slot = document.getElementById('ps' + idx);
   if (slot) slot.innerHTML = `<div class="pslot-processing"><div class="spin" style="width:20px;height:20px"></div><span id="pslot-pct-${idx}">Yükleniyor…</span></div>`;
   const oldUrl = photos[idx];
+  const oldThumbUrl = photosThumb[idx];
   try {
     // Yol, storage.rules'ta ÖNCEDEN hazırlanmış desenle birebir eşleşmeli: listing-photos/{uid}/{listingId}/{slot}/{fileName}
     const listingKey = editingListingId || pendingNewListingPhotoId;
@@ -9563,7 +9577,21 @@ async function uploadPhotoToSlot(idx, file) {
       if (pctEl) pctEl.textContent = `Yükleniyor… %${pct}`;
     });
     photos[idx] = url;
+    // KÜÇÜK KART OPTİMİZASYONU (PHASE 1C): aynı kaynak dosyadan ayrıca küçük bir thumbnail üretilip
+    // yükleniyor — Pazar/ana sayfa/profil/sohbet gibi küçük kart ekranları artık 1080px orijinali
+    // DEĞİL bunu kullanıyor. Thumbnail üretimi/yüklemesi BAŞARISIZ olsa bile ana fotoğraf yüklemesi
+    // GEÇERLİ sayılır (thumbnail yalnızca bir performans iyileştirmesi, kritik veri değil) — bu
+    // durumda photosThumb[idx] null bırakılır, kart ekranları zaten photo{i}Thumb||photo{i} ile
+    // otomatik olarak orijinale döner.
+    let thumbUrl = null;
+    try {
+      thumbUrl = await compressAndUploadPhoto(file, `listing-photos/${user.uid}/${listingKey}/slot${idx}/thumb`, 320, 0.75);
+    } catch(thumbErr) {
+      console.error('Fotoğraf thumbnail\'i oluşturulamadı (ana fotoğraf etkilenmedi):', thumbErr);
+    }
+    photosThumb[idx] = thumbUrl;
     deleteStorageUrlIfAny(oldUrl);
+    deleteStorageUrlIfAny(oldThumbUrl);
     refreshPhotoSlot(idx);
     listingFormOnChange();
   } catch(e) {
@@ -9599,7 +9627,9 @@ async function addPhotos(startIdx, input) {
 
 function rmPhoto(idx) {
   deleteStorageUrlIfAny(photos[idx]);
+  deleteStorageUrlIfAny(photosThumb[idx]);
   photos[idx] = null;
+  photosThumb[idx] = null;
   refreshPhotoSlot(idx);
   listingFormOnChange();
 }
@@ -10155,7 +10185,9 @@ async function performListingDelete(id) {
     await db.collection('teknohane_listings').doc(id).delete();
     // İlan silinince Storage'daki fotoğrafları da temizle — base64 kullanan eski ilanlarda bu
     // alanlar data: URL'idir, deleteStorageUrlIfAny zaten bunları sessizce atlar.
-    [l?.photo1, l?.photo2, l?.photo3, l?.photo4, l?.photo5, l?.photo6, l?.photo7, l?.photo8, l?.videoUrl].forEach(deleteStorageUrlIfAny);
+    [l?.photo1, l?.photo2, l?.photo3, l?.photo4, l?.photo5, l?.photo6, l?.photo7, l?.photo8,
+     l?.photo1Thumb, l?.photo2Thumb, l?.photo3Thumb, l?.photo4Thumb, l?.photo5Thumb, l?.photo6Thumb, l?.photo7Thumb, l?.photo8Thumb,
+     l?.videoUrl].forEach(deleteStorageUrlIfAny);
     // Pazar/Profil'in kendi sayfalamalı dizilerinden de kaldır (görsel anında güncellensin diye)
     marketAllListings = marketAllListings.filter(x => x.id !== id);
     marketFavListings = marketFavListings.filter(x => x.id !== id);
@@ -12006,7 +12038,7 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
       <div class="ud-section-title">Aktif İlanlar</div>
       ${userListings.length ? userListings.map(l => `
         <div class="pub-listing-card" onclick="closemo('pub-profile-mo');openDetail('${l.id}')">
-          <div class="pub-listing-img">${l.photo1 ? `<img src="${l.photo1}" alt="" style="width:100%;height:100%;border-radius:8px;object-fit:cover" loading="lazy" decoding="async">` : '📱'}</div>
+          <div class="pub-listing-img">${l.photo1 ? `<img src="${l.photo1Thumb||l.photo1}" alt="" style="width:100%;height:100%;border-radius:8px;object-fit:cover" loading="lazy" decoding="async">` : '📱'}</div>
           <div class="pub-listing-info">
             <div class="pub-listing-model">${escapeHtml(l.model)}</div>
             <div class="pub-listing-price">₺${parseInt(l.price||0).toLocaleString('tr-TR')} · ${escapeHtml(l.condition)}</div>
@@ -12019,7 +12051,7 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
       <div class="ud-section-title">Satılan İlanlar</div>
       ${soldListings.map(l => `
         <div class="pub-listing-card" onclick="closemo('pub-profile-mo');openDetail('${l.id}')" style="opacity:.6">
-          <div class="pub-listing-img">${l.photo1 ? `<img src="${l.photo1}" alt="" style="width:100%;height:100%;border-radius:8px;object-fit:cover" loading="lazy" decoding="async">` : '📱'}</div>
+          <div class="pub-listing-img">${l.photo1 ? `<img src="${l.photo1Thumb||l.photo1}" alt="" style="width:100%;height:100%;border-radius:8px;object-fit:cover" loading="lazy" decoding="async">` : '📱'}</div>
           <div class="pub-listing-info">
             <div class="pub-listing-model">${escapeHtml(l.model)} ✓</div>
             <div class="pub-listing-price">₺${parseInt(l.price||0).toLocaleString('tr-TR')}</div>
@@ -12637,7 +12669,7 @@ async function loadHomeMarketPreview() {
 }
 function homeMarketCardHTML(l) {
   return `<div class="home-mkt-card" onclick="gt('market');setTimeout(()=>openDetail('${l.id}'),50)">
-    <div class="home-mkt-photo">${l.photo1 ? `<img src="${escapeHtml(l.photo1)}" loading="lazy" decoding="async">` : '<div class="home-mkt-photo-empty">📷</div>'}</div>
+    <div class="home-mkt-photo">${l.photo1 ? `<img src="${escapeHtml(l.photo1Thumb||l.photo1)}" loading="lazy" decoding="async">` : '<div class="home-mkt-photo-empty">📷</div>'}</div>
     <div class="home-mkt-price">₺${parseInt(l.price || 0).toLocaleString('tr-TR')}</div>
     <div class="home-mkt-title">${escapeHtml(l.model)}</div>
   </div>`;
@@ -12676,7 +12708,7 @@ async function renderFeaturedListing() {
 function featuredListingCardHTML(l) {
   return `<div class="featured-listing-card" onclick="gt('market');setTimeout(()=>openDetail('${l.id}'),50)">
     <div class="featured-listing-badge">⭐</div>
-    <div class="featured-listing-photo">${l.photo1 ? `<img src="${escapeHtml(l.photo1)}" loading="lazy" decoding="async">` : ''}</div>
+    <div class="featured-listing-photo">${l.photo1 ? `<img src="${escapeHtml(l.photo1Thumb||l.photo1)}" loading="lazy" decoding="async">` : ''}</div>
     <div class="featured-listing-price">₺${parseInt(l.price || 0).toLocaleString('tr-TR')}</div>
     <div class="featured-listing-title">${escapeHtml(l.model || '')}</div>
   </div>`;
@@ -13825,7 +13857,7 @@ function renderSimilarListings(l, containerId) {
     <div class="similar-row">
       ${scored.map(s => `
         <div class="similar-card" onclick="event.stopPropagation();openDetail('${s.id}')">
-          <div class="similar-card-photo">${s.photo1?`<img src="${escapeHtml(s.photo1)}" alt="" loading="lazy" decoding="async">`:'📱'}</div>
+          <div class="similar-card-photo">${s.photo1?`<img src="${escapeHtml(s.photo1Thumb||s.photo1)}" alt="" loading="lazy" decoding="async">`:'📱'}</div>
           <div class="similar-card-title">${escapeHtml(s.model)}</div>
           ${user ? `<div class="similar-card-price">₺${parseInt(s.price||0).toLocaleString('tr-TR')}</div>` : `<div class="similar-card-price" style="color:var(--cyan);font-size:11px">🔒 Giriş yap</div>`}
         </div>`).join('')}
