@@ -2397,6 +2397,19 @@ body.tk-maintenance #maintenance-gate{
   </div>
 </div>
 
+<!-- İLAN ÖNE ÇIKARMA TALEBİ: ilan sahibi kendi ilanı için süre uzatma/vitrin/acil/öne çıkar
+     taleplerinden birini açar (bkz. openBoostRequestForm/submitBoostRequest/notifyAdminsBoostRequest);
+     admin panelindeki "Öne Çıkarma" sekmesinden onaylanır/reddedilir, yanıt alıcıya bildirim olarak ulaşır. -->
+<div class="mo" id="boost-request-mo" onclick="closemo('boost-request-mo')">
+  <div class="ms" onclick="event.stopPropagation()" style="max-height:85vh">
+    <div class="mh"></div>
+    <div class="mtit">🚀 Öne Çıkarma Talebi</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.5">İlanın için aşağıdaki seçeneklerden birini talep edebilirsin, yönetici ekibimiz inceleyip onaylayacak.</div>
+    <div id="boost-req-options"><div class="load" style="padding:10px 0"><div class="spin"></div></div></div>
+    <div class="fg" style="margin-top:12px"><label class="fl">Not (isteğe bağlı)</label><textarea class="fi" id="boost-req-note" rows="2" style="resize:vertical;font-family:inherit" placeholder="Eklemek istediğin bir not varsa yaz…"></textarea></div>
+  </div>
+</div>
+
 <!-- PAZARLIK TEKLİFİ FORMU: alıcı fiyat teklifi + isteğe bağlı mesaj yazar, doğrudan satıcıya
      gider (bkz. submitOffer); satıcı kendi ilan detayında (det-offers-section) yanıtlar. -->
 <div class="mo" id="offer-mo" onclick="closemo('offer-mo')">
@@ -5048,6 +5061,7 @@ const NOTIF_TYPE_CATEGORY = {
   pool_request: 'market', pool_reply: 'market',
   pool_accepted: 'market', pool_declined: 'market', pool_shipped: 'market', pool_completed: 'market', pool_cancelled: 'market', pool_payment_confirmed: 'market',
   offer_received: 'market', offer_response: 'market',
+  boost_request: 'market', boost_approved: 'market', boost_rejected: 'market',
 };
 
 // fromUid/fromName/fromPhotoURL — OPSİYONEL aktör bilgisi (bildirimi tetikleyen kişi). Var olan
@@ -5364,6 +5378,98 @@ const POOL_SYSTEM_INFO = 'Havuz Sistemi, alıcı ile satıcı arasındaki güven
 
 function openPoolInfo() {
   infoDialog(POOL_SYSTEM_INFO, '🛡️ Havuz Sistemi Nedir?');
+}
+
+// ==== İLAN ÖNE ÇIKARMA TALEP SİSTEMİ (süre uzatma/vitrin/acil/öne çıkar) ====
+// teknohane_listings.featured/urgent/showcase/expiresAt alanlarına kullanıcı KENDİSİ asla doğrudan
+// yazamıyor (bkz. firestore.rules — yalnızca manageListings admin dalında izinli) — bu yüzden talep
+// burada teknohane_boost_requests'e toplanıp admin onayıyla gerçek alan admin panelinin zaten sahip
+// olduğu yetkiyle yazılıyor. Havuz Sistemi'nin (bkz. yukarısı) basitleştirilmiş hali: yalnızca 2
+// taraf (ilan sahibi + admin), 3 durum (pending/approved/rejected).
+const BOOST_TYPE_LABELS = {
+  extend:   { ic: '⏳', label: 'Süre Uzatma', desc: 'İlanının yayın süresini 30 gün uzatır.' },
+  showcase: { ic: '📌', label: 'Vitrin',       desc: 'İlanın Pazar\'da vitrin rozetiyle öne çıkar.' },
+  urgent:   { ic: '🔥', label: 'Acil',          desc: 'İlanına "Acil" rozeti eklenir.' },
+  featured: { ic: '⭐', label: 'Öne Çıkar',     desc: 'İlanın ana sayfadaki "Öne Çıkan İlanlar" şeridinde gösterilir.' },
+};
+
+let boostReqTargetListingId = null;
+let boostReqPendingTypes = new Set();
+
+async function openBoostRequestForm(listingId) {
+  if (!user) { gt('profile'); return; }
+  boostReqTargetListingId = listingId;
+  document.getElementById('boost-req-note').value = '';
+  document.getElementById('boost-request-mo').classList.add('on');
+  const optsEl = document.getElementById('boost-req-options');
+  optsEl.innerHTML = `<div class="load" style="padding:10px 0"><div class="spin"></div></div>`;
+  const l = currentListing && currentListing.id === listingId ? currentListing : await getListingById(listingId);
+  if (!l) { optsEl.innerHTML = `<div class="no">İlan bulunamadı.</div>`; return; }
+  try {
+    const snap = await db.collection('teknohane_boost_requests')
+      .where('listingId', '==', listingId).where('status', '==', 'pending').limit(10).get();
+    boostReqPendingTypes = new Set(snap.docs.map(d => d.data().boostType));
+  } catch(e) { boostReqPendingTypes = new Set(); }
+  renderBoostRequestOptions(l);
+}
+
+function renderBoostRequestOptions(l) {
+  const optsEl = document.getElementById('boost-req-options');
+  optsEl.innerHTML = Object.keys(BOOST_TYPE_LABELS).map(type => {
+    const meta = BOOST_TYPE_LABELS[type];
+    const alreadyActive = type !== 'extend' && !!l[type];
+    const pending = boostReqPendingTypes.has(type);
+    let statusHtml = '', actionHtml = '';
+    if (alreadyActive) { statusHtml = `<span style="font-size:11px;color:var(--green);font-weight:700">✓ Zaten Açık</span>`; }
+    else if (pending) { statusHtml = `<span style="font-size:11px;color:var(--cyan);font-weight:700">⏳ Onay Bekliyor</span>`; }
+    else { actionHtml = `<button class="sbtn2" style="width:auto;padding:6px 14px;font-size:12px" onclick="submitBoostRequest('${type}')">Talep Et</button>`; }
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="font-size:20px;flex-shrink:0">${meta.ic}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:13px">${meta.label}</div>
+        <div style="font-size:11px;color:var(--text3)">${meta.desc}</div>
+      </div>
+      ${statusHtml}${actionHtml}
+    </div>`;
+  }).join('');
+}
+
+async function submitBoostRequest(boostType) {
+  const listingId = boostReqTargetListingId;
+  const l = currentListing && currentListing.id === listingId ? currentListing : await getListingById(listingId);
+  if (!l) return;
+  const note = document.getElementById('boost-req-note').value.trim();
+  const requesterName = myProfileData.displayName || user.displayName || user.email?.split('@')[0] || 'Bir kullanıcı';
+  if (!guardSubmit('boostRequest')) return;
+  try {
+    await db.collection('teknohane_boost_requests').add({
+      listingId, listingModel: l.model || '',
+      requesterUid: user.uid, requesterName,
+      boostType, note,
+      status: 'pending', adminNote: null, respondedAt: null, respondedBy: null, respondedByName: null,
+      price: null, paymentStatus: null,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    await notifyAdminsBoostRequest(listingId, l.model || '', requesterName, boostType);
+    showToast('🚀', 'rgba(0,212,255,.15)', 'Talebin İletildi', 'Yönetici ekibimiz talebini inceleyip yanıtlayacak.');
+    boostReqPendingTypes.add(boostType);
+    renderBoostRequestOptions(l);
+  } catch(e) { showErrorToast(e); } finally { releaseSubmit('boostRequest'); }
+}
+
+// Havuz Sistemi talebiyle AYNI desen (bkz. notifyAdminsPoolRequest) — push'a ek olarak kalıcı bir
+// bell bildirimi de teknohane_notify_queue'nun persistNotifType alanı üzerinden tetikleniyor, Worker
+// tarafında ekstra bir değişiklik gerekmiyor (persistNotifType işleme mantığı zaten jenerik).
+async function notifyAdminsBoostRequest(listingId, listingModel, requesterName, boostType) {
+  const label = BOOST_TYPE_LABELS[boostType]?.label || boostType;
+  const title = '🚀 Öne Çıkarma Talebi';
+  const body = `${requesterName}, "${listingModel}" ilanı için "${label}" talep etti.`;
+  notifyAdminsOfEvent('manageListings', title, body, listingId, {
+    persistNotifType: 'boost_request',
+    fromUid: user.uid,
+    fromName: myProfileData.displayName || user.displayName || null,
+    fromPhoto: myProfileData.photoURL || null
+  });
 }
 
 // İlan detayında alıcı "Havuz Sistemi ile Satın Al" butonuna dokununca form açılır (bkz.
@@ -6022,6 +6128,9 @@ const NOTIF_ICONS = {
   pool_payment_confirmed: { ic: '💳', bg: 'rgba(48,209,88,.15)' },
   offer_received: { ic: '🤝', bg: 'rgba(0,212,255,.12)' },
   offer_response: { ic: '🤝', bg: 'rgba(48,209,88,.15)' },
+  boost_request: { ic: '🚀', bg: 'rgba(0,212,255,.12)' },
+  boost_approved: { ic: '✅', bg: 'rgba(48,209,88,.15)' },
+  boost_rejected: { ic: '❌', bg: 'rgba(255,69,58,.15)' },
   followed_new_listing: { ic: '📦', bg: 'rgba(0,212,255,.12)' },
   mention: { ic: '📣', bg: 'rgba(0,212,255,.12)' },
   best_answer: { ic: '✓', bg: 'rgba(48,209,88,.15)' },
@@ -9959,6 +10068,7 @@ function renderDetailPage(l) {
     ${pending && isAdmin ? `<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px" onclick="approveListing('${l.id}')">✓ İlanı Onayla ve Yayınla</button>`:''}
     ${mine && isListingExpired(l) ? `<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px;background:rgba(0,212,255,.12);color:var(--cyan);border:1px solid rgba(0,212,255,.3)" onclick="renewListing('${l.id}')">🔄 İlanı Yeniden Yayınla (30 Gün)</button>`:''}
     ${(mine || (isAdmin && hasPermission('manageListings')))?`<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px;background:var(--surf2);color:var(--cyan);border:1px solid var(--border2)" onclick="editListing('${l.id}')">✏️ İlanı Düzenle${mine?'':' (Admin)'}</button>`:''}
+    ${mine && !l.sold?`<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px;background:var(--surf2);color:var(--cyan);border:1px solid var(--border2)" onclick="openBoostRequestForm('${l.id}')">🚀 Öne Çıkarma Talebi</button>`:''}
     ${mine?`<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px" onclick="toggleSold('${l.id}')">${l.sold?'↺ Satıldı İşaretini Kaldır':'✓ Satıldı Olarak İşaretle'}</button>`:''}
     <div id="det-similar"></div>`;
   document.getElementById('detail-mo').classList.add('on');
