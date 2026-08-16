@@ -14345,6 +14345,15 @@ let arenaLbTab = 'daily';
 // kapatır. rArenaHome() bunu her zaman null'a sıfırlar.
 let arenaBackParent = null;
 
+// PHASE 1D-5A (performans denetimi bulgusu): rArenaHome() zaten teknohane_arena_stats/{uid}'i
+// çekiyor; rArenaBadges()'e ulaşmanın TEK yolu rArenaHome()'un kendi render ettiği "🏅 Rozetlerim"
+// düğmesi (geri tuşu da her zaman rArenaHome()'a döner) — bu yüzden aynı veriyi ikinci kez okumak
+// yerine rArenaHome()'un az önce çektiği stats burada tutulup rArenaBadges() tarafından kullanılıyor.
+// ZAMAN BAZLI DEĞİL (TTL yok): rArenaHome() HER çalıştığında (ilk açılış, geri tuşuyla dönüş, yarışma/
+// düello sonrası) Firestore'dan yeniden okuyup bu değişkeni koşulsuz güncelliyor — böylece bayatlık
+// riski yok, yalnızca "aynı gezinme akışında bir kez oku, devral" mantığı uygulanıyor.
+let arenaMyStatsFromHome = null;
+
 // HATA DÜZELTMESİ (canlı vakada doğrulandı — "Mert Ocak'ta 'Yarışma hazırlanıyor…' ekranında
 // sonsuza dek kalıyor"): ne CapacitorHttp.request'e ne de fetch()'e hiçbir zaman aşımı (timeout)
 // tanımlı değildi — bazı ağ koşullarında (paketlerin sessizce yok olması, TCP bağlantısının ne
@@ -14503,6 +14512,10 @@ async function rArenaHome() {
     if (attemptSnap.exists) attempt = attemptSnap.data();
     if (statsSnap.exists) myStats = statsSnap.data();
   } catch (e) {}
+  // Az önce çekilen (varsa) stats, rArenaBadges()'in tekrar okumadan kullanabilmesi için paylaşılan
+  // gezinme state'ine yazılıyor — Firestore hata verdiyse veya doküman yoksa null olur, bu durumda
+  // rArenaBadges() kendi fallback'iyle (aşağıya bkz.) Firestore'a gitmeye devam eder.
+  arenaMyStatsFromHome = myStats;
   // Seviye/XP kartı — Arena ana ekranında oynanma durumundan bağımsız her zaman en üstte. Seri
   // varsa (>=1 gün) hemen altında ayrı bir satırda gösteriliyor.
   const streak = myStats?.currentStreak || 0;
@@ -14789,10 +14802,17 @@ async function rArenaBadges() {
   const body = document.getElementById('arena-body');
   body.innerHTML = `<div class="load"><div class="spin"></div></div>`;
   let myBadges = [];
-  try {
-    const snap = await db.collection('teknohane_arena_stats').doc(user.uid).get();
-    if (snap.exists) myBadges = snap.data().badges || [];
-  } catch (e) {}
+  // PHASE 1D-5A: rArenaHome() (buraya ulaşmanın tek yolu) az önce AYNI dokümanı zaten çekmişse
+  // tekrar okumak yerine onu kullan; state geçersiz/boşsa (örn. sayfa doğrudan yenilendi, ihtimal
+  // dışı ama savunma amaçlı) mevcut Firestore fallback'i aynen çalışır.
+  if (arenaMyStatsFromHome) {
+    myBadges = arenaMyStatsFromHome.badges || [];
+  } else {
+    try {
+      const snap = await db.collection('teknohane_arena_stats').doc(user.uid).get();
+      if (snap.exists) myBadges = snap.data().badges || [];
+    } catch (e) {}
+  }
   const ids = Object.keys(ARENA_BADGE_LABELS);
   body.innerHTML = `
     <div class="feat" style="padding:20px 18px">
