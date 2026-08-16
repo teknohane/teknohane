@@ -11819,10 +11819,17 @@ async function openPublicProfile(uid, nameHint) {
   const isMe = user && user.uid === uid;
   const isViewerAdmin = isAdminNow();
   let data = {};
-  try {
-    const snap = await db.collection('teknohane_users').doc(uid).get();
-    if (snap.exists) data = snap.data();
-  } catch (e) { /* çevrimdışı olabilir, elimizdeki en iyi tahminle devam ederiz */ }
+  // PHASE 1D-1: kendi profilim açılıyorsa teknohane_users/{uid} zaten myProfileData'da güvenilir
+  // şekilde mevcut (bkz. syncUserProfile) — aynı dokümanı tekrar ağdan okumaya gerek yok. Başkasının
+  // profili için mevcut davranış (Firestore okuması + çevrimdışı fallback) AYNEN korunuyor.
+  if (isMe) {
+    data = myProfileData || {};
+  } else {
+    try {
+      const snap = await db.collection('teknohane_users').doc(uid).get();
+      if (snap.exists) data = snap.data();
+    } catch (e) { /* çevrimdışı olabilir, elimizdeki en iyi tahminle devam ederiz */ }
+  }
 
   const privacy = getPrivacy(data);
   if (!isMe && !privacy.publicProfile && !isViewerAdmin) {
@@ -13744,6 +13751,27 @@ function invalidateSellerCommentsCache(sellerUid) {
   delete sellerCommentsCache[sellerUid];
 }
 
+// PHASE 1D-1: loadSellerCard, aynı sellerUid'nin teknohane_users dokümanını (rozetler için) her
+// çağrıldığında yeniden okuyordu — sellerCommentsCache ile AYNI TTL/in-flight-promise deseni burada
+// da uygulanıyor (aynı satıcının birden fazla ilanı art arda açılırsa tekrar okumayı önler).
+let sellerProfileCache = {};
+let sellerProfileLoadPromises = {};
+const SELLER_PROFILE_CACHE_MS = 5 * 60 * 1000;
+function fetchSellerProfile(sellerUid) {
+  const cached = sellerProfileCache[sellerUid];
+  if (cached && (Date.now() - cached.at) < SELLER_PROFILE_CACHE_MS) return Promise.resolve(cached.snap);
+  if (sellerProfileLoadPromises[sellerUid]) return sellerProfileLoadPromises[sellerUid];
+  const p = db.collection('teknohane_users').doc(sellerUid).get()
+    .then(snap => {
+      sellerProfileCache[sellerUid] = { snap, at: Date.now() };
+      delete sellerProfileLoadPromises[sellerUid];
+      return snap;
+    })
+    .catch(e => { delete sellerProfileLoadPromises[sellerUid]; throw e; });
+  sellerProfileLoadPromises[sellerUid] = p;
+  return p;
+}
+
 function renderSellerReviewForm(sellerUid) {
   if (!user) return `<div class="no" style="padding:10px 0">Puan vermek için giriş yap</div>`;
   if (user.uid === sellerUid) return '';
@@ -13794,7 +13822,7 @@ async function loadSellerCard(sellerUid, ownerName, mine, containerId) {
     const [commentDocs, listingCountVal, userSnap] = await Promise.all([
       fetchSellerComments(sellerUid),
       firestoreCount(db.collection('teknohane_listings').where('uid','==',sellerUid)),
-      db.collection('teknohane_users').doc(sellerUid).get(),
+      fetchSellerProfile(sellerUid),
     ]);
     let total = 0, count = 0;
     commentDocs.forEach(d => { const c = d.data(); if (c.rating) { total += c.rating; count++; } });
