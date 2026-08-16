@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Teknohane</title>
+<link rel="icon" href="teknohane.png">
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
+<style>
+:root{
+  --bg:#00040F;--surf:#0D1526;--surf2:#111D33;
+  --cyan:#00D4FF;--cdim:rgba(0,212,255,0.12);--cglow:rgba(0,212,255,0.25);
+  --text:#FFF;--text2:#8E9BB5;--text3:#4A5568;
+  --red:#FF453A;--green:#30D158;
+  --border:rgba(0,212,255,0.1);--border2:rgba(255,255,255,0.06);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,sans-serif;}
+body{display:flex;align-items:center;justify-content:center;padding:24px;min-height:100vh;}
+.card{width:100%;max-width:400px;background:var(--surf);border:1px solid var(--border2);border-radius:20px;padding:32px 26px;box-shadow:0 8px 24px rgba(0,0,0,.3);}
+.logo-row{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:24px;}
+.logo-row img{width:52px;height:52px;border-radius:14px;object-fit:cover;box-shadow:0 0 16px var(--cglow);}
+.logo-t{font-size:19px;font-weight:700;letter-spacing:.5px;background:linear-gradient(135deg,#fff,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.ic{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 16px;}
+.ic.ok{background:rgba(48,209,88,.15);}
+.ic.err{background:rgba(255,69,58,.15);}
+.ic.load{background:var(--cdim);}
+h1{font-size:18px;font-weight:700;text-align:center;margin-bottom:8px;}
+p.sub{font-size:13px;color:var(--text2);text-align:center;line-height:1.55;margin-bottom:22px;}
+.spin{width:26px;height:26px;border:3px solid var(--border2);border-top-color:var(--cyan);border-radius:50%;animation:sp .7s linear infinite;margin:0 auto;}
+@keyframes sp{to{transform:rotate(360deg);}}
+.fg{margin-bottom:14px;}
+.fl{display:block;font-size:12px;color:var(--text2);margin-bottom:6px;font-weight:600;}
+.fi{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--border2);background:var(--surf2);color:var(--text);font-size:14px;font-family:inherit;}
+.fi:focus{outline:none;border-color:var(--cyan);}
+.fi[readonly]{color:var(--text2);}
+.err-txt{font-size:12px;color:var(--red);margin-top:-6px;margin-bottom:14px;display:none;}
+.err-txt.on{display:block;}
+.btn{width:100%;padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,var(--cyan),#0091FF);color:#00040F;font-weight:700;font-size:14px;font-family:inherit;cursor:pointer;text-align:center;text-decoration:none;display:block;}
+.btn:disabled{opacity:.6;cursor:default;}
+.btn2{width:100%;padding:13px;border:1px solid var(--border2);border-radius:12px;background:var(--surf2);color:var(--text);font-weight:600;font-size:14px;font-family:inherit;cursor:pointer;text-align:center;text-decoration:none;display:block;margin-top:10px;}
+</style>
+</head>
+<body>
+<div class="card" id="card">
+  <div class="logo-row"><img src="teknohane.png" alt="Teknohane"><span class="logo-t">TEKNOHANE</span></div>
+  <div class="ic load"><div class="spin"></div></div>
+  <h1>İşleniyor…</h1>
+  <p class="sub">Bir saniye lütfen.</p>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey:"AIzaSyD3hhCfOBC1u042BlffXz975uez2oL4D4I",
+  authDomain:"teknohane-app.firebaseapp.com",
+  projectId:"teknohane-app",
+  storageBucket:"teknohane-app.firebasestorage.app",
+  messagingSenderId:"957053322637",
+  appId:"1:957053322637:web:8a05980b9c19f9c2e929c4"
+});
+const auth = firebase.auth();
+const APP_URL = 'https://teknohane.github.io/teknohane/';
+
+// Firebase'in kendi hata kodlarını, ana uygulamadaki FIREBASE_ERROR_TR ile AYNI Türkçe üslupta
+// gösterir — bu sayfa ana uygulamanın dışında, ayrı bir statik dosya olduğu için o objeyi
+// doğrudan paylaşamıyor, ama metinler bilinçli olarak birebir/tutarlı tutuldu.
+const ERROR_TR = {
+  'auth/expired-action-code': 'Bu bağlantının süresi dolmuş. Lütfen yeni bir bağlantı iste.',
+  'auth/invalid-action-code': 'Bu bağlantı geçersiz veya daha önce kullanılmış. Lütfen yeni bir bağlantı iste.',
+  'auth/user-disabled': 'Bu hesap devre dışı bırakılmış.',
+  'auth/user-not-found': 'Bu bağlantıya ait bir hesap bulunamadı.',
+  'auth/weak-password': 'Şifre çok zayıf, en az 6 karakter kullan.',
+  'auth/network-request-failed': 'İnternet bağlantını kontrol edip tekrar dene.',
+};
+function errText(e) {
+  return ERROR_TR[e?.code] || 'Bir şeyler ters gitti. Lütfen tekrar dene.';
+}
+
+const card = document.getElementById('card');
+function renderCard(iconClass, icon, title, sub, bodyHtml) {
+  card.innerHTML = `
+    <div class="logo-row"><img src="teknohane.png" alt="Teknohane"><span class="logo-t">TEKNOHANE</span></div>
+    <div class="ic ${iconClass}">${icon}</div>
+    <h1>${title}</h1>
+    <p class="sub">${sub}</p>
+    ${bodyHtml || ''}`;
+}
+function renderReturnButton(label) {
+  return `<a class="btn" href="${APP_URL}">${label || 'Teknohane’ye Dön'}</a>`;
+}
+function renderError(e) {
+  renderCard('err', '❌', 'Bağlantı Çalışmadı', errText(e), renderReturnButton());
+}
+
+const params = new URLSearchParams(location.search);
+const mode = params.get('mode');
+const oobCode = params.get('oobCode');
+
+if (!mode || !oobCode) {
+  renderCard('err', '❓', 'Geçersiz Bağlantı', 'Bu sayfa doğrudan açılamaz — Teknohane’den gelen bir e-postadaki bağlantıya tıklamalısın.', renderReturnButton());
+} else if (mode === 'verifyEmail') {
+  auth.applyActionCode(oobCode).then(() => {
+    renderCard('ok', '✅', 'E-posta Adresin Doğrulandı!', 'Artık Teknohane’yi tüm özellikleriyle kullanabilirsin.', renderReturnButton());
+  }).catch(renderError);
+} else if (mode === 'resetPassword') {
+  auth.verifyPasswordResetCode(oobCode).then(email => {
+    card.innerHTML = `
+      <div class="logo-row"><img src="teknohane.png" alt="Teknohane"><span class="logo-t">TEKNOHANE</span></div>
+      <h1>Yeni Şifre Belirle</h1>
+      <p class="sub">${email} hesabın için yeni bir şifre belirle.</p>
+      <div class="fg"><label class="fl">Yeni Şifre</label><input class="fi" type="password" id="pw1" placeholder="En az 6 karakter" autocomplete="new-password"></div>
+      <div class="fg"><label class="fl">Yeni Şifre (Tekrar)</label><input class="fi" type="password" id="pw2" placeholder="Şifreni tekrar yaz" autocomplete="new-password"></div>
+      <div class="err-txt" id="pw-err"></div>
+      <button class="btn" id="pw-submit">Şifremi Güncelle</button>`;
+    document.getElementById('pw-submit').onclick = () => {
+      const pw1 = document.getElementById('pw1').value;
+      const pw2 = document.getElementById('pw2').value;
+      const errEl = document.getElementById('pw-err');
+      errEl.classList.remove('on');
+      if (pw1.length < 6) { errEl.textContent = 'Şifre en az 6 karakter olmalı.'; errEl.classList.add('on'); return; }
+      if (pw1 !== pw2) { errEl.textContent = 'Şifreler eşleşmiyor.'; errEl.classList.add('on'); return; }
+      const btn = document.getElementById('pw-submit');
+      btn.disabled = true; btn.textContent = 'Güncelleniyor…';
+      auth.confirmPasswordReset(oobCode, pw1).then(() => {
+        renderCard('ok', '✅', 'Şifren Güncellendi!', 'Yeni şifrenle Teknohane’ye giriş yapabilirsin.', renderReturnButton('Giriş Yap'));
+      }).catch(e => {
+        errEl.textContent = errText(e); errEl.classList.add('on');
+        btn.disabled = false; btn.textContent = 'Şifremi Güncelle';
+      });
+    };
+  }).catch(renderError);
+} else {
+  renderCard('err', '❓', 'Desteklenmeyen İşlem', 'Bu bağlantı türü bu sayfada işlenemiyor.', renderReturnButton());
+}
+</script>
+</body>
+</html>
