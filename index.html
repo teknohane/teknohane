@@ -12154,12 +12154,45 @@ async function openFollowList(uid, type, name) {
           <div style="font-size:14px;font-weight:600">${escapeHtml(u.displayName||'Kullanıcı')}</div>
           ${u.username?`<div style="font-size:12px;color:var(--text2)">@${escapeHtml(u.username)}</div>`:''}
         </div>
-        ${user && u.uid !== user.uid ? `<button class="sbtn2" style="width:auto;padding:6px 12px;font-size:12px;background:${uFollowing?'var(--surf2)':'var(--cyan)'};color:${uFollowing?'var(--text)':'#000'}" onclick="toggleFollow('${u.uid}').then(()=>openFollowList('${uid}','${type}','${escapeJsAttr(name)}'))">${uFollowing?'✓ Takip Ediliyor':'➕ Takip Et'}</button>` : ''}
+        ${user && u.uid !== user.uid ? `<button class="sbtn2" data-follow-uid="${u.uid}" style="width:auto;padding:6px 12px;font-size:12px;background:${uFollowing?'var(--surf2)':'var(--cyan)'};color:${uFollowing?'var(--text)':'#000'}" onclick="handleFollowListToggle(this,'${u.uid}','${uid}','${type}')">${uFollowing?'✓ Takip Ediliyor':'➕ Takip Et'}</button>` : ''}
       </div>`;
     }).join('');
   } catch (e) {
     body.innerHTML = `<div class="no" style="padding:40px 0">Liste şu an yüklenemiyor</div>`;
   }
+}
+
+// PHASE 1D-2 (performans denetimi bulgusu): openFollowList'teki bir takip düğmesine basınca eskiden
+// TÜM liste (≤200 doküman ya da 30'luk 'in' grupları) toggleFollow tamamlandıktan SONRA yeniden
+// Firestore'dan çekiliyordu — oysa yalnızca TEK bir düğmenin durumu değişiyordu. toggleFollow()'un
+// kendisi (Firestore yazımı, myProfileData/#pub-follow-btn güncellemesi, hata toast'ı) HİÇ
+// değiştirilmedi; burada yalnızca liste ekranındaki YANSIMASI genişletiliyor. toggleFollow yazım
+// başarısız olursa myProfileData'yı DEĞİŞTİRMEZ (kendi try/catch'i) — bu yüzden "nowFollowing"
+// yazım başarısızsa "wasFollowing" ile aynı kalır ve aşağıdaki güncelleme düğmeyi zaten olduğu
+// (eski) haline geri "döndürmüş" olur, ayrı bir rollback koduna gerek kalmadan.
+async function handleFollowListToggle(btn, targetUid, listUid, listType) {
+  const wasFollowing = (myProfileData.followingUids || []).includes(targetUid);
+  btn.disabled = true;
+  await toggleFollow(targetUid);
+  btn.disabled = false;
+  const nowFollowing = (myProfileData.followingUids || []).includes(targetUid);
+  // Kendi "Takip Edilenler" listemi görüntülüyorsam, bu liste TANIM GEREĞİ yalnızca hâlâ takip
+  // ettiğim kişileri gösterir — birini takipten çıkarınca satır artık bu listeye ait değil (mevcut
+  // tam-yeniden-çekme davranışıyla AYNI sonuç: satır kaybolurdu). Başka her durumda (takipçiler
+  // listesi, başkasının takip listesi, ya da yazım başarısız olduğu için hiçbir şey değişmediyse)
+  // yalnızca düğme metni/rengi güncellenir, satır sayısı/sırası değişmez.
+  if (listType === 'following' && user && listUid === user.uid && wasFollowing && !nowFollowing) {
+    btn.parentElement?.remove();
+    return;
+  }
+  // data-follow-uid ile eşleşen TÜM düğmeler güncellenir (aynı uid teorik olarak birden fazla
+  // satırda görünse bile hiçbiri eski/yanlış durumda kalmaz); arama yalnızca bu modalın kendi
+  // içeriğiyle (#followlist-body) sınırlı, sayfanın başka bir yerindeki öğelere dokunmaz.
+  document.getElementById('followlist-body')?.querySelectorAll(`[data-follow-uid="${targetUid}"]`).forEach(el => {
+    el.textContent = nowFollowing ? '✓ Takip Ediliyor' : '➕ Takip Et';
+    el.style.background = nowFollowing ? 'var(--surf2)' : 'var(--cyan)';
+    el.style.color = nowFollowing ? 'var(--text)' : '#000';
+  });
 }
 
 // KULLANICI ARAMA
