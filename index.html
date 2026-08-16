@@ -6156,11 +6156,19 @@ function renderNotifList() {
 
   const prevMap = new Map(prevUnits.map(u => [u.key, u.sig]));
   const newKeys = new Set();
+  // PERFORMANS DÜZELTMESİ (PHASE 1D-3): DM/Topluluk sohbetindeki AYNI desen — bildirimlerde node
+  // kimliği data-mid DEĞİL data-ukey (tarih başlığı VEYA bildirim grubu). Mevcut çocuklar TEK seferde
+  // bir Map'e taranıyor, döngü içindeki birim-başına querySelector kaldırıldı.
+  const existingNodes = new Map();
+  Array.from(list.children).forEach(child => {
+    const key = child.getAttribute('data-ukey');
+    if (key) existingNodes.set(key, child);
+  });
   let lastNode = null;
   const newlyCreated = [];
   units.forEach(u => {
     newKeys.add(u.key);
-    let node = list.querySelector(`[data-ukey="${u.key}"]`);
+    let node = existingNodes.get(u.key);
     const changed = prevMap.get(u.key) !== u.sig;
     if (!node || changed) {
       const temp = document.createElement('div');
@@ -6707,12 +6715,21 @@ function renderChatMessages() {
 
   const newIds = new Set();
   const newSignatures = new Map();
+  // PERFORMANS DÜZELTMESİ (PHASE 1D-3): mevcut node'u her mesaj için ayrı ayrı querySelector ile
+  // aramak yerine (200 mesajlık bir sohbette 200 ayrı DOM taraması), mevcut çocuklar TEK seferde bir
+  // Map'e taranıyor — döngü içindeki arama artık O(1). Diff/imza/insertBefore/prune mantığının
+  // KENDİSİ hiç değişmedi, yalnızca "mevcut node'u bulma" yöntemi optimize edildi.
+  const existingNodes = new Map();
+  Array.from(box.children).forEach(child => {
+    const mid = child.getAttribute('data-mid');
+    if (mid) existingNodes.set(mid, child);
+  });
   let lastNode = null;
   currentChatMsgs.forEach(m => {
     newIds.add(m.id);
     const sig = messageSignature(m);
     newSignatures.set(m.id, sig);
-    let node = box.querySelector(`[data-mid="${m.id}"]`);
+    let node = existingNodes.get(m.id);
     const isNew = !prevIds.has(m.id);
     const changed = prevSignatures.get(m.id) !== sig;
     if (!node || changed) {
@@ -6758,9 +6775,18 @@ function msgStatusIconHTML(m) {
 function updateChatReadTicks() {
   const box = document.getElementById('chat-messages');
   if (!box) return;
+  // PERFORMANS DÜZELTMESİ (PHASE 1D-3): mesaj başına box.querySelector('[data-mid=...] .msg-status-icon')
+  // yerine, mesaj node'ları önce bir Map'te toplanıyor (renderChatMessages'taki AYNI desen) — yalnızca
+  // ilgili mesajın KENDİ küçük alt ağacında (birkaç öğe) tik span'ı aranıyor, tüm sohbet taranmıyor.
+  const nodesByMid = new Map();
+  Array.from(box.children).forEach(child => {
+    const mid = child.getAttribute('data-mid');
+    if (mid) nodesByMid.set(mid, child);
+  });
   currentChatMsgs.forEach(m => {
     if (m.senderUid !== user?.uid || m.listingId) return;
-    const el = box.querySelector(`[data-mid="${m.id}"] .msg-status-icon`);
+    const node = nodesByMid.get(m.id);
+    const el = node?.querySelector('.msg-status-icon');
     if (el) el.innerHTML = msgStatusIconHTML(m);
   });
 }
@@ -7737,12 +7763,19 @@ function renderCommunityMessages() {
     const newIds = new Set();
     const newSignatures = new Map();
     const newlyCreated = [];
+    // PERFORMANS DÜZELTMESİ (PHASE 1D-3): DM sohbetindeki AYNI desen — mevcut çocuklar TEK seferde
+    // bir Map'e taranıyor, döngü içindeki mesaj-başına querySelector kaldırıldı.
+    const existingNodes = new Map();
+    Array.from(box.children).forEach(child => {
+      const mid = child.getAttribute('data-mid');
+      if (mid) existingNodes.set(mid, child);
+    });
     let lastNode = null;
     communityMessages.forEach(m => {
       newIds.add(m.id);
       const sig = communityMessageSignature(m);
       newSignatures.set(m.id, sig);
-      let node = box.querySelector(`[data-mid="${m.id}"]`);
+      let node = existingNodes.get(m.id);
       const changed = prevSignatures.get(m.id) !== sig;
       if (!node || changed) {
         const temp = document.createElement('div');
