@@ -3026,13 +3026,55 @@ let systemSettings = {};
 // aynı devam eden Promise'i paylaşıyor; sonuç/davranış (systemSettings'in son hali, applyMaintenanceGate)
 // aynı kalıyor.
 let systemSettingsLoadPromise = null;
+
+// PHASE 1D-4 (performans denetimi bulgusu): systemSettings her soğuk açılışta Firestore'u beklemek
+// zorundaydı — YouTube video listesindeki "anında göster, arka planda tazele" deseninin (bkz.
+// readYtCache/writeYtCache) AYNISI burada da uygulanıyor, TEK ÖNEMLİ FARKLA: systemSettings bakım
+// modu/kayıt-kapatma/forum-kapatma gibi GÜVENLİK KRİTİK alanlar içeriyor — bu yüzden cache ASLA tek
+// kaynak değil. Firestore isteği aşağıda HER ZAMAN çalışır ve başarılı olduğunda belleğin/cache'in
+// KOŞULSUZ üzerine yazar. Cache yalnızca "Firestore yanıt verene kadarki kısa pencerede kullanılacak
+// GEÇİCİ bir başlangıç değeri" sağlar — bu pencere zaten var olan bir risk (önceden bu süre boyunca
+// systemSettings boş {} idi, yani kill-switch'ler de "kapalı" görünüyordu); cache bu süreyi UZATMIYOR,
+// yalnızca boş {} yerine "son bilinen gerçek durumu" gösteriyor.
+const TK_SYSTEM_SETTINGS_CACHE_KEY = 'tk_system_settings_cache';
+// Aynı oturum içi tekrar okumayı önleyen 5dk'lık TTL'lerden (marketFeaturedCache/sellerCommentsCache
+// vb.) BİLİNÇLİ olarak farklı bir amaç: bu, SOĞUK BAŞLANGIÇLAR ARASI bir köprü cache'i — 24 saatten
+// eski bir kopya "son bilinen durum" olarak bile artık güvenilir sayılmıyor, kullanılmıyor (Firestore
+// isteği yine de her zaman çalışır, bu yalnızca geçici başlangıç değerinin üst sınırı).
+const TK_SYSTEM_SETTINGS_CACHE_MS = 24 * 60 * 60 * 1000;
+function readSystemSettingsCache() {
+  try {
+    const raw = localStorage.getItem(TK_SYSTEM_SETTINGS_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || typeof parsed.at !== 'number' || typeof parsed.data !== 'object' || parsed.data === null) return null;
+    if (Date.now() - parsed.at > TK_SYSTEM_SETTINGS_CACHE_MS) return null;
+    return parsed.data;
+  } catch(e) { return null; } // bozuk JSON / localStorage erişim hatası — cache sessizce yoksayılır
+}
+function writeSystemSettingsCache(data) {
+  try { localStorage.setItem(TK_SYSTEM_SETTINGS_CACHE_KEY, JSON.stringify({ at: Date.now(), data })); } catch(e) { /* localStorage dolu/kapalı olabilir, sessizce geç */ }
+}
+
 async function loadSystemSettings() {
   if (systemSettingsLoadPromise) return systemSettingsLoadPromise;
+  // Anında GEÇİCİ değer: taze bir cache varsa systemSettings hemen doldurulur (Firestore'u beklemeden
+  // en azından "son bilinen" veriyle çalışılabilsin) — aşağıdaki Firestore isteği HER ZAMAN çalışır ve
+  // başarılı olursa bu değerin KOŞULSUZ üzerine yazar, cache asla tek kaynak/son söz olmaz.
+  const cached = readSystemSettingsCache();
+  if (cached) { systemSettings = cached; applyMaintenanceGate(); }
   systemSettingsLoadPromise = (async () => {
     try {
       const snap = await db.collection('teknohane_settings').doc('global').get();
       systemSettings = snap.exists ? snap.data() : {};
-    } catch(e) { systemSettings = {}; }
+      writeSystemSettingsCache(systemSettings);
+    } catch(e) {
+      // Firestore'a erişilemedi: yukarıda taze bir cache'ten zaten yüklendiyse systemSettings'e
+      // DOKUNULMAZ ("son bilinen gerçek durum", boş {}'tan daha güvenli bir varsayılan — özellikle
+      // bakım modu AÇIKKEN ağ kesilirse gate'in yanlışlıkla kapanmasını önler). Cache hiç yoktuysa
+      // mevcut davranış AYNEN korunur: systemSettings boşa döner.
+      if (!cached) systemSettings = {};
+    }
     applyMaintenanceGate();
   })();
   try {
