@@ -2478,7 +2478,7 @@ body.tk-maintenance #maintenance-gate{
     <div class="mtit">Telefon Seç</div>
     <div class="sw" style="margin-bottom:8px">
       <svg class="sico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input class="si" type="text" id="psrch" placeholder="Marka veya model…" oninput="fphn(this.value)">
+      <input class="si" type="text" id="psrch" placeholder="Marka veya model…" oninput="onPhonePickerSearchInput(this.value)">
     </div>
     <div id="picker-count"></div>
     <div class="bfilters" id="bfilters"></div>
@@ -10480,7 +10480,7 @@ async function runMentionSearch(textareaId, query) {
     box.innerHTML = snap.docs.map(d => {
       const u = d.data();
       const name = u.displayName || 'Kullanıcı';
-      return `<div class="mention-suggest-row" onclick="selectMention('${textareaId}','${d.id}','${escapeJsAttr(name)}')">${u.photoURL?`<img src="${u.photoURL}" alt="">`:`<span class="mention-suggest-av">${escapeHtml(name[0]||'?').toUpperCase()}</span>`}<span>${escapeHtml(name)}</span></div>`;
+      return `<div class="mention-suggest-row" onclick="selectMention('${textareaId}','${d.id}','${escapeJsAttr(name)}')">${u.photoURL?`<img src="${u.photoURL}" alt="" loading="lazy" decoding="async">`:`<span class="mention-suggest-av">${escapeHtml(name[0]||'?').toUpperCase()}</span>`}<span>${escapeHtml(name)}</span></div>`;
     }).join('');
     box.style.display = 'block';
   } catch(e) { box.style.display = 'none'; }
@@ -12975,7 +12975,7 @@ async function rhome() {
       </div>
       <div class="home-section" style="animation-delay:175ms">
         <div class="sh"><span class="st"><span class="sh-ic">🎥</span>Diğer Videolar</span></div>
-        <div class="sw"><svg class="sico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input class="si" type="text" placeholder="Video ara…" oninput="fvid(this.value)"></div>
+        <div class="sw"><svg class="sico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input class="si" type="text" placeholder="Video ara…" oninput="onVideoSearchInput(this.value)"></div>
         <div class="vlist hscroll" id="vlist"></div>
       </div>
       <div class="home-section" style="animation-delay:200ms">
@@ -13035,6 +13035,17 @@ function rvlist(vids) {
 }
 
 function fvid(q) { const l=document.getElementById('vlist'); if(l)l.innerHTML=rvlist(allv.slice(1).filter(v=>v.title.toLowerCase().includes(q.toLowerCase()))); }
+
+// PHASE 1D-6 (performans denetimi bulgusu): fvid() her tuş vuruşunda video listesini filtreleyip
+// yeniden çiziyordu — forum/kullanıcı aramasındaki AYNI 300ms debounce deseni burada da uygulanıyor.
+// fvid()'in kendisi değişmedi, yalnızca çağrılma zamanlaması geciktiriliyor. Arama kutusu boşaltılınca
+// mevcut desendeki gibi beklemeden anında çalışır.
+let videoSearchDebounceTimer = null;
+function onVideoSearchInput(q) {
+  clearTimeout(videoSearchDebounceTimer);
+  if (!q.trim()) { fvid(q); return; }
+  videoSearchDebounceTimer = setTimeout(() => fvid(q), 300);
+}
 function retry() { vc=null;cc=null;cid=null;newsCache=null;document.getElementById('home-c').innerHTML='<div class="load"><div class="spin"></div><span>Yenileniyor…</span></div>';rhome(); }
 
 // COMPARE
@@ -13205,6 +13216,18 @@ function fphn(q) {
   abrand='Tümü';
   fp=PHONES.filter(p=>(p.brand+' '+p.name).toLowerCase().includes(q.toLowerCase()));
   rbf(); rplist();
+}
+
+// PHASE 1D-6 (performans denetimi bulgusu): fphn() her tuş vuruşunda PHONES dizisini filtreleyip
+// marka listesini + telefon listesini yeniden çiziyordu — forum/kullanıcı aramasındaki AYNI 300ms
+// debounce deseni burada da uygulanıyor. fphn()'in kendisi (parametreler/davranış) değişmedi, yalnızca
+// çağrılma zamanlaması geciktiriliyor. Arama kutusu boşaltılınca (temizleme) mevcut desendeki gibi
+// beklemeden anında çalışır.
+let phonePickerSearchDebounceTimer = null;
+function onPhonePickerSearchInput(q) {
+  clearTimeout(phonePickerSearchDebounceTimer);
+  if (!q.trim()) { fphn(q); return; }
+  phonePickerSearchDebounceTimer = setTimeout(() => fphn(q), 300);
 }
 
 function pitemAvatarHTML(p) {
@@ -14979,7 +15002,7 @@ async function rArenaDuels() {
   const rowHtml = (d, right, onRowClick) => {
     const opp = oppOf(d);
     return `<div style="display:flex;align-items:center;gap:10px;padding:9px 6px${onRowClick?';cursor:pointer':''}"${onRowClick?` onclick="${onRowClick}"`:''}>
-      ${opp.photo?`<img src="${escapeHtml(opp.photo)}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0" onerror="this.onerror=null;this.src='${escapeJsAttr(avatarUrl(null,opp.name,64))}'">`:`<div style="width:32px;height:32px;border-radius:50%;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">${escapeHtml((opp.name||'?').charAt(0).toUpperCase())}</div>`}
+      ${opp.photo?`<img src="${escapeHtml(opp.photo)}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${escapeJsAttr(avatarUrl(null,opp.name,64))}'">`:`<div style="width:32px;height:32px;border-radius:50%;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">${escapeHtml((opp.name||'?').charAt(0).toUpperCase())}</div>`}
       <span style="flex:1;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(opp.name||'Kullanıcı')}</span>
       ${right}
     </div>`;
