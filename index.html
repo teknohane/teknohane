@@ -14526,42 +14526,51 @@ function arenaApiWithTimeout(promise, ms) {
     new Promise((_, reject) => setTimeout(() => reject(new Error('Bağlantı zaman aşımına uğradı')), ms))
   ]);
 }
-// HATA DÜZELTMESİ (canlı vakada doğrulandı — Yusuf Yeter/Mert Ocak'ta tekrarlayan "Connection
-// reset"/zaman aşımı): tarayıcıdan AYNI cihaz/ağdan hem eski hem yeni bir workers.dev alt alan
-// adına yapılan düz GET istekleri SORUNSUZ çalıştı — yani sorun ağ/DPI/domain engellemesi DEĞİL,
-// yalnızca uygulamanın native ağ istemcisinde (CapacitorHttp) bir şey bu cihazlarda başarısız
-// oluyor. `forceFetch` parametresiyle, CapacitorHttp başarısız olursa yeniden deneme tarayıcının
-// kendi kullandığı fetch()'e (WebView'in ağ yığını) geçiyor.
-async function arenaApiAttempt(url, payload, forceFetch) {
-  if (!forceFetch && window.Capacitor?.Plugins?.CapacitorHttp && isNativeApp()) {
-    const resp = await arenaApiWithTimeout(Capacitor.Plugins.CapacitorHttp.request({
-      url, method: 'POST', headers: { 'Content-Type': 'application/json' }, data: payload,
-      connectTimeout: 15000, readTimeout: 15000
-    }), 15000);
-    const data = typeof resp.data === 'string' ? JSON.parse(resp.data || '{}') : (resp.data || {});
-    if ((resp.status < 200 || resp.status >= 300) && !data.error) data.error = `HTTP ${resp.status}`;
-    return data;
-  } else {
-    const res = await arenaApiWithTimeout(fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, body: JSON.stringify(payload) }), 15000);
-    const data = await res.json();
-    if (!res.ok && !data.error) data.error = `HTTP ${res.status}`;
-    return data;
-  }
+async function arenaApiViaCapacitorHttp(url, payload) {
+  const resp = await arenaApiWithTimeout(Capacitor.Plugins.CapacitorHttp.request({
+    url, method: 'POST', headers: { 'Content-Type': 'application/json' }, data: payload,
+    connectTimeout: 15000, readTimeout: 15000
+  }), 15000);
+  const data = typeof resp.data === 'string' ? JSON.parse(resp.data || '{}') : (resp.data || {});
+  if ((resp.status < 200 || resp.status >= 300) && !data.error) data.error = `HTTP ${resp.status}`;
+  return data;
 }
-// Diğer worker çağrılarından FARKLI olarak throw ETMİYOR — arena-start'ın "already_played"/
-// "in_progress"/"no_quiz_today" dönüşleri gerçek hata değil, anlamlı dallar; çağıran data.error'a bakar.
+async function arenaApiViaFetch(url, payload) {
+  const res = await arenaApiWithTimeout(fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, body: JSON.stringify(payload) }), 15000);
+  const data = await res.json();
+  if (!res.ok && !data.error) data.error = `HTTP ${res.status}`;
+  return data;
+}
+// KÖK NEDEN İYİLEŞTİRMESİ (Yusuf Yeter/Mert Ocak/Abdulsamet Çekim gibi kullanıcılarda tekrarlayan
+// "Failed to fetch"): bu kullanıcılarda Arena AYNI cihazdan DAHA ÖNCE defalarca başarıyla oynanmış
+// (bkz. teknohane_arena_stats — totalGames>0) — yani KALICI bir engelleme değil, ARA SIRA (muhtemelen
+// mobil veri sinyali dalgalanması/hücre geçişi kaynaklı) bir bağlantı sorunu. Eskiden CapacitorHttp
+// SIRAYLA denenip başarısız olursa fetch()'e geçiliyordu — bu, tek bir yolun o an flaky olduğu
+// senaryoda toplam bekleme süresini ikiye katlıyordu (en kötü 30sn) AMA başarı olasılığını hiç
+// artırmıyordu (ikinci deneme yalnızca BİRİNCİSİ tükendikten SONRA başlıyordu). Artık native ortamda
+// iki yol AYNI ANDA (paralel) deneniyor, hangisi önce başarırsa o kullanılıyor — en kötü bekleme tek
+// bir denemenin süresine (15sn) iniyor, ayrıca "bir yol o an tıkanıksa diğeri açık olabilir"
+// ihtimalinden yararlanılarak başarı olasılığı artıyor. Yalnızca HER İKİSİ de başarısız olursa hata
+// döner; bu durumda HER İKİ hatanın ayrıntısı da _capacitorError/_fetchError alanlarında taşınır
+// (bkz. arenaBeginQuiz'deki logClientError çağrısı — hangi yolun/ne şekilde başarısız olduğunu
+// gelecekteki teşhis için stack alanına yazıyor).
 async function arenaApiCall(url, payload) {
-  try {
-    return await arenaApiAttempt(url, payload);
-  } catch (e) {
-    const msg = e?.message || String(e);
-    // İlk denemedeki HERHANGİ bir hatada (yalnızca bilinen "geçici ağ hatası" metinlerinde değil —
-    // Mert Ocak'ın zaman aşımı hatası bu listeyle hiç eşleşmiyordu) yeniden deneme BİLEREK fetch()'e
-    // (forceFetch:true) geçiyor — CapacitorHttp'nin kendisi sorunlu olabileceği için aynı yöntemi
-    // tekrar denemek yerine tarayıcının da başarıyla kullandığı farklı bir ağ yoluyla deneniyor.
-    try { return await arenaApiAttempt(url, payload, true); }
-    catch (e2) { return { error: e2?.message || String(e2) }; }
+  if (window.Capacitor?.Plugins?.CapacitorHttp && isNativeApp()) {
+    const [capRes, fetchRes] = await Promise.allSettled([
+      arenaApiViaCapacitorHttp(url, payload),
+      arenaApiViaFetch(url, payload),
+    ]);
+    if (capRes.status === 'fulfilled') return capRes.value;
+    if (fetchRes.status === 'fulfilled') return fetchRes.value;
+    return {
+      error: fetchRes.reason?.message || String(fetchRes.reason),
+      _capacitorError: capRes.reason?.message || String(capRes.reason),
+      _fetchError: fetchRes.reason?.message || String(fetchRes.reason),
+    };
   }
+  // Native olmayan (mobil web/masaüstü) ortamda CapacitorHttp zaten yok — tek yol fetch().
+  try { return await arenaApiViaFetch(url, payload); }
+  catch (e) { return { error: e?.message || String(e) }; }
 }
 
 function arenaStopTimer() {
@@ -14755,17 +14764,22 @@ async function arenaBeginQuiz() {
     return;
   }
   if (data.error || !data.questions?.length) {
-    // HATA DÜZELTMESİ (canlı vakada doğrulandı — "Connection reset"): bu ekrana en sık düşen sebep
-    // geçici bir ağ kopukluğu (arenaApiCall zaten 1 kez otomatik yeniden deniyor, ikinci deneme de
-    // başarısız olursa buraya düşülüyor) — sunucuda hiçbir kilit/deneme kaydı OLUŞMADAN başarısız
-    // olduğu için kullanıcının kaybettiği bir şey yok, yalnızca tekrar denemesi yeterli. Önceden
-    // yalnızca "Geri Dön" vardı — kullanıcı Arena ana ekranına dönüp "Yarışmaya Katıl"a TEKRAR basmak
-    // zorunda kalıyordu; artık doğrudan burada "Tekrar Dene" butonu var.
+    // HATA DÜZELTMESİ (canlı vakada doğrulandı — "Connection reset"/"Failed to fetch"): bu ekrana en
+    // sık düşen sebep geçici bir ağ kopukluğu (arenaApiCall artık CapacitorHttp+fetch'i AYNI ANDA
+    // dener, buraya yalnızca İKİSİ DE başarısız olursa düşülür) — sunucuda hiçbir kilit/deneme kaydı
+    // OLUŞMADAN başarısız olduğu için kullanıcının kaybettiği bir şey yok, yalnızca tekrar denemesi
+    // yeterli. Önceden yalnızca "Geri Dön" vardı — kullanıcı Arena ana ekranına dönüp "Yarışmaya
+    // Katıl"a TEKRAR basmak zorunda kalıyordu; artık doğrudan burada "Tekrar Dene" butonu var.
     // GÖZLEMLENEBİLİRLİK: aynı kullanıcıda tekrarlayan raporları artık kullanıcıya SORMADAN admin
     // panelindeki Hatalar sekmesinde (uid/platform/userAgent ile) görebilmek için, buraya düşen HER
-    // vaka logClientError ile kaydediliyor — önceden yalnızca yakalanmamış JS istisnaları/reddleri
-    // loglanıyordu, arena-start'ın kendi (yakalanmış) hata dalı hiç loglanmıyordu.
-    logClientError('arena-start başarısız: ' + (data.error || 'boş soru listesi döndü'), null, 'arenaBeginQuiz');
+    // vaka logClientError ile kaydediliyor. stack alanına HER İKİ yolun (CapacitorHttp/fetch) kendi
+    // hata mesajı ayrı ayrı yazılıyor (bkz. arenaApiCall'daki _capacitorError/_fetchError) — böylece
+    // "hangi yol/ne şekilde başarısız oldu" (DNS mi, TLS mi, zaman aşımı mı) ileride bir kalıp
+    // aranırken kod değişikliği gerektirmeden doğrudan admin panelinden görülebiliyor.
+    const netDiag = (data._capacitorError || data._fetchError)
+      ? `capacitorHttp=${data._capacitorError||'-'} | fetch=${data._fetchError||'-'}`
+      : null;
+    logClientError('arena-start başarısız: ' + (data.error || 'boş soru listesi döndü'), netDiag, 'arenaBeginQuiz');
     body.innerHTML = `<div class="no">Yarışma başlatılamadı.<br><span style="font-size:11px;color:var(--text3)">${escapeHtml(data.error||'Lütfen tekrar dene.')}</span></div>
       <button class="apbtn" style="background:linear-gradient(135deg,var(--cyan),#0091FF);color:#00040F;font-weight:700;border:none" onclick="arenaBeginQuiz()">↻ Tekrar Dene</button>
       <button class="apbtn" onclick="rArenaHome()">Geri Dön</button>`;
