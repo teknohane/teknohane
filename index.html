@@ -4193,12 +4193,20 @@ function logPermissionDenialDiagnostic(action, e) {
 // lastForumActionAtLocal eskiyse), neredeyse eşzamanlı BAŞKA bir forum eylemi (ör. art arda iki
 // yorum/konu) sunucudaki lastForumActionAt'i bu yazma sunucuya ulaşmadan hemen önce güncelleyebilir
 // — sunucu haklı olarak reddeder, ama kullanıcı hiç uyarı görmediği için bunu jenerik "yetkin yok"
-// hatası sanır (içerik genelde az sonra/başka denemede zaten gidiyor). Reddedilme anında hâlâ hız
-// sınırı penceresi içindeysek (lastForumActionAtLocal o arada güncellenmiş olabilir), kullanıcıya
-// doğru ve sakinleştirici "Yavaş Ol" mesajını gösteriyoruz — jenerik, alarm verici mesaj yerine.
+// hatası sanır (içerik genelde az sonra/başka denemede zaten gidiyor).
+// DÜZELTME (canlı teşhis loglarında doğrulandı — ÜÇ ayrı vakanın ÜÇÜNDE de secSinceForumLocal=0
+// çıktı, yani reddedilme anında lastForumActionAtLocal HER SEFERİNDE zaten güncellenmiş durumdaydı):
+// eski koşul (Date.now()-lastForumActionAtLocal) < FORUM_RATE_LIMIT_MS bu güncellemenin submitPost/
+// submitComment tarafında YAZMA BAŞLADIĞINDA değil, BAŞARILI OLDUKTAN SONRA yapılmasına bağımlıydı —
+// yani tam da bu yarış senaryosunda YANLIŞ dala düşüp jenerik hata göstermesi de mümkündü (bkz.
+// submitPost/submitComment'teki optimistic lastForumActionAtLocal güncellemesi — bu YARIŞI da azaltıyor).
+// e-posta doğrulaması ve ban kontrolü zaten PROAKTİF olarak gönderimden ÖNCE yapıldığından (bkz.
+// submitComment satır ~11622, checkBanStatus), token sert yenilendikten SONRA bile hâlâ reddediliyor
+// olması pratikte SADECE bu hız-sınırı yarışını gösterir — bu yüzden zamanlamaya güvenmek yerine
+// koşulsuz olarak sakinleştirici "Yavaş Ol" mesajı gösteriliyor.
 function showForumPermissionError(e) {
-  if (e && e.code === 'permission-denied' && (Date.now() - lastForumActionAtLocal) < FORUM_RATE_LIMIT_MS) {
-    const remaining = Math.max(1, Math.ceil((FORUM_RATE_LIMIT_MS - (Date.now() - lastForumActionAtLocal)) / 1000));
+  if (e && e.code === 'permission-denied') {
+    const remaining = Math.max(1, Math.min(FORUM_RATE_LIMIT_MS / 1000, Math.ceil((FORUM_RATE_LIMIT_MS - (Date.now() - lastForumActionAtLocal)) / 1000)));
     showToast('⏳', 'rgba(255,159,10,.15)', 'Yavaş Ol', 'Art arda çok hızlı gönderim yapıyorsun, ' + remaining + ' saniye bekle.');
   } else {
     showErrorToast(e);
@@ -11200,6 +11208,15 @@ async function submitPost() {
   if (pollEnabled && pollTexts.length < 2) { showToast('⚠️','rgba(255,69,58,.15)','Anket Eksik','En az 2 dolu seçenek girmelisin.'); return; }
   if (!checkForumRateLimit()) return;
   if (!guardSubmit('post')) return;
+  // YARIŞ DURUMU AZALTMASI: lastForumActionAtLocal eskiden yalnızca yazma BAŞARILI OLDUKTAN SONRA
+  // güncelleniyordu — bu sırada aynı kullanıcı neredeyse eşzamanlı bir YORUM da gönderirse (farklı
+  // guardSubmit anahtarı olduğu için engellenmez), o denemenin checkForumRateLimit() kontrolü bu
+  // konunun yazması henüz tamamlanmadığı için hatalı şekilde geçiyordu. Artık yazma BAŞLARKEN
+  // iyimser olarak güncelleniyor (o anki değer prevForumActionAtLocal'de saklanıyor); yazma
+  // gerçekten başarısız olursa aşağıdaki catch'te geri alınıyor ki gerçek bir hatadan sonra
+  // kullanıcı 8 saniye boyunca haksız yere engellenmesin.
+  const prevForumActionAtLocal = lastForumActionAtLocal;
+  lastForumActionAtLocal = Date.now();
   try {
     const data = {
       type: currentPostType,
@@ -11261,7 +11278,7 @@ async function submitPost() {
     pollOptionsDraft = [];
 
     showToast('⏳','rgba(255,159,10,.15)','Konu Gönderildi','İncelendikten sonra foruma yayınlanacaktır.');
-  } catch(e) { logPermissionDenialDiagnostic('post', e); showForumPermissionError(e); } finally { releaseSubmit('post'); }
+  } catch(e) { lastForumActionAtLocal = prevForumActionAtLocal; logPermissionDenialDiagnostic('post', e); showForumPermissionError(e); } finally { releaseSubmit('post'); }
 }
 
 async function openPost(id) {
@@ -11626,6 +11643,10 @@ async function submitComment() {
   const replyingTo = replyingToComment; // submitComment sırasında değişebileceği için anlık kopya
   if (!checkForumRateLimit()) return;
   if (!guardSubmit('comment')) return;
+  // YARIŞ DURUMU AZALTMASI: submitPost'taki AYNI gerekçe (bkz. orada) — yazma BAŞLARKEN iyimser
+  // güncelleme, gerçekten başarısız olursa catch'te geri alınıyor.
+  const prevForumActionAtLocal = lastForumActionAtLocal;
+  lastForumActionAtLocal = Date.now();
   try {
     const cdata = {
       uid: user.uid,
@@ -11686,7 +11707,7 @@ async function submitComment() {
       if (m.uid && m.uid !== user.uid) notifyUser(m.uid, 'mention', `${name} seni bir yorumda etiketledi: "${p.title}"`, null, p.id, user.uid, name, myProfileData.photoURL);
     });
     pendingMentions = [];
-  } catch(e) { logPermissionDenialDiagnostic('comment', e); showForumPermissionError(e); } finally { releaseSubmit('comment'); }
+  } catch(e) { lastForumActionAtLocal = prevForumActionAtLocal; logPermissionDenialDiagnostic('comment', e); showForumPermissionError(e); } finally { releaseSubmit('comment'); }
 }
 
 // "Takip Et": konuya yeni yorum geldiğinde bildirim almak için. followers[] alanı, konu oluşturulurken
@@ -15238,7 +15259,16 @@ async function arenaDuelBegin(duelId) {
   // GÖZLEMLENEBİLİRLİK: arenaBeginQuiz()'deki (günlük yarışma) aynı loglama arenaDuelBegin'de hiç
   // yoktu — bu yüzden "Oyna'ya basıyorum, hazırlanıyor diyor, geri dönüyor" raporu admin panelin
   // Hatalar sekmesinde HİÇ görünmüyordu, yalnızca canlı Firestore sorgusuyla teşhis edilebildi.
-  if (data.error) { logClientError('duel-start başarısız: ' + data.error, null, 'arenaDuelBegin'); showMsg('Başlatılamadı: ' + data.error); rArenaDuels(); return; }
+  // DÜZELTME: netDiag (_capacitorError/_fetchError ayrıntısı) de arenaBeginQuiz'deki gibi stack
+  // alanına yazılıyor artık — eskiden null geçiliyordu, "hangi yol/ne şekilde başarısız oldu" bilgisi
+  // düello girişlerinde tamamen kayboluyordu.
+  if (data.error) {
+    const netDiag = (data._capacitorError || data._fetchError)
+      ? `capacitorHttp=${data._capacitorError||'-'} | fetch=${data._fetchError||'-'}`
+      : null;
+    logClientError('duel-start başarısız: ' + data.error, netDiag, 'arenaDuelBegin');
+    showMsg('Başlatılamadı: ' + data.error); rArenaDuels(); return;
+  }
   if (data.alreadyCompleted) { showMsg('Bu düelloyu zaten tamamladın'); rArenaDuels(); return; }
   arenaDuelId = duelId;
   arenaDuelQuiz = { questions: data.questions, opponentName: data.opponentName, opponentPhoto: data.opponentPhoto, opponentUid: data.opponentUid };
