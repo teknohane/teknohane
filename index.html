@@ -14582,7 +14582,7 @@ async function arenaApiViaFetch(url, payload) {
 // döner; bu durumda HER İKİ hatanın ayrıntısı da _capacitorError/_fetchError alanlarında taşınır
 // (bkz. arenaBeginQuiz'deki logClientError çağrısı — hangi yolun/ne şekilde başarısız olduğunu
 // gelecekteki teşhis için stack alanına yazıyor).
-async function arenaApiCall(url, payload) {
+async function arenaApiCallOnce(url, payload) {
   if (window.Capacitor?.Plugins?.CapacitorHttp && isNativeApp()) {
     const [capRes, fetchRes] = await Promise.allSettled([
       arenaApiViaCapacitorHttp(url, payload),
@@ -14591,6 +14591,7 @@ async function arenaApiCall(url, payload) {
     if (capRes.status === 'fulfilled') return capRes.value;
     if (fetchRes.status === 'fulfilled') return fetchRes.value;
     return {
+      _networkFailure: true,
       error: fetchRes.reason?.message || String(fetchRes.reason),
       _capacitorError: capRes.reason?.message || String(capRes.reason),
       _fetchError: fetchRes.reason?.message || String(fetchRes.reason),
@@ -14598,7 +14599,22 @@ async function arenaApiCall(url, payload) {
   }
   // Native olmayan (mobil web/masaüstü) ortamda CapacitorHttp zaten yok — tek yol fetch().
   try { return await arenaApiViaFetch(url, payload); }
-  catch (e) { return { error: e?.message || String(e) }; }
+  catch (e) { return { _networkFailure: true, error: e?.message || String(e) }; }
+}
+// GÜVENİLİRLİK İYİLEŞTİRMESİ (kullanıcı raporu — "Arena hâlâ sık sık hata veriyor, kökten çöz"):
+// CapacitorHttp+fetch paralel denemesi bile İKİSİ DE aynı anda başarısız olabiliyor — ama bu KALICI
+// bir engelleme DEĞİL (yukarıdaki not: aynı kullanıcılar aynı cihazdan daha önce defalarca başarıyla
+// oynamış), yani ARA SIRA/geçici bir "blip" (hücre geçişi, kısa Wi-Fi kopması vb.). Önceden İLK
+// başarısızlıkta doğrudan kullanıcıya "Tekrar Dene" ekranı gösteriliyordu — artık gerçek bir ağ
+// hatasıyla (sunucudan yanıt bile gelmeden) başarısız olursa, kısa bir bekleme sonrası SESSİZCE bir
+// kez daha deneniyor; blip o kadar kısa sürdüyse kullanıcı hiçbir hata görmeden devam eder. Sunucudan
+// GERÇEK bir yanıt geldiyse (iş mantığı hatası dahil, ör. arena_disabled/in_progress) BU ASLA TEKRAR
+// DENENMİYOR — sunucu zaten cevap verdi, tekrar denemek yalnızca aynı sonucu gecikmeyle döner.
+async function arenaApiCall(url, payload) {
+  const first = await arenaApiCallOnce(url, payload);
+  if (!first._networkFailure) return first;
+  await new Promise(r => setTimeout(r, 1200));
+  return await arenaApiCallOnce(url, payload);
 }
 
 function arenaStopTimer() {
