@@ -14522,6 +14522,12 @@ let arenaQStartMs = 0;
 let arenaTimerHandle = null;
 let arenaTimeLeftMs = 0;
 let arenaResult = null;        // arena-submit'ten dönen ya da bugün zaten oynanmış denemeden okunan sonuç
+// FAZ 0 — fonksiyon seviyesinde çift-submit koruması: "Tekrar Dene"ye hızlı art arda basılırsa (veya
+// arenaAdvanceQuestion'ın çağrısıyla aynı ana denk gelirse) İKİNCİ çağrının hiçbir şey yapmadan
+// dönmesini garanti eder. Senkron olarak (ilk await'ten ÖNCE) true'ya çekildiği için JS'in tek-
+// threadli yapısı sayesinde yarış durumu oluşmaz. finally bloğunda (başarı/hata/erken dönüş fark
+// etmeksizin) her zaman false'a döner.
+let arenaSubmitInFlight = false;
 let arenaBackWarned = false;
 let arenaLbTab = 'daily';
 // Arena içi geri tuşu — her ekran "geri" tuşuna basılınca gidilecek ekranı (parametresiz bir
@@ -14780,6 +14786,55 @@ async function rArenaHome() {
     <button class="apbtn" style="margin-top:14px" onclick="rArenaLeaderboard()">🏆 Liderlik Tablosu</button>`;
 }
 
+// ==== FAZ 0 — QUIZ CEVABI KAYBI KORUMASI (sessionStorage recovery) ====
+// Cevaplar şu ana kadar YALNIZCA arenaAnswers (RAM) içinde tutuluyordu — ağ kopması/uygulamanın arka
+// plana atılması/WebView yeniden oluşturulması durumunda kayboluyordu. Bu, Firestore'un/server-
+// authoritative puanlamanın YERİNE GEÇMİYOR — yalnızca bir CLIENT RECOVERY katmanı: doğru cevap,
+// puanlama veya herhangi bir gizli bilgi buraya ASLA yazılmaz, yalnızca kullanıcının kendi seçtiği
+// şıklar + hangi soruda kaldığı. İstemcide bir "attemptId" kavramı hiç yok (arena-start yalnızca
+// quizId döner, cloudflare-push-worker.js) — bu yüzden yeni bir ID uydurmak yerine anahtar mevcut
+// quizId+uid'den türetiliyor (sunucudaki {uid}_{date} kilidinin istemci tarafı doğal karşılığı).
+function arenaRecoveryKey(quizId) {
+  return `tk_arena_attempt_${quizId}_${user?.uid || ''}`;
+}
+function arenaSaveRecovery() {
+  if (!arenaQuiz?.quizId || !user) return;
+  try {
+    sessionStorage.setItem(arenaRecoveryKey(arenaQuiz.quizId), JSON.stringify({
+      quizId: arenaQuiz.quizId,
+      questionCount: arenaQuiz.questions.length,
+      answers: arenaAnswers,
+      currentQuestionIndex: arenaCurrentQ,
+      savedAt: Date.now(),
+    }));
+  } catch (e) { console.error('arenaSaveRecovery:', e); }
+}
+// SUNUCUDAN GELEN QUIZ VERİSİ HER ZAMAN OTORİTE: yalnızca arenaBeginQuiz()'in BAŞARILI yanıtından
+// hemen sonra, o anki sunucu yanıtıyla (quizId + soru sayısı) karşılaştırılarak çağrılır. Kayıt
+// eksik/bozuk/uyumsuzsa (farklı gün, farklı soru sayısı, bozuk JSON, answers dizisi değilse veya
+// soru sayısından fazla cevap içeriyorsa) sessizce reddedilip temizlenir — arenaAnswers mevcut
+// (boş) haliyle bırakılır, hiçbir şey çökmez.
+function arenaLoadRecovery(quizId, questionCount) {
+  if (!quizId || !user) return null;
+  let raw;
+  try { raw = sessionStorage.getItem(arenaRecoveryKey(quizId)); } catch (e) { console.error('arenaLoadRecovery:', e); return null; }
+  if (!raw) return null;
+  let parsed;
+  try { parsed = JSON.parse(raw); } catch (e) { arenaClearRecovery(quizId); return null; }
+  if (!parsed || parsed.quizId !== quizId || parsed.questionCount !== questionCount
+      || !Array.isArray(parsed.answers) || parsed.answers.length > questionCount) {
+    arenaClearRecovery(quizId);
+    return null;
+  }
+  let idx = parsed.currentQuestionIndex;
+  if (!Number.isInteger(idx) || idx < 0 || idx >= questionCount) idx = 0;
+  return { answers: parsed.answers, currentQuestionIndex: idx };
+}
+function arenaClearRecovery(quizId) {
+  if (!quizId || !user) return;
+  try { sessionStorage.removeItem(arenaRecoveryKey(quizId)); } catch (e) { console.error('arenaClearRecovery:', e); }
+}
+
 async function arenaBeginQuiz() {
   const body = document.getElementById('arena-body');
   body.innerHTML = `<div class="load"><div class="spin"></div><span>Yarışma hazırlanıyor…</span></div>`;
@@ -14830,8 +14885,19 @@ async function arenaBeginQuiz() {
     return;
   }
   arenaQuiz = { quizId: data.quizId, questions: data.questions };
-  arenaCurrentQ = 0;
-  arenaAnswers = [];
+  const recovered = arenaLoadRecovery(data.quizId, data.questions.length);
+  if (recovered) {
+    arenaAnswers = recovered.answers;
+    arenaCurrentQ = recovered.currentQuestionIndex;
+    // arenaForceEndQuiz() kalan TÜM soruları (cevaplanmış dahil) doldurup arenaFinishQuiz()'i
+    // tetikler — o submit tamamlanamadan kesintiye uğradıysa kurtarılan answers zaten tam (soru
+    // sayısı kadar). Bu durumda soru ekranına DÖNMEK yerine (kullanıcıyı zaten cevapladığı bir
+    // soruyla tekrar karşılaştırıp yinelenen cevap oluşturmamak için) doğrudan gönderime devam edilir.
+    if (recovered.answers.length >= data.questions.length) { arenaFinishQuiz(); return; }
+  } else {
+    arenaCurrentQ = 0;
+    arenaAnswers = [];
+  }
   rArenaQuestion();
 }
 
@@ -14886,6 +14952,7 @@ function arenaSelectAnswer(index) {
   const elapsedMs = Date.now() - arenaQStartMs;
   const q = arenaQuiz.questions[arenaCurrentQ];
   arenaAnswers.push({ questionId: q.id, selectedIndex: index, elapsedMs });
+  arenaSaveRecovery();
   document.querySelectorAll('.arena-opt').forEach((btn,i) => {
     btn.style.pointerEvents = 'none';
     if (i === index) btn.classList.add('arena-opt-selected');
@@ -14926,31 +14993,50 @@ function arenaForceEndQuiz() {
       arenaAnswers.push({ questionId: q.id, selectedIndex: null, elapsedMs: q.timeLimitSec * 1000 });
     }
   }
+  arenaSaveRecovery();
   arenaFinishQuiz();
 }
 
 async function arenaFinishQuiz() {
-  arenaView = 'submitting';
-  const body = document.getElementById('arena-body');
-  body.innerHTML = `<div class="load"><div class="spin"></div><span>Puanlanıyor…</span></div>`;
-  const idToken = await user.getIdToken();
-  const data = await arenaApiCall(ARENA_SUBMIT_API, { idToken, answers: arenaAnswers });
-  if (data.error) {
-    body.innerHTML = `<div class="no">Sonuç hesaplanamadı.<br><span style="font-size:11px;color:var(--text3)">${escapeHtml(data.error)}</span></div>
-      <button class="apbtn" onclick="rArenaHome()">Arena'ya Dön</button>`;
-    return;
+  // Çift-submit koruması — bkz. arenaSubmitInFlight tanımı. Zaten devam eden bir gönderim varsa
+  // (ör. "Tekrar Dene"ye hızlı art arda basıldı) sessizce hiçbir şey yapmadan çık.
+  if (arenaSubmitInFlight) return;
+  arenaSubmitInFlight = true;
+  try {
+    arenaView = 'submitting';
+    const body = document.getElementById('arena-body');
+    body.innerHTML = `<div class="load"><div class="spin"></div><span>Puanlanıyor…</span></div>`;
+    const idToken = await user.getIdToken();
+    const data = await arenaApiCall(ARENA_SUBMIT_API, { idToken, answers: arenaAnswers });
+    if (data.error) {
+      // GÜVENİLİRLİK (FAZ 0): eskiden yalnızca "Arena'ya Dön" vardı — ağ hatasında kullanıcı
+      // cevaplarını (arenaAnswers hâlâ RAM'de VE sessionStorage'da duruyor) kaybetmiş gibi
+      // Arena'ya geri dönmek zorunda kalıyordu. "Tekrar Dene" artık YENİ bir quiz başlatmadan,
+      // AYNI arenaAnswers ile bu fonksiyonu tekrar çağırıyor — worker tarafı zaten idempotent
+      // (attempt status==='completed' kontrolü + optimistic concurrency), bu yüzden başarılı bir
+      // ilk denemenin yanıtı yalnızca istemciye ulaşamamışsa bile ikinci deneme GÜVENLE aynı
+      // sonucu döner, tekrar puanlama yapılmaz. Recovery bilgisi bu dalda BİLEREK temizlenmiyor.
+      body.innerHTML = `<div class="no">Sonuç gönderilemedi.<br><span style="font-size:11px;color:var(--text3)">İnternet bağlantınızı kontrol edip tekrar deneyin.</span></div>
+        <button class="apbtn" style="background:linear-gradient(135deg,var(--cyan),#0091FF);color:#00040F;font-weight:700;border:none" onclick="arenaFinishQuiz()">↻ Tekrar Dene</button>
+        <button class="apbtn" onclick="rArenaHome()">Arena'ya Dön</button>`;
+      return;
+    }
+    // Yalnızca sunucudan BAŞARILI yanıt geldikten sonra recovery temizlenir.
+    arenaClearRecovery(arenaQuiz?.quizId);
+    arenaResult = data;
+    if (data.newMilestones?.length) {
+      showToast('🔥', 'var(--cdim)', `${Math.max(...data.newMilestones)} Günlük Seri!`, 'Kilometre taşı bonus XP kazandın');
+    }
+    if (data.leveledUp) {
+      showToast('⭐', 'var(--cdim)', `Seviye ${data.level}!`, `Yeni unvanın: ${data.levelTitle||''}`);
+    }
+    if (data.newBadges?.length) {
+      showToast('🏅', 'var(--cdim)', 'Yeni Rozet Kazandın!', data.newBadges.map(b=>ARENA_BADGE_LABELS[b]||b).join(', '));
+    }
+    rArenaResult();
+  } finally {
+    arenaSubmitInFlight = false;
   }
-  arenaResult = data;
-  if (data.newMilestones?.length) {
-    showToast('🔥', 'var(--cdim)', `${Math.max(...data.newMilestones)} Günlük Seri!`, 'Kilometre taşı bonus XP kazandın');
-  }
-  if (data.leveledUp) {
-    showToast('⭐', 'var(--cdim)', `Seviye ${data.level}!`, `Yeni unvanın: ${data.levelTitle||''}`);
-  }
-  if (data.newBadges?.length) {
-    showToast('🏅', 'var(--cdim)', 'Yeni Rozet Kazandın!', data.newBadges.map(b=>ARENA_BADGE_LABELS[b]||b).join(', '));
-  }
-  rArenaResult();
 }
 
 function rArenaResult() {
