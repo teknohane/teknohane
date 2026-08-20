@@ -14437,6 +14437,7 @@ const ARENA_DUEL_RESPOND_API = 'https://teknohane-api.yusuf-aykac.workers.dev/du
 const ARENA_DUEL_START_API = 'https://teknohane-api.yusuf-aykac.workers.dev/duel-start';
 const ARENA_DUEL_SUBMIT_API = 'https://teknohane-api.yusuf-aykac.workers.dev/duel-submit';
 const ARENA_DUEL_REMATCH_API = 'https://teknohane-api.yusuf-aykac.workers.dev/duel-rematch';
+const ARENA_QUESTION_REPORT_API = 'https://teknohane-api.yusuf-aykac.workers.dev/arena-question-report';
 const ARENA_CATEGORY_LABELS = {
   phones: '📱 Akıllı Telefonlar', cpu: '⚙️ İşlemciler', display: '🖥️ Ekran Teknolojileri',
   camera: '📷 Kamera', battery: '🔋 Batarya ve Şarj', android: '🤖 Android', apple: '🍎 Apple',
@@ -14921,9 +14922,86 @@ function rArenaQuestion() {
     <div style="font-size:17px;font-weight:700;line-height:1.4;margin-bottom:20px">${escapeHtml(q.text)}</div>
     <div id="arena-options" style="display:flex;flex-direction:column;gap:10px">
       ${q.options.map((opt,i)=>`<button class="arena-opt" id="arena-opt-${i}" onclick="arenaSelectAnswer(${i})">${escapeHtml(opt)}</button>`).join('')}
+    </div>
+    <div style="text-align:center;margin-top:16px">
+      <span style="font-size:11px;color:var(--text3);cursor:pointer" onclick="arenaOpenReportModal()">⚑ Soruyu Raporla</span>
     </div>`;
   arenaQStartMs = Date.now();
   arenaStartTimer(q.timeLimitSec);
+}
+
+// FAZ 1B-2 — soru raporlama. Modal, #arena-body'nin İÇİNE değil document.body'ye AYRI bir overlay
+// olarak ekleniyor — açılması/kapanması arenaView/arenaCurrentQ state'ine ya da çalışan timer'a HİÇ
+// dokunmuyor (arena-timer-txt/arena-timer-bar zaten arena-body'nin İÇİNDE, onun innerHTML'i bu overlay
+// yüzünden asla değişmiyor) — soru ekranı, süresi dahil, modal açıkken de arkada normal işlemeye
+// devam eder. Server-authoritative doğrulama (reporterUid, questionId varlığı, reason whitelist,
+// duplicate/spam koruması) tamamen worker'da (/internal/arena-question-report) — burası yalnızca UI.
+const ARENA_REPORT_REASONS = [
+  ['wrong_answer', 'Yanlış cevap'], ['ambiguous', 'Birden fazla doğru cevap'],
+  ['outdated', 'Güncel değil'], ['typo', 'Yazım hatası'],
+  ['duplicate', 'Tekrar soru'], ['offensive', 'Uygunsuz içerik'], ['other', 'Diğer'],
+];
+let arenaReportQuestionId = null;
+let arenaReportInFlight = false;
+function arenaOpenReportModal() {
+  const q = arenaQuiz?.questions?.[arenaCurrentQ];
+  if (!q) return;
+  arenaReportQuestionId = q.id;
+  document.getElementById('arena-report-overlay')?.remove();
+  const div = document.createElement('div');
+  div.id = 'arena-report-overlay';
+  div.style.cssText = 'position:fixed;inset:0;z-index:2000;background:rgba(0,4,15,.75);display:flex;align-items:center;justify-content:center;padding:20px';
+  div.onclick = () => arenaCloseReportModal();
+  div.innerHTML = `
+    <div style="background:var(--surf);border:1px solid var(--border2);border-radius:16px;padding:20px;max-width:400px;width:100%;max-height:80vh;overflow-y:auto" onclick="event.stopPropagation()">
+      <div style="font-size:15px;font-weight:700;margin-bottom:14px">⚑ Soruyu Raporla</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
+        ${ARENA_REPORT_REASONS.map(([val,label],i)=>`
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
+            <input type="radio" name="arena-report-reason" value="${val}" ${i===0?'checked':''}>${escapeHtml(label)}
+          </label>`).join('')}
+      </div>
+      <textarea id="arena-report-note" placeholder="İsteğe bağlı not…" maxlength="500" rows="3" style="width:100%;background:var(--surf2);border:1px solid var(--border2);border-radius:10px;padding:10px;color:var(--text);font-family:inherit;font-size:13px;resize:none;margin-bottom:14px;box-sizing:border-box"></textarea>
+      <div id="arena-report-err" style="color:var(--red);font-size:12px;margin-bottom:10px"></div>
+      <div style="display:flex;gap:10px">
+        <button class="apbtn" style="flex:1" onclick="arenaCloseReportModal()">İptal</button>
+        <button class="apbtn" id="arena-report-submit-btn" style="flex:1;background:linear-gradient(135deg,var(--cyan),#0091FF);color:#00040F;font-weight:700;border:none" onclick="arenaSubmitQuestionReport()">Gönder</button>
+      </div>
+    </div>`;
+  document.body.appendChild(div);
+}
+function arenaCloseReportModal() {
+  document.getElementById('arena-report-overlay')?.remove();
+  arenaReportQuestionId = null;
+}
+async function arenaSubmitQuestionReport() {
+  if (arenaReportInFlight || !arenaReportQuestionId) return;
+  const err = document.getElementById('arena-report-err');
+  const btn = document.getElementById('arena-report-submit-btn');
+  const reasonEl = document.querySelector('input[name="arena-report-reason"]:checked');
+  if (!reasonEl) { if (err) err.textContent = 'Bir sebep seç.'; return; }
+  arenaReportInFlight = true;
+  if (btn) { btn.disabled = true; btn.textContent = 'Gönderiliyor…'; }
+  if (err) err.textContent = '';
+  const questionId = arenaReportQuestionId;
+  try {
+    const idToken = await user.getIdToken();
+    const note = document.getElementById('arena-report-note')?.value.trim() || '';
+    const data = await arenaApiCall(ARENA_QUESTION_REPORT_API, { idToken, questionId, reason: reasonEl.value, note });
+    if (data.error === 'already_reported') {
+      arenaCloseReportModal();
+      showToast('⚑', 'rgba(255,159,10,.15)', 'Zaten Raporlandı', 'Bu soruyu zaten raporladınız.');
+      return;
+    }
+    if (data.error) throw new Error(data.error);
+    arenaCloseReportModal();
+    showToast('✅', 'rgba(48,209,88,.15)', 'Teşekkürler', 'Raporunuz alındı.');
+  } catch (e) {
+    if (err) err.textContent = 'Rapor gönderilemedi. Tekrar deneyin.';
+    if (btn) { btn.disabled = false; btn.textContent = 'Gönder'; }
+  } finally {
+    arenaReportInFlight = false;
+  }
 }
 
 function arenaStartTimer(seconds) {
