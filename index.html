@@ -2994,6 +2994,13 @@ let appBackgroundedAt = null;
 function handleAppForeground() {
   if (!user) { appBackgroundedAt = null; return; }
   writePresenceHeartbeat(user.uid);
+  // KÖK NEDEN DÜZELTMESİ (kullanıcı raporu: e-postasını doğrulamış kullanıcılar uygulamada hâlâ
+  // "doğrulanmadı" görüyordu): doğrulama linki HER ZAMAN ayrı bir sekmede/tarayıcıda açılıyor (bkz.
+  // auth-action.html) — kullanıcı doğruladıktan sonra uygulamaya GERİ DÖNDÜĞÜNDE bu, tam olarak
+  // "arka plandan öne gelme" anı. 60sn eşiğinin (aşağıda) DIŞINDA, HER öne gelişte çalışır — yalnızca
+  // zaten doğrulanmamış kullanıcılar için (ucuz, tek bir user.reload()), bu yüzden performans maliyeti
+  // yalnızca doğrulama BEKLEYEN kullanıcılara sınırlı.
+  if (!user.emailVerified) refreshEmailVerifiedStatus();
   const wasBackgroundedLongEnough = appBackgroundedAt && (Date.now() - appBackgroundedAt) > 60000;
   appBackgroundedAt = null;
   if (!wasBackgroundedLongEnough) return;
@@ -3173,6 +3180,13 @@ function applyMaintenanceGate() {
 auth.onAuthStateChanged(u => {
   user = u;
   if (u) {
+    // KÖK NEDEN DÜZELTMESİ (SOĞUK BAŞLATMA senaryosu — kullanıcı e-postasını doğruladıktan sonra
+    // uygulamayı TAMAMEN kapatıp yeniden açarsa): onAuthStateChanged, Firebase'in YERELDE (IndexedDB/
+    // localStorage) SAKLANMIŞ son bilinen oturumunu geri yükler — bu, kullanıcının en son ne zaman
+    // token yeniledigine bağlı, doğrulama SONRASI güncel olmayabilir (handleAppForeground'daki AYNI
+    // kök neden, burada "arka plandan öne gelme" değil "soğuk başlatma" için). Yalnızca henüz
+    // doğrulanmamış görünen hesaplar için (ucuz), sessizce bir kez tazelenir.
+    if (!u.emailVerified) refreshEmailVerifiedStatus();
     // Defansif: aynı kullanıcı tekrar giriş yapsa bile (token yenileme, vb.) önce her ihtimale karşı
     // önceki oturumdan kalmış olabilecek TÜM dinleyicileri kapat — asla iki kez açık kalmasınlar.
     clearAllListeners();
@@ -4164,6 +4178,16 @@ async function refreshEmailVerifiedStatus() {
     if (!user.emailVerified) return;
     const tokenResult = await user.getIdTokenResult();
     if (!tokenResult.claims.email_verified) await user.getIdToken(true);
+    // KÖK NEDEN DÜZELTMESİ (teşhis: gerçekten doğrulanmış 6 gerçek kullanıcının teknohane_users.
+    // emailVerified alanı hâlâ 'false' bulundu): bu denormalize kopya YALNIZCA syncUserProfile'ın
+    // günde-1 senkron penceresinde (bkz. tk_last_profile_sync) yazılıyordu — kullanıcı doğruladıktan
+    // sonra 24 saate kadar herkese açık profilinde/admin panelinde hâlâ "doğrulanmamış" görünebiliyordu.
+    // Burada, GERÇEKTEN doğrulandığı KESİNLEŞTİĞİ anda (yukarıdaki reload+claim kontrolünden hemen
+    // sonra), günlük senkron penceresini BEKLEMEDEN, yalnızca bu TEK alan hedefli olarak düzeltiliyor.
+    if (myProfileData && myProfileData.emailVerified !== true) {
+      myProfileData.emailVerified = true;
+      db.collection('teknohane_users').doc(user.uid).set({ emailVerified: true }, { merge: true }).catch(() => {});
+    }
   } catch(e) {}
 }
 
@@ -11643,6 +11667,12 @@ async function submitComment() {
   // kontrol hiç yoktu — kullanıcı yazıp gönderiyor, jeton yenilense bile gerçek kısıtlama
   // değişmediği için yine reddediliyor, sonunda genel/anlaşılmaz bir hata görüyordu. İlan (satır
   // ~9082) ve konu (satır ~10840) oluşturmadaki AYNI desen buraya da eklendi.
+  // KÖK NEDEN DÜZELTMESİ v2 (tekrarlayan raporlar — "e-postamı doğruladım ama hâlâ yorum
+  // yapamıyorum"): yukarıdaki v1 düzeltmesi yalnızca AÇIK bir hata mesajı EKLEDİ, ama hâlâ
+  // önbellekteki (bayat) user.emailVerified'a bakıyordu — newListing/newTopic'in AKSİNE
+  // refreshEmailVerifiedStatus() hiç çağrılmıyordu. Doğrulama linki HER ZAMAN ayrı bir sekmede
+  // açıldığı için (bkz. auth-action.html) uygulama bunu proaktif olarak sormadan asla öğrenemez.
+  await refreshEmailVerifiedStatus();
   if (!user.emailVerified) { showToast('📧','rgba(255,159,10,.15)','E-posta Doğrulanmamış','Yorum yapabilmek için önce e-postanı doğrulaman gerekiyor. Doğrulama e-postası göndermek için dokun.', sendVerificationEmail, 6000); return; }
   const inp = document.getElementById('comment-inp');
   const body = inp.value.trim();
@@ -14666,8 +14696,17 @@ async function arenaApiCall(url, payload) {
 // EK TALİMAT: Arena'nın TÜM katılım noktalarında (Günün Sorusu, Düello, Lig) Forum/Pazar'daki AYNI
 // "e-posta doğrulanmamış" UX'i (bkz. newListing/newTopic/newComment'teki showToast çağrıları) — bu
 // yalnızca bir ön-kontrol/UX kolaylığı, ASIL güvenlik sınırı worker'da (email_not_verified hatası).
-function arenaRequireEmailVerified() {
-  if (user && !user.emailVerified) {
+// KÖK NEDEN DÜZELTMESİ (kullanıcı raporu: e-postasını GERÇEKTEN doğrulamış kullanıcılar Arena'da hâlâ
+// "e-postanı doğrula" uyarısı görüyordu): bu fonksiyon eskiden DOĞRUDAN önbellekteki (bayat)
+// user.emailVerified'a bakıyordu — newListing/newTopic'teki AYNI kontrolün AKSİNE, önce
+// refreshEmailVerifiedStatus() ÇAĞIRMIYORDU. Doğrulama linki her zaman AYRI bir sekmede/tarayıcıda
+// açıldığı için (bkz. auth-action.html) uygulamanın kendi oturumu bunu asla otomatik ÖĞRENEMEZ —
+// kullanıcı e-postasını doğrulasa BİLE, uygulamaya geri döndüğünde local user nesnesi hâlâ eski hâliyle
+// kalır. Artık diğer TÜM doğrulama kontrolleriyle (submitListing/newTopic) AYNI desen kullanılıyor.
+async function arenaRequireEmailVerified() {
+  if (!user) return true;
+  await refreshEmailVerifiedStatus();
+  if (!user.emailVerified) {
     showToast('📧', 'rgba(255,159,10,.15)', 'E-posta Doğrulanmamış', 'Arena\'ya katılabilmek için önce e-postanı doğrulaman gerekiyor. Doğrulama e-postası göndermek için dokun.', sendVerificationEmail, 6000);
     return false;
   }
@@ -14901,7 +14940,7 @@ function arenaClearRecovery(quizId) {
 }
 
 async function arenaBeginQuiz() {
-  if (!arenaRequireEmailVerified()) return;
+  if (!(await arenaRequireEmailVerified())) return;
   const body = document.getElementById('arena-body');
   body.innerHTML = `<div class="load"><div class="spin"></div><span>Yarışma hazırlanıyor…</span></div>`;
   const idToken = await user.getIdToken();
@@ -15287,7 +15326,7 @@ async function rArenaQotd() {
   arenaView = 'qotd';
   arenaBackParent = rArenaHome;
   arenaStopTimer();
-  if (!arenaRequireEmailVerified()) { rArenaHome(); return; }
+  if (!(await arenaRequireEmailVerified())) { rArenaHome(); return; }
   const body = document.getElementById('arena-body');
   body.innerHTML = `<div class="load"><div class="spin"></div></div>`;
   const idToken = await user.getIdToken();
@@ -15359,7 +15398,7 @@ function rArenaQotdResult(r) {
 function showMsg(text) { showToast('🔔', 'var(--cdim)', 'Teknohane', text); }
 
 async function sendDuelChallenge(opponentUid, opponentName) {
-  if (!arenaRequireEmailVerified()) return;
+  if (!(await arenaRequireEmailVerified())) return;
   if (!confirm(`${opponentName} kullanıcısına Arena düellosu göndermek istediğine emin misin?`)) return;
   try {
     const idToken = await user.getIdToken();
@@ -15487,7 +15526,7 @@ async function arenaDuelViewResult(duelId) {
 }
 
 async function arenaDuelRespond(duelId, accept) {
-  if (!arenaRequireEmailVerified()) return;
+  if (!(await arenaRequireEmailVerified())) return;
   const idToken = await user.getIdToken();
   const data = await arenaApiCall(ARENA_DUEL_RESPOND_API, { idToken, duelId, accept });
   if (data.error) { showMsg('İşlem yapılamadı: ' + data.error); return; }
@@ -15506,7 +15545,7 @@ async function arenaDuelRematch(duelId) {
 }
 
 async function arenaDuelBegin(duelId) {
-  if (!arenaRequireEmailVerified()) return;
+  if (!(await arenaRequireEmailVerified())) return;
   const body = document.getElementById('arena-body');
   body.innerHTML = `<div class="load"><div class="spin"></div><span>Düello hazırlanıyor…</span></div>`;
   const idToken = await user.getIdToken();
@@ -16027,8 +16066,8 @@ function renderArenaLeagueNotJoined() {
 // EK TALİMAT — lige katılırken kurallar gösterilmeli. arenaOpenReportModal()'daki AYNI desen: overlay
 // document.body'ye AYRI eklenir (arena-body'nin innerHTML'ine değil), böylece arenaView/render state'ine
 // hiç dokunmaz. "Anladım, Katıl" onayı olmadan gerçek arenaLeagueJoin() ASLA çağrılmaz.
-function openArenaLeagueRulesModal() {
-  if (!arenaRequireEmailVerified()) return;
+async function openArenaLeagueRulesModal() {
+  if (!(await arenaRequireEmailVerified())) return;
   document.getElementById('arena-league-rules-overlay')?.remove();
   const div = document.createElement('div');
   div.id = 'arena-league-rules-overlay';
@@ -16232,7 +16271,7 @@ function arenaLeagueStartCountdown(seasonEndsAt) {
 // yüzden burada Arena'nın soru zamanlayıcısı (arenaTimerHandle) KASITLI OLARAK kullanılmıyor —
 // Lig Maçı sorularının süre sınırı yok.
 async function arenaLeagueMatchBegin() {
-  if (!arenaRequireEmailVerified()) return;
+  if (!(await arenaRequireEmailVerified())) return;
   if (!guardSubmit('arenaLeagueMatchBegin')) return;
   const btn = document.getElementById('arena-league-match-start-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Yükleniyor…'; }
