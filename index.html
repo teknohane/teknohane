@@ -14768,13 +14768,25 @@ async function rArenaHome() {
       <span style="font-size:12px;color:var(--cyan);font-weight:600;cursor:pointer" onclick="rArenaBadges()">🏅 Rozetlerim (${(myStats?.badges||[]).length}/${Object.keys(ARENA_BADGE_LABELS).length}) →</span>
       <span style="font-size:12px;color:var(--cyan);font-weight:600;cursor:pointer" onclick="rArenaQotd()">🗓️ Günün Sorusu →</span>
       <span style="font-size:12px;color:var(--cyan);font-weight:600;cursor:pointer" onclick="rArenaDuels()">⚔️ Düellolarım →</span>
-      <span style="font-size:12px;color:var(--cyan);font-weight:600;cursor:pointer" onclick="rArenaLeague()">🏆 Lig →</span>
+    </div>
+  </div>`;
+
+  // FAZ 2I EK TALİMAT — Lig girişi Arena ana ekranında daha belirgin olsun: küçük metin linki yerine
+  // (yukarıdaki satırdan çıkarıldı) kendi başına, göze çarpan bir kart. Arena'nın oynanma durumundan
+  // BAĞIMSIZ her zaman levelCard'ın hemen altında gösterilir (üç dalın hepsinde).
+  const leagueEntryCard = `<div class="feat" style="text-align:center;padding:16px 18px;margin-bottom:14px;cursor:pointer;border:1px solid var(--cyan);background:linear-gradient(135deg,rgba(0,145,255,.14),rgba(88,86,214,.14))" onclick="rArenaLeague()">
+    <div style="display:flex;align-items:center;justify-content:center;gap:10px">
+      <span style="font-size:26px">🏆</span>
+      <div style="text-align:left">
+        <div style="font-size:15px;font-weight:700">Arena Ligleri</div>
+        <div style="font-size:11px;color:var(--text2)">10 kişilik lig · günlük Lig Maçı · gerçek rekabet →</div>
+      </div>
     </div>
   </div>`;
 
   if (attempt?.status === 'completed') {
     arenaResult = attempt;
-    body.innerHTML = levelCard + `
+    body.innerHTML = levelCard + leagueEntryCard + `
       <div class="feat" style="text-align:center;padding:28px 20px">
         <div style="font-size:38px;margin-bottom:8px">🏆</div>
         <div style="font-size:17px;font-weight:700;margin-bottom:4px">Bugünkü yarışmayı tamamladın!</div>
@@ -14791,7 +14803,7 @@ async function rArenaHome() {
     return;
   }
   if (attempt?.status === 'in_progress') {
-    body.innerHTML = levelCard + `
+    body.innerHTML = levelCard + leagueEntryCard + `
       <div class="feat" style="text-align:center;padding:28px 20px">
         <div style="font-size:38px;margin-bottom:8px">⏳</div>
         <div style="font-size:17px;font-weight:700;margin-bottom:4px">Bugünkü hakkın kullanılmış</div>
@@ -14800,7 +14812,7 @@ async function rArenaHome() {
     return;
   }
 
-  body.innerHTML = levelCard + `
+  body.innerHTML = levelCard + leagueEntryCard + `
     <div class="feat" style="text-align:center;padding:28px 20px">
       <div style="font-size:38px;margin-bottom:8px">🎮</div>
       <div style="font-size:18px;font-weight:700;margin-bottom:6px">Bugünkü Yarışma</div>
@@ -16020,7 +16032,7 @@ function renderArenaLeagueScreen() {
       <div style="font-size:24px;font-weight:700;color:var(--cyan)">#${data.userRank ?? '-'}</div>
       <div style="font-size:12px;color:var(--text2)">${data.userLeagueScore ?? 0} Lig Puanı</div>
     </div>
-    ${renderArenaLeagueMatchCardHtml(data.todayMatch)}
+    ${renderArenaLeagueMatchCardHtml(data.todayMatch, data.memberCount, data.capacity)}
     <div>${membersHtml || `<div class="no">Lig üyesi bulunamadı.</div>`}</div>
     <div id="arena-league-history-section" style="margin-top:18px"></div>
     <button class="apbtn" style="margin-top:14px" onclick="rArenaHome()">← Arena'ya Dön</button>`;
@@ -16028,10 +16040,13 @@ function renderArenaLeagueScreen() {
   arenaLeagueStartCountdown(data.seasonEndsAt);
 }
 
-// FAZ 2I — "Bugünün Lig Maçı" kartı. todayMatch, arena-league-leaderboard'un TAMAMEN salt-okunur
-// ek alanından gelir (bkz. worker) — bu kart hiçbir zaman kendi başına bir istek atmaz/kilit
-// oluşturmaz, yalnızca zaten çekilmiş olan lig ekranı verisini yorumlar.
-function renderArenaLeagueMatchCardHtml(todayMatch) {
+// FAZ 2I — "Bugünün Lig Maçı" kartı. todayMatch/memberCount/capacity, arena-league-leaderboard'un
+// TAMAMEN salt-okunur alanlarından gelir (bkz. worker) — bu kart hiçbir zaman kendi başına bir istek
+// atmaz/kilit oluşturmaz, yalnızca zaten çekilmiş olan lig ekranı verisini yorumlar. memberCount,
+// worker'da HER ZAMAN taze bir sorgudan (league.memberCount ALANINA GÜVENİLMEDEN) hesaplanıyor.
+// EK TALİMAT: lig TAM DOLMADAN (memberCount<capacity) Lig Maçı başlatılamaz — aynı kural burada da
+// (backend'deki gerçek gate'in YANINDA, ondan BAĞIMSIZ) UI'da erken gösterilir.
+function renderArenaLeagueMatchCardHtml(todayMatch, memberCount, capacity) {
   if (todayMatch && todayMatch.status === 'completed') {
     return `
     <div class="feat" style="text-align:center;padding:20px 18px;margin-bottom:14px">
@@ -16040,6 +16055,17 @@ function renderArenaLeagueMatchCardHtml(todayMatch) {
       <div style="font-size:12px;color:var(--text2)">Bugünkü skor</div>
       <div style="font-size:22px;font-weight:700;color:var(--cyan);margin-bottom:6px">+${todayMatch.earnedScore ?? 0} Lig Puanı</div>
       <div style="font-size:11px;color:var(--text3)">Yarın yeni maç seni bekliyor.</div>
+    </div>`;
+  }
+  const cap = capacity ?? 10;
+  const cnt = memberCount ?? 0;
+  if (cnt < cap) {
+    return `
+    <div class="feat" style="text-align:center;padding:20px 18px;margin-bottom:14px">
+      <div style="font-size:28px;margin-bottom:4px">⏳</div>
+      <div style="font-size:15px;font-weight:700;margin-bottom:6px">LİG DOLUYOR</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:6px">${cnt} / ${cap} oyuncu</div>
+      <div style="font-size:11px;color:var(--text3)">Lig Maçı, lig tamamlanınca (${cap}/${cap}) başlayacak.</div>
     </div>`;
   }
   return `
@@ -16123,6 +16149,11 @@ async function arenaLeagueMatchBegin() {
     if (data.success === false) {
       if (data.error === 'no_league_questions') {
         showMsg('Bugün için henüz Lig Maçı soruları hazırlanmadı. Daha sonra tekrar dene.');
+      } else if (data.error === 'league_not_full') {
+        // Normal UI akışında bu karta zaten basılamaz (bkz. renderArenaLeagueMatchCardHtml) — buraya
+        // yalnızca bir yarış durumunda (lig tam o an dolduysa/eski ekran açık kaldıysa) düşülür.
+        showMsg(`Lig henüz dolmadı (${data.memberCount ?? '-'}/${data.capacity ?? 10}). Lig tamamlanınca Lig Maçı başlayacak.`);
+        rArenaLeague();
       } else if (data.error === 'season_not_active') {
         renderArenaLeagueError('season_not_active');
       } else {
