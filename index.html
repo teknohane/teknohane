@@ -16168,7 +16168,7 @@ function renderArenaLeagueScreen() {
     <div id="arena-league-history-section" style="margin-top:18px"></div>
     <button class="apbtn" style="margin-top:14px" onclick="rArenaHome()">← Arena'ya Dön</button>`;
 
-  arenaLeagueStartCountdown(data.seasonEndsAt);
+  arenaLeagueStartCountdown(data.leagueEndsAt, isFull);
 }
 
 // FAZ 2I — "Bugünün Lig Maçı" kartı. todayMatch/memberCount/capacity, arena-league-leaderboard'un
@@ -16237,27 +16237,30 @@ async function arenaLeagueJoin() {
   }
 }
 
-// Sezon bitiş geri sayımı — YALNIZCA backend'in gönderdiği seasonEndsAt'i biçimlendirir; tarih
+// Lig bitiş geri sayımı — YALNIZCA backend'in gönderdiği leagueEndsAt'i biçimlendirir; tarih
 // hesaplaması/Firestore isteği/polling YOK. arenaStopTimer() (yukarıda tanımlı) her ekran geçişinde
-// bunu temizler — memory leak riski yok.
-function arenaLeagueStartCountdown(seasonEndsAt) {
+// bunu temizler — memory leak riski yok. EK TALİMAT: 14 günlük süre artık SEZONUN değil, LİGİN
+// kendi 10/10 dolma anına göre işliyor (bkz. worker'daki filledAt/leagueEndsAt) — lig henüz
+// dolmadıysa leagueEndsAt null gelir, geri sayım YERİNE "süre henüz başlamadı" mesajı gösterilir.
+function arenaLeagueStartCountdown(leagueEndsAt, isFull) {
   const el = document.getElementById('arena-league-countdown');
-  if (!el || !seasonEndsAt) return;
-  const endMs = Date.parse(seasonEndsAt);
+  if (!el) return;
+  if (!leagueEndsAt) { el.textContent = isFull ? '' : 'Lig 10/10 dolunca 14 günlük süre başlayacak'; return; }
+  const endMs = Date.parse(leagueEndsAt);
   if (!endMs || isNaN(endMs)) return;
   function tick() {
     const el2 = document.getElementById('arena-league-countdown');
     if (!el2) { arenaStopTimer(); return; } // ekran değişmiş, kendi kendini temizle
     const diff = endMs - Date.now();
-    if (diff <= 0) { el2.textContent = 'Sezon sona erdi.'; arenaStopTimer(); return; }
+    if (diff <= 0) { el2.textContent = 'Lig süresi sona erdi.'; arenaStopTimer(); return; }
     const totalSec = Math.floor(diff / 1000);
     const days = Math.floor(totalSec / 86400);
     const hours = Math.floor((totalSec % 86400) / 3600);
     const mins = Math.floor((totalSec % 3600) / 60);
-    el2.textContent = `Sezon bitişine: ${days}g ${hours}s ${mins}d`;
+    el2.textContent = `Lig süresinin bitişine: ${days}g ${hours}s ${mins}d`;
   }
-  // Sezon zaten bitmişse interval'ı HİÇ kurma — aksi halde "Sezon sona erdi." bir sonraki tick'e
-  // (1sn sonra) kadar gereksiz bir interval açık bırakırdı (izole testte yakalandı).
+  // Lig süresi zaten bitmişse interval'ı HİÇ kurma — aksi halde "Lig süresi sona erdi." bir sonraki
+  // tick'e (1sn sonra) kadar gereksiz bir interval açık bırakırdı (izole testte yakalandı).
   if (endMs <= Date.now()) { tick(); return; }
   tick();
   arenaLeagueTimerHandle = setInterval(tick, 1000);
