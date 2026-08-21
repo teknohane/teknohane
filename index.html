@@ -14449,6 +14449,10 @@ const ARENA_CATEGORY_LABELS = {
   computer: '💻 Bilgisayar', tech: '🎮 Teknoloji', general: '🌐 Genel Teknoloji',
 };
 const ARENA_DIFFICULTY_LABELS_APP = { kolay: 'Kolay', orta: 'Orta', zor: 'Zor' };
+// EK TALİMAT — Arena Ligleri küme sistemi: worker'daki ARENA_LEAGUE_TIER_COUNT (0-4) ile AYNI sıra/
+// sayı — indeks tek doğruluk kaynağı backend'de (league.tier), burası yalnızca görüntü etiketi.
+const ARENA_LEAGUE_TIER_LABELS = ['🥉 Bronz', '🥈 Gümüş', '🥇 Altın', '💎 Platin', '👑 Elmas'];
+function arenaLeagueTierLabel(tier) { return ARENA_LEAGUE_TIER_LABELS[tier] ?? ARENA_LEAGUE_TIER_LABELS[0]; }
 const ARENA_BADGE_LABELS = {
   'teknoloji-kurdu': '🧠 Teknoloji Kurdu', 'hizli-cevapci': '⚡ Hızlı Cevapçı',
   'seri-bagimlisi': '🔥 Seri Bağımlısı', 'ilk-sampiyon': '🏆 İlk Şampiyon', 'kusursuz': '💯 Kusursuz',
@@ -16023,7 +16027,7 @@ function renderArenaLeagueScreen() {
   body.innerHTML = `
     <div class="feat" style="text-align:center;padding:20px 18px;margin-bottom:14px">
       <div style="font-size:32px;margin-bottom:4px">🏆</div>
-      <div style="font-size:17px;font-weight:700;margin-bottom:4px">Lig #${data.leagueNumber ?? '-'}</div>
+      <div style="font-size:17px;font-weight:700;margin-bottom:4px">${arenaLeagueTierLabel(data.tier)} Lig #${data.leagueNumber ?? '-'}</div>
       <div style="font-size:12px;color:var(--text2);margin-bottom:12px">${data.memberCount ?? (data.members||[]).length} / ${data.capacity ?? 10} Üye</div>
       <div id="arena-league-countdown" style="font-size:12px;color:var(--text3)"></div>
     </div>
@@ -16328,7 +16332,7 @@ function renderArenaLeagueHistorySection(kind) {
       <div style="font-size:14px;font-weight:700;margin-bottom:4px">🏆 Arena Sezonu</div>
       <div style="font-size:11px;color:var(--text3);margin-bottom:10px">📅 ${arenaFormatHistoryDate(s.startsAt)} — ${arenaFormatHistoryDate(s.endsAt)}</div>
       <div style="display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--text2)">
-        <span>🥇 Lig ${s.leagueNumber ?? '-'}</span>
+        <span>${arenaLeagueTierLabel(s.tier)} Lig ${s.leagueNumber ?? '-'}</span>
         <span>⭐ ${s.leagueScore ?? 0} Lig Puanı</span>
         <span>📊 ${arenaFormatFinalRank(s.finalRank)}</span>
         <span>👥 ${s.totalMembers ?? '-'} kişi</span>
