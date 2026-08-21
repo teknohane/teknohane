@@ -14453,6 +14453,16 @@ const ARENA_DIFFICULTY_LABELS_APP = { kolay: 'Kolay', orta: 'Orta', zor: 'Zor' }
 // sayı — indeks tek doğruluk kaynağı backend'de (league.tier), burası yalnızca görüntü etiketi.
 const ARENA_LEAGUE_TIER_LABELS = ['🥉 Bronz', '🥈 Gümüş', '🥇 Altın', '💎 Platin', '👑 Elmas'];
 function arenaLeagueTierLabel(tier) { return ARENA_LEAGUE_TIER_LABELS[tier] ?? ARENA_LEAGUE_TIER_LABELS[0]; }
+// Küme rozeti görsel teması — yalnızca ekran süsü, hiçbir mantık buna bağlı değil (backend'deki tier
+// int'i tek doğruluk kaynağı).
+const ARENA_LEAGUE_TIER_THEME = [
+  { bg: 'linear-gradient(135deg,#8B5A2B,#CD7F32)', text: '#FFE8CC' },   // Bronz
+  { bg: 'linear-gradient(135deg,#7A7D82,#C7CACF)', text: '#0A0A0A' },   // Gümüş
+  { bg: 'linear-gradient(135deg,#B8860B,#FFD700)', text: '#3D2B00' },   // Altın
+  { bg: 'linear-gradient(135deg,#0EA5A0,#5EEAD4)', text: '#00201E' },   // Platin
+  { bg: 'linear-gradient(135deg,#7C3AED,#3B82F6)', text: '#FFFFFF' },   // Elmas
+];
+function arenaLeagueTierTheme(tier) { return ARENA_LEAGUE_TIER_THEME[tier] ?? ARENA_LEAGUE_TIER_THEME[0]; }
 const ARENA_BADGE_LABELS = {
   'teknoloji-kurdu': '🧠 Teknoloji Kurdu', 'hizli-cevapci': '⚡ Hızlı Cevapçı',
   'seri-bagimlisi': '🔥 Seri Bağımlısı', 'ilk-sampiyon': '🏆 İlk Şampiyon', 'kusursuz': '💯 Kusursuz',
@@ -15991,11 +16001,46 @@ function renderArenaLeagueNotJoined() {
     <div class="feat" style="text-align:center;padding:28px 20px">
       <div style="font-size:38px;margin-bottom:8px">🏆</div>
       <div style="font-size:17px;font-weight:700;margin-bottom:4px">Henüz bir lige katılmadın.</div>
-      <div style="color:var(--text2);font-size:13px;margin-bottom:8px">Diğer oyuncularla aynı ligde sıralamanı gör, XP'ni sezon boyunca biriktir.</div>
-      <div style="color:var(--text3);font-size:11px;margin-bottom:18px">Ligler doluluk durumuna göre otomatik dağıtılır.</div>
-      <button class="apbtn" id="arena-league-join-btn" style="background:linear-gradient(135deg,var(--cyan),#0091FF);color:#00040F;font-weight:700;border:none" onclick="arenaLeagueJoin()">🏆 Lige Katıl</button>
+      <div style="color:var(--text2);font-size:13px;margin-bottom:8px">10 kişilik ligde sıralamanı gör, günlük Lig Maçlarıyla Lig Puanı topla, sezon sonunda terfi et.</div>
+      <div style="color:var(--text3);font-size:11px;margin-bottom:18px">Ligler kümene göre otomatik dağıtılır.</div>
+      <button class="apbtn" id="arena-league-join-btn" style="background:linear-gradient(135deg,var(--cyan),#0091FF);color:#00040F;font-weight:700;border:none" onclick="openArenaLeagueRulesModal()">🏆 Lige Katıl</button>
     </div>
     <button class="apbtn" style="margin-top:14px" onclick="rArenaHome()">← Arena'ya Dön</button>`;
+}
+
+// EK TALİMAT — lige katılırken kurallar gösterilmeli. arenaOpenReportModal()'daki AYNI desen: overlay
+// document.body'ye AYRI eklenir (arena-body'nin innerHTML'ine değil), böylece arenaView/render state'ine
+// hiç dokunmaz. "Anladım, Katıl" onayı olmadan gerçek arenaLeagueJoin() ASLA çağrılmaz.
+function openArenaLeagueRulesModal() {
+  document.getElementById('arena-league-rules-overlay')?.remove();
+  const div = document.createElement('div');
+  div.id = 'arena-league-rules-overlay';
+  div.style.cssText = 'position:fixed;inset:0;z-index:2000;background:rgba(0,4,15,.8);display:flex;align-items:center;justify-content:center;padding:20px';
+  div.onclick = () => closeArenaLeagueRulesModal();
+  const rule = (icon, title, desc) => `
+    <div style="display:flex;gap:10px;margin-bottom:12px">
+      <span style="font-size:18px;flex-shrink:0">${icon}</span>
+      <div><div style="font-size:13px;font-weight:700;margin-bottom:1px">${title}</div><div style="font-size:12px;color:var(--text2);line-height:1.4">${desc}</div></div>
+    </div>`;
+  div.innerHTML = `
+    <div style="background:var(--surf);border:1px solid var(--border2);border-radius:16px;padding:22px 20px;max-width:420px;width:100%;max-height:85vh;overflow-y:auto" onclick="event.stopPropagation()">
+      <div style="font-size:17px;font-weight:800;margin-bottom:2px">🏆 Arena Ligleri — Kurallar</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:18px">Katılmadan önce lütfen oku.</div>
+      ${rule('👥', '10 Kişilik Lig', 'Her lig tam olarak 10 oyuncudan oluşur. Ligler kümene göre otomatik dağıtılır, seçim yapamazsın.')}
+      ${rule('⏱️', '14 Günlük Sezon', 'Her sezon 14 gün sürer. Sezon sonunda lig sıralaman kesinleşir.')}
+      ${rule('🎯', 'Günlük Lig Maçı', 'Her gün 5 soru (1 kolay + 2 orta + 2 zor). Doğru cevap: kolay +10, orta +20, zor +25 — günlük maksimum 100 Lig Puanı.')}
+      ${rule('🔒', 'Lig Dolmadan Başlamaz', 'Lig Maçı, ligin 10/10 dolmasını bekler. Erken katılanlar diğerlerini bekler.')}
+      ${rule('📈', 'Terfi / Küme Düşme', `Sezon sonunda lig sıralamasında ilk 3 bir üst kümeye terfi eder, son 3 bir alt kümeye düşer. Ortadaki 4 kişi aynı kümede kalır. Kümeler: ${ARENA_LEAGUE_TIER_LABELS.join(' → ')}.`)}
+      ${rule('⚡', 'Lig Puanı ≠ Genel XP', 'Lig Puanı yalnızca Lig Maçından gelir. Günün Sorusu ve Düello genel XP kazandırmaya devam eder, lig sıralamanı etkilemez.')}
+      <div style="display:flex;gap:10px;margin-top:8px">
+        <button class="apbtn" style="flex:1" onclick="closeArenaLeagueRulesModal()">İptal</button>
+        <button class="apbtn" style="flex:1;background:linear-gradient(135deg,var(--cyan),#0091FF);color:#00040F;font-weight:700;border:none" onclick="closeArenaLeagueRulesModal();arenaLeagueJoin()">Anladım, Katıl</button>
+      </div>
+    </div>`;
+  document.body.appendChild(div);
+}
+function closeArenaLeagueRulesModal() {
+  document.getElementById('arena-league-rules-overlay')?.remove();
 }
 
 function renderArenaLeagueScreen() {
@@ -16010,33 +16055,59 @@ function renderArenaLeagueScreen() {
     return;
   }
 
-  const membersHtml = (data.members || []).map(m => {
+  // EK TALİMAT — profesyonel görsel tasarım: terfi/küme düşme bölgeleri (yalnızca lig TAM DOLUYSA
+  // anlamlı — sezon kapanışında yalnızca DOLU ligler işleniyor, bkz. worker applySeasonPromotionsAndDemotions).
+  // İlk 3 = terfi bölgesi (yeşil), son 3 = küme düşme bölgesi (kırmızı), ortadakiler nötr. Bu TAMAMEN
+  // görsel bir yorumlama — hiçbir sıralama/hesaplama burada yapılmıyor, backend'in verdiği rank/
+  // leagueScore AYNEN kullanılıyor.
+  const isFull = (data.memberCount ?? 0) >= (data.capacity ?? 10) && (data.members||[]).length > 0;
+  const totalM = (data.members || []).length;
+  const topScore = data.members?.[0]?.leagueScore || 1;
+  const membersHtml = (data.members || []).map((m, i) => {
     const isMe = m.uid === user?.uid;
     const name = m.displayName || 'Kullanıcı';
+    const isPromoZone = isFull && m.rank <= 3;
+    const isRelegateZone = isFull && m.rank > totalM - 3;
+    const zoneBorder = isPromoZone ? '3px solid #30D158' : isRelegateZone ? '3px solid #FF453A' : '3px solid transparent';
+    const barPct = Math.max(2, Math.round(((m.leagueScore||0) / topScore) * 100));
+    const rankBadge = m.rank === 1 ? '🥇' : m.rank === 2 ? '🥈' : m.rank === 3 ? '🥉' : `#${m.rank}`;
     return `
-    <div style="display:flex;align-items:center;gap:10px;padding:9px 6px;${isMe?'background:var(--cdim);border-radius:10px':''}">
-      <span style="width:26px;text-align:center;font-weight:700;color:var(--text2)">#${m.rank}</span>
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 10px 10px 8px;margin-bottom:6px;border-left:${zoneBorder};border-radius:8px;${isMe?'background:var(--cdim)':'background:var(--surf2)'}">
+      <span style="width:28px;text-align:center;font-weight:700;color:var(--text2);font-size:${m.rank<=3?'16px':'13px'};flex-shrink:0">${rankBadge}</span>
       <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer" onclick="openPublicProfile('${m.uid}','${escapeJsAttr(name)}')">
-        ${m.photoURL?`<img src="${escapeHtml(m.photoURL)}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${escapeJsAttr(avatarUrl(null, name, 56))}'">`:`<div style="width:28px;height:28px;border-radius:50%;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${escapeHtml(name.charAt(0).toUpperCase())}</div>`}
-        <span style="flex:1;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(name)}${isMe?' (Sen)':''}</span>
+        ${m.photoURL?`<img src="${escapeHtml(m.photoURL)}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;flex-shrink:0" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${escapeJsAttr(avatarUrl(null, name, 60))}'">`:`<div style="width:30px;height:30px;border-radius:50%;background:var(--surf3,var(--surf2));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${escapeHtml(name.charAt(0).toUpperCase())}</div>`}
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(name)}${isMe?' (Sen)':''}</div>
+          <div style="height:4px;border-radius:2px;background:var(--surf3,rgba(255,255,255,.08));overflow:hidden;margin-top:4px;max-width:140px">
+            <div style="height:100%;width:${barPct}%;background:${isPromoZone?'#30D158':isRelegateZone?'#FF453A':'var(--cyan)'};border-radius:2px"></div>
+          </div>
+        </div>
       </div>
-      <span style="font-weight:700;color:var(--cyan);flex-shrink:0">${m.leagueScore||0}</span>
+      <span style="font-weight:700;color:var(--cyan);flex-shrink:0;font-size:14px">${m.leagueScore||0}</span>
     </div>`;
   }).join('');
+  const tierTheme = arenaLeagueTierTheme(data.tier);
 
   body.innerHTML = `
-    <div class="feat" style="text-align:center;padding:20px 18px;margin-bottom:14px">
-      <div style="font-size:32px;margin-bottom:4px">🏆</div>
-      <div style="font-size:17px;font-weight:700;margin-bottom:4px">${arenaLeagueTierLabel(data.tier)} Lig #${data.leagueNumber ?? '-'}</div>
-      <div style="font-size:12px;color:var(--text2);margin-bottom:12px">${data.memberCount ?? (data.members||[]).length} / ${data.capacity ?? 10} Üye</div>
-      <div id="arena-league-countdown" style="font-size:12px;color:var(--text3)"></div>
+    <div class="feat" style="text-align:center;padding:22px 18px;margin-bottom:14px;background:${tierTheme.bg};border:none">
+      <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:${tierTheme.text};opacity:.85;margin-bottom:2px">ARENA LİGLERİ</div>
+      <div style="font-size:19px;font-weight:800;color:${tierTheme.text};margin-bottom:8px">${arenaLeagueTierLabel(data.tier)} Lig #${data.leagueNumber ?? '-'}</div>
+      <div style="height:6px;border-radius:3px;background:rgba(0,0,0,.2);overflow:hidden;max-width:220px;margin:0 auto 6px">
+        <div style="height:100%;width:${Math.round(((data.memberCount??0)/(data.capacity??10))*100)}%;background:${tierTheme.text};border-radius:3px;opacity:.9"></div>
+      </div>
+      <div style="font-size:12px;color:${tierTheme.text};opacity:.9;margin-bottom:10px">${data.memberCount ?? (data.members||[]).length} / ${data.capacity ?? 10} Üye${isFull?' · Lig DOLU':''}</div>
+      <div id="arena-league-countdown" style="font-size:12px;color:${tierTheme.text};opacity:.85"></div>
     </div>
-    <div class="feat" style="text-align:center;padding:14px 18px;margin-bottom:14px;background:var(--cdim)">
+    <div class="feat" style="text-align:center;padding:16px 18px;margin-bottom:14px;background:var(--cdim)">
       <div style="font-size:13px;color:var(--text2)">Senin sıran</div>
-      <div style="font-size:24px;font-weight:700;color:var(--cyan)">#${data.userRank ?? '-'}</div>
+      <div style="font-size:26px;font-weight:800;color:var(--cyan)">#${data.userRank ?? '-'}</div>
       <div style="font-size:12px;color:var(--text2)">${data.userLeagueScore ?? 0} Lig Puanı</div>
     </div>
     ${renderArenaLeagueMatchCardHtml(data.todayMatch, data.memberCount, data.capacity)}
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div style="font-size:13px;font-weight:700;color:var(--text2)">📊 Puan Durumu</div>
+      ${isFull?`<div style="font-size:10px;color:var(--text3)"><span style="color:#30D158">▲</span> Terfi · <span style="color:#FF453A">▼</span> Küme Düşer</div>`:''}
+    </div>
     <div>${membersHtml || `<div class="no">Lig üyesi bulunamadı.</div>`}</div>
     <div id="arena-league-history-section" style="margin-top:18px"></div>
     <button class="apbtn" style="margin-top:14px" onclick="rArenaHome()">← Arena'ya Dön</button>`;
