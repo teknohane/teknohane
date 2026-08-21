@@ -14663,6 +14663,17 @@ async function arenaApiCall(url, payload) {
   return await arenaApiCallOnce(url, payload);
 }
 
+// EK TALİMAT: Arena'nın TÜM katılım noktalarında (Günün Sorusu, Düello, Lig) Forum/Pazar'daki AYNI
+// "e-posta doğrulanmamış" UX'i (bkz. newListing/newTopic/newComment'teki showToast çağrıları) — bu
+// yalnızca bir ön-kontrol/UX kolaylığı, ASIL güvenlik sınırı worker'da (email_not_verified hatası).
+function arenaRequireEmailVerified() {
+  if (user && !user.emailVerified) {
+    showToast('📧', 'rgba(255,159,10,.15)', 'E-posta Doğrulanmamış', 'Arena\'ya katılabilmek için önce e-postanı doğrulaman gerekiyor. Doğrulama e-postası göndermek için dokun.', sendVerificationEmail, 6000);
+    return false;
+  }
+  return true;
+}
+
 function arenaStopTimer() {
   if (arenaTimerHandle) { clearInterval(arenaTimerHandle); arenaTimerHandle = null; }
   if (arenaLeagueTimerHandle) { clearInterval(arenaLeagueTimerHandle); arenaLeagueTimerHandle = null; }
@@ -14890,6 +14901,7 @@ function arenaClearRecovery(quizId) {
 }
 
 async function arenaBeginQuiz() {
+  if (!arenaRequireEmailVerified()) return;
   const body = document.getElementById('arena-body');
   body.innerHTML = `<div class="load"><div class="spin"></div><span>Yarışma hazırlanıyor…</span></div>`;
   const idToken = await user.getIdToken();
@@ -15275,6 +15287,7 @@ async function rArenaQotd() {
   arenaView = 'qotd';
   arenaBackParent = rArenaHome;
   arenaStopTimer();
+  if (!arenaRequireEmailVerified()) { rArenaHome(); return; }
   const body = document.getElementById('arena-body');
   body.innerHTML = `<div class="load"><div class="spin"></div></div>`;
   const idToken = await user.getIdToken();
@@ -15346,6 +15359,7 @@ function rArenaQotdResult(r) {
 function showMsg(text) { showToast('🔔', 'var(--cdim)', 'Teknohane', text); }
 
 async function sendDuelChallenge(opponentUid, opponentName) {
+  if (!arenaRequireEmailVerified()) return;
   if (!confirm(`${opponentName} kullanıcısına Arena düellosu göndermek istediğine emin misin?`)) return;
   try {
     const idToken = await user.getIdToken();
@@ -15473,6 +15487,7 @@ async function arenaDuelViewResult(duelId) {
 }
 
 async function arenaDuelRespond(duelId, accept) {
+  if (!arenaRequireEmailVerified()) return;
   const idToken = await user.getIdToken();
   const data = await arenaApiCall(ARENA_DUEL_RESPOND_API, { idToken, duelId, accept });
   if (data.error) { showMsg('İşlem yapılamadı: ' + data.error); return; }
@@ -15491,6 +15506,7 @@ async function arenaDuelRematch(duelId) {
 }
 
 async function arenaDuelBegin(duelId) {
+  if (!arenaRequireEmailVerified()) return;
   const body = document.getElementById('arena-body');
   body.innerHTML = `<div class="load"><div class="spin"></div><span>Düello hazırlanıyor…</span></div>`;
   const idToken = await user.getIdToken();
@@ -16012,6 +16028,7 @@ function renderArenaLeagueNotJoined() {
 // document.body'ye AYRI eklenir (arena-body'nin innerHTML'ine değil), böylece arenaView/render state'ine
 // hiç dokunmaz. "Anladım, Katıl" onayı olmadan gerçek arenaLeagueJoin() ASLA çağrılmaz.
 function openArenaLeagueRulesModal() {
+  if (!arenaRequireEmailVerified()) return;
   document.getElementById('arena-league-rules-overlay')?.remove();
   const div = document.createElement('div');
   div.id = 'arena-league-rules-overlay';
@@ -16215,6 +16232,7 @@ function arenaLeagueStartCountdown(seasonEndsAt) {
 // yüzden burada Arena'nın soru zamanlayıcısı (arenaTimerHandle) KASITLI OLARAK kullanılmıyor —
 // Lig Maçı sorularının süre sınırı yok.
 async function arenaLeagueMatchBegin() {
+  if (!arenaRequireEmailVerified()) return;
   if (!guardSubmit('arenaLeagueMatchBegin')) return;
   const btn = document.getElementById('arena-league-match-start-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Yükleniyor…'; }
