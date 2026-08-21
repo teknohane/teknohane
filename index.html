@@ -14438,6 +14438,8 @@ const ARENA_DUEL_START_API = 'https://teknohane-api.yusuf-aykac.workers.dev/duel
 const ARENA_DUEL_SUBMIT_API = 'https://teknohane-api.yusuf-aykac.workers.dev/duel-submit';
 const ARENA_DUEL_REMATCH_API = 'https://teknohane-api.yusuf-aykac.workers.dev/duel-rematch';
 const ARENA_QUESTION_REPORT_API = 'https://teknohane-api.yusuf-aykac.workers.dev/arena-question-report';
+const ARENA_LEAGUE_JOIN_API = 'https://teknohane-api.yusuf-aykac.workers.dev/arena-league-join';
+const ARENA_LEAGUE_LEADERBOARD_API = 'https://teknohane-api.yusuf-aykac.workers.dev/arena-league-leaderboard';
 const ARENA_CATEGORY_LABELS = {
   phones: '📱 Akıllı Telefonlar', cpu: '⚙️ İşlemciler', display: '🖥️ Ekran Teknolojileri',
   camera: '📷 Kamera', battery: '🔋 Batarya ve Şarj', android: '🤖 Android', apple: '🍎 Apple',
@@ -14535,6 +14537,13 @@ let arenaLbTab = 'daily';
 // render fonksiyonu) burada tutar. null = kök ekran (Arena ana ekranı), geri tuşu Arena'yı komple
 // kapatır. rArenaHome() bunu her zaman null'a sıfırlar.
 let arenaBackParent = null;
+// FAZ 2G — Lig ekranı state'i. arenaLeagueData: /internal/arena-league-leaderboard'dan gelen SON
+// response, hiçbir alanı client'ta yeniden hesaplanmadan doğrudan render edilir (sıralama/rank/
+// leagueId hep backend'den). arenaLeagueTimerHandle: yalnızca sezon bitiş geri sayımı için, quiz
+// timer'ından (arenaTimerHandle) AYRI tutuluyor — ikisi kavramsal olarak farklı (soru süresi vs.
+// sezon süresi) ve lig ekranıyla soru ekranı zaten karşılıklı dışlayıcı olsa da karışıklığı önler.
+let arenaLeagueData = null;
+let arenaLeagueTimerHandle = null;
 
 // PHASE 1D-5A (performans denetimi bulgusu): rArenaHome() zaten teknohane_arena_stats/{uid}'i
 // çekiyor; rArenaBadges()'e ulaşmanın TEK yolu rArenaHome()'un kendi render ettiği "🏅 Rozetlerim"
@@ -14626,6 +14635,7 @@ async function arenaApiCall(url, payload) {
 
 function arenaStopTimer() {
   if (arenaTimerHandle) { clearInterval(arenaTimerHandle); arenaTimerHandle = null; }
+  if (arenaLeagueTimerHandle) { clearInterval(arenaLeagueTimerHandle); arenaLeagueTimerHandle = null; }
 }
 function arenaTodayStr() { return new Date().toISOString().slice(0, 10); }
 
@@ -14742,6 +14752,7 @@ async function rArenaHome() {
       <span style="font-size:12px;color:var(--cyan);font-weight:600;cursor:pointer" onclick="rArenaBadges()">🏅 Rozetlerim (${(myStats?.badges||[]).length}/${Object.keys(ARENA_BADGE_LABELS).length}) →</span>
       <span style="font-size:12px;color:var(--cyan);font-weight:600;cursor:pointer" onclick="rArenaQotd()">🗓️ Günün Sorusu →</span>
       <span style="font-size:12px;color:var(--cyan);font-weight:600;cursor:pointer" onclick="rArenaDuels()">⚔️ Düellolarım →</span>
+      <span style="font-size:12px;color:var(--cyan);font-weight:600;cursor:pointer" onclick="rArenaLeague()">🏆 Lig →</span>
     </div>
   </div>`;
 
@@ -15898,6 +15909,155 @@ async function renderArenaLbMyRank(collectionName, periodField, periodValue, top
   } catch (e) {
     wrap.innerHTML = '';
   }
+}
+
+// ==== FAZ 2G — Lig ekranı (backend: FAZ 2D/2E/2F) ====
+// Sıralama/rank/leagueId/seasonScore HİÇBİRİ burada hesaplanmaz — members[]/userRank/userSeasonScore
+// backend response'undan (arena-league-leaderboard) OLDUĞU GİBİ render edilir. NOT: backend gerçek
+// response'u `success:true/false` alanı kullanıyor (FAZ 2F'de canlı doğrulandı) — bu fonksiyon buna
+// göre yazıldı.
+async function rArenaLeague() {
+  arenaView = 'league';
+  arenaBackParent = rArenaHome;
+  arenaStopTimer(); // hem quiz süresi hem sezon geri sayımı timer'ını temizler
+  arenaLeagueData = null;
+  const body = document.getElementById('arena-body');
+  if (!user) { body.innerHTML = `<div class="no">Lig'i görmek için giriş yapmalısın.</div>`; return; }
+  body.innerHTML = `<div class="load"><div class="spin"></div></div>`;
+  try {
+    const idToken = await user.getIdToken();
+    const data = await arenaApiCall(ARENA_LEAGUE_LEADERBOARD_API, { idToken });
+    arenaLeagueData = data;
+    renderArenaLeagueScreen();
+  } catch (e) {
+    renderArenaLeagueError('network');
+  }
+}
+
+function renderArenaLeagueError(kind) {
+  const body = document.getElementById('arena-body');
+  if (kind === 'season_not_active') {
+    body.innerHTML = `<div class="no">Şu anda aktif bir lig sezonu yok.<br><span style="font-size:11px;color:var(--text3)">Yeni sezon başladığında burada görünecek.</span></div>
+      <button class="apbtn" onclick="rArenaHome()">Geri Dön</button>`;
+  } else if (kind === 'inconsistent') {
+    body.innerHTML = `<div class="no">Lig bilgileri şu anda yüklenemiyor.</div>
+      <button class="apbtn" onclick="rArenaHome()">Geri Dön</button>`;
+  } else {
+    body.innerHTML = `<div class="no">Bağlantı kurulamadı.<br><span style="font-size:11px;color:var(--text3)">Lütfen tekrar dene.</span></div>
+      <button class="apbtn" style="background:linear-gradient(135deg,var(--cyan),#0091FF);color:#00040F;font-weight:700;border:none" onclick="rArenaLeague()">↻ Tekrar Dene</button>
+      <button class="apbtn" onclick="rArenaHome()">Geri Dön</button>`;
+  }
+}
+
+function renderArenaLeagueNotJoined() {
+  const body = document.getElementById('arena-body');
+  body.innerHTML = `
+    <div class="feat" style="text-align:center;padding:28px 20px">
+      <div style="font-size:38px;margin-bottom:8px">🏆</div>
+      <div style="font-size:17px;font-weight:700;margin-bottom:4px">Henüz bir lige katılmadın.</div>
+      <div style="color:var(--text2);font-size:13px;margin-bottom:8px">Diğer oyuncularla aynı ligde sıralamanı gör, XP'ni sezon boyunca biriktir.</div>
+      <div style="color:var(--text3);font-size:11px;margin-bottom:18px">Ligler doluluk durumuna göre otomatik dağıtılır.</div>
+      <button class="apbtn" id="arena-league-join-btn" style="background:linear-gradient(135deg,var(--cyan),#0091FF);color:#00040F;font-weight:700;border:none" onclick="arenaLeagueJoin()">🏆 Lige Katıl</button>
+    </div>
+    <button class="apbtn" style="margin-top:14px" onclick="rArenaHome()">← Arena'ya Dön</button>`;
+}
+
+function renderArenaLeagueScreen() {
+  const body = document.getElementById('arena-body');
+  const data = arenaLeagueData;
+  if (!data || data.success === false) {
+    const err = data?.error;
+    if (err === 'season_not_active') { renderArenaLeagueError('season_not_active'); return; }
+    if (err === 'league_data_inconsistent') { renderArenaLeagueError('inconsistent'); return; }
+    if (err === 'league_not_joined') { renderArenaLeagueNotJoined(); return; }
+    renderArenaLeagueError('network');
+    return;
+  }
+
+  const membersHtml = (data.members || []).map(m => {
+    const isMe = m.uid === user?.uid;
+    const name = m.displayName || 'Kullanıcı';
+    return `
+    <div style="display:flex;align-items:center;gap:10px;padding:9px 6px;${isMe?'background:var(--cdim);border-radius:10px':''}">
+      <span style="width:26px;text-align:center;font-weight:700;color:var(--text2)">#${m.rank}</span>
+      <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer" onclick="openPublicProfile('${m.uid}','${escapeJsAttr(name)}')">
+        ${m.photoURL?`<img src="${escapeHtml(m.photoURL)}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${escapeJsAttr(avatarUrl(null, name, 56))}'">`:`<div style="width:28px;height:28px;border-radius:50%;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${escapeHtml(name.charAt(0).toUpperCase())}</div>`}
+        <span style="flex:1;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(name)}${isMe?' (Sen)':''}</span>
+      </div>
+      <span style="font-weight:700;color:var(--cyan);flex-shrink:0">${m.seasonScore||0}</span>
+    </div>`;
+  }).join('');
+
+  body.innerHTML = `
+    <div class="feat" style="text-align:center;padding:20px 18px;margin-bottom:14px">
+      <div style="font-size:32px;margin-bottom:4px">🏆</div>
+      <div style="font-size:17px;font-weight:700;margin-bottom:4px">Lig #${data.leagueNumber ?? '-'}</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:12px">${data.memberCount ?? (data.members||[]).length} / ${data.capacity ?? 10} Üye</div>
+      <div id="arena-league-countdown" style="font-size:12px;color:var(--text3)"></div>
+    </div>
+    <div class="feat" style="text-align:center;padding:14px 18px;margin-bottom:14px;background:var(--cdim)">
+      <div style="font-size:13px;color:var(--text2)">Senin sıran</div>
+      <div style="font-size:24px;font-weight:700;color:var(--cyan)">#${data.userRank ?? '-'}</div>
+      <div style="font-size:12px;color:var(--text2)">${data.userSeasonScore ?? 0} XP</div>
+    </div>
+    <div>${membersHtml || `<div class="no">Lig üyesi bulunamadı.</div>`}</div>
+    <button class="apbtn" style="margin-top:14px" onclick="rArenaHome()">← Arena'ya Dön</button>`;
+
+  arenaLeagueStartCountdown(data.seasonEndsAt);
+}
+
+async function arenaLeagueJoin() {
+  if (!guardSubmit('arenaLeagueJoin')) return;
+  const btn = document.getElementById('arena-league-join-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Katılıyor…'; }
+  try {
+    const idToken = await user.getIdToken();
+    const data = await arenaApiCall(ARENA_LEAGUE_JOIN_API, { idToken });
+    if (data.success === false) {
+      if (data.error === 'season_not_active') { renderArenaLeagueError('season_not_active'); return; }
+      showMsg('Lige katılırken bir sorun oluştu. Lütfen tekrar dene.');
+      renderArenaLeagueNotJoined();
+      return;
+    }
+    // Başarılı ('joined' veya 'already_member') — güncel leaderboard'u çek, doğrudan lig ekranına geç.
+    arenaLeagueData = null;
+    const body = document.getElementById('arena-body');
+    body.innerHTML = `<div class="load"><div class="spin"></div></div>`;
+    const idToken2 = await user.getIdToken();
+    const lbData = await arenaApiCall(ARENA_LEAGUE_LEADERBOARD_API, { idToken: idToken2 });
+    arenaLeagueData = lbData;
+    renderArenaLeagueScreen();
+  } catch (e) {
+    renderArenaLeagueError('network');
+  } finally {
+    releaseSubmit('arenaLeagueJoin');
+  }
+}
+
+// Sezon bitiş geri sayımı — YALNIZCA backend'in gönderdiği seasonEndsAt'i biçimlendirir; tarih
+// hesaplaması/Firestore isteği/polling YOK. arenaStopTimer() (yukarıda tanımlı) her ekran geçişinde
+// bunu temizler — memory leak riski yok.
+function arenaLeagueStartCountdown(seasonEndsAt) {
+  const el = document.getElementById('arena-league-countdown');
+  if (!el || !seasonEndsAt) return;
+  const endMs = Date.parse(seasonEndsAt);
+  if (!endMs || isNaN(endMs)) return;
+  function tick() {
+    const el2 = document.getElementById('arena-league-countdown');
+    if (!el2) { arenaStopTimer(); return; } // ekran değişmiş, kendi kendini temizle
+    const diff = endMs - Date.now();
+    if (diff <= 0) { el2.textContent = 'Sezon sona erdi.'; arenaStopTimer(); return; }
+    const totalSec = Math.floor(diff / 1000);
+    const days = Math.floor(totalSec / 86400);
+    const hours = Math.floor((totalSec % 86400) / 3600);
+    const mins = Math.floor((totalSec % 3600) / 60);
+    el2.textContent = `Sezon bitişine: ${days}g ${hours}s ${mins}d`;
+  }
+  // Sezon zaten bitmişse interval'ı HİÇ kurma — aksi halde "Sezon sona erdi." bir sonraki tick'e
+  // (1sn sonra) kadar gereksiz bir interval açık bırakırdı (izole testte yakalandı).
+  if (endMs <= Date.now()) { tick(); return; }
+  tick();
+  arenaLeagueTimerHandle = setInterval(tick, 1000);
 }
 
 function gt(name) {
