@@ -4235,8 +4235,25 @@ function logPermissionDenialDiagnostic(action, e) {
 // submitComment satır ~11622, checkBanStatus), token sert yenilendikten SONRA bile hâlâ reddediliyor
 // olması pratikte SADECE bu hız-sınırı yarışını gösterir — bu yüzden zamanlamaya güvenmek yerine
 // koşulsuz olarak sakinleştirici "Yavaş Ol" mesajı gösteriliyor.
-function showForumPermissionError(e) {
+// KÖK NEDEN DÜZELTMESİ (canlı teşhis logunda yakalandı — lastForumActionAtLocal=0/ilk eylem OLMASINA
+// RAĞMEN permission-denied): önceki analiz yalnızca comments/{commentId}'in create kuralındaki 4
+// koşuldan 2'sini (isBanned/notForumRateLimited) hesaba katıp HER permission-denied'i otomatik "hız
+// sınırı" sayıyordu — ama aynı kural üçüncü bir koşul da içeriyor: konu (post) kilitliyse
+// (`get(...postId).data.locked != true`) yorum reddedilir. Kullanıcı bir konuyu açık tutarken (stale
+// `p` nesnesi bellekte) admin konuyu KİLİTLERSE, istemci bunu bilmeden yorum denemesine izin verir,
+// sunucu haklı olarak reddeder — ama kullanıcı yanlışlıkla "yavaş ol" uyarısı görürdü (bekleyince asla
+// düzelmeyen, yanıltıcı bir mesaj). Artık gerçek nedeni ayırt etmek için konu dokümanı TAZE okunuyor.
+async function showForumPermissionError(e, postId) {
   if (e && e.code === 'permission-denied') {
+    if (postId) {
+      try {
+        const freshPost = await db.collection('teknohane_posts').doc(postId).get();
+        if (freshPost.exists && freshPost.data().locked === true) {
+          showToast('🔒', 'rgba(255,69,58,.15)', 'Konu Kilitlendi', 'Bu konu bir yönetici tarafından kilitlendi, artık yorum yapılamıyor.');
+          return;
+        }
+      } catch (_) {}
+    }
     const remaining = Math.max(1, Math.min(FORUM_RATE_LIMIT_MS / 1000, Math.ceil((FORUM_RATE_LIMIT_MS - (Date.now() - lastForumActionAtLocal)) / 1000)));
     showToast('⏳', 'rgba(255,159,10,.15)', 'Yavaş Ol', 'Art arda çok hızlı gönderim yapıyorsun, ' + remaining + ' saniye bekle.');
   } else {
@@ -11309,7 +11326,7 @@ async function submitPost() {
     pollOptionsDraft = [];
 
     showToast('⏳','rgba(255,159,10,.15)','Konu Gönderildi','İncelendikten sonra foruma yayınlanacaktır.');
-  } catch(e) { lastForumActionAtLocal = prevForumActionAtLocal; logPermissionDenialDiagnostic('post', e); showForumPermissionError(e); } finally { releaseSubmit('post'); }
+  } catch(e) { lastForumActionAtLocal = prevForumActionAtLocal; logPermissionDenialDiagnostic('post', e); await showForumPermissionError(e); } finally { releaseSubmit('post'); }
 }
 
 async function openPost(id) {
@@ -11744,7 +11761,7 @@ async function submitComment() {
       if (m.uid && m.uid !== user.uid) notifyUser(m.uid, 'mention', `${name} seni bir yorumda etiketledi: "${p.title}"`, null, p.id, user.uid, name, myProfileData.photoURL);
     });
     pendingMentions = [];
-  } catch(e) { lastForumActionAtLocal = prevForumActionAtLocal; logPermissionDenialDiagnostic('comment', e); showForumPermissionError(e); } finally { releaseSubmit('comment'); }
+  } catch(e) { lastForumActionAtLocal = prevForumActionAtLocal; logPermissionDenialDiagnostic('comment', e); await showForumPermissionError(e, p.id); } finally { releaseSubmit('comment'); }
 }
 
 // "Takip Et": konuya yeni yorum geldiğinde bildirim almak için. followers[] alanı, konu oluşturulurken
@@ -14686,11 +14703,23 @@ async function arenaApiCallOnce(url, payload) {
 // kez daha deneniyor; blip o kadar kısa sürdüyse kullanıcı hiçbir hata görmeden devam eder. Sunucudan
 // GERÇEK bir yanıt geldiyse (iş mantığı hatası dahil, ör. arena_disabled/in_progress) BU ASLA TEKRAR
 // DENENMİYOR — sunucu zaten cevap verdi, tekrar denemek yalnızca aynı sonucu gecikmeyle döner.
+// KÖK NEDEN İYİLEŞTİRMESİ v2 (canlı hata kayıtlarında görüldü — "Unable to parse TLS packet header"/
+// "Connection reset" HER İKİ paralel yol İÇİN de tek bir yeniden denemeyi (1.2sn sonra) bile atlatıp
+// hâlâ kayıtlara düşüyordu, aynı cihazda birden fazla kez): bu iki hata, cihazın radyosu uzun bir
+// arka plan/uyku döneminden yeni uyandığında (bkz. hata saatleri — sabahın erken saatleri) hücresel
+// bağlantının TAM olarak yeniden kurulmadığı kısa bir pencereye işaret ediyor — 1.2sn bu pencere için
+// bazen yetersiz kalıyor. Artık TOPLAM 3 deneme (ilk + 2 yeniden deneme), aralıklar ARTAN şekilde
+// (1.2sn, sonra 2.5sn) — gerçekten kopuk bir cihazda toplam ek bekleme yalnızca ~3.7sn, ama bağlantı
+// birkaç saniye içinde toparlanan asıl senaryoda başarı ihtimalini belirgin şekilde artırıyor.
 async function arenaApiCall(url, payload) {
-  const first = await arenaApiCallOnce(url, payload);
-  if (!first._networkFailure) return first;
-  await new Promise(r => setTimeout(r, 1200));
-  return await arenaApiCallOnce(url, payload);
+  let result = await arenaApiCallOnce(url, payload);
+  if (!result._networkFailure) return result;
+  for (const delayMs of [1200, 2500]) {
+    await new Promise(r => setTimeout(r, delayMs));
+    result = await arenaApiCallOnce(url, payload);
+    if (!result._networkFailure) return result;
+  }
+  return result;
 }
 
 // EK TALİMAT: Arena'nın TÜM katılım noktalarında (Günün Sorusu, Düello, Lig) Forum/Pazar'daki AYNI
@@ -14984,7 +15013,14 @@ async function arenaBeginQuiz() {
       ? `capacitorHttp=${data._capacitorError||'-'} | fetch=${data._fetchError||'-'}`
       : null;
     logClientError('arena-start başarısız: ' + (data.error || 'boş soru listesi döndü'), netDiag, 'arenaBeginQuiz');
-    body.innerHTML = `<div class="no">Yarışma başlatılamadı.<br><span style="font-size:11px;color:var(--text3)">${escapeHtml(data.error||'Lütfen tekrar dene.')}</span></div>
+    // KÖK NEDEN İYİLEŞTİRMESİ: _networkFailure=true iken data.error, ham/teknik bir istisna mesajı
+    // taşıyor ("Failed to fetch", "Unable to parse TLS packet header" vb.) — kullanıcıya bunu OLDUĞU
+    // GİBİ göstermek yerine (anlaşılmaz + suçu yanlışlıkla sunucuya/uygulamaya atan bir izlenim
+    // verir), gerçek nedeni (kendi bağlantısı) doğru şekilde anlatan bir mesaj gösteriliyor — sunucudan
+    // GERÇEKTEN yanıt gelmiş bir iş mantığı hatasında (ör. no_league_questions gibi beklenmedik bir
+    // durum) ham mesaj olduğu gibi kalmaya devam ediyor.
+    const userMsg = data._networkFailure ? 'İnternet bağlantında geçici bir sorun var. Bağlantını kontrol edip tekrar dene.' : (data.error||'Lütfen tekrar dene.');
+    body.innerHTML = `<div class="no">Yarışma başlatılamadı.<br><span style="font-size:11px;color:var(--text3)">${escapeHtml(userMsg)}</span></div>
       <button class="apbtn" style="background:linear-gradient(135deg,var(--cyan),#0091FF);color:#00040F;font-weight:700;border:none" onclick="arenaBeginQuiz()">↻ Tekrar Dene</button>
       <button class="apbtn" onclick="rArenaHome()">Geri Dön</button>`;
     return;
@@ -15562,7 +15598,8 @@ async function arenaDuelBegin(duelId) {
       ? `capacitorHttp=${data._capacitorError||'-'} | fetch=${data._fetchError||'-'}`
       : null;
     logClientError('duel-start başarısız: ' + data.error, netDiag, 'arenaDuelBegin');
-    showMsg('Başlatılamadı: ' + data.error); rArenaDuels(); return;
+    showMsg(data._networkFailure ? 'İnternet bağlantında geçici bir sorun var. Bağlantını kontrol edip tekrar dene.' : ('Başlatılamadı: ' + data.error));
+    rArenaDuels(); return;
   }
   if (data.alreadyCompleted) { showMsg('Bu düelloyu zaten tamamladın'); rArenaDuels(); return; }
   arenaDuelId = duelId;
