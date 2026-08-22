@@ -14647,18 +14647,42 @@ function arenaApiWithTimeout(promise, ms) {
     new Promise((_, reject) => setTimeout(() => reject(new Error('Bağlantı zaman aşımına uğradı')), ms))
   ]);
 }
+// KÖK NEDEN ANALİZİ SONRASI DÜZELTME (FAZ 2 — "internet sorunu" mesajının doğruluğu): eskiden
+// gerçek bir ağ istisnası (fetch()/CapacitorHttp.request() hiç yanıt ALAMAMASI) İLE bir yanıt
+// ALINIP da gövdesi JSON olarak ayrıştırılamaması (JSON.parse/res.json() hatası) AYNI catch'e
+// düşüyor, ikisi de "İnternet bağlantında sorun var" olarak gösteriliyordu — oysa ikincisi TAMAMEN
+// FARKLI bir durum (bir sunucudan/ara katmandan yanıt GELDİ, ama beklenen formatta değildi). Artık
+// JSON ayrıştırma hatası ayrı bir işaretle (_invalidJsonResponse) fırlatılıyor, kullanıcıya doğru
+// mesaj gösterilebiliyor (bkz. arenaApiCallOnce/arenaBeginQuiz). Production teşhisinde (bkz. analiz
+// raporu) bu ayrım şu ana kadarki GERÇEK vakalarda hiç tetiklenmedi (hepsi gerçek transport hatasıydı,
+// "Failed to fetch"/"Connection reset"/"Unable to parse TLS packet header" — bir yanıt hiç alınamadı)
+// ama kod TASARIMINDAKİ bu kör nokta artık kapatıldı.
 async function arenaApiViaCapacitorHttp(url, payload) {
   const resp = await arenaApiWithTimeout(Capacitor.Plugins.CapacitorHttp.request({
     url, method: 'POST', headers: { 'Content-Type': 'application/json' }, data: payload,
     connectTimeout: 15000, readTimeout: 15000
   }), 15000);
-  const data = typeof resp.data === 'string' ? JSON.parse(resp.data || '{}') : (resp.data || {});
+  let data;
+  try {
+    data = typeof resp.data === 'string' ? JSON.parse(resp.data || '{}') : (resp.data || {});
+  } catch (e) {
+    const err = new Error('invalid_json_response(status=' + resp.status + ')');
+    err._invalidJsonResponse = true;
+    throw err;
+  }
   if ((resp.status < 200 || resp.status >= 300) && !data.error) data.error = `HTTP ${resp.status}`;
   return data;
 }
 async function arenaApiViaFetch(url, payload) {
   const res = await arenaApiWithTimeout(fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, body: JSON.stringify(payload) }), 15000);
-  const data = await res.json();
+  let data;
+  try {
+    data = await res.json();
+  } catch (e) {
+    const err = new Error('invalid_json_response(status=' + res.status + ')');
+    err._invalidJsonResponse = true;
+    throw err;
+  }
   if (!res.ok && !data.error) data.error = `HTTP ${res.status}`;
   return data;
 }
@@ -14683,8 +14707,14 @@ async function arenaApiCallOnce(url, payload) {
     ]);
     if (capRes.status === 'fulfilled') return capRes.value;
     if (fetchRes.status === 'fulfilled') return fetchRes.value;
+    // FAZ 2: her iki yol da başarısız — ama HANGİ TÜRDE? İkisinden biri bile "bir yanıt ALDIM ama JSON
+    // değildi" (_invalidJsonResponse) diyorsa, bu artık "internet yok" değil "sunucudan/ara katmandan
+    // beklenmedik bir yanıt geldi" anlamına gelir — kullanıcıya FARKLI bir mesaj gösterilir (bkz.
+    // arenaBeginQuiz). İkisi de saf transport hatasıysa (yanıt hiç alınamadı) eskisi gibi _networkFailure.
+    const invalidJson = !!(capRes.reason?._invalidJsonResponse || fetchRes.reason?._invalidJsonResponse);
     return {
-      _networkFailure: true,
+      _networkFailure: !invalidJson,
+      _invalidJsonResponse: invalidJson,
       error: fetchRes.reason?.message || String(fetchRes.reason),
       _capacitorError: capRes.reason?.message || String(capRes.reason),
       _fetchError: fetchRes.reason?.message || String(fetchRes.reason),
@@ -14692,7 +14722,7 @@ async function arenaApiCallOnce(url, payload) {
   }
   // Native olmayan (mobil web/masaüstü) ortamda CapacitorHttp zaten yok — tek yol fetch().
   try { return await arenaApiViaFetch(url, payload); }
-  catch (e) { return { _networkFailure: true, error: e?.message || String(e) }; }
+  catch (e) { return { _networkFailure: !e._invalidJsonResponse, _invalidJsonResponse: !!e._invalidJsonResponse, error: e?.message || String(e) }; }
 }
 // GÜVENİLİRLİK İYİLEŞTİRMESİ (kullanıcı raporu — "Arena hâlâ sık sık hata veriyor, kökten çöz"):
 // CapacitorHttp+fetch paralel denemesi bile İKİSİ DE aynı anda başarısız olabiliyor — ama bu KALICI
@@ -14713,11 +14743,11 @@ async function arenaApiCallOnce(url, payload) {
 // birkaç saniye içinde toparlanan asıl senaryoda başarı ihtimalini belirgin şekilde artırıyor.
 async function arenaApiCall(url, payload) {
   let result = await arenaApiCallOnce(url, payload);
-  if (!result._networkFailure) return result;
+  if (!result._networkFailure && !result._invalidJsonResponse) return result;
   for (const delayMs of [1200, 2500]) {
     await new Promise(r => setTimeout(r, delayMs));
     result = await arenaApiCallOnce(url, payload);
-    if (!result._networkFailure) return result;
+    if (!result._networkFailure && !result._invalidJsonResponse) return result;
   }
   return result;
 }
@@ -14972,7 +15002,22 @@ async function arenaBeginQuiz() {
   if (!(await arenaRequireEmailVerified())) return;
   const body = document.getElementById('arena-body');
   body.innerHTML = `<div class="load"><div class="spin"></div><span>Yarışma hazırlanıyor…</span></div>`;
-  const idToken = await user.getIdToken();
+  // KÖK NEDEN İYİLEŞTİRMESİ v3 (ayrı bir UX/sağlamlık düzeltmesi — "Connection reset" ağ sorununun
+  // KENDİSİYLE karıştırılmamalı): user.getIdToken() hiçbir catch'e sarılı değildi. Zayıf bağlantıda bu
+  // satır başarısız olursa (token yenilemesi de bir ağ isteğidir) exception hiç yakalanmadan
+  // unhandledrejection'a düşüyordu — ekran SONSUZA "Yarışma hazırlanıyor…" yazılı kalıyordu, kullanıcı
+  // "Tekrar Dene" butonunu bile göremiyordu. Artık arenaApiCall'daki AYNI ağ-hatası mesajı burada da
+  // gösteriliyor, kullanıcı asla sonsuz bekleme ekranında kalmıyor.
+  let idToken;
+  try {
+    idToken = await user.getIdToken();
+  } catch (e) {
+    logClientError('arena-start başarısız (getIdToken): ' + (e?.message || String(e)), e?.stack, 'arenaBeginQuiz');
+    body.innerHTML = `<div class="no">Yarışma başlatılamadı.<br><span style="font-size:11px;color:var(--text3)">İnternet bağlantında geçici bir sorun var. Bağlantını kontrol edip tekrar dene.</span></div>
+      <button class="apbtn" style="background:linear-gradient(135deg,var(--cyan),#0091FF);color:#00040F;font-weight:700;border:none" onclick="arenaBeginQuiz()">↻ Tekrar Dene</button>
+      <button class="apbtn" onclick="rArenaHome()">Geri Dön</button>`;
+    return;
+  }
   const data = await arenaApiCall(ARENA_START_API, { idToken });
   // HATA DÜZELTMESİ: worker bugünkü yarışma zaten tamamlanmışsa hiç `error` alanı DÖNDÜRMÜYOR,
   // yalnızca `alreadyCompletedToday:true` (bkz. cloudflare-push-worker.js /internal/arena-start).
@@ -15013,13 +15058,23 @@ async function arenaBeginQuiz() {
       ? `capacitorHttp=${data._capacitorError||'-'} | fetch=${data._fetchError||'-'}`
       : null;
     logClientError('arena-start başarısız: ' + (data.error || 'boş soru listesi döndü'), netDiag, 'arenaBeginQuiz');
-    // KÖK NEDEN İYİLEŞTİRMESİ: _networkFailure=true iken data.error, ham/teknik bir istisna mesajı
-    // taşıyor ("Failed to fetch", "Unable to parse TLS packet header" vb.) — kullanıcıya bunu OLDUĞU
-    // GİBİ göstermek yerine (anlaşılmaz + suçu yanlışlıkla sunucuya/uygulamaya atan bir izlenim
-    // verir), gerçek nedeni (kendi bağlantısı) doğru şekilde anlatan bir mesaj gösteriliyor — sunucudan
-    // GERÇEKTEN yanıt gelmiş bir iş mantığı hatasında (ör. no_league_questions gibi beklenmedik bir
-    // durum) ham mesaj olduğu gibi kalmaya devam ediyor.
-    const userMsg = data._networkFailure ? 'İnternet bağlantında geçici bir sorun var. Bağlantını kontrol edip tekrar dene.' : (data.error||'Lütfen tekrar dene.');
+    // KÖK NEDEN İYİLEŞTİRMESİ v3 (FAZ 2 — üç durum KESİN olarak ayrılıyor, bkz. analiz raporu):
+    // 1) _networkFailure=true: fetch()/CapacitorHttp.request() hiç yanıt ALAMADI (gerçek transport
+    //    hatası — "Failed to fetch"/"Connection reset"/"Unable to parse TLS packet header"). Production
+    //    kanıtı (Cloudflare Workers Analytics + wrangler tail çapraz kontrolü): bu vakaların bir kısmında
+    //    istek Cloudflare'e HİÇ ULAŞMIYOR (worker'da sıfır invocation) — yani gerçekten kullanıcının
+    //    kendi bağlantı yolunda bir sorun, uygulamanın/worker'ın kendi hatası DEĞİL.
+    // 2) _invalidJsonResponse=true: bir yanıt ALINDI ama JSON olarak ayrıştırılamadı (ör. bir ara
+    //    katmanın HTML hata sayfası döndürmesi) — bu DAHA FARKLI bir durum, "internet yok" demek YANLIŞ
+    //    olurdu.
+    // 3) Diğer tüm durumlarda data.error, worker'ın GERÇEKTEN döndürdüğü hata mesajıdır — olduğu gibi
+    //    gösterilir (worker'ın TÜM endpoint'leri kendi try/catch'iyle her zaman geçerli JSON döner,
+    //    bkz. analiz raporu §3 — bu yüzden ham data.error zaten anlamlı/güvenilir bir metindir).
+    const userMsg = data._networkFailure
+      ? 'İnternet bağlantında geçici bir sorun var. Bağlantını kontrol edip tekrar dene.'
+      : data._invalidJsonResponse
+        ? 'Sunucudan geçersiz bir yanıt alındı. Lütfen tekrar dene.'
+        : (data.error||'Lütfen tekrar dene.');
     body.innerHTML = `<div class="no">Yarışma başlatılamadı.<br><span style="font-size:11px;color:var(--text3)">${escapeHtml(userMsg)}</span></div>
       <button class="apbtn" style="background:linear-gradient(135deg,var(--cyan),#0091FF);color:#00040F;font-weight:700;border:none" onclick="arenaBeginQuiz()">↻ Tekrar Dene</button>
       <button class="apbtn" onclick="rArenaHome()">Geri Dön</button>`;
@@ -15598,7 +15653,11 @@ async function arenaDuelBegin(duelId) {
       ? `capacitorHttp=${data._capacitorError||'-'} | fetch=${data._fetchError||'-'}`
       : null;
     logClientError('duel-start başarısız: ' + data.error, netDiag, 'arenaDuelBegin');
-    showMsg(data._networkFailure ? 'İnternet bağlantında geçici bir sorun var. Bağlantını kontrol edip tekrar dene.' : ('Başlatılamadı: ' + data.error));
+    showMsg(data._networkFailure
+      ? 'İnternet bağlantında geçici bir sorun var. Bağlantını kontrol edip tekrar dene.'
+      : data._invalidJsonResponse
+        ? 'Sunucudan geçersiz bir yanıt alındı. Lütfen tekrar dene.'
+        : ('Başlatılamadı: ' + data.error));
     rArenaDuels(); return;
   }
   if (data.alreadyCompleted) { showMsg('Bu düelloyu zaten tamamladın'); rArenaDuels(); return; }
