@@ -5328,6 +5328,7 @@ function navigateFromNotificationUrl(url, attempt) {
     const chatUid = u.searchParams.get('chat');
     const duelId = u.searchParams.get('duel');
     const arenaLeague = u.searchParams.get('arenaLeague');
+    const screenTarget = u.searchParams.get('screen');
     if (listingId) {
       // openDetail artık kendi tekil-doküman fallback'ini yapıyor (bkz. getListingById) — bellekte
       // hazır olsun olmasın, TEKRARLI SORGULAMA (retry-polling) GEREKMEDEN doğrudan çağrılabilir.
@@ -5350,6 +5351,13 @@ function navigateFromNotificationUrl(url, attempt) {
       // başladı VE sezon sonucu bildirimleri AYNI hedefe yönlendirilir, ayrı bir ekran gerekmiyor.
       if (!user && attempt < 10) { setTimeout(() => navigateFromNotificationUrl(url, attempt+1), 400); return; }
       openArenaPage(); rArenaLeague();
+    } else if (screenTarget) {
+      // GENİŞLETME (Bildirim Merkezi — Aşama 10): admin panelinden seçilebilen genel ekran hedefleri
+      // (Ana Sayfa/Arena/Forum/Pazar/Profil) — mevcut alt-sekme (gt) ve Arena açma (openArenaPage)
+      // fonksiyonları AYNEN kullanılıyor, yeni bir navigasyon mekanizması YOK.
+      if (!user && attempt < 10 && screenTarget !== 'home') { setTimeout(() => navigateFromNotificationUrl(url, attempt+1), 400); return; }
+      if (screenTarget === 'arena') openArenaPage();
+      else if (['home', 'community', 'market', 'profile'].includes(screenTarget)) gt(screenTarget);
     }
   } catch(e) { console.error('Bildirim yönlendirme URL\'si çözülemedi:', e); }
 }
