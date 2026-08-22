@@ -5327,6 +5327,7 @@ function navigateFromNotificationUrl(url, attempt) {
     const profileUid = u.searchParams.get('profile');
     const chatUid = u.searchParams.get('chat');
     const duelId = u.searchParams.get('duel');
+    const arenaLeague = u.searchParams.get('arenaLeague');
     if (listingId) {
       // openDetail artık kendi tekil-doküman fallback'ini yapıyor (bkz. getListingById) — bellekte
       // hazır olsun olmasın, TEKRARLI SORGULAMA (retry-polling) GEREKMEDEN doğrudan çağrılabilir.
@@ -5343,6 +5344,12 @@ function navigateFromNotificationUrl(url, attempt) {
     } else if (duelId) {
       if (!user && attempt < 10) { setTimeout(() => navigateFromNotificationUrl(url, attempt+1), 400); return; }
       openArenaPage(); rArenaDuels();
+    } else if (arenaLeague) {
+      // GENİŞLETME (Arena Lig Otomatik Bildirim Sistemi): rArenaLeague() TEK ekranda hem güncel ligi
+      // hem sezon geçmişi/sonucunu gösteriyor (kendi içinde arenaLeagueFetchHistory() çağırıyor) — lig
+      // başladı VE sezon sonucu bildirimleri AYNI hedefe yönlendirilir, ayrı bir ekran gerekmiyor.
+      if (!user && attempt < 10) { setTimeout(() => navigateFromNotificationUrl(url, attempt+1), 400); return; }
+      openArenaPage(); rArenaLeague();
     }
   } catch(e) { console.error('Bildirim yönlendirme URL\'si çözülemedi:', e); }
 }
@@ -6187,6 +6194,8 @@ const NOTIF_ICONS = {
   boost_request: { ic: '🚀', bg: 'rgba(0,212,255,.12)' },
   boost_approved: { ic: '✅', bg: 'rgba(48,209,88,.15)' },
   boost_rejected: { ic: '❌', bg: 'rgba(255,69,58,.15)' },
+  arena_league_started: { ic: '🏆', bg: 'rgba(255,204,0,.15)' },
+  arena_season_result: { ic: '🏁', bg: 'rgba(255,204,0,.15)' },
   followed_new_listing: { ic: '📦', bg: 'rgba(0,212,255,.12)' },
   mention: { ic: '📣', bg: 'rgba(0,212,255,.12)' },
   best_answer: { ic: '✓', bg: 'rgba(48,209,88,.15)' },
