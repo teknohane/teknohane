@@ -15388,6 +15388,19 @@ async function rArenaBadges() {
     } catch (e) {}
   }
   const ids = Object.keys(ARENA_BADGE_LABELS);
+  // GENİŞLETME (kullanıcı talebi — 2026-08-22): Rozetlerim artık Lig başarılarını da gösteriyor.
+  // YENİ bir worker ucu İCAT EDİLMEDİ — "📜 Geçmiş Sezonlar"ın zaten kullandığı AYNI salt-okunur
+  // /internal/arena-league-history çağrılıyor (mevcut sezonlar dahil TÜM üyelikleri, finalRank/tier/
+  // leagueScore ile birlikte döndürüyor) — kariyer özeti (en yüksek küme/en iyi sıra/şampiyonluk
+  // sayısı/toplam Lig Puanı) tamamen istemcide bu veriden türetiliyor. Ağ hatasında bölüm SESSİZCE
+  // atlanıyor (rozetler ekranının ANA işlevini bozmasın diye) — yalnızca BAŞARILI ama boş sonuçta
+  // ("hiç Lig oynamamış") bilgilendirici bir boş-durum mesajı gösteriliyor.
+  let leagueAchievementsHtml = '';
+  try {
+    const idToken = await user.getIdToken();
+    const historyData = await arenaApiCall(ARENA_LEAGUE_HISTORY_API, { idToken });
+    if (historyData && historyData.ok !== false) leagueAchievementsHtml = renderArenaLeagueAchievementsHtml(historyData.seasons || []);
+  } catch (e) {}
   body.innerHTML = `
     <div class="feat" style="padding:20px 18px">
       <div style="font-size:18px;font-weight:700;margin-bottom:4px;text-align:center">🏅 Rozetlerim</div>
@@ -15408,8 +15421,32 @@ async function rArenaBadges() {
           </div>`;
         }).join('')}
       </div>
+      ${leagueAchievementsHtml}
       <button class="apbtn" style="margin-top:18px" onclick="rArenaHome()">Arena'ya Dön</button>
     </div>`;
+}
+
+// arena-league-history'nin döndürdüğü {seasonId,tier,leagueScore,finalRank,totalMembers,status,...}
+// dizisinden (mevcut aktif sezon DAHİL tüm üyelikler) kariyer özeti üretir — hiçbir alan sunucudan
+// yeniden hesaplanmadan/doğrulanmadan doğrudan gösterilir (rank/tier hep backend'den).
+function renderArenaLeagueAchievementsHtml(seasons) {
+  const title = `<div style="font-size:13px;font-weight:700;color:var(--text2);margin:22px 0 10px;padding-top:16px;border-top:1px solid var(--border2)">🏆 Lig Başarıların</div>`;
+  if (!seasons.length) {
+    return `${title}<div class="row-time" style="text-align:center;padding:6px 0 4px">Henüz bir Lig sezonuna katılmadın — Arena ana ekranındaki Lig kartından katılabilirsin.</div>`;
+  }
+  const ranked = seasons.filter(s => s.finalRank != null);
+  const bestRank = ranked.length ? Math.min(...ranked.map(s => s.finalRank)) : null;
+  const highestTier = Math.max(...seasons.map(s => s.tier || 0));
+  const firstPlaceCount = ranked.filter(s => s.finalRank === 1).length;
+  const totalCareerScore = seasons.reduce((sum, s) => sum + (s.leagueScore || 0), 0);
+  return `${title}
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:10px">
+      <div class="pstat-item"><div class="pstat-num">${seasons.length}</div><div>Sezon</div></div>
+      <div class="pstat-item"><div class="pstat-num" style="font-size:15px;color:var(--cyan)">${arenaLeagueTierLabel(highestTier)}</div><div>En Yüksek Küme</div></div>
+      ${bestRank != null ? `<div class="pstat-item"><div class="pstat-num" style="font-size:15px;color:var(--green)">${arenaFormatFinalRank(bestRank)}</div><div>En İyi Sıra</div></div>` : ''}
+      ${firstPlaceCount > 0 ? `<div class="pstat-item"><div class="pstat-num" style="color:#FFD60A">🥇 ${firstPlaceCount}</div><div>Şampiyonluk</div></div>` : ''}
+    </div>
+    <div style="text-align:center;font-size:11px;color:var(--text3)">Kariyerinde toplam ${totalCareerScore} Lig Puanı topladın</div>`;
 }
 
 // Arena Ligleri hata toast'ları (ör. "Lige katılırken bir sorun oluştu") bu sarmalayıcıyı
