@@ -5326,7 +5326,6 @@ function navigateFromNotificationUrl(url, attempt) {
     const postId = u.searchParams.get('post');
     const profileUid = u.searchParams.get('profile');
     const chatUid = u.searchParams.get('chat');
-    const duelId = u.searchParams.get('duel');
     const arenaLeague = u.searchParams.get('arenaLeague');
     const screenTarget = u.searchParams.get('screen');
     if (listingId) {
@@ -5342,9 +5341,6 @@ function navigateFromNotificationUrl(url, attempt) {
     } else if (profileUid) {
       if (!user && attempt < 10) { setTimeout(() => navigateFromNotificationUrl(url, attempt+1), 400); return; }
       openPublicProfile(profileUid);
-    } else if (duelId) {
-      if (!user && attempt < 10) { setTimeout(() => navigateFromNotificationUrl(url, attempt+1), 400); return; }
-      openArenaPage(); rArenaDuels();
     } else if (arenaLeague) {
       // GENİŞLETME (Arena Lig Otomatik Bildirim Sistemi): rArenaLeague() TEK ekranda hem güncel ligi
       // hem sezon geçmişi/sonucunu gösteriyor (kendi içinde arenaLeagueFetchHistory() çağırıyor) — lig
@@ -6327,7 +6323,7 @@ function renderNotifGroupCard(g) {
     : meta.ic;
   return `<div class="notif-swipe-wrap" data-ids="${ids}">
     <div class="notif-swipe-del" onclick="event.stopPropagation();performNotifDelete(this.closest('.notif-swipe-wrap'))">🗑️</div>
-    <div class="notif-item msg-in ${anyUnread?'unread':''}" onclick="clickNotifGroup('${ids}','${first.listingId||''}',${anyUnread},'${first.postId||''}','${first.type}','${first.fromUid||''}','${fromNameJs}','${first.duelId||''}')">
+    <div class="notif-item msg-in ${anyUnread?'unread':''}" onclick="clickNotifGroup('${ids}','${first.listingId||''}',${anyUnread},'${first.postId||''}','${first.type}','${first.fromUid||''}','${fromNameJs}')"
       <div class="notif-ic" style="background:${first.fromPhotoURL?'var(--surf2)':meta.bg}">${icHtml}</div>
       <div class="notif-txt" style="flex:1"><div class="notif-msg">${label}</div><div class="notif-time">${anyUnread?'<span style="color:var(--cyan);font-weight:700">Yeni · </span>':''}${time}</div></div>
       ${anyUnread?'<div class="unread-dot"></div>':''}
@@ -6640,7 +6636,7 @@ async function markAllNotifsRead() {
   } catch(e) { showToast('⚠️', 'rgba(255,69,58,.15)', 'Hata', 'İşlem tamamlanamadı: ' + e.message); }
 }
 
-async function clickNotifGroup(idsCsv, listingId, wasUnread, postId, type, fromUid, fromName, duelId) {
+async function clickNotifGroup(idsCsv, listingId, wasUnread, postId, type, fromUid, fromName) {
   const ids = idsCsv.split(',');
   if (wasUnread) {
     const batch = db.batch();
@@ -6671,9 +6667,6 @@ async function clickNotifGroup(idsCsv, listingId, wasUnread, postId, type, fromU
     // profile değil, yalnızca kendi Profil ekranına yönlendirilir.
     closemo('notif-mo');
     gt('profile');
-  } else if (duelId) {
-    closemo('notif-mo');
-    openArenaPage(); rArenaDuels();
   }
 }
 
@@ -12239,7 +12232,6 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
         ${!privacy.hideForumActivity?`<button class="sbtn2" style="padding:9px 16px;width:auto;background:var(--surf2);color:var(--text)" onclick="document.getElementById('pub-forum-section')?.scrollIntoView({behavior:'smooth'})">💬 Forum</button>`:''}
         <button class="sbtn2" id="pub-follow-btn" style="padding:9px 16px;width:auto;background:var(--surf2);color:${isFollowingUser?'var(--cyan)':'var(--text)'}" onclick="toggleFollow('${uid}')">${isFollowingUser?'✓ Takip Ediliyor':'➕ Takip Et'}</button>
         <button class="sbtn2" style="padding:9px 16px;width:auto;background:var(--surf2);color:var(--text)" onclick="shareProfile('${uid}','${escapeJsAttr(displayName)}')">🔗 Paylaş</button>
-        <button class="sbtn2" style="padding:9px 16px;width:auto;background:linear-gradient(135deg,var(--cyan),#0091FF);color:#00040F;font-weight:700" onclick="sendDuelChallenge('${uid}','${escapeJsAttr(displayName)}')">⚔️ Düelloya Davet Et</button>
       </div>
       <div style="text-align:center;margin-top:8px"><span onclick="openReportModal('user','${uid}','${escapeJsAttr(displayName)}','${uid}')" style="font-size:12px;color:var(--text3);cursor:pointer;text-decoration:underline">🚩 Kullanıcıyı Şikayet Et</span></div>` : `
       <div style="display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap">
@@ -14496,11 +14488,6 @@ const ARENA_START_API = 'https://teknohane-api.yusuf-aykac.workers.dev/arena-sta
 const ARENA_SUBMIT_API = 'https://teknohane-api.yusuf-aykac.workers.dev/arena-submit';
 const ARENA_QOTD_START_API = 'https://teknohane-api.yusuf-aykac.workers.dev/qotd-start';
 const ARENA_QOTD_ANSWER_API = 'https://teknohane-api.yusuf-aykac.workers.dev/qotd-answer';
-const ARENA_DUEL_CHALLENGE_API = 'https://teknohane-api.yusuf-aykac.workers.dev/duel-challenge';
-const ARENA_DUEL_RESPOND_API = 'https://teknohane-api.yusuf-aykac.workers.dev/duel-respond';
-const ARENA_DUEL_START_API = 'https://teknohane-api.yusuf-aykac.workers.dev/duel-start';
-const ARENA_DUEL_SUBMIT_API = 'https://teknohane-api.yusuf-aykac.workers.dev/duel-submit';
-const ARENA_DUEL_REMATCH_API = 'https://teknohane-api.yusuf-aykac.workers.dev/duel-rematch';
 const ARENA_QUESTION_REPORT_API = 'https://teknohane-api.yusuf-aykac.workers.dev/arena-question-report';
 const ARENA_LEAGUE_JOIN_API = 'https://teknohane-api.yusuf-aykac.workers.dev/arena-league-join';
 const ARENA_LEAGUE_LEADERBOARD_API = 'https://teknohane-api.yusuf-aykac.workers.dev/arena-league-leaderboard';
@@ -14638,13 +14625,19 @@ let arenaLeagueMatchAnswers = [];
 let arenaLeagueMatchSelectedIndex = null;
 let arenaLeagueMatchResult = null;  // arena-league-match-submit'ten dönen sonuç
 let arenaLeagueMatchSubmitInFlight = false;
+// Lig Maçı sorusu başına zaman bonusu — Arena'nın günlük yarışma zamanlayıcısıyla (arenaTimerHandle/
+// arenaQStartMs) AYNI desen, ama BİLEREK AYRI değişkenler: arenaLeagueTimerHandle (yukarıda, sezon
+// bitiş geri sayımı) ile isim çakışması olmasın diye "Match" ekleniyor.
+let arenaLeagueMatchQStartMs = 0;
+let arenaLeagueMatchTimerHandle = null;
+let arenaLeagueMatchTimeLeftMs = 0;
 
 // PHASE 1D-5A (performans denetimi bulgusu): rArenaHome() zaten teknohane_arena_stats/{uid}'i
 // çekiyor; rArenaBadges()'e ulaşmanın TEK yolu rArenaHome()'un kendi render ettiği "🏅 Rozetlerim"
 // düğmesi (geri tuşu da her zaman rArenaHome()'a döner) — bu yüzden aynı veriyi ikinci kez okumak
 // yerine rArenaHome()'un az önce çektiği stats burada tutulup rArenaBadges() tarafından kullanılıyor.
-// ZAMAN BAZLI DEĞİL (TTL yok): rArenaHome() HER çalıştığında (ilk açılış, geri tuşuyla dönüş, yarışma/
-// düello sonrası) Firestore'dan yeniden okuyup bu değişkeni koşulsuz güncelliyor — böylece bayatlık
+// ZAMAN BAZLI DEĞİL (TTL yok): rArenaHome() HER çalıştığında (ilk açılış, geri tuşuyla dönüş, yarışma
+// sonrası) Firestore'dan yeniden okuyup bu değişkeni koşulsuz güncelliyor — böylece bayatlık
 // riski yok, yalnızca "aynı gezinme akışında bir kez oku, devral" mantığı uygulanıyor.
 let arenaMyStatsFromHome = null;
 
@@ -14769,7 +14762,7 @@ async function arenaApiCall(url, payload) {
   return result;
 }
 
-// EK TALİMAT: Arena'nın TÜM katılım noktalarında (Günün Sorusu, Düello, Lig) Forum/Pazar'daki AYNI
+// EK TALİMAT: Arena'nın TÜM katılım noktalarında (Günün Sorusu, Lig) Forum/Pazar'daki AYNI
 // "e-posta doğrulanmamış" UX'i (bkz. newListing/newTopic/newComment'teki showToast çağrıları) — bu
 // yalnızca bir ön-kontrol/UX kolaylığı, ASIL güvenlik sınırı worker'da (email_not_verified hatası).
 // KÖK NEDEN DÜZELTMESİ (kullanıcı raporu: e-postasını GERÇEKTEN doğrulamış kullanıcılar Arena'da hâlâ
@@ -14792,6 +14785,7 @@ async function arenaRequireEmailVerified() {
 function arenaStopTimer() {
   if (arenaTimerHandle) { clearInterval(arenaTimerHandle); arenaTimerHandle = null; }
   if (arenaLeagueTimerHandle) { clearInterval(arenaLeagueTimerHandle); arenaLeagueTimerHandle = null; }
+  if (arenaLeagueMatchTimerHandle) { clearInterval(arenaLeagueMatchTimerHandle); arenaLeagueMatchTimerHandle = null; }
 }
 function arenaTodayStr() { return new Date().toISOString().slice(0, 10); }
 
@@ -14825,17 +14819,8 @@ async function loadProfileArenaStats() {
         <div class="pbadge-item"><div class="pbadge-ic" style="font-size:16px">⭐</div><div class="pbadge-lbl">${s.bestScore||0} En İyi</div></div>
         <div class="pbadge-item" style="cursor:pointer" onclick="openArenaPage()"><div class="pbadge-ic" style="font-size:16px">🏅</div><div class="pbadge-lbl">${badges.length} Rozet</div></div>
       </div>
-      ${badges.length ? `<div class="pbadge-row" style="margin-bottom:${s.duelStats?.totalDuels?'14':'0'}px">
+      ${badges.length ? `<div class="pbadge-row">
         ${badges.map(b=>`<div class="pbadge-item earned" title="${escapeHtml(ARENA_BADGE_LABELS[b]||b)}"><div class="pbadge-ic">${(ARENA_BADGE_LABELS[b]||b).split(' ')[0]}</div><div class="pbadge-lbl">${escapeHtml((ARENA_BADGE_LABELS[b]||b).split(' ').slice(1).join(' '))}</div></div>`).join('')}
-      </div>` : ''}
-      ${s.duelStats?.totalDuels ? `
-      <div style="font-size:12px;color:var(--text2);font-weight:700;margin-bottom:8px">⚔️ Düello İstatistikleri</div>
-      <div class="pbadge-row">
-        <div class="pbadge-item"><div class="pbadge-ic" style="font-size:16px">⚔️</div><div class="pbadge-lbl">${s.duelStats.totalDuels||0} Düello</div></div>
-        <div class="pbadge-item"><div class="pbadge-ic" style="font-size:16px">🏆</div><div class="pbadge-lbl">${s.duelStats.wins||0} Galibiyet</div></div>
-        <div class="pbadge-item"><div class="pbadge-ic" style="font-size:16px">💔</div><div class="pbadge-lbl">${s.duelStats.losses||0} Mağlubiyet</div></div>
-        <div class="pbadge-item"><div class="pbadge-ic" style="font-size:16px">✅</div><div class="pbadge-lbl">%${s.duelStats.totalDuels?Math.round((s.duelStats.wins||0)/s.duelStats.totalDuels*100):0} Kazanma</div></div>
-        <div class="pbadge-item"><div class="pbadge-ic" style="font-size:16px">🔥</div><div class="pbadge-lbl">${s.duelStats.longestWinStreak||0} En Uzun Seri</div></div>
       </div>` : ''}`;
     renderProfileArenaCategoryStats(s.categoryStats || {});
   } catch (e) {
@@ -14907,21 +14892,23 @@ async function rArenaHome() {
     <div style="display:flex;justify-content:center;gap:14px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border2);flex-wrap:wrap">
       <span style="font-size:12px;color:var(--cyan);font-weight:600;cursor:pointer" onclick="rArenaBadges()">🏅 Rozetlerim (${(myStats?.badges||[]).length}/${Object.keys(ARENA_BADGE_LABELS).length}) →</span>
       <span style="font-size:12px;color:var(--cyan);font-weight:600;cursor:pointer" onclick="rArenaQotd()">🗓️ Günün Sorusu →</span>
-      <span style="font-size:12px;color:var(--cyan);font-weight:600;cursor:pointer" onclick="rArenaDuels()">⚔️ Düellolarım →</span>
     </div>
   </div>`;
 
-  // FAZ 2I EK TALİMAT — Lig girişi Arena ana ekranında daha belirgin olsun: küçük metin linki yerine
-  // (yukarıdaki satırdan çıkarıldı) kendi başına, göze çarpan bir kart. Arena'nın oynanma durumundan
-  // BAĞIMSIZ her zaman levelCard'ın hemen altında gösterilir (üç dalın hepsinde).
-  const leagueEntryCard = `<div class="feat" style="text-align:center;padding:16px 18px;margin-bottom:14px;cursor:pointer;border:1px solid var(--cyan);background:linear-gradient(135deg,rgba(0,145,255,.14),rgba(88,86,214,.14))" onclick="rArenaLeague()">
-    <div style="display:flex;align-items:center;justify-content:center;gap:10px">
-      <span style="font-size:26px">🏆</span>
-      <div style="text-align:left">
-        <div style="font-size:15px;font-weight:700">Arena Ligleri</div>
-        <div style="font-size:11px;color:var(--text2)">10 kişilik lig · günlük Lig Maçı · gerçek rekabet →</div>
-      </div>
+  // Düello kaldırıldıktan sonra Lig, Arena'nın Günlük Yarışma'nın YANINDAKİ tek rekabet modu oldu —
+  // bu yüzden giriş kartı bilinçli olarak "öne çıkan/etkileyici" bir kimlik kartı gibi tasarlandı:
+  // welpulse (mevcut, wel-logo'da kullanılan AYNI glow animasyonu — yeni bir keyframe İCAT EDİLMEDİ)
+  // ile nabız atan bir kenarlık, büyütülmüş kupa ikonu, özellik rozetleri (hız bonusu/terfi-küme
+  // düşme/sezon süresi) ve tıklanabilir tüm-kart yerine/yanında ayrıca gerçek bir CTA pill'i.
+  // Arena'nın oynanma durumundan BAĞIMSIZ her zaman levelCard'ın hemen altında gösterilir (üç dalın hepsinde).
+  const leagueEntryCard = `<div class="feat" style="position:relative;text-align:center;padding:22px 18px;margin-bottom:14px;cursor:pointer;border:1px solid rgba(0,145,255,.55);background:linear-gradient(135deg,rgba(0,145,255,.22),rgba(88,86,214,.20) 55%,rgba(255,159,10,.12));animation:welpulse 2.8s ease-in-out infinite" onclick="rArenaLeague()">
+    <div style="font-size:34px;margin-bottom:8px;filter:drop-shadow(0 0 10px rgba(0,145,255,.5))">🏆</div>
+    <div style="font-size:18px;font-weight:800;letter-spacing:.2px;margin-bottom:4px">Arena Ligleri</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:14px">10 kişilik lig · sezon boyu gerçek rekabet</div>
+    <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:16px">
+      <span class="post-cat-badge">⚡ Hız Bonuslu Puan</span><span class="post-cat-badge">📈 Terfi / Küme Düşme</span><span class="post-cat-badge">⏱️ 14 Günlük Sezon</span>
     </div>
+    <div style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#00040F;background:linear-gradient(135deg,var(--cyan),#0091FF);padding:9px 22px;border-radius:99px">Ligime Git →</div>
   </div>`;
 
   if (attempt?.status === 'completed') {
@@ -15494,493 +15481,10 @@ function rArenaQotdResult(r) {
     </div>`;
 }
 
-// ---- Birebir Düello — Aşama 9/10. ASENKRON (canlı/gerçek-zamanlı DEĞİL): davet gönder, karşı
-// taraf kabul/red eder, kabul edilirse ikisi de AYNI 10 soruyu kendi zamanında oynar, biten
-// karşılaştırma sonucunu görür. Ana quiz'in arenaQuiz/arenaAnswers/arenaCurrentQ state'inden
-// BİLİNÇLİ OLARAK AYRI kendi state'i var (arenaDuel*) — biri sürerken diğerinin bozulmaması için.
-// HATA DÜZELTMESİ: düello akışı hiç var olmayan bir showMsg() fonksiyonunu çağırıyordu — asıl toast
-// fonksiyonunun adı showToast(icon,iconBg,title,desc). Bu, örn. "Kabul Et" tıklandığında isteğin
-// sunucuda BAŞARIYLA işlenmesinden (düello gerçekten kabul ediliyordu) HEMEN SONRA bir
-// ReferenceError fırlatıp ekranı yenileyen rArenaDuels() çağrısını hiç çalıştırmadan kesiyordu —
-// kullanıcıya "hiçbir şey olmadı" izlenimi veriyordu. Basit bir sarmalayıcı ile düzeltildi.
+// Arena Ligleri hata toast'ları (ör. "Lige katılırken bir sorun oluştu") bu sarmalayıcıyı
+// kullanıyor — asıl toast fonksiyonunun adı showToast(icon,iconBg,title,desc); bu, önceden
+// (kaldırılmış) Düello akışı için eklenmişti, Lig kodu da BAĞIMLI olduğu için KORUNDU.
 function showMsg(text) { showToast('🔔', 'var(--cdim)', 'Teknohane', text); }
-
-async function sendDuelChallenge(opponentUid, opponentName) {
-  if (!(await arenaRequireEmailVerified())) return;
-  if (!confirm(`${opponentName} kullanıcısına Arena düellosu göndermek istediğine emin misin?`)) return;
-  try {
-    const idToken = await user.getIdToken();
-    const data = await arenaApiCall(ARENA_DUEL_CHALLENGE_API, { idToken, opponentUid });
-    if (data.error === 'already_pending') { showMsg('Bu kullanıcıya zaten bekleyen bir davetin var'); return; }
-    if (data.error) { showMsg('Gönderilemedi: ' + data.error); return; }
-    showMsg(`${opponentName} kullanıcısına düello daveti gönderildi!`);
-  } catch (e) { showMsg('Gönderilemedi'); }
-}
-
-let arenaDuelId = null, arenaDuelQuiz = null, arenaDuelCurrentQ = 0, arenaDuelAnswers = [], arenaDuelQStartMs = 0, arenaDuelTimerHandle = null;
-
-async function rArenaDuels() {
-  arenaView = 'duels';
-  arenaBackParent = rArenaHome;
-  arenaStopTimer();
-  const body = document.getElementById('arena-body');
-  body.innerHTML = `<div class="load"><div class="spin"></div></div>`;
-  let duels = [];
-  try {
-    // orderBy kasıtlı olarak KULLANILMIYOR — iki ayrı eşitlik sorgusu (challenger/opponent) zaten
-    // client'ta birleştirilip sıralanacağı için Firestore tarafında yeni bir composite index
-    // gerektirmiyor (mevcut sıfır-yeni-index tasarım hedefiyle tutarlı).
-    const [asC, asO] = await Promise.all([
-      db.collection('teknohane_arena_duels').where('challengerUid', '==', user.uid).limit(50).get(),
-      db.collection('teknohane_arena_duels').where('opponentUid', '==', user.uid).limit(50).get(),
-    ]);
-    const map = new Map();
-    [...asC.docs, ...asO.docs].forEach(d => map.set(d.id, { id: d.id, ...d.data() }));
-    duels = [...map.values()].sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
-  } catch (e) {}
-
-  const incoming = duels.filter(d => d.status === 'pending' && d.opponentUid === user.uid);
-  const outgoing = duels.filter(d => d.status === 'pending' && d.challengerUid === user.uid);
-  const active = duels.filter(d => d.status === 'accepted');
-  const finished = duels.filter(d => d.status === 'completed' || d.status === 'declined' || d.status === 'expired' || d.status === 'voided');
-
-  const oppOf = d => d.challengerUid === user.uid ? { name: d.opponentName, photo: d.opponentPhoto } : { name: d.challengerName, photo: d.challengerPhoto };
-  const rowHtml = (d, right, onRowClick) => {
-    const opp = oppOf(d);
-    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 6px${onRowClick?';cursor:pointer':''}"${onRowClick?` onclick="${onRowClick}"`:''}>
-      ${opp.photo?`<img src="${escapeHtml(opp.photo)}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${escapeJsAttr(avatarUrl(null,opp.name,64))}'">`:`<div style="width:32px;height:32px;border-radius:50%;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">${escapeHtml((opp.name||'?').charAt(0).toUpperCase())}</div>`}
-      <span style="flex:1;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(opp.name||'Kullanıcı')}</span>
-      ${right}
-    </div>`;
-  };
-
-  body.innerHTML = `
-    <div style="text-align:center;margin-bottom:16px"><span style="font-size:16px;font-weight:700">⚔️ Düellolarım</span></div>
-    ${incoming.length ? `<div class="psec-title">📩 Bekleyen Davetler</div><div class="feat" style="padding:6px 10px;margin-bottom:16px">
-      ${incoming.map(d => rowHtml(d, `<button class="btn-sm-inline" style="background:var(--green);color:#000;border:none;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;margin-right:4px" onclick="arenaDuelRespond('${d.id}',true)">Kabul Et</button><button style="background:var(--surf2);color:var(--text2);border:none;border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer" onclick="arenaDuelRespond('${d.id}',false)">Reddet</button>`)).join('')}
-    </div>` : ''}
-    ${active.length ? `<div class="psec-title">⚡ Aktif Düellolar</div><div class="feat" style="padding:6px 10px;margin-bottom:16px">
-      ${active.map(d => {
-        // HATA DÜZELTMESİ (canlı vakada yakalandı — "Oyna'ya basıyorum, hazırlanıyor diyor, aynı
-        // sayfaya geri dönüyor"): kendi tarafını ZATEN bitirmiş ama rakip henüz bitirmediği için
-        // düello genel durumu hâlâ 'accepted' (dolayısıyla "Aktif") kalan düellolarda "Oyna →"
-        // butonu yanıltıcıydı — tıklanınca worker doğru şekilde alreadyCompleted:true ile geri
-        // gönderiyordu ama bu küçük bir toast'tı, kullanıcıya "hiçbir şey olmadı" gibi görünüyordu.
-        const myAttempt = d.challengerUid === user.uid ? d.challengerAttempt : d.opponentAttempt;
-        const iAmDone = myAttempt?.status === 'completed';
-        return rowHtml(d, iAmDone
-          ? `<span style="font-size:11px;color:var(--text3)">⏳ Rakibin sırası, bekleniyor</span>`
-          : `<button class="apbtn" style="width:auto;padding:6px 14px;font-size:12px;margin:0" onclick="arenaDuelBegin('${d.id}')">Oyna →</button>`);
-      }).join('')}
-    </div>` : ''}
-    ${outgoing.length ? `<div class="psec-title">⏳ Gönderdiğim Davetler</div><div class="feat" style="padding:6px 10px;margin-bottom:16px">
-      ${outgoing.map(d => rowHtml(d, `<span style="font-size:11px;color:var(--text3)">Yanıt bekleniyor</span>`)).join('')}
-    </div>` : ''}
-    ${finished.length ? `<div class="psec-title">📜 Geçmiş</div><div class="feat" style="padding:6px 10px;margin-bottom:16px">
-      ${finished.map(d => {
-        let resultTxt, resultColor = 'var(--text2)';
-        if (d.status === 'completed') {
-          if (d.winnerUid === user.uid) { resultTxt = '🏆 Kazandın'; resultColor = 'var(--green)'; }
-          else if (d.winnerUid === null) { resultTxt = 'Berabere'; }
-          else { resultTxt = 'Kaybettin'; resultColor = 'var(--red)'; }
-        } else if (d.status === 'declined') resultTxt = 'Reddedildi';
-        else if (d.status === 'expired') resultTxt = 'Süresi doldu';
-        else resultTxt = 'İptal edildi';
-        const canRematch = d.status === 'completed';
-        // KÖK NEDEN DÜZELTMESİ ("düello tamamlandıktan sonra sonucu paylaş diyorum ama tepki
-        // vermiyor"): "Sonucu Paylaş" butonu önceden YALNIZCA kendi cevaplarını gönderdiğin ANDA
-        // rakibin de ZATEN bitirmiş olması durumunda görünüyordu — rakip senden SONRA bitirirse
-        // (çok sık rastlanan asenkron akış) sonucu tekrar görüp paylaşmanın hiçbir yolu yoktu,
-        // Geçmiş'teki satır tıklanamıyordu. Artık tamamlanmış her düello satırı tıklanabilir,
-        // tam sonuç ekranını (paylaşım butonuyla birlikte) yeniden açıyor.
-        return rowHtml(d, `<span style="font-size:12px;font-weight:700;color:${resultColor};margin-right:8px">${resultTxt}</span>${canRematch?`<span style="font-size:11px;color:var(--cyan);cursor:pointer;text-decoration:underline" onclick="event.stopPropagation();arenaDuelRematch('${d.id}')">Rövanş</span>`:''}`, d.status==='completed'?`arenaDuelViewResult('${d.id}')`:null);
-      }).join('')}
-    </div>` : ''}
-    ${!incoming.length && !active.length && !outgoing.length && !finished.length ? `<div class="no">Henüz bir düellon yok.<br><span style="font-size:11px;color:var(--text3)">Bir kullanıcının profilinden "⚔️ Düelloya Davet Et" ile başlayabilirsin.</span></div>` : ''}
-    <button class="apbtn" style="margin-top:14px" onclick="rArenaHome()">← Arena'ya Dön</button>`;
-}
-
-// Geçmiş'teki tamamlanmış bir düelloya tıklanınca — canlı oynanan bir düellodan FARKLI olarak
-// (rArenaDuelResult'ın doğrudan worker yanıtından beslendiği durum), burada özet veri doğrudan
-// düello dokümanının kendisinden (challengerAttempt/opponentAttempt) okunuyor. Soru bazlı kırılım
-// (perQuestion) düello dokümanında SAKLANMIYOR — yalnızca özet skorlar var, o yüzden boş geçiliyor;
-// rArenaDuelResult zaten bu alanı boşsa o bölümü hiç göstermiyor.
-async function arenaDuelViewResult(duelId) {
-  arenaView = 'duel-result';
-  arenaBackParent = rArenaDuels;
-  const body = document.getElementById('arena-body');
-  body.innerHTML = `<div class="load"><div class="spin"></div></div>`;
-  try {
-    const doc = await db.collection('teknohane_arena_duels').doc(duelId).get();
-    if (!doc.exists) { showMsg('Düello bulunamadı'); rArenaDuels(); return; }
-    const d = doc.data();
-    const isChallenger = d.challengerUid === user.uid;
-    const my = isChallenger ? d.challengerAttempt : d.opponentAttempt;
-    const opp = isChallenger ? d.opponentAttempt : d.challengerAttempt;
-    if (!my || my.status !== 'completed') { showMsg('Bu düelloyu tamamlamadın'); rArenaDuels(); return; }
-    arenaDuelId = duelId;
-    arenaDuelQuiz = {
-      opponentName: isChallenger ? d.opponentName : d.challengerName,
-      opponentPhoto: isChallenger ? d.opponentPhoto : d.challengerPhoto,
-      opponentUid: isChallenger ? d.opponentUid : d.challengerUid,
-    };
-    rArenaDuelResult({
-      totalScore: my.totalScore, correctCount: my.correctCount, wrongCount: my.wrongCount,
-      opponentDone: opp?.status === 'completed', opponentScore: opp?.totalScore,
-      opponentCorrectCount: opp?.correctCount ?? null,
-      winnerUid: d.winnerUid, perQuestion: [],
-    });
-  } catch (e) { showMsg('Sonuç yüklenemedi'); rArenaDuels(); }
-}
-
-async function arenaDuelRespond(duelId, accept) {
-  if (!(await arenaRequireEmailVerified())) return;
-  const idToken = await user.getIdToken();
-  const data = await arenaApiCall(ARENA_DUEL_RESPOND_API, { idToken, duelId, accept });
-  if (data.error) { showMsg('İşlem yapılamadı: ' + data.error); return; }
-  showMsg(accept ? 'Düello kabul edildi! Şimdi oynayabilirsin.' : 'Düello reddedildi');
-  rArenaDuels();
-}
-
-async function arenaDuelRematch(duelId) {
-  try {
-    const idToken = await user.getIdToken();
-    const data = await arenaApiCall(ARENA_DUEL_REMATCH_API, { idToken, duelId });
-    if (data.error) { showMsg(data.error.includes('zaten') ? 'Bu düello için zaten bir rövanş isteği var' : 'Rövanş istenemedi'); return; }
-    showMsg('Rövanş isteği gönderildi!');
-    rArenaDuels();
-  } catch (e) { showMsg('Rövanş istenemedi'); }
-}
-
-async function arenaDuelBegin(duelId) {
-  if (!(await arenaRequireEmailVerified())) return;
-  const body = document.getElementById('arena-body');
-  body.innerHTML = `<div class="load"><div class="spin"></div><span>Düello hazırlanıyor…</span></div>`;
-  const idToken = await user.getIdToken();
-  const data = await arenaApiCall(ARENA_DUEL_START_API, { idToken, duelId });
-  if (data.error === 'duel_expired') { showMsg('Bu düellonun süresi doldu'); rArenaDuels(); return; }
-  // GÖZLEMLENEBİLİRLİK: arenaBeginQuiz()'deki (günlük yarışma) aynı loglama arenaDuelBegin'de hiç
-  // yoktu — bu yüzden "Oyna'ya basıyorum, hazırlanıyor diyor, geri dönüyor" raporu admin panelin
-  // Hatalar sekmesinde HİÇ görünmüyordu, yalnızca canlı Firestore sorgusuyla teşhis edilebildi.
-  // DÜZELTME: netDiag (_capacitorError/_fetchError ayrıntısı) de arenaBeginQuiz'deki gibi stack
-  // alanına yazılıyor artık — eskiden null geçiliyordu, "hangi yol/ne şekilde başarısız oldu" bilgisi
-  // düello girişlerinde tamamen kayboluyordu.
-  if (data.error) {
-    const netDiag = (data._capacitorError || data._fetchError)
-      ? `capacitorHttp=${data._capacitorError||'-'} | fetch=${data._fetchError||'-'}`
-      : null;
-    logClientError('duel-start başarısız: ' + data.error, netDiag, 'arenaDuelBegin');
-    showMsg(data._networkFailure
-      ? 'İnternet bağlantında geçici bir sorun var. Bağlantını kontrol edip tekrar dene.'
-      : data._invalidJsonResponse
-        ? 'Sunucudan geçersiz bir yanıt alındı. Lütfen tekrar dene.'
-        : ('Başlatılamadı: ' + data.error));
-    rArenaDuels(); return;
-  }
-  if (data.alreadyCompleted) { showMsg('Bu düelloyu zaten tamamladın'); rArenaDuels(); return; }
-  arenaDuelId = duelId;
-  arenaDuelQuiz = { questions: data.questions, opponentName: data.opponentName, opponentPhoto: data.opponentPhoto, opponentUid: data.opponentUid };
-  arenaDuelCurrentQ = 0;
-  arenaDuelAnswers = [];
-  arenaBackParent = rArenaDuels; // düello oynama/sonuç ekranlarından geri → Düellolarım listesi
-  rArenaDuelQuestion();
-}
-
-function rArenaDuelQuestion() {
-  arenaView = 'duel-question';
-  const q = arenaDuelQuiz.questions[arenaDuelCurrentQ];
-  const body = document.getElementById('arena-body');
-  arenaDuelQStartMs = Date.now();
-  body.innerHTML = `
-    <div style="text-align:center;font-size:12px;color:var(--text2);margin-bottom:10px">⚔️ ${escapeHtml(arenaDuelQuiz.opponentName||'Rakip')}'e karşı · Soru ${arenaDuelCurrentQ+1}/${arenaDuelQuiz.questions.length}</div>
-    <div style="display:flex;gap:6px;justify-content:center;margin-bottom:14px">
-      <span class="post-cat-badge">${ARENA_CATEGORY_LABELS[q.category]||q.category}</span>
-      <span class="post-cat-badge">${ARENA_DIFFICULTY_LABELS_APP[q.difficulty]||q.difficulty}</span>
-      <span class="post-cat-badge" id="arena-duel-timer">${q.timeLimitSec||15}sn</span>
-    </div>
-    <div class="feat" style="padding:18px 16px;margin-bottom:16px">
-      <div style="font-size:15px;font-weight:700;text-align:center">${escapeHtml(q.text)}</div>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:10px">
-      ${q.options.map((opt,i)=>`<button class="arena-opt" onclick="arenaDuelSelectAnswer(${i})">${escapeHtml(opt)}</button>`).join('')}
-    </div>`;
-  let timeLeft = q.timeLimitSec || 15;
-  clearInterval(arenaDuelTimerHandle);
-  arenaDuelTimerHandle = setInterval(() => {
-    timeLeft--;
-    const el = document.getElementById('arena-duel-timer');
-    if (el) el.textContent = Math.max(0, timeLeft) + 'sn';
-    if (timeLeft <= 0) { clearInterval(arenaDuelTimerHandle); arenaDuelSelectAnswer(null); }
-  }, 1000);
-}
-
-function arenaDuelSelectAnswer(index) {
-  if (arenaDuelAnswers.length > arenaDuelCurrentQ) return; // zaten cevaplandı
-  clearInterval(arenaDuelTimerHandle);
-  const q = arenaDuelQuiz.questions[arenaDuelCurrentQ];
-  const elapsedMs = Date.now() - arenaDuelQStartMs;
-  arenaDuelAnswers.push({ questionId: q.id, selectedIndex: index, elapsedMs });
-  const opts = document.querySelectorAll('#arena-body .arena-opt');
-  opts.forEach((el,i) => { el.style.pointerEvents = 'none'; if (i===index) el.classList.add('arena-opt-selected'); });
-  setTimeout(() => {
-    arenaDuelCurrentQ++;
-    if (arenaDuelCurrentQ >= arenaDuelQuiz.questions.length) arenaDuelFinish();
-    else rArenaDuelQuestion();
-  }, 400);
-}
-
-async function arenaDuelFinish() {
-  arenaView = 'duel-submitting';
-  clearInterval(arenaDuelTimerHandle);
-  const body = document.getElementById('arena-body');
-  body.innerHTML = `<div class="load"><div class="spin"></div><span>Puanlanıyor…</span></div>`;
-  const idToken = await user.getIdToken();
-  const data = await arenaApiCall(ARENA_DUEL_SUBMIT_API, { idToken, duelId: arenaDuelId, answers: arenaDuelAnswers });
-  if (data.error) {
-    body.innerHTML = `<div class="no">Sonuç hesaplanamadı.<br><span style="font-size:11px;color:var(--text3)">${escapeHtml(data.error)}</span></div>
-      <button class="apbtn" onclick="rArenaDuels()">Düellolarım</button>`;
-    return;
-  }
-  rArenaDuelResult(data);
-}
-
-function rArenaDuelResult(r) {
-  arenaView = 'duel-result';
-  const body = document.getElementById('arena-body');
-  const total = (r.correctCount||0) + (r.wrongCount||0);
-  const pct = total ? Math.round((r.correctCount/total)*100) : 0;
-  const oppName = arenaDuelQuiz?.opponentName || 'Rakip';
-  const margin = r.opponentDone ? Math.abs((r.totalScore||0) - (r.opponentScore||0)) : null;
-  // Paylaşım butonu onclick'ine gömmek yerine global bir değişkende tutuluyor — rakip adı
-  // kullanıcı kontrollü olduğu için HTML özniteliğine JSON gömmek bir kaçış/enjeksiyon riski
-  // yaratırdı (bkz. shareDuelResult).
-  arenaLastDuelResultForShare = {
-    totalScore: r.totalScore||0, opponentScore: r.opponentScore||0, winnerUid: r.winnerUid, oppName,
-    correctCount: r.correctCount||0, opponentCorrectCount: r.opponentCorrectCount, totalQuestions: total, h2h: null,
-  };
-  body.innerHTML = `
-    <div class="feat" style="text-align:center;padding:28px 20px">
-      <div style="font-size:38px;margin-bottom:8px">⚔️</div>
-      <div style="font-size:18px;font-weight:700;margin-bottom:4px">Sen: ${r.totalScore||0} Puan</div>
-      <div style="color:var(--text2);font-size:13px;margin-bottom:14px">${r.correctCount||0} Doğru · %${pct} Başarı</div>
-      ${r.opponentDone ? `
-        <div style="font-size:15px;font-weight:700;margin:14px 0 6px">${escapeHtml(oppName)}: ${r.opponentScore||0} Puan</div>
-        <div style="font-size:16px;font-weight:800;margin-bottom:4px;color:${r.winnerUid===user.uid?'var(--green)':(r.winnerUid===null?'var(--text2)':'var(--red)')}">
-          ${r.winnerUid===user.uid?'🏆 Kazandın!':(r.winnerUid===null?'Berabere!':`${escapeHtml(oppName)} kazandı`)}
-        </div>
-        ${margin>0?`<div style="font-size:12px;color:var(--text3);margin-bottom:10px">${margin} puan farkla</div>`:''}
-        <div id="arena-duel-h2h" style="font-size:12px;color:var(--text3);margin-bottom:14px">Bu rakibe karşı geçmiş yükleniyor…</div>` : `<div style="font-size:12px;color:var(--text3);margin-bottom:14px">Rakibin henüz oynamadı — bitirince sonuç burada güncellenecek.</div>`}
-      ${(r.perQuestion||[]).length ? `<div style="text-align:left;display:flex;flex-direction:column;gap:8px;margin-bottom:18px">
-        ${r.perQuestion.map((p,i)=>`<div style="display:flex;align-items:center;gap:8px;font-size:13px;padding:8px 10px;border-radius:10px;background:var(--surf2)">
-          <span>${p.correct?'✅':'❌'}</span><span style="flex:1;color:var(--text2)">Soru ${i+1}</span>
-          ${p.correct?`<span style="color:var(--green);font-weight:700">+${p.pointsAwarded}</span>`:''}
-        </div>`).join('')}
-      </div>` : ''}
-      ${r.opponentDone ? `<button class="apbtn" style="background:linear-gradient(135deg,#FF9500,#FF3B30);color:#fff;font-weight:700;border:none" onclick="shareDuelResult()">📤 Sonucu Paylaş</button>` : ''}
-      <button class="apbtn" style="background:linear-gradient(135deg,var(--cyan),#0091FF);color:#00040F;font-weight:700;border:none" onclick="rArenaDuels()">⚔️ Düellolarım</button>
-      <button class="apbtn" onclick="rArenaHome()">Arena'ya Dön</button>
-    </div>`;
-  if (r.opponentDone && arenaDuelQuiz?.opponentUid) loadDuelHeadToHead(arenaDuelQuiz.opponentUid);
-}
-
-// Bu rakiple aradaki TÜM zamanların galibiyet/mağlubiyet/beraberlik sayısı — rekabeti körüklemek
-// için (kullanıcı isteği). challengerUid/opponentUid'nin HANGİ yönde olduğuna bakılmaksızın iki ayrı
-// eşitlik sorgusu client'ta birleştiriliyor (mevcut rArenaDuels() ile aynı desen) — salt eşitlik
-// filtreleri olduğu için yeni bir composite index gerekmiyor.
-async function loadDuelHeadToHead(opponentUid) {
-  const el = document.getElementById('arena-duel-h2h');
-  if (!el) return;
-  try {
-    const [asC, asO] = await Promise.all([
-      db.collection('teknohane_arena_duels').where('challengerUid', '==', user.uid).where('opponentUid', '==', opponentUid).where('status', '==', 'completed').get(),
-      db.collection('teknohane_arena_duels').where('challengerUid', '==', opponentUid).where('opponentUid', '==', user.uid).where('status', '==', 'completed').get(),
-    ]);
-    let wins = 0, losses = 0, ties = 0;
-    [...asC.docs, ...asO.docs].forEach(d => {
-      const w = d.data().winnerUid;
-      if (w === user.uid) wins++; else if (w === null) ties++; else losses++;
-    });
-    const total = wins + losses + ties;
-    const h2hText = total > 1 ? `${wins}G ${losses}M${ties?` ${ties}B`:''} (${total} düello)` : '';
-    el.textContent = h2hText ? `Bu rakibe karşı geçmişin: ${h2hText}` : '';
-    // Paylaşım kartı butona basıldığında hazır bulsun diye — bu sorgu asenkron olduğu için
-    // (render'dan hemen sonra bitmeyebilir) ayrı bir global yerine doğrudan paylaşım state'ine yazılıyor.
-    if (arenaLastDuelResultForShare) arenaLastDuelResultForShare.h2h = h2hText || null;
-  } catch (e) { el.textContent = ''; }
-}
-
-// Kullanıcı isteği: düello sonucunun rakibe "meydan okuma"/"kızdırma" havasında, görsel olarak
-// paylaşılabilmesi — mevcut shareComparison() (telefon karşılaştırma) ile AYNI kanıtlanmış üç
-// kademeli desen (Capacitor Share dosya URI'si → navigator.share → indirme) yeniden kullanılıyor.
-let arenaLastDuelResultForShare = null;
-async function shareDuelResult() {
-  const r = arenaLastDuelResultForShare;
-  if (!r) return;
-  const won = r.winnerUid === user.uid;
-  const tie = r.winnerUid === null;
-  const myName = user.displayName || 'Ben';
-  const margin = Math.abs(r.totalScore - r.opponentScore);
-  const myColor = won ? '#30D158' : (tie ? '#00D4FF' : '#FF3B30');
-  const oppColor = won ? '#FF3B30' : (tie ? '#8E9BB5' : '#30D158');
-
-  const W = 1080, H = 1500;
-  const canvas = document.createElement('canvas');
-  canvas.width = W; canvas.height = H;
-  const ctx = canvas.getContext('2d');
-
-  // Arka plan — köşelerde hafif renkli parlama, düz tek renkten daha "oyun" hissi versin diye.
-  const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
-  bgGrad.addColorStop(0, '#00040F');
-  bgGrad.addColorStop(0.5, '#050B1A');
-  bgGrad.addColorStop(1, '#00040F');
-  ctx.fillStyle = bgGrad;
-  ctx.fillRect(0, 0, W, H);
-  const glow = ctx.createRadialGradient(W/2, 260, 40, W/2, 260, 500);
-  glow.addColorStop(0, won ? 'rgba(48,209,88,.14)' : (tie ? 'rgba(0,212,255,.10)' : 'rgba(255,59,48,.10)'));
-  glow.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = glow;
-  ctx.fillRect(0, 0, W, H);
-
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#00D4FF';
-  ctx.font = '700 38px DM Sans, sans-serif';
-  ctx.fillText('⚔️ TEKNOHANE ARENA', W/2, 78);
-  ctx.fillStyle = '#8E9BB5';
-  ctx.font = '600 22px DM Sans, sans-serif';
-  ctx.fillText('D Ü E L L O   S O N U C U', W/2, 112);
-
-  const avatarR = 95, avatarY = 270;
-  const avatar = (cx, cy, name, color, isWinner) => {
-    if (isWinner) {
-      // Kazanana altın parlama halkası — kartın en dikkat çeken öğesi kazanan olsun diye.
-      ctx.beginPath();
-      ctx.arc(cx, cy, avatarR + 14, 0, Math.PI * 2);
-      ctx.strokeStyle = '#FFD60A';
-      ctx.lineWidth = 6;
-      ctx.stroke();
-    }
-    ctx.beginPath();
-    ctx.arc(cx, cy, avatarR, 0, Math.PI * 2);
-    ctx.fillStyle = color;
-    ctx.fill();
-    ctx.fillStyle = '#00040F';
-    ctx.font = '700 68px DM Sans, sans-serif';
-    ctx.textBaseline = 'middle';
-    ctx.fillText((name||'?').charAt(0).toUpperCase(), cx, cy + 6);
-    ctx.textBaseline = 'alphabetic';
-    if (isWinner) { ctx.font = '26px sans-serif'; ctx.fillText('🏆', cx, cy - avatarR - 22); }
-  };
-  const myX = W/2 - 230, oppX = W/2 + 230;
-  avatar(myX, avatarY, myName, myColor, won);
-  avatar(oppX, avatarY, r.oppName, oppColor, !won && !tie);
-
-  ctx.fillStyle = '#FFFFFF';
-  ctx.font = '700 30px DM Sans, sans-serif';
-  wrapText(ctx, myName, myX, avatarY + 145, 280, 36);
-  wrapText(ctx, r.oppName, oppX, avatarY + 145, 280, 36);
-
-  const scoreY = avatarY + 235;
-  ctx.font = '700 60px DM Sans, sans-serif';
-  ctx.fillStyle = myColor;
-  ctx.fillText(String(r.totalScore), myX, scoreY);
-  ctx.fillStyle = oppColor;
-  ctx.fillText(String(r.opponentScore), oppX, scoreY);
-  ctx.fillStyle = '#4A5568';
-  ctx.font = '700 30px DM Sans, sans-serif';
-  ctx.fillText('VS', W/2, scoreY - 14);
-
-  // Doğru cevap alt satırı — rakibin doğru sayısı bilinmiyorsa (canlı akışta bazen olabiliyor) atlanıyor.
-  const correctY = scoreY + 42;
-  ctx.font = '500 24px DM Sans, sans-serif';
-  ctx.fillStyle = '#8E9BB5';
-  const totalQ = r.totalQuestions || 10;
-  ctx.fillText(`${r.correctCount}/${totalQ} doğru`, myX, correctY);
-  if (r.opponentCorrectCount != null) ctx.fillText(`${r.opponentCorrectCount}/${totalQ} doğru`, oppX, correctY);
-
-  // "Savaş çubuğu" — iki skorun oranını görsel olarak da anlatan, dolgu tarzı bir bar.
-  const barY = correctY + 40, barH = 30, barX = 90, barW = W - 180;
-  const scoreSum = Math.max(1, r.totalScore + r.opponentScore);
-  const myBarW = Math.round(barW * (r.totalScore / scoreSum));
-  ctx.fillStyle = 'rgba(255,255,255,.08)';
-  ctx.fillRect(barX, barY, barW, barH);
-  ctx.fillStyle = myColor;
-  ctx.fillRect(barX, barY, myBarW, barH);
-  ctx.fillStyle = oppColor;
-  ctx.fillRect(barX + myBarW, barY, barW - myBarW, barH);
-
-  // Kazanan bandı
-  const bannerY = barY + 75;
-  ctx.fillStyle = won ? 'rgba(48,209,88,.15)' : (tie ? 'rgba(142,155,181,.15)' : 'rgba(255,59,48,.15)');
-  ctx.fillRect(60, bannerY, W - 120, 100);
-  ctx.fillStyle = won ? '#30D158' : (tie ? '#8E9BB5' : '#FF3B30');
-  ctx.font = '700 36px DM Sans, sans-serif';
-  ctx.fillText(won ? `🏆 ${myName} KAZANDI` : (tie ? 'BERABERE!' : `🏆 ${r.oppName} KAZANDI`), W/2, bannerY + 48);
-  ctx.font = '500 22px DM Sans, sans-serif';
-  ctx.fillStyle = '#C7CFDD';
-  ctx.fillText(margin > 0 ? `${margin} puan farkla` : 'Nefes kesen bir eşitlik!', W/2, bannerY + 80);
-
-  // Bu rakibe karşı tüm-zamanlar geçmişi — varsa (bkz. loadDuelHeadToHead, rekabeti körükleme talebi).
-  let nextY = bannerY + 150;
-  if (r.h2h) {
-    ctx.fillStyle = '#00D4FF';
-    ctx.font = '600 26px DM Sans, sans-serif';
-    ctx.fillText(`📊 Bu rakibe karşı geçmiş: ${r.h2h}`, W/2, nextY);
-    nextY += 55;
-  }
-
-  // Meydan okuma / kızdırma başlıklı alt metin — sonuca göre değişiyor.
-  const tauntLines = won
-    ? [`${r.oppName}'i ${margin} puan farkla ezdim! 🔥`, 'Cesaretin varsa rövanş iste 😏']
-    : tie
-    ? [`${myName} vs ${r.oppName}: berabere!`, 'Kim daha iyi, rövanşta belli olacak 🤔']
-    : [`${r.oppName} bu sefer kazandı...`, `Ama rövanşta hesap sorulacak 😤`];
-  ctx.fillStyle = '#8E9BB5';
-  ctx.font = '500 27px DM Sans, sans-serif';
-  ctx.fillText(tauntLines[0], W/2, nextY);
-  ctx.fillText(tauntLines[1], W/2, nextY + 40);
-
-  ctx.fillStyle = '#4A5568';
-  ctx.font = '500 22px DM Sans, sans-serif';
-  ctx.fillText('teknohane.github.io · Arena', W/2, H - 50);
-
-  // GÜVENCE: bazı WebView sürümlerinde canvas.toBlob geri çağırımı hiç tetiklenmeyebiliyor —
-  // önceden bu durumda kullanıcı "hiçbir şey olmuyor" hissiyle baş başa kalıyordu (bkz. görev
-  // raporu, "tepki vermiyor"). 6sn içinde blob üretilmezse en azından bir hata mesajı gösteriliyor.
-  let toBlobSettled = false;
-  setTimeout(() => { if (!toBlobSettled) showMsg('Görsel oluşturulamadı, tekrar dene'); }, 6000);
-  canvas.toBlob(async (blob) => {
-    toBlobSettled = true;
-    if (!blob) { showMsg('Görsel oluşturulamadı, tekrar dene'); return; }
-    const title = 'Teknohane Arena Düellosu';
-    const text = tauntLines.join(' ');
-    if (isNativeApp() && window.Capacitor?.Plugins?.Share && window.Capacitor?.Plugins?.Filesystem) {
-      try {
-        const b64 = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result.split(',')[1]);
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
-        const fileName = `teknohane-duello-${Date.now()}.png`;
-        await Capacitor.Plugins.Filesystem.writeFile({ path: fileName, data: b64, directory: 'CACHE' });
-        const { uri } = await Capacitor.Plugins.Filesystem.getUri({ path: fileName, directory: 'CACHE' });
-        await Capacitor.Plugins.Share.share({ title, text, url: uri, dialogTitle: title });
-        return;
-      } catch(e) { console.error('Düello paylaşım hatası:', e); }
-    }
-    const file = new File([blob], 'duello-sonucu.png', { type: 'image/png' });
-    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-      try { await navigator.share({ files: [file], title, text }); } catch(e) { /* kullanıcı iptal etti */ }
-    } else {
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'teknohane-duello-sonucu.png';
-      link.click();
-      URL.revokeObjectURL(url);
-    }
-  }, 'image/png');
-}
 
 // ---- Liderlik tablosu — 4 periyot, kendi sıran her zaman görünür (kaydırmaya gerek yok) ----
 function arenaClientIsoWeekStr(d) {
@@ -16081,7 +15585,6 @@ function renderArenaLbList(rows) {
         ${r.photoURL?`<img src="${escapeHtml(r.photoURL)}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${escapeJsAttr(avatarUrl(null, name, 56))}'">`:`<div style="width:28px;height:28px;border-radius:50%;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${escapeHtml(name.charAt(0).toUpperCase())}</div>`}
         <span style="flex:1;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(name)}</span>
       </div>
-      ${!isMe?`<span style="font-size:15px;cursor:pointer;flex-shrink:0" title="Düelloya davet et" onclick="event.stopPropagation();sendDuelChallenge('${r.uid}','${escapeJsAttr(name)}')">⚔️</span>`:''}
       <span style="font-weight:700;color:var(--cyan);flex-shrink:0">${r.score||0}</span>
     </div>`;
   }).join('');
@@ -16197,10 +15700,11 @@ async function openArenaLeagueRulesModal() {
       <div style="font-size:12px;color:var(--text3);margin-bottom:18px">Katılmadan önce lütfen oku.</div>
       ${rule('👥', '10 Kişilik Lig', 'Her lig tam olarak 10 oyuncudan oluşur. Ligler kümene göre otomatik dağıtılır, seçim yapamazsın.')}
       ${rule('⏱️', '14 Günlük Sezon', 'Her sezon 14 gün sürer. Sezon sonunda lig sıralaman kesinleşir.')}
-      ${rule('🎯', 'Günlük Lig Maçı', 'Her gün 5 soru (1 kolay + 2 orta + 2 zor). Doğru cevap: kolay +10, orta +20, zor +25 — günlük maksimum 100 Lig Puanı.')}
+      ${rule('🎯', 'Günlük Lig Maçı', 'Her gün 5 soru (1 kolay + 2 orta + 2 zor). Doğru cevap: kolay +10, orta +20, zor +25 — taban puan günlük maksimum 100 Lig Puanı.')}
+      ${rule('⏱️', 'Hızlı Cevap = Ekstra Puan', 'Her soruyu ne kadar hızlı cevaplarsan o kadar fazla ek puan kazanırsın — bonus, o sorunun taban puanının yarısına kadar çıkabilir. Süre dolarsa bonus kazanılmaz.')}
       ${rule('🔒', 'Lig Dolmadan Başlamaz', 'Lig Maçı, ligin 10/10 dolmasını bekler. Erken katılanlar diğerlerini bekler.')}
       ${rule('📈', 'Terfi / Küme Düşme', `Sezon sonunda lig sıralamasında ilk 3 bir üst kümeye terfi eder, son 3 bir alt kümeye düşer. Ortadaki 4 kişi aynı kümede kalır. Kümeler: ${ARENA_LEAGUE_TIER_LABELS.join(' → ')}.`)}
-      ${rule('⚡', 'Lig Puanı ≠ Genel XP', 'Lig Puanı yalnızca Lig Maçından gelir. Günün Sorusu ve Düello genel XP kazandırmaya devam eder, lig sıralamanı etkilemez.')}
+      ${rule('⚡', 'Lig Puanı ≠ Genel XP', 'Lig Puanı yalnızca Lig Maçından gelir. Günlük Yarışma genel XP kazandırmaya devam eder, lig sıralamanı etkilemez.')}
       <div style="display:flex;gap:10px;margin-top:8px">
         <button class="apbtn" style="flex:1" onclick="closeArenaLeagueRulesModal()">İptal</button>
         <button class="apbtn" style="flex:1;background:linear-gradient(135deg,var(--cyan),#0091FF);color:#00040F;font-weight:700;border:none" onclick="closeArenaLeagueRulesModal();arenaLeagueJoin()">Anladım, Katıl</button>
@@ -16383,9 +15887,10 @@ function arenaLeagueStartCountdown(leagueEndsAt, isFull) {
 // Arena'nın soru ekranı desenini (arena-opt/feat/apbtn CSS sınıfları) YENİDEN KULLANIR, ama TAMAMEN
 // AYRI bir state seti üzerinden (bkz. arenaLeagueMatch* değişkenleri, yukarıda tanımlı) —
 // arenaQuiz/arenaAnswers/arenaCurrentQ HİÇ dokunulmuyor, bu yüzden Arena'nın günlük yarışma akışıyla
-// sıfır etkileşim riski var. Hız bonusu YOK (spec: ilk sürüm basit/denetlenebilir tutuluyor), bu
-// yüzden burada Arena'nın soru zamanlayıcısı (arenaTimerHandle) KASITLI OLARAK kullanılmıyor —
-// Lig Maçı sorularının süre sınırı yok.
+// sıfır etkileşim riski var. Hız bonusu VAR (günlük yarışmayla AYNI oranda, bkz. worker'daki
+// LEAGUE_MATCH_POINTS_BY_DIFFICULTY yorumu) — bu yüzden Arena'nın soru zamanlayıcısından
+// (arenaTimerHandle/arenaQStartMs) BİLEREK AYRI bir zamanlayıcı kullanılıyor (arenaLeagueMatchTimerHandle/
+// arenaLeagueMatchQStartMs), iki mod arasında hiçbir mutable state paylaşılmıyor.
 async function arenaLeagueMatchBegin() {
   if (!(await arenaRequireEmailVerified())) return;
   if (!guardSubmit('arenaLeagueMatchBegin')) return;
@@ -16435,6 +15940,10 @@ function rArenaLeagueMatchQuestion() {
   body.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:12px;color:var(--text2)">
       <span>🏆 Lig Maçı — ${arenaLeagueMatchCurrentQ+1}/${arenaLeagueMatch.questions.length}</span>
+      <span id="arena-league-match-timer-txt" style="font-weight:700;color:var(--cyan)">${q.timeLimitSec}sn</span>
+    </div>
+    <div style="height:4px;background:var(--surf2);border-radius:99px;overflow:hidden;margin-bottom:16px">
+      <div id="arena-league-match-timer-bar" style="height:100%;background:var(--cyan);width:100%;transition:width 1s linear"></div>
     </div>
     <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
       <span class="post-cat-badge">${ARENA_CATEGORY_LABELS[q.category]||q.category}</span>
@@ -16444,13 +15953,33 @@ function rArenaLeagueMatchQuestion() {
     <div id="arena-league-match-options" style="display:flex;flex-direction:column;gap:10px">
       ${q.options.map((opt,i)=>`<button class="arena-opt" id="arena-league-match-opt-${i}" onclick="arenaLeagueMatchSelectAnswer(${i})">${escapeHtml(opt)}</button>`).join('')}
     </div>`;
+  arenaLeagueMatchQStartMs = Date.now();
+  arenaLeagueMatchStartTimer(q.timeLimitSec);
+}
+
+// arenaStartTimer'ın (günlük yarışma) BİREBİR aynı deseni — yalnızca ayrı DOM id'leri (arena-league-
+// match-timer-*) ve ayrı state değişkenleri kullanıyor, arenaStopTimer() bu handle'ı da temizliyor.
+function arenaLeagueMatchStartTimer(seconds) {
+  arenaStopTimer();
+  const totalMs = seconds * 1000;
+  arenaLeagueMatchTimeLeftMs = totalMs;
+  const txt = document.getElementById('arena-league-match-timer-txt');
+  const bar = document.getElementById('arena-league-match-timer-bar');
+  arenaLeagueMatchTimerHandle = setInterval(() => {
+    arenaLeagueMatchTimeLeftMs -= 100;
+    if (txt) txt.textContent = Math.max(0, Math.ceil(arenaLeagueMatchTimeLeftMs/1000)) + 'sn';
+    if (bar) bar.style.width = Math.max(0, (arenaLeagueMatchTimeLeftMs/totalMs)*100) + '%';
+    if (arenaLeagueMatchTimeLeftMs <= 0) { arenaStopTimer(); arenaLeagueMatchSelectAnswer(null); }
+  }, 100);
 }
 
 function arenaLeagueMatchSelectAnswer(index) {
   if (arenaLeagueMatchSelectedIndex !== null) return;
   arenaLeagueMatchSelectedIndex = index;
+  arenaStopTimer();
+  const elapsedMs = Date.now() - arenaLeagueMatchQStartMs;
   const q = arenaLeagueMatch.questions[arenaLeagueMatchCurrentQ];
-  arenaLeagueMatchAnswers.push({ questionId: q.id, selectedIndex: index });
+  arenaLeagueMatchAnswers.push({ questionId: q.id, selectedIndex: index, elapsedMs });
   document.querySelectorAll('#arena-league-match-options .arena-opt').forEach((btn,i) => {
     btn.style.pointerEvents = 'none';
     if (i === index) btn.classList.add('arena-opt-selected');
@@ -17279,7 +16808,7 @@ window.addEventListener('popstate', () => {
       return;
     }
     arenaBackWarned = false;
-    // Arena içi ekranlar (rozetler/günün sorusu/liderlik/düellolar/düello oynama) artık kendi
+    // Arena içi ekranlar (rozetler/günün sorusu/liderlik/lig) artık kendi
     // "geri" hedefini arenaBackParent'a kaydediyor — geri tuşu Arena'yı komple kapatmak yerine
     // BİR ÖNCEKİ Arena ekranına dönüyor. Yalnızca kök ekranda (arenaBackParent==null, yani Arena
     // ana ekranı) geri tuşu gerçekten Arena'dan çıkıyor.
