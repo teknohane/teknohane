@@ -1212,6 +1212,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .pact-txt{font-size:13px;color:var(--text);}
 .pact-time{font-size:11px;color:var(--text3);margin-top:2px;}
 .admin-badge{background:linear-gradient(135deg,var(--cyan),#0080ff);color:#000;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;margin-left:8px;vertical-align:middle;}
+.vip-badge{background:linear-gradient(135deg,#FFD700,#FFA500);color:#3a2600;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;margin-left:8px;vertical-align:middle;}
 .apanel{background:rgba(255,190,60,.05);border:1px solid rgba(255,190,60,.25);border-radius:16px;padding:16px;margin-bottom:16px;}
 .apstats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0;}
 .apstat{background:var(--surf);border-radius:12px;padding:10px;text-align:center;}
@@ -3492,6 +3493,17 @@ function computeBadges(uid, profileData, isTargetAdmin, scoreInfo) {
     { id:'early-user', icon:'🚀', label:'Erken Kullanıcı', done: !!(joinedDate && joinedDate < EARLY_USER_CUTOFF) },
     { id:'vip', icon:'💎', label:'VIP', done: isVipActive(profileData) },
     { id:'trusted-seller', icon:'🤝', label:'Güvenilir Satıcı', done: isTrustedSellerActive(profileData) },
+    // Rozet/VIP/Ayrıcalık Sistemi 2.0 (2026-08-23) — Arena sezon ödülleri. Süresiz (bir kez
+    // kazanılınca kalıcı), worker'ın applyArenaSeasonReward() ile yazdığı arena*Count/arena*LastAt
+    // sayaçlarından TÜRETİLİYOR — tekrar kazanılırsa sayaç artar, DUPLICATE rozet kaydı OLUŞMAZ
+    // (mevcut vip/trusted-seller ile AYNI "derived badge" deseni, ayrı bir badges[] dizisi İCAT
+    // EDİLMEDİ).
+    { id:'arena-champion', icon:'🏆', label:'Arena Şampiyonu', done: (profileData.arenaChampionCount||0)>0,
+      info: (profileData.arenaChampionCount||0)>0 ? `${profileData.arenaChampionCount} kez sezon 1.si` : 'Bir Arena Ligi sezonunu 1. sırada bitir.' },
+    { id:'arena-second', icon:'🥈', label:'Sezon İkincisi', done: (profileData.arenaSecondCount||0)>0,
+      info: (profileData.arenaSecondCount||0)>0 ? `${profileData.arenaSecondCount} kez sezon 2.si` : 'Bir Arena Ligi sezonunu 2. sırada bitir.' },
+    { id:'arena-third', icon:'🥉', label:'Sezon Üçüncüsü', done: (profileData.arenaThirdCount||0)>0,
+      info: (profileData.arenaThirdCount||0)>0 ? `${profileData.arenaThirdCount} kez sezon 3.sü` : 'Bir Arena Ligi sezonunu 3. sırada bitir.' },
     { id:'referrer', icon:'🔗', label:'Referans Kahramanı', done: (scoreInfo.referralCount||0)>=5 },
     // Ham mesaj SAYISINA değil, FARKLI GÜN sayısına dayanıyor (bkz. bumpCommunityActiveDays) — spam
     // atarak kazanılamaz, gerçek bir "düzenli katılım" sinyali.
@@ -3571,6 +3583,23 @@ function isTrustedSellerActive(profileData) {
   const expires = profileData.trustedSellerExpiresAt?.toDate ? profileData.trustedSellerExpiresAt.toDate() : null;
   return expires ? expires.getTime() > Date.now() : true;
 }
+
+// ==== ROZET → AYRICALIK (ENTITLEMENT) ÇÖZÜMLEYİCİ — Rozet/VIP/Ayrıcalık Sistemi 2.0 (2026-08-23) ====
+// Merkezi tek kaynak: "kullanıcı şu anda hangi ayrıcalıklara sahip?" sorusunun cevabı kod içinde
+// onlarca "if user.vip" satırına DAĞITILMIYOR, buradan çözülüyor. Yeni bir rozet (ör. ileride
+// "Premium"/"Arena Veteranı") eklendiğinde tek yapılması gereken ENTITLEMENT_SOURCES'a bir satır
+// eklemek — var olan hasEntitlement() çağrıları otomatik olarak doğru sonucu üretir.
+const ENTITLEMENT_SOURCES = {
+  vip: ['vip_profile_badge', 'vip_profile_frame', 'vip_arena_badge', 'advanced_arena_stats'],
+  trustedSeller: ['trusted_seller_badge', 'trusted_seller_listing_indicator'],
+};
+function getUserEntitlements(profileData) {
+  const set = new Set();
+  if (isVipActive(profileData)) ENTITLEMENT_SOURCES.vip.forEach(e => set.add(e));
+  if (isTrustedSellerActive(profileData)) ENTITLEMENT_SOURCES.trustedSeller.forEach(e => set.add(e));
+  return set;
+}
+function hasEntitlement(profileData, key) { return getUserEntitlements(profileData).has(key); }
 
 // Giriş yapıldığında (syncUserProfile içinden) çağrılır; banlıysa tam ekran engelleme ekranını açar.
 function checkBanStatus() {
@@ -3792,6 +3821,7 @@ function rprof() {
         <div style="display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap">
           <span class="pname">${escapeHtml(user.displayName||'Kullanıcı')}</span>
           ${isAdmin?'<span class="admin-badge">ADMIN</span>':''}
+          ${isVipActive(myProfileData)?'<span class="vip-badge">👑 VIP Üye</span>':''}
         </div>
         ${myProfileData.username?`<div class="puname">@${escapeHtml(myProfileData.username)}</div>`:''}
         <div class="pemail">${escapeHtml(user.email)}</div>
@@ -9007,7 +9037,7 @@ function mcardHTML(l) {
         <div class="mcard-title">${l.category==='akillisaat'?'⌚ ':l.category==='kulaklik'?'🎧 ':listingEffectiveCategory(l)==='aksesuar'?(ACCESSORY_TYPE_ICON[listingEffectiveAccessoryType(l)]||'🎒')+' ':''}${escapeHtml(l.model)}</div>
         <div class="mcard-loc">📍 ${escapeHtml(l.location)||'Belirtilmedi'}${l.createdAt?.toDate?` · <span class="mcard-date">${timeAgo(l.createdAt.toDate())}</span>`:''}${remaining?` · <span class="mcard-date" style="color:${remaining.urgent?'var(--red)':'var(--text3)'}">${remaining.text}</span>`:''}</div>
         <div class="mcard-foot" onclick="event.stopPropagation()">
-          ${l.ownerName?`<div class="mcard-seller" onclick="openPublicProfile('${l.uid}','${escapeJsAttr(l.ownerName)}')"><span class="mcard-seller-name">${escapeHtml(l.ownerName)}</span>${mine?'<span class="mcard-seller-me">· Siz</span>':''}</div>`:'<span></span>'}
+          ${l.ownerName?`<div class="mcard-seller" onclick="openPublicProfile('${l.uid}','${escapeJsAttr(l.ownerName)}')"><span class="mcard-seller-name">${escapeHtml(l.ownerName)}${l.sellerTrustedSeller?' <span title="Güvenilir Satıcı">🤝</span>':''}</span>${mine?'<span class="mcard-seller-me">· Siz</span>':''}</div>`:'<span></span>'}
           <div class="mcard-qa">
             ${mine&&isListingExpired(l)&&!l.sold?`<div class="mcard-qa-btn" onclick="renewListing('${l.id}')" title="Yeniden Yayınla (30 Gün)" style="color:var(--cyan)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></div>`:''}
             ${mine?`<div class="mcard-qa-btn edit" onclick="editListing('${l.id}')" title="Düzenle"><svg viewBox="0 0 24 24" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg></div>`:''}
@@ -9699,6 +9729,11 @@ async function submitListing() {
       data.approved = false;
       data.uid = user.uid;
       data.ownerName = user.displayName || user.email?.split('@')[0] || 'Anonim';
+      // ownerName ile AYNI denormalizasyon deseni — Pazar kartında satıcı başına ekstra bir Firestore
+      // okuması OLMADAN Güvenilir Satıcı göstergesi gösterebilmek için (bkz. mcardHTML). ownerName gibi
+      // bu da anlık bir kopya: rozet sonradan verilir/geri alınırsa ilan yeniden düzenlenene kadar
+      // güncellenmez — mevcut ownerName denormalizasyonuyla AYNI, bilinçli kabul edilen sınır.
+      data.sellerTrustedSeller = isTrustedSellerActive(myProfileData);
       data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
       // İlan yaşam döngüsü: her yeni ilan 30 gün sonra otomatik olarak Pazar'dan gizlenir (bkz.
       // isListingExpired/rlistings). Süre dolunca sahibine bildirim gider, tek tuşla yeniden
@@ -12285,7 +12320,7 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
     <div class="phero">
       <div class="pcover" style="${data.coverPhotoURL?`background-image:url('${data.coverPhotoURL}');background-size:cover;background-position:center;`:''}"></div>
       <img class="pav" src="${av}" onerror="this.onerror=null;this.src='${avFallback}'" alt="">
-      <div class="pname">${escapeHtml(displayName)}${isMe?' (Sen)':''} ${isOnlineNow?'<span style="color:#3DDC97;font-size:12px;vertical-align:middle">●</span>':''}</div>
+      <div class="pname">${escapeHtml(displayName)}${isMe?' (Sen)':''} ${isVipActive(data)?'<span class="vip-badge">👑 VIP</span>':''} ${isOnlineNow?'<span style="color:#3DDC97;font-size:12px;vertical-align:middle">●</span>':''}</div>
       ${data.username?`<div class="puname">@${escapeHtml(data.username)}</div>`:''}
       ${data.city?`<div class="puname" style="color:var(--text3)">📍 ${escapeHtml(data.city)}</div>`:''}
       ${data.bio?`<div class="pbio">${escapeHtml(data.bio)}</div>`:''}
@@ -15381,7 +15416,7 @@ function renderArenaHomeLeagueCardHtml(data) {
     lastRank = m.rank;
     const isMe = m.uid === user?.uid;
     return gap + `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;${isMe?'background:var(--cdim)':''}">
-      <span style="font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${isMe?'font-weight:700':''}"><span style="display:inline-block;width:22px;flex-shrink:0">${rankIcon(m.rank)}</span>${escapeHtml(m.displayName||'Kullanıcı')}${isMe?' (Sen)':''}</span>
+      <span style="font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${isMe?'font-weight:700':''}"><span style="display:inline-block;width:22px;flex-shrink:0">${rankIcon(m.rank)}</span>${escapeHtml(m.displayName||'Kullanıcı')}${m.vip?' 👑':''}${isMe?' (Sen)':''}</span>
       <span style="font-size:12px;font-weight:700;color:var(--cyan);flex-shrink:0">${m.leagueScore||0}</span>
     </div>`;
   }).join('');
@@ -16198,7 +16233,7 @@ function renderArenaLeagueScreen() {
       <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer" onclick="openPublicProfile('${m.uid}','${escapeJsAttr(name)}')">
         ${m.photoURL?`<img src="${escapeHtml(m.photoURL)}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;flex-shrink:0" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${escapeJsAttr(avatarUrl(null, name, 60))}'">`:`<div style="width:30px;height:30px;border-radius:50%;background:var(--surf3,var(--surf2));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${escapeHtml(name.charAt(0).toUpperCase())}</div>`}
         <div style="flex:1;min-width:0">
-          <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(name)}${isMe?' (Sen)':''}</div>
+          <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(name)}${m.vip?' 👑':''}${isMe?' (Sen)':''}</div>
           <div style="height:4px;border-radius:2px;background:var(--surf3,rgba(255,255,255,.08));overflow:hidden;margin-top:4px;max-width:140px">
             <div style="height:100%;width:${barPct}%;background:${isPromoZone?'#30D158':isRelegateZone?'#FF453A':'var(--cyan)'};border-radius:2px"></div>
           </div>
