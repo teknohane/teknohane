@@ -1669,6 +1669,7 @@ body.tk-maintenance #maintenance-gate{
         <button class="mtab off" onclick="scat('kulaklik',this)">🎧 Kulaklık</button>
         <button class="mtab off" onclick="scat('aksesuar',this)">🎒 Aksesuar</button>
       </div>
+      <div id="vip-store-showcase"></div>
       <div id="lgrid" class="lgrid">
         <div class="load"><div class="spin"></div><span>Yükleniyor…</span></div>
       </div>
@@ -2505,6 +2506,16 @@ body.tk-maintenance #maintenance-gate{
     <div style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.5" id="boost-req-intro">İlanın için aşağıdaki seçeneklerden birini talep edebilirsin, yönetici ekibimiz inceleyip onaylayacak.</div>
     <div id="boost-req-options"><div class="load" style="padding:10px 0"><div class="spin"></div></div></div>
     <div class="fg" style="margin-top:12px"><label class="fl">Not (isteğe bağlı)</label><textarea class="fi" id="boost-req-note" rows="2" style="resize:vertical;font-family:inherit" placeholder="Eklemek istediğin bir not varsa yaz…"></textarea></div>
+  </div>
+</div>
+
+<!-- VIP AVANTAJLARI: hem VIP hem VIP olmayan kullanıcı açabilir (bkz. openVipBenefits/renderVipBenefitsHTML)
+     — VIP MAĞAZA 2.0 ürün deneyimi görünürlüğü. Satın alma/ödeme akışı YOK, yalnızca bilgilendirme. -->
+<div class="mo" id="vip-benefits-mo" onclick="closemo('vip-benefits-mo')">
+  <div class="ms" onclick="event.stopPropagation()" style="max-height:85vh">
+    <div class="mh"></div>
+    <div class="mtit">✨ VIP Avantajların</div>
+    <div id="vip-benefits-body"></div>
   </div>
 </div>
 
@@ -3796,6 +3807,55 @@ function getUserEntitlements(profileData) {
 }
 function hasEntitlement(profileData, key) { return getUserEntitlements(profileData).has(key); }
 
+// VIP MAĞAZA 2.0 — "✨ VIP Avantajlarım" ekranı. VIP_ENTITLEMENT_LABELS zaten var olan teknik
+// anahtar→açıklama sözlüğü; burada AYRICA hangi anahtarların gerçek bir "X/Y kullanıldı" sayacına
+// bağlı olduğunu (yalnızca UI'da doğru rozeti seçmek için) belirtiyoruz — yeni bir entitlement
+// KAYNAĞI değil, mevcut ENTITLEMENT_SOURCES.vip listesinin görüntülenecek alt kümesi + sıralaması.
+const VIP_BENEFITS_LIST = [
+  { key: 'vip_profile_badge', ic: '👑' },
+  { key: 'vip_marketplace_store', ic: '🏪' },
+  { key: 'vip_marketplace_monthly_boost', ic: '📌', usageField: 'boostsUsed', limit: VIP_STORE_LIMITS.boosts },
+  { key: 'vip_marketplace_monthly_refresh', ic: '🔄', usageField: 'refreshesUsed', limit: VIP_STORE_LIMITS.refreshes },
+  { key: 'vip_marketplace_analytics', ic: '📊' },
+  { key: 'vip_marketplace_featured_store', ic: '⭐' },
+  { key: 'vip_marketplace_premium_listing', ic: '✨' },
+  { key: 'advanced_arena_stats', ic: '🏆' },
+];
+function renderVipBenefitsHTML(profileData) {
+  const active = isVipActive(profileData);
+  const entitlements = getUserEntitlements(profileData);
+  const usage = vipStoreUsageThisMonth;
+  const rows = VIP_BENEFITS_LIST.map(b => {
+    const has = entitlements.has(b.key);
+    let statusHtml;
+    if (!has) statusHtml = `<span style="font-size:10.5px;color:var(--text3);white-space:nowrap">🔒 VIP ile aç</span>`;
+    else if (b.usageField) statusHtml = usage
+      ? `<span style="font-size:10.5px;color:#FFD700;font-weight:700;white-space:nowrap">${usage[b.usageField]||0}/${b.limit} kullanıldı</span>`
+      : `<span style="font-size:10.5px;color:#3DDC97;font-weight:700;white-space:nowrap">✓ Aktif</span>`;
+    else statusHtml = `<span style="font-size:10.5px;color:#3DDC97;font-weight:700;white-space:nowrap">✓ Aktif</span>`;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);opacity:${has?'1':'.5'}">
+      <div style="font-size:18px;flex-shrink:0">${b.ic}</div>
+      <div style="flex:1;min-width:0;font-size:12.5px;font-weight:600">${escapeHtml(VIP_ENTITLEMENT_LABELS[b.key]||b.key)}</div>
+      ${statusHtml}
+    </div>`;
+  }).join('');
+  return `<div style="padding:0 2px">
+    ${!active ? `<div style="font-size:12.5px;color:var(--text2);margin-bottom:14px;line-height:1.5">👑 VIP olduğunda aşağıdaki ayrıcalıkların tümü hesabında aktif olur — ilanlarını kendi mağazanda sergile, ücretsiz öne çıkarma ve yenileme haklarından yararlan.</div>` : ''}
+    ${rows}
+  </div>`;
+}
+function openVipBenefits() {
+  const body = document.getElementById('vip-benefits-body');
+  if (body) body.innerHTML = renderVipBenefitsHTML(myProfileData || {});
+  document.getElementById('vip-benefits-mo')?.classList.add('on');
+  if (user && isVipActive(myProfileData) && vipStoreUsageThisMonth === null) {
+    loadVipStoreUsageIfNeeded().then(() => {
+      const b = document.getElementById('vip-benefits-body');
+      if (b && document.getElementById('vip-benefits-mo')?.classList.contains('on')) b.innerHTML = renderVipBenefitsHTML(myProfileData);
+    });
+  }
+}
+
 // Profildeki "👑 VIP Üyelik" durum kartı — TEK doğruluk kaynağı (own-profile'da rprof() tarafından
 // çağrılıyor). VIP aktifse kalan süre/bitiş tarihi/kaynak + gerçek ayrıcalık listesi; değilse sade,
 // baskıcı olmayan bir bilgi notu (sahte "satın al" akışı YOK — Teknohane'de gerçek bir ücretli VIP
@@ -3804,8 +3864,9 @@ function renderVipStatusCardHTML(profileData) {
   const active = isVipActive(profileData);
   if (!active) {
     return `<div class="pbadge-card">
-      <div class="psec-title" style="margin-bottom:6px">VIP Üyelik</div>
-      <div class="no" style="padding:4px 0 2px;text-align:left">VIP kazanarak özel ayrıcalıkların kilidini aç.</div>
+      <div class="psec-title" style="margin-bottom:4px">👑 VIP Mağaza</div>
+      <div style="font-size:12.5px;color:var(--text2);line-height:1.5;margin-bottom:10px">İlanlarını profesyonel bir mağazada sergile, ücretsiz öne çıkarma ve yenileme haklarından yararlan.</div>
+      <button class="sbtn2" style="width:auto;padding:8px 14px;font-size:12.5px;background:linear-gradient(135deg,#FFD700,#FFA500);color:#3a2600" onclick="openVipBenefits()">✨ VIP Avantajlarını Gör</button>
     </div>`;
   }
   const expDate = profileData.vipExpiresAt?.toDate ? profileData.vipExpiresAt.toDate() : null;
@@ -3820,9 +3881,10 @@ function renderVipStatusCardHTML(profileData) {
     ${expDate?`<div style="font-size:11.5px;color:var(--text3);margin-top:2px">Bitiş: ${expDate.toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric'})}</div>`:''}
     ${sourceLabel?`<div style="font-size:11.5px;color:var(--text3);margin-top:2px">Kaynak: ${sourceLabel}</div>`:''}
     <div style="font-size:12px;font-weight:700;margin-top:12px;margin-bottom:6px">VIP Ayrıcalıkların:</div>
-    <div style="display:flex;flex-direction:column;gap:5px">
+    <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:10px">
       ${vipItems.map(k=>`<div style="font-size:12px;color:var(--text2)"><span style="color:#3DDC97">✓</span> ${escapeHtml(VIP_ENTITLEMENT_LABELS[k]||k)}</div>`).join('')}
     </div>
+    <button class="sbtn2" style="width:auto;padding:7px 12px;font-size:11.5px;background:var(--surf2);color:#FFD700" onclick="openVipBenefits()">✨ Kullanım Haklarımla Gör</button>
   </div>`;
 }
 
@@ -3857,7 +3919,7 @@ function renderVipStoreDashboardHTML(profileData, myListings) {
       <div style="display:flex;justify-content:space-between;font-size:12px"><span>🔄 İlan yenileme</span><span style="color:var(--text2)">${usage.refreshesUsed||0} / ${VIP_STORE_LIMITS.refreshes} kullanıldı</span></div>
     </div>
     ${active.length ? `
-    <div style="font-size:12px;font-weight:700;margin-bottom:6px">⭐ Öne Çıkan İlanlar <span style="color:var(--text3);font-weight:400">(en fazla 3, mağaza sayfanın üstünde gösterilir)</span></div>
+    <div style="font-size:12px;font-weight:700;margin-bottom:6px">⭐ Öne Çıkan İlanlar <span style="color:var(--text3);font-weight:400">(${featuredIds.length}/3 seçildi, mağaza sayfanın üstünde gösterilir)</span></div>
     <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:12px">
       ${active.slice(0,20).map(l => `<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer">
         <input type="checkbox" ${featuredIds.includes(l.id)?'checked':''} onchange="toggleFeaturedListing('${l.id}',this.checked)" ${(!featuredIds.includes(l.id)&&featuredIds.length>=3)?'disabled':''}>
@@ -3865,8 +3927,10 @@ function renderVipStoreDashboardHTML(profileData, myListings) {
       </label>`).join('')}
     </div>` : ''}
     <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="sbtn2" style="width:auto;padding:9px 16px;font-size:12.5px;background:linear-gradient(135deg,#FFD700,#FFA500);color:#3a2600;font-weight:700" onclick="openPublicProfile('${user?.uid||''}','${escapeJsAttr(profileData.storeName||profileData.displayName||'Mağazam')}')">🏪 Mağazamı Gör</button>
       <button class="sbtn2" style="width:auto;padding:9px 14px;font-size:12.5px" onclick="openEditProfile();document.getElementById('ep-store-fields')?.scrollIntoView({behavior:'smooth'})">✏️ Mağazamı Düzenle</button>
       <button class="sbtn2" style="width:auto;padding:9px 14px;font-size:12.5px;background:var(--surf2);color:var(--cyan)" onclick="shareProfile('${user?.uid||''}','${escapeJsAttr(profileData.storeName||profileData.displayName||'Mağazam')}')">🔗 Mağazamı Paylaş</button>
+      <button class="sbtn2" style="width:auto;padding:9px 14px;font-size:12.5px;background:var(--surf2);color:#FFD700" onclick="openVipBenefits()">✨ VIP Avantajlarım</button>
     </div>
   </div>`;
 }
@@ -4958,10 +5022,17 @@ async function saveProfileInfo() {
     // olduğunda mevcut değere HİÇ dokunulmaz, VIP süresi bitmişken sessizce silinmez, bkz. görev §15).
     if (canEditStore) { fsUpdates.storeName = storeName || firebase.firestore.FieldValue.delete(); fsUpdates.storeDescription = storeDescription || firebase.firestore.FieldValue.delete(); }
     await db.collection('teknohane_users').doc(user.uid).set(fsUpdates, { merge: true });
-    db.collection('teknohane_user_index').doc(user.uid).set({
+    // storeName ayrıca teknohane_user_index'e de senkronize edilir — Pazar'daki "👑 VIP Mağazaları
+    // Keşfet" vitrini (bkz. loadVipStoreShowcaseIfNeeded) herkese açık, salt-okunur bu koleksiyonu
+    // okuyor (teknohane_users'ı DEĞİL — o admin-only, e-posta/telefon gibi hassas alanlar içeriyor).
+    // canEditStore=false iken (VIP değilken) HİÇ dokunulmuyor — süre dolunca mağaza adı sessizce
+    // silinmiyor, yalnızca vitrin isVipActive() kontrolüyle göstermeyi bırakıyor.
+    const indexUpdate = {
       uid: user.uid, displayName: name, displayNameLower: name.toLocaleLowerCase('tr-TR'),
       photoURL: fsUpdates.photoURL || myProfileData.photoURL || '', username: uname || null
-    }, { merge: true }).catch(()=>{});
+    };
+    if (canEditStore) indexUpdate.storeName = storeName || firebase.firestore.FieldValue.delete();
+    db.collection('teknohane_user_index').doc(user.uid).set(indexUpdate, { merge: true }).catch(()=>{});
 
     myProfileData.firstName = firstName;
     myProfileData.lastName = lastName;
@@ -9482,6 +9553,43 @@ function showRejectReason(id) {
   showToast('❌', 'rgba(255,69,58,.15)', 'İlan Reddedildi', `${l.rejectReasonLabel || 'Sebep belirtilmedi'}${l.rejectNote ? ' — ' + l.rejectNote : ''} Düzenleyip tekrar onaya gönderebilirsin.`, () => editListing(id), 8000);
 }
 
+// VIP MAĞAZA 2.0 — Pazar ana ekranında "👑 VIP Mağazaları Keşfet" vitrini. TEK sorgu, N+1 YOK:
+// teknohane_users DEĞİL (o koleksiyonun list kuralı yalnızca admin'e açık — email/telefon/ban gibi
+// hassas alanlar içeriyor), herkese açık salt-okunur teknohane_user_index'ten (allow read: if true,
+// yalnızca uid/displayName/photoURL/vip/vipExpiresAt/storeName gibi zararsız alanlar) TEK
+// where('vip','==',true).limit(15) sorgusu — tek eşitlik filtresi, composite index GEREKMEZ (admin
+// panelindeki .where('vip','==',true) sorgusuyla AYNI desen). Pazar sekmesine girişte BİR KEZ yüklenir,
+// sekmeler arası geçişte tekrar sorgulanmaz.
+let vipStoreShowcaseLoaded = false;
+let vipStoreShowcaseUsers = [];
+async function loadVipStoreShowcaseIfNeeded() {
+  if (vipStoreShowcaseLoaded) return;
+  vipStoreShowcaseLoaded = true;
+  try {
+    const snap = await db.collection('teknohane_user_index').where('vip', '==', true).limit(15).get();
+    vipStoreShowcaseUsers = snap.docs.map(d => d.data()).filter(u => isVipActive(u) && u.storeName);
+    renderVipStoreShowcase();
+  } catch (e) { /* vitrin opsiyonel bir özellik — sessiz hata, Pazar'ın kendisini asla engellemez */ }
+}
+function renderVipStoreShowcase() {
+  const el = document.getElementById('vip-store-showcase');
+  if (!el) return;
+  if (!vipStoreShowcaseUsers.length) { el.innerHTML = ''; return; }
+  el.innerHTML = `<div style="margin-bottom:12px">
+    <div style="font-size:13px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px"><span>👑</span><span>VIP Mağazaları Keşfet</span></div>
+    <div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch">
+      ${vipStoreShowcaseUsers.slice(0, 10).map(u => `
+      <div style="flex-shrink:0;width:84px;text-align:center;cursor:pointer" onclick="openPublicProfile('${u.uid}','${escapeJsAttr(u.displayName||'Kullanıcı')}')">
+        <div style="width:56px;height:56px;border-radius:50%;margin:0 auto 5px;padding:2px;background:linear-gradient(135deg,#FFD700,#FFA500)">
+          <img src="${escapeHtml(avatarUrl(u.photoURL, u.displayName, 112))}" alt="" loading="lazy" decoding="async" style="width:100%;height:100%;border-radius:50%;object-fit:cover;border:2px solid var(--bg)" onerror="this.onerror=null;this.src='${escapeJsAttr(avatarUrl(null, u.displayName, 112))}'">
+        </div>
+        <div style="font-size:10.5px;font-weight:700;color:#FFD700;margin-bottom:1px">🏪 VIP</div>
+        <div style="font-size:10.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(u.storeName)}</div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
 // Bir ilan kartının GÖRSEL imzası — Pazar sekmesine her dönüşte (veri değişmese bile) tüm
 // kartların/görsellerin DOM'da yeniden yaratılmasını önlemek için (bkz. rlistings sonundaki kontrol).
 function listingCardSignature(l) {
@@ -9619,6 +9727,10 @@ function smtab(t, el) {
   mktab = t;
   document.querySelectorAll('#msrc-tabs .mtab').forEach(b => {b.className='mtab off';});
   el.className = 'mtab on';
+  // VIP Mağazaları vitrini yalnızca "Tümü" sekmesinde anlamlı — Favoriler/İlanlarım'da gizlenir,
+  // tekrar "Tümü"ye dönülünce (veri zaten yüklüyse) anında geri gelir.
+  const showcaseEl = document.getElementById('vip-store-showcase');
+  if (showcaseEl) showcaseEl.style.display = t === 'all' ? '' : 'none';
   if (t === 'all' && !marketAllLoadedOnce) { loadMarketPage(true); return; }
   if (t === 'fav') { loadMarketFavorites(); return; }
   if (t === 'mine') { loadMarketMine(); return; }
@@ -10675,7 +10787,7 @@ function renderDetailPage(l) {
     ${pending && isAdmin ? `<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px" onclick="approveListing('${l.id}')">✓ İlanı Onayla ve Yayınla</button>`:''}
     ${mine && isListingExpired(l) ? `<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px;background:rgba(0,212,255,.12);color:var(--cyan);border:1px solid rgba(0,212,255,.3)" onclick="renewListing('${l.id}')">🔄 İlanı Yeniden Yayınla (30 Gün)</button>`:''}
     ${(mine || (isAdmin && hasPermission('manageListings')))?`<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px;background:var(--surf2);color:var(--cyan);border:1px solid var(--border2)" onclick="editListing('${l.id}')">✏️ İlanı Düzenle${mine?'':' (Admin)'}</button>`:''}
-    ${mine && !l.sold?`<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px;background:var(--surf2);color:var(--cyan);border:1px solid var(--border2)" onclick="openBoostRequestForm('${l.id}')">🚀 Öne Çıkarma Talebi</button>`:''}
+    ${mine && !l.sold?`<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px;background:var(--surf2);color:var(--cyan);border:1px solid var(--border2)" onclick="openBoostRequestForm('${l.id}')">🚀 Öne Çıkarma Talebi${isVipActive(myProfileData)?' <span style="color:#FFD700;font-weight:700">· 👑 Ücretsiz haklarını kullan</span>':''}</button>`:''}
     ${mine?`<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px" onclick="toggleSold('${l.id}')">${l.sold?'↺ Satıldı İşaretini Kaldır':'✓ Satıldı Olarak İşaretle'}</button>`:''}
     <div id="det-similar"></div>`;
   document.getElementById('detail-mo').classList.add('on');
@@ -14913,7 +15025,7 @@ async function loadSellerCard(sellerUid, ownerName, mine, containerId) {
         </div>
       </div>
       <div id="${containerId}-badges"></div>
-      ${!mine?`<div class="seller-card-lg-actions">
+      ${!mine?`<div class="seller-card-lg-actions" id="${containerId}-actions">
         <div class="seller-card-lg-btn" onclick="openPublicProfile('${sellerUid}','${safeName}');exitDetailPage(false)">Profili Gör</div>
         <div class="seller-card-lg-btn" onclick="openPublicProfile('${sellerUid}','${safeName}');exitDetailPage(false)">Tüm İlanları</div>
       </div>`:''}
@@ -14941,6 +15053,12 @@ async function loadSellerCard(sellerUid, ownerName, mine, containerId) {
     if (u.adminVerified || u.emailVerified) badges.push({t:'✅ Doğrulanmış', cls:''});
     const badgesEl = document.getElementById(`${containerId}-badges`);
     if (badgesEl && badges.length) badgesEl.innerHTML = `<div class="seller-card-lg-badges">${badges.map(b=>`<span class="seller-badge${b.cls?' '+b.cls:''}">${b.t}</span>`).join('')}</div>`;
+    // VIP mağazası olan satıcıda "Profili Gör" yerine "🏪 Mağazayı Gör" — AYNI hedefe gidiyor
+    // (openPublicProfile zaten VIP kullanıcıda mağaza vitrinini gösteriyor), yalnızca doğru beklentiyi kuruyor.
+    if (hasEntitlement(u, 'vip_marketplace_store') && u.storeName) {
+      const firstBtn = document.getElementById(`${containerId}-actions`)?.querySelector('.seller-card-lg-btn');
+      if (firstBtn) firstBtn.textContent = '🏪 Mağazayı Gör';
+    }
   } catch(e) {
     const statsEl = document.getElementById(`${containerId}-stats`);
     if (statsEl) statsEl.textContent = '';
@@ -17096,6 +17214,7 @@ function gt(name) {
     else if (mktab === 'fav' && !marketFavLoaded) loadMarketFavorites();
     else if (mktab === 'mine' && !marketMineLoaded) loadMarketMine();
     else rlistings();
+    loadVipStoreShowcaseIfNeeded();
     document.getElementById('market-dot')?.classList.remove('on');
     showMarketBanner();
     // Doğrudan reklamlar yalnızca uygulama AÇILIRKEN bir kez çekiliyordu — admin yeni bir reklam
