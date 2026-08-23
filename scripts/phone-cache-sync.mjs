@@ -88,7 +88,22 @@ function parseRamStorage(memoryInternal) {
   };
 }
 
-function normalizeDetail(brand, matchedName, detail) {
+// Veri kalitesi/"confidence" — Telefon Platformu 2.0 (2026-08-23). Yeni bir dış doğrulama kaynağı
+// EKLENMEDİ (spec: kaynak doğrulanmadan otomatik yayın yapma) — bunun yerine MobileAPI.dev'in KENDİ
+// eşleştirme kesinliği (match_certainty, arama sonucundan) ile bu normalizasyondan çıkan temel
+// alanların doluluğu birleştirilerek 0-100 arası şeffaf bir puan üretiliyor. >=80 admin panelinde
+// "güvenilir" olarak işaretlenir (bkz. Teknohane-Yonetim'deki phoneQualityScore — İKİ FARKLI puan,
+// KARIŞTIRILMASIN: buradaki dataConfidence eşleştirme+API güvenilirliği, admin panelindeki
+// phoneQualityScore ise saklanan ALANLARIN doluluğu — ikisi birbirini tamamlıyor, aynı şey değil).
+function computeConfidence(matchCertainty, normalized) {
+  const fields = ['chip','ram','storage','cam','bat','scr','wt','os','imageUrl'];
+  const filled = fields.filter(k => normalized[k]).length;
+  const completeness = (filled / fields.length) * 100;
+  const certainty = matchCertainty != null ? parseFloat(matchCertainty) : 70; // API kesinlik vermiyorsa temkinli orta değer
+  return Math.round(completeness * 0.6 + Math.min(100, certainty) * 0.4);
+}
+
+function normalizeDetail(brand, matchedName, detail, matchCertainty) {
   const platform = detail.platform || {};
   const memory = detail.memory || {};
   const display = detail.display || {};
@@ -101,7 +116,7 @@ function normalizeDetail(brand, matchedName, detail) {
   const scr = sizeM ? `${sizeM[1]}"${hzM ? ' ' + hzM[1] + 'Hz' : ''}` : (display.size || null);
   const camMps = [...String(mainCam.modules || detail.camera || '').matchAll(/(\d+)\s*MP/gi)].map(m => m[1]);
 
-  return {
+  const normalized = {
     brand: brand || detail.manufacturer_name || null,
     name: matchedName || detail.name,
     yr: parseYear(detail.release_date),
@@ -114,6 +129,10 @@ function normalizeDetail(brand, matchedName, detail) {
     os: (platform.os || '').split(',')[0].trim() || null,
     intlPrice: misc.price || null,
     imageUrl: detail.image_url || null,
+  };
+  return {
+    ...normalized,
+    dataConfidence: computeConfidence(matchCertainty, normalized),
     raw: {
       network: detail.network || null,
       body: detail.body || null,
@@ -162,24 +181,41 @@ async function cachePhone(brand, name, quota) {
   if (!detailRes.ok) throw new Error('MobileAPI detay hatası: ' + JSON.stringify(detailData));
 
   await bumpQuota(quota, 2);
-  const normalized = normalizeDetail(brand, name, detailData);
+  const normalized = normalizeDetail(brand, name, detailData, best.match_certainty);
   await fsCall({ op: 'patch', path: `teknohane_phone_specs/${id}`, fields: normalized, fieldPaths: Object.keys(normalized) });
-  return { status: 'cached' };
+  return { status: 'cached', dataConfidence: normalized.dataConfidence };
 }
 
 // Organik kullanıcı talepleri tükendiğinde, ayda 48 isteklik bütçenin geri kalanını rastgele
-// gezinmeyi beklemeden en çok aranması muhtemel amiral gemisi telefonlara ayırır.
+// gezinmeyi beklemeden en çok aranması muhtemel amiral gemisi telefonlara ayırır. Telefon Platformu
+// 2.0 güncellemesiyle (2026-08-23) güncel nesle (S26/iPhone 17/Pixel 10 dönemi — bkz. legacy-
+// catalog.js'teki en yeni kayıtlar) taşındı; ESKİ nesil (S24/iPhone 16 vb.) satırlar BİLİNÇLİ olarak
+// silinmedi, yalnızca listenin SONUNA itildi — hâlâ çok aranan modeller, kota izin verdikçe onlar da
+// zenginleştirilmeye devam etsin diye (script zaten önbellekte olanı `continue` ile atlıyor, bu
+// yüzden fazladan satır eklemek zararsız, yalnızca daha geniş bir OLASILIK havuzu sağlıyor).
 const SEED_LIST = [
-  { brand: 'Apple', name: 'iPhone 16 Pro Max' }, { brand: 'Apple', name: 'iPhone 16 Pro' },
-  { brand: 'Apple', name: 'iPhone 16' }, { brand: 'Apple', name: 'iPhone 15' },
-  { brand: 'Samsung', name: 'Galaxy S24 Ultra' }, { brand: 'Samsung', name: 'Galaxy S24' },
-  { brand: 'Samsung', name: 'Galaxy A55' }, { brand: 'Samsung', name: 'Galaxy Z Fold6' },
+  // Güncel nesil amiral gemileri
+  { brand: 'Apple', name: 'iPhone 17 Pro Max' }, { brand: 'Apple', name: 'iPhone 17 Pro' },
+  { brand: 'Apple', name: 'iPhone 17' }, { brand: 'Apple', name: 'iPhone Air' },
+  { brand: 'Samsung', name: 'Galaxy S26 Ultra' }, { brand: 'Samsung', name: 'Galaxy S26' },
+  { brand: 'Samsung', name: 'Galaxy Z Fold8' }, { brand: 'Samsung', name: 'Galaxy Z Flip8' },
+  { brand: 'Samsung', name: 'Galaxy A57' },
+  { brand: 'Xiaomi', name: '17 Pro' }, { brand: 'Xiaomi', name: 'Redmi Note 15 Pro+' },
+  { brand: 'Xiaomi', name: 'POCO F7' },
+  { brand: 'Google', name: 'Pixel 10 Pro' }, { brand: 'Google', name: 'Pixel 10' },
+  { brand: 'Google', name: 'Pixel 10 Pro Fold' },
+  { brand: 'OnePlus', name: '15' }, { brand: 'OnePlus', name: '13T' },
+  { brand: 'Oppo', name: 'Find X9 Pro' }, { brand: 'Vivo', name: 'X300 Pro' },
+  { brand: 'Realme', name: 'GT 8 Pro' }, { brand: 'Nothing', name: 'Phone 3' },
+  { brand: 'Honor', name: 'Magic 8 Pro' }, { brand: 'Huawei', name: 'Mate 80 Pro' },
+  { brand: 'Asus', name: 'ROG Phone 10' },
+  // Önceki nesil — hâlâ aranıyor, kota izin verdikçe sırada
+  { brand: 'Apple', name: 'iPhone 16 Pro Max' }, { brand: 'Apple', name: 'iPhone 16' },
+  { brand: 'Samsung', name: 'Galaxy S24 Ultra' }, { brand: 'Samsung', name: 'Galaxy A55' },
   { brand: 'Xiaomi', name: 'Redmi Note 13 Pro' }, { brand: 'Xiaomi', name: '14 Ultra' },
-  { brand: 'Xiaomi', name: 'Poco X6 Pro' }, { brand: 'Google', name: 'Pixel 9 Pro' },
-  { brand: 'Google', name: 'Pixel 8' }, { brand: 'OnePlus', name: '12' },
-  { brand: 'Huawei', name: 'P60 Pro' }, { brand: 'Oppo', name: 'Reno 11' },
-  { brand: 'Vivo', name: 'V30' }, { brand: 'Realme', name: '12 Pro' },
-  { brand: 'Nothing', name: 'Phone 2' }, { brand: 'Honor', name: 'Magic 6 Pro' },
+  { brand: 'Google', name: 'Pixel 9 Pro' }, { brand: 'OnePlus', name: '12' },
+  { brand: 'Oppo', name: 'Reno 11' }, { brand: 'Vivo', name: 'V30' },
+  { brand: 'Realme', name: '12 Pro' }, { brand: 'Honor', name: 'Magic 6 Pro' },
 ];
 
 async function main() {

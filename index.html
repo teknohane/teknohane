@@ -542,6 +542,47 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .ps{font-size:11px;color:var(--text2);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .pp{font-size:13px;font-weight:700;color:var(--cyan);white-space:nowrap;}
 .abdg{background:var(--cdim);color:var(--cyan);font-size:11px;font-weight:600;padding:4px 10px;border-radius:8px;border:1px solid rgba(0,212,255,.2);}
+
+/* ==== TELEFON PLATFORMU 2.0 (kullanıcı talebi — 2026-08-23): "Telefonları Keşfet" ızgarası +
+   Telefon Detay sayfası. Mevcut .cmp-hero/.cmp-cat/.pitem dilini genişletiyor, yeni bir tasarım
+   dili İCAT EDİLMEDİ. Görsel yoksa (henüz MobileAPI.dev'den zenginleştirilmemiş telefon) markanın
+   baş harfini taşıyan AYNI nötr rozet kullanılıyor — sahte/yanıltıcı görsel ASLA üretilmiyor. ==== */
+.phone-discover-search{position:relative;margin-bottom:12px;}
+.phone-discover-brands{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;margin-bottom:14px;scrollbar-width:none;}
+.phone-discover-brands::-webkit-scrollbar{display:none;}
+.pdgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+@media (min-width:600px){.pdgrid{grid-template-columns:repeat(3,1fr);}}
+@media (min-width:900px){.pdgrid{grid-template-columns:repeat(4,1fr);}}
+.phone-card{background:var(--surf);border:1px solid var(--border2);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;cursor:pointer;}
+.phone-card:active{background:var(--surf2);}
+.phone-card-media{aspect-ratio:1/1;background:var(--surf2);display:flex;align-items:center;justify-content:center;padding:14px;}
+.phone-card-media img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 6px 14px rgba(0,0,0,.3));}
+.phone-card-media .cmp-hero-badge{width:56px;height:56px;font-size:20px;margin:0;}
+.phone-card-body{padding:10px 12px 12px;display:flex;flex-direction:column;gap:2px;flex:1;}
+.phone-card-brand{font-size:9.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;}
+.phone-card-name{font-size:12.5px;font-weight:700;line-height:1.3;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;min-height:2.5em;}
+.phone-card-spec{font-size:10.5px;color:var(--text2);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.phone-card-actions{display:flex;gap:6px;margin-top:8px;}
+.phone-card-actions button{flex:1;font-size:10.5px;font-weight:700;padding:7px 4px;border-radius:8px;border:1px solid var(--border2);background:var(--surf2);color:var(--text2);cursor:pointer;font-family:inherit;}
+.phone-card-actions button.pca-primary{background:var(--cdim);color:var(--cyan);border-color:rgba(0,212,255,.25);}
+.phone-discover-more{width:100%;margin-top:14px;}
+/* Telefon Detay — cmp-hero'nun tek-telefon, büyütülmüş varyantı */
+.phone-detail-hero{text-align:center;padding:26px 18px 20px;}
+.phone-detail-hero-img{width:150px;height:150px;object-fit:contain;margin:0 auto 10px;display:block;filter:drop-shadow(0 10px 22px rgba(0,0,0,.35));}
+.phone-detail-hero .cmp-hero-badge{width:110px;height:110px;font-size:38px;margin:0 auto 10px;}
+.phone-detail-name{font-size:19px;font-weight:800;line-height:1.25;}
+.phone-detail-brand{font-size:11.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-top:2px;}
+.phone-quickspecs{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:16px;}
+.pqs-chip{display:flex;align-items:center;gap:6px;background:var(--surf2);border:1px solid var(--border2);border-radius:12px;padding:8px 12px;font-size:11.5px;font-weight:600;color:var(--text2);}
+.pqs-chip .pqs-ic{font-size:14px;}
+.phone-suited-for{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0;}
+.psf-tag{display:flex;align-items:center;gap:5px;background:var(--cdim);color:var(--cyan);border:1px solid rgba(0,212,255,.2);border-radius:20px;padding:6px 12px;font-size:11.5px;font-weight:600;}
+.phone-cross-links{display:flex;gap:10px;margin:16px 0;flex-wrap:wrap;}
+.phone-cross-link{flex:1;min-width:140px;display:flex;align-items:center;gap:10px;background:var(--surf);border:1px solid var(--border2);border-radius:12px;padding:12px;cursor:pointer;}
+.phone-cross-link:active{background:var(--surf2);}
+.pcl-ic{font-size:20px;flex-shrink:0;}
+.pcl-txt{font-size:12px;font-weight:600;line-height:1.3;}
+.pcl-sub{font-size:10.5px;color:var(--text3);margin-top:1px;}
 /* Katalog arka planda yüklenirken (bkz. ensureFullCatalog) picker'ın kendi hafif iskelet
    görünümü — boş liste yerine "yükleniyor" hissi versin diye. */
 .pitem-skel{height:58px;border-radius:12px;background:linear-gradient(90deg,var(--surf) 0%,var(--surf2) 50%,var(--surf) 100%);background-size:200% 100%;animation:pskel 1.3s ease-in-out infinite;}
@@ -1491,6 +1532,18 @@ body.tk-maintenance #maintenance-gate{
       </div>
       <div id="cmp-quickpicks" style="display:none"></div>
       <div id="cmp-res"></div>
+
+      <!-- TELEFONLARI KEŞFET (Telefon Platformu 2.0) — mevcut karşılaştırma akışını DEĞİŞTİRMİYOR,
+           altına ekleniyor. Aynı merkezi PHONES dizisini (loadExtraPhones ile zenginleştirilmiş)
+           kullanır — arama/karşılaştırma/admin panelinin AYNI tek veri kaynağı. -->
+      <div class="glow"></div>
+      <div class="sh" style="margin-bottom:12px"><span class="st" style="font-size:16px">📱 Telefonları Keşfet</span></div>
+      <div class="phone-discover-search">
+        <input class="si" type="text" id="pd-search" placeholder="🔎 Telefon, marka veya model ara…" oninput="onPhoneDiscoverSearchInput(this.value)">
+      </div>
+      <div class="phone-discover-brands" id="pd-brands"></div>
+      <div class="pdgrid" id="pd-grid"><div class="load"><div class="spin"></div></div></div>
+      <button class="apbtn phone-discover-more" id="pd-more-btn" style="display:none" onclick="phoneDiscoverShowMore()">Daha Fazla Göster</button>
     </div>
   </div>
 
@@ -1740,6 +1793,24 @@ body.tk-maintenance #maintenance-gate{
       <div style="width:32px"></div>
     </div>
     <div class="det-body" id="det-body"></div>
+  </div>
+</div>
+
+<!-- TELEFON DETAY / İNCELEME MODALI (Telefon Platformu 2.0) — detail-mo'nun AYNI det-sheet/det-sticky/
+     det-close deseni, tutarlılık için. exitPhoneDetail() geri tuşuyla AYNI (history.back() zaten
+     genel .mo.on kapatma zincirine dahil, bkz. mevcut back-button handler). -->
+<div class="mo" id="phone-detail-mo" onclick="exitPhoneDetail()">
+  <div class="det-sheet" onclick="event.stopPropagation()">
+    <div class="det-sticky">
+      <div class="det-close" onclick="exitPhoneDetail()" style="order:-1">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </div>
+      <div style="font-size:15px;font-weight:700;color:var(--text2)">Telefon İncele</div>
+      <div class="det-close" onclick="sharePhoneDetail()">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51L8.59 10.49"/></svg>
+      </div>
+    </div>
+    <div class="det-body" id="phone-detail-body"></div>
   </div>
 </div>
 
@@ -5328,6 +5399,7 @@ function navigateFromNotificationUrl(url, attempt) {
     const chatUid = u.searchParams.get('chat');
     const arenaLeague = u.searchParams.get('arenaLeague');
     const screenTarget = u.searchParams.get('screen');
+    const phoneId = u.searchParams.get('phone');
     if (listingId) {
       // openDetail artık kendi tekil-doküman fallback'ini yapıyor (bkz. getListingById) — bellekte
       // hazır olsun olmasın, TEKRARLI SORGULAMA (retry-polling) GEREKMEDEN doğrudan çağrılabilir.
@@ -5354,6 +5426,11 @@ function navigateFromNotificationUrl(url, attempt) {
       if (!user && attempt < 10 && screenTarget !== 'home') { setTimeout(() => navigateFromNotificationUrl(url, attempt+1), 400); return; }
       if (screenTarget === 'arena') openArenaPage();
       else if (['home', 'community', 'market', 'profile'].includes(screenTarget)) gt(screenTarget);
+    } else if (phoneId) {
+      // Telefon detay derin bağlantısı (?phone=ID) — PHONES dizisi henüz yüklenmemiş olabilir
+      // (loadExtraPhones async), diğer dallardaki AYNI "hazır olana kadar kısa aralıklarla tekrar
+      // dene" deseni kullanılıyor.
+      loadExtraPhones().then(() => openPhoneDetail(phoneId));
     }
   } catch(e) { console.error('Bildirim yönlendirme URL\'si çözülemedi:', e); }
 }
@@ -12708,6 +12785,15 @@ let newsCache = null;
 const NEWS_API = 'https://teknohane-news.yusuf-aykac.workers.dev/';
 const PRICE_API = 'https://teknohane-price.yusuf-aykac.workers.dev/'; // ⚠️ Worker'ı deploy ettikten sonra kendi adresinle değiştir
 const PHONES_API = 'https://teknohane-api.yusuf-aykac.workers.dev/'; // ⚠️ Worker'ı deploy ettikten sonra kendi adresinle değiştir
+// Veri kalitesi düzeltmesi (Telefon Platformu 2.0, 2026-08-23): elle girilmiş 111 kayıt ile 687
+// kayıtlık eski GSMArena listesi arasında marka yazımı tutarsızdı (ör. "ASUS" vs "Asus", "OnePlus"
+// vs "Oneplus", "realme" vs "Realme", "vivo" vs "Vivo") — bu, hem eski picker'da (rbf/sbrand) hem
+// yeni "Telefonları Keşfet" ızgarasında AYNI markanın iki ayrı filtre çipi olarak görünmesine yol
+// açıyordu. Telefon ID'leri/isimleri/verileri HİÇ değişmiyor, yalnızca GÖRÜNTÜLEME/FİLTRELEME
+// katmanında tek bir kanonik yazım kullanılıyor (resmi marka stilizasyonları: vivo/realme küçük
+// harf, ASUS büyük harf — kasıtlı, hata değil).
+const BRAND_CANON = { apple:'Apple', asus:'ASUS', google:'Google', honor:'Honor', huawei:'Huawei', infinix:'Infinix', lg:'LG', motorola:'Motorola', nothing:'Nothing', oppo:'OPPO', oneplus:'OnePlus', realme:'realme', samsung:'Samsung', sony:'Sony', tecno:'Tecno', vivo:'vivo', xiaomi:'Xiaomi', zte:'ZTE' };
+function brandDisplay(brand) { return BRAND_CANON[(brand||'').toLowerCase().trim()] || brand || ''; }
 
 let extraPhonesLoaded = false;
 async function loadExtraPhones() {
@@ -13394,15 +13480,15 @@ async function opick(s) {
 }
 
 function rbf() {
-  const brands=['Tümü',...new Set(PHONES.map(p=>p.brand))].sort((a,b)=>a==='Tümü'?-1:b==='Tümü'?1:a.localeCompare(b));
+  const brands=['Tümü',...new Set(PHONES.map(p=>brandDisplay(p.brand)))].sort((a,b)=>a==='Tümü'?-1:b==='Tümü'?1:a.localeCompare(b));
   const el=document.getElementById('bfilters');
   if(!el)return;
-  el.innerHTML=brands.map(b=>`<button class="bf ${b===abrand?'on':'off'}" onclick="sbrand('${b}')">${b}</button>`).join('');
+  el.innerHTML=brands.map(b=>`<button class="bf ${b===abrand?'on':'off'}" onclick="sbrand('${escapeJsAttr(b)}')">${escapeHtml(b)}</button>`).join('');
 }
 
 function sbrand(b) {
   abrand=b; document.getElementById('psrch').value='';
-  fp=b==='Tümü'?[...PHONES]:PHONES.filter(p=>p.brand===b);
+  fp=b==='Tümü'?[...PHONES]:PHONES.filter(p=>brandDisplay(p.brand)===b);
   rbf(); rplist();
 }
 
@@ -13684,6 +13770,193 @@ function quickPick(id, slot) {
 
 function cslot(s){if(s==='a')pA=null;else pB=null;rslots();refreshCmp();}
 
+// ==== TELEFONLARI KEŞFET — arama/marka filtresi mevcut picker'daki (opick/fphn/sbrand) AYNI
+// desenle, ama TAMAMEN AYRI bir state setiyle (pd*) — picker modalının fp/abrand'ına HİÇ dokunmuyor,
+// iki akış birbirinden bağımsız çalışıyor. ====
+let pdSearch = '', pdBrand = 'Tümü', pdVisibleCount = 24;
+const PD_PAGE_SIZE = 24;
+function initPhoneDiscover() {
+  pdSearch = ''; pdBrand = 'Tümü'; pdVisibleCount = PD_PAGE_SIZE;
+  const s = document.getElementById('pd-search'); if (s) s.value = '';
+  renderPhoneDiscoverBrands();
+  renderPhoneDiscoverGrid();
+}
+function renderPhoneDiscoverBrands() {
+  const el = document.getElementById('pd-brands');
+  if (!el) return;
+  const brands = ['Tümü', ...new Set(PHONES.map(p => brandDisplay(p.brand)))].sort((a,b) => a==='Tümü'?-1:b==='Tümü'?1:a.localeCompare(b));
+  el.innerHTML = brands.map(b => `<button class="bf ${b===pdBrand?'on':'off'}" onclick="setPhoneDiscoverBrand('${escapeJsAttr(b)}')">${escapeHtml(b)}</button>`).join('');
+}
+function setPhoneDiscoverBrand(b) {
+  pdBrand = b; pdVisibleCount = PD_PAGE_SIZE;
+  renderPhoneDiscoverBrands();
+  renderPhoneDiscoverGrid();
+}
+let pdSearchDebounceTimer = null;
+function onPhoneDiscoverSearchInput(q) {
+  clearTimeout(pdSearchDebounceTimer);
+  pdSearchDebounceTimer = setTimeout(() => {
+    pdSearch = q; pdBrand = 'Tümü'; pdVisibleCount = PD_PAGE_SIZE;
+    renderPhoneDiscoverBrands();
+    renderPhoneDiscoverGrid();
+  }, 300);
+}
+function phoneDiscoverFiltered() {
+  let list = [...PHONES].sort((a,b) => (b.yr||0)-(a.yr||0));
+  if (pdSearch.trim()) {
+    const q = pdSearch.toLowerCase();
+    list = list.filter(p => (p.brand+' '+p.name).toLowerCase().includes(q));
+  } else if (pdBrand !== 'Tümü') {
+    list = list.filter(p => brandDisplay(p.brand) === pdBrand);
+  }
+  return list;
+}
+// DOM'a TÜM PHONES'u (600+) tek seferde basmıyoruz — sayfalanmış render, "Daha Fazla Göster" ile
+// büyütülüyor (spec §35: 600 telefonu bir anda indirme/render etme).
+function renderPhoneDiscoverGrid() {
+  const grid = document.getElementById('pd-grid');
+  const moreBtn = document.getElementById('pd-more-btn');
+  if (!grid) return;
+  const filtered = phoneDiscoverFiltered();
+  if (!filtered.length) { grid.innerHTML = '<div class="no" style="grid-column:1/-1">Telefon bulunamadı.</div>'; if (moreBtn) moreBtn.style.display = 'none'; return; }
+  const visible = filtered.slice(0, pdVisibleCount);
+  grid.innerHTML = visible.map(p => phoneCardHTML(p)).join('');
+  if (moreBtn) moreBtn.style.display = filtered.length > pdVisibleCount ? 'block' : 'none';
+}
+function phoneDiscoverShowMore() {
+  pdVisibleCount += PD_PAGE_SIZE;
+  renderPhoneDiscoverGrid();
+}
+function phoneCardHTML(p) {
+  const initial = (p.brand||'?')[0].toUpperCase();
+  const media = p.imageUrl
+    ? `<img src="${escapeJsAttr(p.imageUrl)}" alt="${escapeJsAttr(p.name)}" loading="lazy" decoding="async" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'cmp-hero-badge',textContent:'${initial}'}))">`
+    : `<div class="cmp-hero-badge">${initial}</div>`;
+  const specBits = [p.ram, p.storage, p.bat].filter(Boolean).join(' · ');
+  return `<div class="phone-card" onclick="openPhoneDetail('${p.id}')">
+    <div class="phone-card-media">${media}</div>
+    <div class="phone-card-body">
+      <div class="phone-card-brand">${escapeHtml(brandDisplay(p.brand))}</div>
+      <div class="phone-card-name">${escapeHtml(p.name||'')}</div>
+      ${specBits ? `<div class="phone-card-spec">${escapeHtml(specBits)}</div>` : ''}
+      <div class="phone-card-actions">
+        <button onclick="event.stopPropagation();openPhoneDetail('${p.id}')">İncele</button>
+        <button class="pca-primary" onclick="event.stopPropagation();addPhoneToCompare('${p.id}')">Karşılaştır</button>
+      </div>
+    </div>
+  </div>`;
+}
+// Kartın "Karşılaştır" butonu — dolu olmayan ilk slota ekler, ikisi de doluysa 'a'nın yerini alır
+// (quickPick'teki AYNI davranış varsayımı: kullanıcı zaten yeni bir karşılaştırma başlatmak istiyor).
+function addPhoneToCompare(id) {
+  const p = PHONES.find(x => x.id === id);
+  if (!p) return;
+  if (!pA) pA = p; else if (!pB) pB = p; else pA = p;
+  rslots(); refreshCmp();
+  document.getElementById('cmp-res')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ==== TELEFON DETAY / İNCELEME SAYFASI ====
+let phoneDetailReviewTarget = null; // submitPhoneReview'un 'detail' side'ı için — pA/pB'ye dokunmadan
+async function openPhoneDetail(id) {
+  await loadExtraPhones();
+  const p = PHONES.find(x => x.id === id);
+  document.getElementById('phone-detail-mo').classList.add('on');
+  const body = document.getElementById('phone-detail-body');
+  if (!p) { body.innerHTML = '<div class="no">Telefon bulunamadı.</div>'; return; }
+  phoneDetailReviewTarget = p;
+  const initial = (p.brand||'?')[0].toUpperCase();
+  const media = p.imageUrl
+    ? `<img class="phone-detail-hero-img" src="${escapeJsAttr(p.imageUrl)}" alt="${escapeJsAttr(p.name)}" loading="lazy" decoding="async" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'cmp-hero-badge',textContent:'${initial}'}))">`
+    : `<div class="cmp-hero-badge">${initial}</div>`;
+  body.innerHTML = `
+    <div class="phone-detail-hero msg-in">
+      ${media}
+      <div class="phone-detail-name">${escapeHtml(p.name||'')}</div>
+      <div class="phone-detail-brand">${escapeHtml(brandDisplay(p.brand))}${p.yr?' · '+p.yr:''}</div>
+      <div style="margin-top:10px">${priceCell(p, 'detail')}</div>
+      ${p.intlPrice ? `<div class="cmp-hero-intl-price">🌍 ${escapeHtml(p.intlPrice)}</div>` : ''}
+      ${phoneQuickSpecsHTML(p)}
+    </div>
+    ${phoneSuitedForHTML(p)}
+    ${phoneCrossLinksHTML(p)}
+    <div class="ctbl">${cmpCategoryAccordionHTML(p, null)}</div>
+    <div class="cmp-price-note">🔄 simgesi olan fiyatlar Cimri.com'dan canlı kontrol edilebilir</div>
+    <div class="phone-reviews">
+      <div class="pr-tit">${escapeHtml(brandDisplay(p.brand))} ${escapeHtml(p.name)} — Yorumlar</div>
+      <div id="pr-list-detail"><div class="load"><div class="spin"></div></div></div>
+      ${renderReviewForm('detail')}
+    </div>`;
+  loadPhoneReviews(p.id, 'pr-list-detail');
+  fetchMissingSpecs(p, 'detail');
+}
+function exitPhoneDetail() {
+  document.getElementById('phone-detail-mo').classList.remove('on');
+  phoneDetailReviewTarget = null;
+}
+function sharePhoneDetail() {
+  const p = phoneDetailReviewTarget;
+  if (!p) return;
+  const url = 'https://teknohane.github.io/teknohane/?phone=' + p.id;
+  openShareMenu(p.name, `${p.brand} ${p.name} — Teknohane'de incele:`, url);
+}
+// Hızlı özet çipleri — SADECE gerçek veriden, hiçbir alan uydurulmuyor/tahmin edilmiyor.
+function phoneQuickSpecsHTML(p) {
+  const chips = [];
+  if (p.scr) chips.push(['📱', p.scr]);
+  if (p.chip) chips.push(['⚡', p.chip.length > 22 ? p.chip.slice(0,22)+'…' : p.chip]);
+  if (p.cam) chips.push(['📸', p.cam]);
+  if (p.bat) chips.push(['🔋', p.bat]);
+  if (p.ram || p.storage) chips.push(['💾', [p.ram,p.storage].filter(Boolean).join(' / ')]);
+  if (p.os) chips.push(['📲', p.os]);
+  if (!chips.length) return '';
+  return `<div class="phone-quickspecs">${chips.map(([ic,v]) => `<div class="pqs-chip"><span class="pqs-ic">${ic}</span>${escapeHtml(v)}</div>`).join('')}</div>`;
+}
+// "Bu telefon kime uygun?" — kesin hüküm YOK ("en iyisi" vb.), yalnızca gerçek verilerden basit
+// eşik-tabanlı, temkinli ifadeler ("için güçlü", "odaklı" gibi). Veri yoksa o etiket hiç üretilmez.
+function phoneSuitedForHTML(p) {
+  const tags = [];
+  const camMp = p.cam ? Math.max(0, ...[...String(p.cam).matchAll(/(\d+)\s*MP/gi)].map(m => parseInt(m[1],10))) : 0;
+  const batMah = p.bat ? parseInt(String(p.bat).match(/(\d+)/)?.[1] || '0', 10) : 0;
+  const ramGb = p.ram ? parseFloat(String(p.ram).match(/([\d.]+)/)?.[1] || '0') : 0;
+  const chipL = (p.chip||'').toLowerCase();
+  if (camMp >= 48) tags.push(['📸','Kamera odaklı']);
+  if (batMah >= 5000) tags.push(['🔋','Uzun pil ömürlü']);
+  if (ramGb >= 12 || /pro|ultra|elite|gaming|snapdragon 8|dimensity 9|a1[6-9]|a2\d/.test(chipL)) tags.push(['🎮','Performans/oyun için güçlü']);
+  if (ramGb > 0 && ramGb <= 6) tags.push(['📱','Günlük kullanım için uygun']);
+  if (!tags.length) return '';
+  return `<div class="phone-suited-for">${tags.map(([ic,t]) => `<span class="psf-tag">${ic} ${t}</span>`).join('')}</div>`;
+}
+// Pazar/Forum'a — GERÇEK bir sayı UYDURMUYOR (iki farklı eşleştirme algoritmasından çelişkili
+// sayılar çıkma riskini önlemek için, bkz. görev talimatı §27): mevcut arama kutularını AYNEN
+// kullanan bir ön-doldurulmuş arama bağlantısı sunuyor — "tek doğruluk kaynağı" Pazar/Forum'un
+// KENDİ arama sonucudur.
+function phoneCrossLinksHTML(p) {
+  const q = `${p.brand} ${p.name}`;
+  return `<div class="phone-cross-links">
+    <div class="phone-cross-link" onclick="goToMarketSearchFor('${escapeJsAttr(q)}')">
+      <span class="pcl-ic">📦</span>
+      <div><div class="pcl-txt">İkinci El İlanları</div><div class="pcl-sub">Pazar'da ara →</div></div>
+    </div>
+    <div class="phone-cross-link" onclick="goToForumSearchFor('${escapeJsAttr(q)}')">
+      <span class="pcl-ic">💬</span>
+      <div><div class="pcl-txt">Bu Telefon Hakkında</div><div class="pcl-sub">Forum'da ara →</div></div>
+    </div>
+  </div>`;
+}
+function goToMarketSearchFor(q) {
+  exitPhoneDetail();
+  gt('market');
+  const el = document.getElementById('msrch');
+  if (el) { el.value = q; onMarketSearchInput(); }
+}
+function goToForumSearchFor(q) {
+  exitPhoneDetail();
+  gt('community');
+  const el = document.getElementById('forum-search-inp');
+  if (el) { el.value = q; onForumSearchInput(q); }
+}
+
 async function shareComparison() {
   const a = pA, b = pB;
   if (!a || !b) return;
@@ -13942,7 +14215,7 @@ async function fetchMissingSpecs(p, side) {
       }
       // Yeni alanlar arasında fotoğraf/zengin kategori satırları (raw) olabileceğinden, tek tek DOM
       // yamanmak yerine tüm karşılaştırma görünümü (hero fotoğrafı + kategori tablosu) yeniden çizilir.
-      if (gotNewData) refreshCmp();
+      if (gotNewData) { if (side === 'detail') openPhoneDetail(p.id); else refreshCmp(); }
       else showSpecsPendingCells(p, side, '—');
     } else {
       showSpecsPendingCells(p, side, '—');
@@ -14034,7 +14307,7 @@ async function loadPhoneReviews(phoneId, containerId) {
 
 async function submitPhoneReview(side) {
   if (!user) { gt('profile'); return; }
-  const phone = side === 'a' ? pA : pB;
+  const phone = side === 'detail' ? phoneDetailReviewTarget : (side === 'a' ? pA : pB);
   const textEl = document.getElementById(`pr-text-${side}`);
   const text = textEl.value.trim();
   const rating = prRating[side];
@@ -16322,7 +16595,7 @@ function gt(name) {
     hideMarketBanner();
   }
   if(name==='community') { if (!forumPosts.length && !forumLoading) loadForumPage(true); renderCommunityForumBanner(); }
-  if(name==='compare') { renderCmpQuickPicks(); loadExtraPhones().then(() => { if(!pA || !pB) renderCmpQuickPicks(); }); }
+  if(name==='compare') { renderCmpQuickPicks(); loadExtraPhones().then(() => { if(!pA || !pB) renderCmpQuickPicks(); initPhoneDiscover(); }); }
   if(name==='profile') {
     // Sayfa açılışında hafif, sıralı (stagger) fade animasyonu — yalnızca profile SEKMESİNE
     // yeni girildiğinde tetiklenir (privacy toggle gibi küçük iç güncellemelerde rprof() tekrar
