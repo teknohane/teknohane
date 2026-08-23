@@ -5139,6 +5139,16 @@ async function doregister() {
     await auth.setPersistence(remember ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION);
     const c=await auth.createUserWithEmailAndPassword(e,p); await c.user.updateProfile({displayName:n});
     tryStorePasswordCredential(e,p,n);
+    // firstName/lastName'i BURADA, doğrudan yazıyoruz — onAuthStateChanged'daki genel senkron bloğunun
+    // (splitAuthDisplayNameForFirstSync) ayrıştırma sezgisine güvenmek yerine, zaten ELİMİZDE olan
+    // GERÇEK Ad/Soyad'ı kullanıyoruz (daha güvenilir + tek bir race'e bağımlı kalmıyor). myProfileData'yı
+    // da HEMEN güncelliyoruz ki kayıt sonrası profil ekranı "Profilin eksik" uyarısını YANLIŞLIKLA
+    // göstermesin (Firestore'a yazan senkron bloğu bellekteki myProfileData'yı geriye yansıtmıyor).
+    await db.collection('teknohane_users').doc(c.user.uid).set({
+      firstName, lastName, displayName: n, displayNameLower: n.toLocaleLowerCase('tr-TR'),
+    }, { merge: true }).catch(()=>{});
+    myProfileData = myProfileData || {};
+    Object.assign(myProfileData, { firstName, lastName, displayName: n, displayNameLower: n.toLocaleLowerCase('tr-TR') });
     // KULLANIŞLILIK DÜZELTMESİ (kullanıcı bildirdi: doğrulama e-postası hiç otomatik gitmiyordu,
     // kullanıcı ancak ilan/konu göndermeye çalışıp engellendiğinde bundan haberdar oluyordu —
     // form doldurmaya harcanan zaman boşa gidiyordu). Kayıt anında hemen gönderiliyor; hata olursa
