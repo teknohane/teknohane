@@ -3814,6 +3814,11 @@ function hasEntitlement(profileData, key) { return getUserEntitlements(profileDa
 const VIP_BENEFITS_LIST = [
   { key: 'vip_profile_badge', ic: '👑' },
   { key: 'vip_marketplace_store', ic: '🏪' },
+  // VIP Mağaza Takip 2.0 — takip/bildirim ayrı bir entitlement KAYNAĞI değil, vip_marketplace_store'a
+  // bağlı bir yetenek (mağazası olan herkes takip edilebilir/takipçilerine bildirim gider) — bu yüzden
+  // gateKey ile AYNI entitlement anahtarını paylaşıyor, yalnızca görüntüleme satırı ayrı.
+  { key: 'vip_marketplace_followers', gateKey: 'vip_marketplace_store', ic: '👥', labelOverride: 'Mağazayı takip eden müşteriler' },
+  { key: 'vip_marketplace_follow_notify', gateKey: 'vip_marketplace_store', ic: '🔔', labelOverride: 'Yeni ilanlarda takipçilere bildirim' },
   { key: 'vip_marketplace_monthly_boost', ic: '📌', usageField: 'boostsUsed', limit: VIP_STORE_LIMITS.boosts },
   { key: 'vip_marketplace_monthly_refresh', ic: '🔄', usageField: 'refreshesUsed', limit: VIP_STORE_LIMITS.refreshes },
   { key: 'vip_marketplace_analytics', ic: '📊' },
@@ -3826,7 +3831,7 @@ function renderVipBenefitsHTML(profileData) {
   const entitlements = getUserEntitlements(profileData);
   const usage = vipStoreUsageThisMonth;
   const rows = VIP_BENEFITS_LIST.map(b => {
-    const has = entitlements.has(b.key);
+    const has = entitlements.has(b.gateKey || b.key);
     let statusHtml;
     if (!has) statusHtml = `<span style="font-size:10.5px;color:var(--text3);white-space:nowrap">🔒 VIP ile aç</span>`;
     else if (b.usageField) statusHtml = usage
@@ -3835,7 +3840,7 @@ function renderVipBenefitsHTML(profileData) {
     else statusHtml = `<span style="font-size:10.5px;color:#3DDC97;font-weight:700;white-space:nowrap">✓ Aktif</span>`;
     return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);opacity:${has?'1':'.5'}">
       <div style="font-size:18px;flex-shrink:0">${b.ic}</div>
-      <div style="flex:1;min-width:0;font-size:12.5px;font-weight:600">${escapeHtml(VIP_ENTITLEMENT_LABELS[b.key]||b.key)}</div>
+      <div style="flex:1;min-width:0;font-size:12.5px;font-weight:600">${escapeHtml(b.labelOverride || VIP_ENTITLEMENT_LABELS[b.key] || b.key)}</div>
       ${statusHtml}
     </div>`;
   }).join('');
@@ -4333,6 +4338,7 @@ function rprof() {
       <div class="pacc-card">
         <div class="psec-title">🔔 Bildirim Tercihleri</div>
         <div class="pacc-row" style="align-items:center"><span class="pacc-lbl">Takip Ettiklerimin Yeni İlanları</span><div class="ptoggle${myProfileData.notifyFollowedListings?' on':''}" onclick="toggleNotifyFollowedListings()"></div></div>
+        <div class="pacc-row" style="align-items:center"><span class="pacc-lbl">🏪 Takip Ettiğim Mağazalardan Yeni İlanlar</span><div class="ptoggle${myProfileData.notifyStoreFollows!==false?' on':''}" onclick="toggleNotifyStoreFollows()"></div></div>
       </div>
       <div class="psec-title" style="margin-top:4px">⚙️ Ayarlar</div>
       ${pushPanelHTML()}
@@ -4815,10 +4821,11 @@ function loadActiveSessions() {
 
 async function loadMyFollowersCount() {
   if (!user) return;
-  // count() agregasyon sorgusu — yalnızca sayı gösterilecekken tam dokümanları okumak yerine
-  // (bkz. görev raporu, P2), koleksiyon büyüklüğünden bağımsız, sabit düşük maliyetli okuma.
-  const count = await firestoreCount(db.collection('teknohane_users').where('followingUids', 'array-contains', user.uid));
-  myFollowersCountCache = count ?? '—';
+  // GÜVENLİK/DOĞRULUK DÜZELTMESİ (VIP Mağaza Takip 2.0 sırasında bulundu — bkz. openPublicProfile'daki
+  // AYNI notun tam açıklaması): teknohane_users'ın list izni admin-only olduğu için bu count() sorgusu
+  // normal kullanıcılar için HER ZAMAN sessizce başarısız oluyordu ("—" gösteriyordu). followerUids
+  // artık zaten bellekteki myProfileData'da — ek sorgu gerekmiyor.
+  myFollowersCountCache = (myProfileData.followerUids || []).length;
   const el = document.getElementById('my-followers-count');
   if (el) el.textContent = myFollowersCountCache;
 }
@@ -5241,6 +5248,21 @@ async function toggleNotifyFollowedListings() {
     myProfileData.notifyFollowedListings = updated;
     rprof();
     showToast('✓', 'rgba(48,209,88,.15)', 'Kaydedildi', updated ? 'Takip ettiklerinin yeni ilanlarında bildirim alacaksın.' : 'Bu bildirim türü kapatıldı.');
+  } catch(e) { showErrorToast(e); }
+}
+
+// VIP Mağaza Takip 2.0 — notifyFollowedListings ile AYNI desen, tek fark: varsayılan AÇIK (undefined
+// da "açık" sayılır, spec §11 gereği) — bu yüzden kapatma false YAZAR, açma alanı SİLER (varsayılana
+// dönsün diye), notifyFollowedListings gibi ham boolean toggle DEĞİL.
+async function toggleNotifyStoreFollows() {
+  if (!user) return;
+  const currentlyOn = myProfileData.notifyStoreFollows !== false;
+  const updated = !currentlyOn;
+  try {
+    await db.collection('teknohane_users').doc(user.uid).set({ notifyStoreFollows: updated ? firebase.firestore.FieldValue.delete() : false }, { merge: true });
+    myProfileData.notifyStoreFollows = updated ? undefined : false;
+    rprof();
+    showToast('✓', 'rgba(48,209,88,.15)', 'Kaydedildi', updated ? 'Takip ettiğin mağazaların yeni ilanlarında bildirim alacaksın.' : 'Bu bildirim türü kapatıldı.');
   } catch(e) { showErrorToast(e); }
 }
 
@@ -6094,6 +6116,17 @@ async function useVipStoreQuota(action) {
       if (l) renderBoostRequestOptions(l);
     }
   } catch (e) { showErrorToast(e); } finally { releaseSubmit('vipStoreAction'); }
+}
+
+// VIP Mağaza Takip 2.0 — submitListing()'in create dalından fire-and-forget çağrılır (await EDİLMEZ).
+// Hata sessizce yutulur: bu, "ilan gerçekten yayınlandı mı" akışının HİÇBİR parçası değil, yalnızca
+// bir best-effort takipçi-bildirimi tetikleyicisi. VIP olmayan/mağazası olmayan kullanıcıda worker
+// zaten no-op döner (bkz. cloudflare-push-worker.js /internal/vip-store-new-listing).
+async function notifyStoreFollowersNewListing(listingId) {
+  try {
+    const idToken = await user.getIdToken();
+    await arenaApiCall(VIP_STORE_NEW_LISTING_API, { idToken, listingId });
+  } catch (e) { /* sessiz — bkz. yukarıdaki not */ }
 }
 
 async function submitBoostRequest(boostType) {
@@ -10286,6 +10319,11 @@ async function submitListing() {
       // eklenmeden ÖNCE oluşturulmuş ilanlar sayılmaz — geriye dönük taşıma bu oturumun kapsamı dışında.
       db.collection('teknohane_users').doc(user.uid).set({ listingsCount: firebase.firestore.FieldValue.increment(1) }, { merge: true }).catch(()=>{});
       notifyAdminsNewListing(newListingRef.id, model, data.ownerName); // uygulama kapalı olsa bile ilgili adminlere anlık push
+      // VIP Mağaza Takip 2.0 — AYNI "fire-and-forget" desen (üstteki notifyAdminsNewListing gibi await
+      // EDİLMİYOR): ilan oluşturma başarıyla BİTTİ, bundan sonrası (gerçek VIP kontrolü, takipçi
+      // gruplama/bildirimi) tamamen sunucu tarafında, ilanı yayınlama hızını ETKİLEMEZ. VIP olmayan/
+      // mağazası olmayan kullanıcıda worker sessizce no-op döner — istemci yanıtı hiç işlemiyor.
+      notifyStoreFollowersNewListing(newListingRef.id);
       showToast('⏳', 'rgba(255,149,0,.15)', 'İlanınız Gönderildi', 'İncelendikten sonra Pazar\'da yayınlanacaktır.');
     }
 
@@ -12785,11 +12823,18 @@ async function openPublicProfile(uid, nameHint) {
 
   renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceData, profileListings);
 
-  // Takipçi/takip edilen sayıları — teknohane_users koleksiyonunda sorgu gerektirir,
-  // ayrı ve asenkron yükleniyor ki ana profil render'ı bu sorguyu beklemek zorunda kalmasın.
-  // count() agregasyonu — yalnızca sayı gösterilecekken tam dokümanları okumaktan kaçınır.
-  firestoreCount(db.collection('teknohane_users').where('followingUids', 'array-contains', uid))
-    .then(count => { const el = document.getElementById('pub-followers-count'); if (el) el.textContent = count ?? '—'; });
+  // GÜVENLİK/DOĞRULUK DÜZELTMESİ (VIP Mağaza Takip 2.0 sırasında bulundu): bu sorgu daha önce
+  // db.collection('teknohane_users').where('followingUids','array-contains',uid) ÇALIŞTIRIYORDU —
+  // ama teknohane_users'ın 'list' kuralı YALNIZCA admin'e açık (bkz. firestore.rules, hasGranular
+  // ('users.view','manageUsers')||hasGranular('badges.view','manageBadges')) — normal bir ziyaretçi
+  // için bu sorgu HER ZAMAN permission-denied ile sessizce (firestoreCount'un try/catch'i içinde)
+  // başarısız oluyordu, "Takipçi" sayısı normal kullanıcılar için asla doğru gösterilmiyordu (yalnızca
+  // admin oturumunda çalışıyor gibi görünürdü, bu yüzden fark edilmemişti). Artık followerUids —
+  // hedef kullanıcının KENDİ dokümanında tutulan, favoritedByUids'la AYNI desende (herkes ekleyebilir/
+  // çıkarabilir ama yalnızca KENDİ uid'ini) denormalize ters-indeks dizisi — zaten yüklü `data`
+  // içinden, EK BİR SORGU OLMADAN okunuyor.
+  const followersEl = document.getElementById('pub-followers-count');
+  if (followersEl) followersEl.textContent = (data.followerUids || []).length;
   const followingCount = (data.followingUids || []).length;
   const followingEl = document.getElementById('pub-following-count');
   if (followingEl) followingEl.textContent = followingCount;
@@ -12861,8 +12906,7 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
     <div class="phero">
       <div class="pcover" style="${data.coverPhotoURL?`background-image:url('${data.coverPhotoURL}');background-size:cover;background-position:center;`:''}"></div>
       <img class="pav${isVipActive(data)?' pav-vip':''}" src="${av}" onerror="this.onerror=null;this.src='${avFallback}'" alt="">
-      <div class="pname">${escapeHtml(displayName)}${isMe?' (Sen)':''} ${isVipActive(data)?'<span class="vip-badge">👑 VIP</span>':''} ${isOnlineNow?'<span style="color:#3DDC97;font-size:12px;vertical-align:middle">●</span>':''}</div>
-      ${hasEntitlement(data, 'vip_marketplace_store') && data.storeName ? `<div style="font-size:15px;font-weight:700;color:#FFD700;margin-top:2px">🏪 ${escapeHtml(data.storeName)}</div>` : ''}
+      <div class="pname">${escapeHtml(displayName)}${isMe?' (Sen)':''} ${sellerVipTrustIconsHTML(isVipActive(data), isTrustedSellerActive(data))} ${isOnlineNow?'<span style="color:#3DDC97;font-size:12px;vertical-align:middle">●</span>':''}</div>
       ${data.username?`<div class="puname">@${escapeHtml(data.username)}</div>`:''}
       ${data.city?`<div class="puname" style="color:var(--text3)">📍 ${escapeHtml(data.city)}</div>`:''}
       ${hasEntitlement(data, 'vip_marketplace_store') && data.storeDescription ? `<div class="pbio">${escapeHtml(data.storeDescription)}</div>` : (data.bio?`<div class="pbio">${escapeHtml(data.bio)}</div>`:'')}
@@ -12894,6 +12938,55 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
       </div>
       <div id="pub-qr-wrap" style="display:none;margin-top:16px"><img src="${qrUrl}" alt="Profil QR kodu" style="width:140px;height:140px;border-radius:12px;border:1px solid var(--border)"></div>`}
     </div>
+
+    ${(() => {
+      // VIP Profil → Mağaza Entegrasyonu 2.0 — VIP OLMAYAN kullanıcıda bu blok HİÇ render edilmiyor
+      // (hasEntitlement zaten yalnızca gerçek aktif VIP'te true — sahte/süresi dolmuş VIP asla buraya
+      // giremez). Mevcut "⭐ Öne Çıkan İlanlar" mantığı (featuredListingIds seçiliyse onlar, seçili
+      // değilse ilk 3 aktif ilan) BURAYA taşındı — aşağıdaki eski ayrı bölüm KALDIRILDI, aynı bilginin
+      // iki farklı yerde iki kez gösterilmesini (spec'in açıkça yasakladığı "aynı özelliğin farklı bir
+      // kopyası") önlemek için.
+      if (!hasEntitlement(data, 'vip_marketplace_store')) return '';
+      const followerCount = (data.followerUids || []).length;
+      const activeCount = userListings.length;
+      const featuredIds = data.featuredListingIds || [];
+      const preview = !privacy.hideListings ? (featuredIds.length ? userListings.filter(l => featuredIds.includes(l.id)) : userListings.slice(0, 3)) : [];
+      const remaining = Math.max(0, activeCount - preview.length);
+      const bothBadges = isVipActive(data) && isTrustedSellerActive(data);
+      return `
+    <div class="pbadge-card" id="pub-store-section" style="border:1px solid rgba(255,215,0,.25)">
+      <div class="psec-title" style="margin-bottom:2px">🏪 VIP Mağaza</div>
+      <div style="font-size:16px;font-weight:700;color:#FFD700;margin-bottom:2px">${escapeHtml(data.storeName || displayName)}</div>
+      ${data.storeDescription ? `<div style="font-size:12px;color:var(--text2);margin-bottom:8px;line-height:1.5">${escapeHtml(data.storeDescription)}</div>` : ''}
+      <div style="font-size:12.5px;color:var(--text2);margin-bottom:12px">👥 ${followerCount} takipçi · 📦 ${activeCount} aktif ilan</div>
+      ${bothBadges ? `<div style="font-size:11.5px;color:#3DDC97;margin-bottom:12px">🤝 Teknohane tarafından doğrulanmış satıcı</div>` : ''}
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+        <button class="sbtn2" style="width:auto;padding:9px 16px;font-size:12.5px;background:linear-gradient(135deg,#FFD700,#FFA500);color:#3a2600;font-weight:700" onclick="document.getElementById('pub-store-listings')?.scrollIntoView({behavior:'smooth'})">🏪 Mağazayı Gör</button>
+        ${!isMe
+          ? `<button class="sbtn2" id="pub-store-follow-btn" style="width:auto;padding:9px 16px;font-size:12.5px;background:var(--surf2);color:${isFollowingUser?'var(--cyan)':'var(--text)'}" onclick="toggleFollow('${uid}')">${isFollowingUser?'✓ Takip Ediliyor':'＋ Mağazayı Takip Et'}</button>`
+          : `<button class="sbtn2" style="width:auto;padding:9px 16px;font-size:12.5px;background:var(--surf2);color:var(--cyan)" onclick="closemo('pub-profile-mo');gt('profile')">🏪 Mağazanı Yönet</button>`}
+      </div>
+      <div id="pub-store-listings">
+        <div style="font-size:12px;font-weight:700;margin-bottom:8px">📦 Mağazadan İlanlar</div>
+        ${!preview.length ? `<div class="ud-empty">🏪 Mağaza hazır<br><span style="font-size:12px;color:var(--text3)">Bu satıcı henüz aktif bir ilan yayınlamadı.</span></div>` : preview.map(l => `
+        <div class="pub-listing-card" onclick="closemo('pub-profile-mo');openDetail('${l.id}')" style="border-color:rgba(255,215,0,.3)">
+          <div class="pub-listing-img">${l.photo1 ? `<img src="${l.photo1Thumb||l.photo1}" alt="" style="width:100%;height:100%;border-radius:8px;object-fit:cover" loading="lazy" decoding="async">` : '📱'}</div>
+          <div class="pub-listing-info">
+            <div class="pub-listing-model">${escapeHtml(l.model)}</div>
+            <div class="pub-listing-price">₺${parseInt(l.price||0).toLocaleString('tr-TR')} · ${escapeHtml(l.condition)}</div>
+          </div>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text3)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>`).join('')}
+        ${remaining ? `<div style="text-align:center;margin-top:6px"><span onclick="document.getElementById('pub-listings-section')?.scrollIntoView({behavior:'smooth'})" style="font-size:12.5px;color:var(--cyan);cursor:pointer;font-weight:600">${remaining} ilanı daha gör →</span></div>` : ''}
+      </div>
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+        <div style="font-size:11.5px;font-weight:700;margin-bottom:6px;color:var(--text2)">👑 VIP Mağaza Avantajları</div>
+        <div style="display:flex;flex-direction:column;gap:3px">
+          ${['Profesyonel mağaza','Takipçi kazanma','Yeni ilanlarda takipçilere bildirim','Ücretsiz aylık öne çıkarma hakları','Ücretsiz ilan yenileme hakları','Gelişmiş satıcı istatistikleri'].map(t=>`<div style="font-size:11px;color:var(--text3)"><span style="color:#3DDC97">✓</span> ${t}</div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+    })()}
 
     ${!privacy.hideScore ? `
     <div class="tscore-card">
@@ -12963,20 +13056,6 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
       ${renderSellerReviewForm(uid)}
     </div>
 
-    ${!privacy.hideListings && hasEntitlement(data, 'vip_marketplace_featured_store') && (data.featuredListingIds||[]).length ? `
-    <div class="ud-section">
-      <div class="ud-section-title">⭐ Öne Çıkan İlanlar</div>
-      ${userListings.filter(l => (data.featuredListingIds||[]).includes(l.id)).map(l => `
-        <div class="pub-listing-card" onclick="closemo('pub-profile-mo');openDetail('${l.id}')" style="border-color:rgba(255,215,0,.35)">
-          <div class="pub-listing-img">${l.photo1 ? `<img src="${l.photo1Thumb||l.photo1}" alt="" style="width:100%;height:100%;border-radius:8px;object-fit:cover" loading="lazy" decoding="async">` : '📱'}</div>
-          <div class="pub-listing-info">
-            <div class="pub-listing-model">${escapeHtml(l.model)}</div>
-            <div class="pub-listing-price">₺${parseInt(l.price||0).toLocaleString('tr-TR')} · ${escapeHtml(l.condition)}</div>
-          </div>
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text3)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-        </div>`).join('')}
-    </div>` : ''}
-
     ${!privacy.hideListings ? `
     <div class="ud-section" id="pub-listings-section">
       <div class="ud-section-title">${hasEntitlement(data, 'vip_marketplace_store') ? 'Tüm İlanlar' : 'Aktif İlanlar'}</div>
@@ -13034,17 +13113,29 @@ async function toggleFollow(uid) {
   const isFollowing = following.includes(uid);
   const updated = isFollowing ? following.filter(x => x !== uid) : [...following, uid];
   try {
-    await db.collection('teknohane_users').doc(user.uid).set({ followingUids: updated }, { merge: true });
+    // VIP Mağaza Takip 2.0 — AYNI eylem artık iki alanı ATOMİK (batch) günceller: kendi
+    // followingUids'im (mevcut, DEĞİŞMEDİ) + hedefin followerUids'i (YENİ — ters-indeks, "kim beni
+    // takip ediyor" sorusunu hedefin KENDİ dokümanından, ek bir sorgu/koleksiyon OLMADAN cevaplamak
+    // için, bkz. firestore.rules'taki bounded-diff kuralı: yalnızca KENDİ uid'ini ekleyebilir/
+    // çıkarabilir, hedef GERÇEKTEN aktif VIP değilse takip ETMEK reddedilir — takipten çıkmak serbest).
+    const batch = db.batch();
+    batch.set(db.collection('teknohane_users').doc(user.uid), { followingUids: updated }, { merge: true });
+    batch.update(db.collection('teknohane_users').doc(uid), {
+      followerUids: isFollowing ? firebase.firestore.FieldValue.arrayRemove(user.uid) : firebase.firestore.FieldValue.arrayUnion(user.uid),
+    });
+    await batch.commit();
     myProfileData.followingUids = updated;
     if (!isFollowing) {
       const myName = myProfileData.displayName || user.displayName || user.email?.split('@')[0] || 'Biri';
       notifyUser(uid, 'new_follower', `${myName} seni takip etti`, null, null, user.uid, myName, myProfileData.photoURL);
     }
-    const btn = document.getElementById('pub-follow-btn');
-    if (btn) {
-      btn.textContent = isFollowing ? '➕ Takip Et' : '✓ Takip Ediliyor';
+    document.querySelectorAll('#pub-follow-btn, #pub-store-follow-btn').forEach(btn => {
+      const isStoreBtn = btn.id === 'pub-store-follow-btn';
+      btn.textContent = isFollowing ? (isStoreBtn ? '＋ Mağazayı Takip Et' : '➕ Takip Et') : '✓ Takip Ediliyor';
       btn.style.color = isFollowing ? 'var(--text)' : 'var(--cyan)';
-    }
+    });
+    const followersEl = document.getElementById('pub-followers-count');
+    if (followersEl) { const n = parseInt(followersEl.textContent) || 0; followersEl.textContent = Math.max(0, n + (isFollowing ? -1 : 1)); }
     showToast('✓', 'rgba(48,209,88,.15)', isFollowing?'Takipten Çıkıldı':'Takip Ediliyor', isFollowing?'Bu kullanıcıyı takipten çıktın.':'Bu kullanıcıyı artık takip ediyorsun.');
   } catch (e) {
     showToast('⚠️', 'rgba(255,69,58,.15)', 'Hata', 'İşlem gerçekleştirilemedi.');
@@ -15365,6 +15456,9 @@ const ARENA_LEAGUE_MATCH_SUBMIT_API = 'https://teknohane-api.yusuf-aykac.workers
 // VIP Mağaza / Premium Satıcı 2.0 — arenaApiCall() Arena'ya özgü değil, genel bir "worker'a idToken'lı
 // POST at, yeniden dene" yardımcısı; aynı isim altında burada da yeniden kullanılıyor.
 const VIP_STORE_ACTION_API = 'https://teknohane-api.yusuf-aykac.workers.dev/vip-store-action';
+// VIP Mağaza Takip 2.0 — yeni ilan olayını worker'a bildirir (gerçek VIP/sahiplik kontrolü VE takipçi
+// bildirimi gruplama/gönderme mantığı TAMAMEN sunucuda, bkz. cloudflare-push-worker.js).
+const VIP_STORE_NEW_LISTING_API = 'https://teknohane-api.yusuf-aykac.workers.dev/vip-store-new-listing';
 const ARENA_CATEGORY_LABELS = {
   phones: '📱 Akıllı Telefonlar', cpu: '⚙️ İşlemciler', display: '🖥️ Ekran Teknolojileri',
   camera: '📷 Kamera', battery: '🔋 Batarya ve Şarj', android: '🤖 Android', apple: '🍎 Apple',
