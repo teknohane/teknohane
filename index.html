@@ -14780,12 +14780,44 @@ async function arenaRequireEmailVerified() {
   return true;
 }
 
+let arenaHomeQuizTimerHandle = null;
+// Ev ekranındaki lig geri sayımı, arenaLeagueStartCountdown()'ı (aşağıda) FARKLI bir element id'yle
+// yeniden kullanır — o fonksiyon zaten arenaLeagueTimerHandle'ı kullanıp arenaStopTimer() tarafından
+// temizleniyor, aynı anda yalnızca TEK bir ekran (Ana Ekran YA DA Lig ekranı) açık olabildiği için
+// (ikisi de kendi başında arenaStopTimer() çağırıyor) handle'ı paylaşmak güvenli — ayrı bir değişkene
+// gerek yok.
 function arenaStopTimer() {
   if (arenaTimerHandle) { clearInterval(arenaTimerHandle); arenaTimerHandle = null; }
   if (arenaLeagueTimerHandle) { clearInterval(arenaLeagueTimerHandle); arenaLeagueTimerHandle = null; }
   if (arenaLeagueMatchTimerHandle) { clearInterval(arenaLeagueMatchTimerHandle); arenaLeagueMatchTimerHandle = null; }
+  if (arenaHomeQuizTimerHandle) { clearInterval(arenaHomeQuizTimerHandle); arenaHomeQuizTimerHandle = null; }
 }
 function arenaTodayStr() { return new Date().toISOString().slice(0, 10); }
+
+// Günlük Yarışma'nın kapanış anı — UTC gece yarısı. Sunucuda ayrı bir "quiz bitiş zamanı" alanı YOK
+// (günlük yarışma her zaman o UTC günü boyunca açık, arenaTodayStr()'nin AYNI UTC gün sınırı) —
+// worker'daki arenaTodayDateStr() ile hizalı (UTC gece yarısı = TR saati 03:00, bkz. o fonksiyonun
+// yorumu). Date.now() her zaman doğru UTC epoch döndürdüğü için cihazın YEREL saat dilimi ayarı
+// yanlış olsa bile bu hesap etkilenmez — yalnızca cihaz saati kendisi (epoch) çok yanlışsa sapar,
+// bu durum zaten tüm istemci tarafı zaman gösterimlerinde var olan, çözülemez bir sınırdır.
+function arenaTodayUtcMidnightMs() {
+  const now = new Date();
+  return Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0);
+}
+function arenaStartHomeQuizCountdown() {
+  const elId = 'arena-home-quiz-countdown';
+  function tick() {
+    const el = document.getElementById(elId);
+    if (!el) { if (arenaHomeQuizTimerHandle) { clearInterval(arenaHomeQuizTimerHandle); arenaHomeQuizTimerHandle = null; } return; }
+    const diff = arenaTodayUtcMidnightMs() - Date.now();
+    if (diff <= 0) { el.textContent = 'Yeni günlük yarışma başlıyor…'; return; }
+    const totalSec = Math.floor(diff / 1000);
+    const h = Math.floor(totalSec / 3600), m = Math.floor((totalSec % 3600) / 60), s = totalSec % 60;
+    el.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  }
+  tick();
+  arenaHomeQuizTimerHandle = setInterval(tick, 1000);
+}
 
 // Profildeki "🎮 Arena" istatistik kartı — teknohane_arena_stats/{uid} kendi-doküman okuması
 // (rules buna izin veriyor), mevcut .pbadge-card/.pbadge-row/.pbadge-item sınıfları yeniden
@@ -14861,6 +14893,15 @@ function renderProfileArenaCategoryStats(categoryStats) {
     </div>`;
 }
 
+// ==== ARENA DASHBOARD 2.0 (kullanıcı talebi — 2026-08-23) ====
+// Amaç: mevcut veri kaynaklarını (teknohane_arena_attempts/{uid}_{tarih}, teknohane_arena_stats/{uid},
+// arena-league-leaderboard worker ucu) TEK KAYNAK olarak kullanıp Arena ana ekranını "şu an neredeyim?"
+// sorusuna anında cevap veren bir pano hâline getirmek. Puan/sıralama/terfi/küme düşme HİÇBİR YERDE
+// yeniden hesaplanmıyor — hepsi backend'in verdiği rank/leagueScore/todayMatch alanları AYNEN
+// yorumlanıyor (renderArenaLeagueScreen()'daki AYNI isPromoZone/isRelegateZone mantığı burada da
+// birebir tekrarlanıyor, farklı bir sonuca ASLA varmıyor). Üç veri kaynağı (attempt/stats/lig)
+// birbirinden BAĞIMSIZ Promise.allSettled ile çekiliyor — biri başarısız olursa yalnızca o bölüm
+// hata/retry gösterir, geri kalan ekran çalışmaya devam eder.
 async function rArenaHome() {
   arenaView = 'home';
   arenaBackParent = null; // kök ekran — geri tuşu buradan Arena'yı komple kapatır
@@ -14868,86 +14909,252 @@ async function rArenaHome() {
   const body = document.getElementById('arena-body');
   if (!user) { body.innerHTML = `<div class="no">Arena'ya katılmak için giriş yapmalısın.</div>`; return; }
   body.innerHTML = `<div class="load"><div class="spin"></div></div>`;
-  let attempt = null, myStats = null;
-  try {
-    const [attemptSnap, statsSnap] = await Promise.all([
-      db.collection('teknohane_arena_attempts').doc(`${user.uid}_${arenaTodayStr()}`).get(),
-      db.collection('teknohane_arena_stats').doc(user.uid).get(),
-    ]);
-    if (attemptSnap.exists) attempt = attemptSnap.data();
-    if (statsSnap.exists) myStats = statsSnap.data();
-  } catch (e) {}
+
+  const [attemptR, statsR, leagueR] = await Promise.allSettled([
+    db.collection('teknohane_arena_attempts').doc(`${user.uid}_${arenaTodayStr()}`).get(),
+    db.collection('teknohane_arena_stats').doc(user.uid).get(),
+    (async () => { const idToken = await user.getIdToken(); return arenaApiCall(ARENA_LEAGUE_LEADERBOARD_API, { idToken }); })(),
+  ]);
+  const attempt = (attemptR.status === 'fulfilled' && attemptR.value.exists) ? attemptR.value.data() : null;
+  const myStats = (statsR.status === 'fulfilled' && statsR.value.exists) ? statsR.value.data() : null;
+  const leagueData = leagueR.status === 'fulfilled' ? leagueR.value : { success: false, error: '_fetch_failed' };
+  const leagueFetchFailed = leagueR.status === 'rejected' || leagueData?._networkFailure;
+
   // Az önce çekilen (varsa) stats, rArenaBadges()'in tekrar okumadan kullanabilmesi için paylaşılan
   // gezinme state'ine yazılıyor — Firestore hata verdiyse veya doküman yoksa null olur, bu durumda
-  // rArenaBadges() kendi fallback'iyle (aşağıya bkz.) Firestore'a gitmeye devam eder.
+  // rArenaBadges() kendi fallback'iyle Firestore'a gitmeye devam eder.
   arenaMyStatsFromHome = myStats;
-  // Seviye/XP kartı — Arena ana ekranında oynanma durumundan bağımsız her zaman en üstte. Seri
-  // varsa (>=1 gün) hemen altında ayrı bir satırda gösteriliyor.
+
+  const statusCard = renderArenaHomeStatusCardHtml(attempt);
+  const nextActionCard = arenaHomeNextActionHtml(attempt, leagueData);
+
+  // Seviye/XP kartı — oynanma durumundan bağımsız her zaman gösteriliyor. Seri varsa (>=1 gün) ayrı
+  // bir satırda; günün yarışması TAMAMLANDIYSA (streak sayacı o günü zaten içerdiği için) ileriye
+  // dönük "yarın da oynarsan" ipucu eklenir — henüz oynanmadıysa böyle bir iddia YAPILMAZ (spec: "yanlış
+  // şekilde streak devam ediyor göstermemeli").
   const streak = myStats?.currentStreak || 0;
+  const doneToday = attempt?.status === 'completed';
+  const floor = arenaXpForLevel(myStats?.level || 1);
+  const ceil = (myStats?.level || 1) < ARENA_XP_MAX_LEVEL ? arenaXpForLevel((myStats?.level || 1) + 1) : floor;
+  const xpToNext = Math.max(0, ceil - (myStats?.xp || 0));
   const levelCard = `<div class="feat" style="padding:16px 18px;margin-bottom:14px">
     ${arenaLevelProgressHtml(myStats?.level||1, myStats?.xp||0)}
-    ${streak>0?`<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border2);font-size:12px;color:#FF9500;font-weight:700">🔥 ${streak} günlük serin devam ediyor${myStats?.longestStreak>streak?` <span style="color:var(--text3);font-weight:400">(en uzun: ${myStats.longestStreak})</span>`:''}</div>`:''}
+    ${(myStats?.level||1) < ARENA_XP_MAX_LEVEL ? `<div style="font-size:10.5px;color:var(--text3);margin-top:3px">Sonraki seviyeye: ${xpToNext} XP</div>` : ''}
+    ${streak>0?`<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border2);font-size:12px;color:#FF9500;font-weight:700">🔥 ${streak} günlük serin devam ediyor${myStats?.longestStreak>streak?` <span style="color:var(--text3);font-weight:400">(en uzun: ${myStats.longestStreak})</span>`:''}${doneToday?`<div style="margin-top:4px;font-size:11px;color:var(--text2);font-weight:400">Yarın da oynarsan: ${streak+1} günlük seriye ulaşacaksın.</div>`:''}</div>`:''}
     <div style="display:flex;justify-content:center;gap:14px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border2);flex-wrap:wrap">
       <span style="font-size:12px;color:var(--cyan);font-weight:600;cursor:pointer" onclick="rArenaBadges()">🏅 Rozetlerim (${(myStats?.badges||[]).length}/${Object.keys(ARENA_BADGE_LABELS).length}) →</span>
     </div>
   </div>`;
 
-  // Düello kaldırıldıktan sonra Lig, Arena'nın Günlük Yarışma'nın YANINDAKİ tek rekabet modu oldu —
-  // bu yüzden giriş kartı bilinçli olarak "öne çıkan/etkileyici" bir kimlik kartı gibi tasarlandı:
-  // welpulse (mevcut, wel-logo'da kullanılan AYNI glow animasyonu — yeni bir keyframe İCAT EDİLMEDİ)
-  // ile nabız atan bir kenarlık, büyütülmüş kupa ikonu, özellik rozetleri (hız bonusu/terfi-küme
-  // düşme/sezon süresi) ve tıklanabilir tüm-kart yerine/yanında ayrıca gerçek bir CTA pill'i.
-  // Arena'nın oynanma durumundan BAĞIMSIZ her zaman levelCard'ın hemen altında gösterilir (üç dalın hepsinde).
-  const leagueEntryCard = `<div class="feat" style="position:relative;text-align:center;padding:22px 18px;margin-bottom:14px;cursor:pointer;border:1px solid rgba(0,145,255,.55);background:linear-gradient(135deg,rgba(0,145,255,.22),rgba(88,86,214,.20) 55%,rgba(255,159,10,.12));animation:welpulse 2.8s ease-in-out infinite" onclick="rArenaLeague()">
-    <div style="font-size:34px;margin-bottom:8px;filter:drop-shadow(0 0 10px rgba(0,145,255,.5))">🏆</div>
-    <div style="font-size:18px;font-weight:800;letter-spacing:.2px;margin-bottom:4px">Arena Ligleri</div>
-    <div style="font-size:12px;color:var(--text2);margin-bottom:14px">10 kişilik lig · sezon boyu gerçek rekabet</div>
-    <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:16px">
-      <span class="post-cat-badge">⚡ Hız Bonuslu Puan</span><span class="post-cat-badge">📈 Terfi / Küme Düşme</span><span class="post-cat-badge">⏱️ 14 Günlük Sezon</span>
-    </div>
-    <div style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#00040F;background:linear-gradient(135deg,var(--cyan),#0091FF);padding:9px 22px;border-radius:99px">Ligime Git →</div>
-  </div>`;
+  // Lig bölümü: katılmışsa zengin durum kartı (gerçek rank/puan/terfi-küme düşme/komşular/mini
+  // sıralama), katılmamışsa VEYA sezon aktif değilse mevcut tanıtım kartı, ağ hatasıysa bölüm-bazlı
+  // hata+tekrar-dene (spec §19 — geri kalan ekranı BLOKE ETMEZ).
+  let leagueSection;
+  if (leagueData?.success === true) {
+    leagueSection = renderArenaHomeLeagueCardHtml(leagueData);
+  } else if (leagueFetchFailed || leagueData?.error === '_fetch_failed') {
+    leagueSection = `<div class="feat" style="padding:16px 18px;margin-bottom:14px;text-align:center">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:8px">⚠️ Lig bilgisi şu anda yüklenemedi.</div>
+      <button class="apbtn btn-sm" style="width:auto" onclick="rArenaHome()">🔁 Tekrar Dene</button>
+    </div>`;
+  } else {
+    // league_not_joined / season_not_active / league_data_inconsistent — hepsinde mevcut tanıtım kartı
+    // gösterilir (yalnızca season_not_active'de küçük bir not eklenir, hata sayfasına ATILMAZ — ana
+    // ekranın geri kalanı her durumda çalışmaya devam etmeli).
+    leagueSection = `<div class="feat" style="position:relative;text-align:center;padding:22px 18px;margin-bottom:14px;cursor:pointer;border:1px solid rgba(0,145,255,.55);background:linear-gradient(135deg,rgba(0,145,255,.22),rgba(88,86,214,.20) 55%,rgba(255,159,10,.12));animation:welpulse 2.8s ease-in-out infinite" onclick="rArenaLeague()">
+      <div style="font-size:34px;margin-bottom:8px;filter:drop-shadow(0 0 10px rgba(0,145,255,.5))">🏆</div>
+      <div style="font-size:18px;font-weight:800;letter-spacing:.2px;margin-bottom:4px">Arena Ligleri</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:14px">${leagueData?.error==='season_not_active'?'Şu anda aktif bir sezon yok — yeni sezon başlayınca burada görünecek.':'10 kişilik lig · sezon boyu gerçek rekabet'}</div>
+      <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:16px">
+        <span class="post-cat-badge">⚡ Hız Bonuslu Puan</span><span class="post-cat-badge">📈 Terfi / Küme Düşme</span><span class="post-cat-badge">⏱️ 14 Günlük Sezon</span>
+      </div>
+      <div style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#00040F;background:linear-gradient(135deg,var(--cyan),#0091FF);padding:9px 22px;border-radius:99px">Ligime Git →</div>
+    </div>`;
+  }
 
+  if (attempt?.status === 'completed') arenaResult = attempt;
+  body.innerHTML = statusCard + nextActionCard + levelCard + leagueSection;
+  if (leagueData?.success === true) arenaLeagueStartCountdown(leagueData.leagueEndsAt, (leagueData.memberCount??0) >= (leagueData.capacity??10), 'arena-home-league-countdown');
+  if (!attempt || attempt.status === 'not_started' || !attempt.status) arenaStartHomeQuizCountdown();
+}
+
+// Üstteki "durum özeti" — aynı zamanda spec §17'nin istediği "Bugünkü Yarışma kartını dinamik hale
+// getir"i de karşılıyor (ayrı bir kart yerine TEK kart, üç duruma göre dallanıyor — mevcut arenaBeginQuiz/
+// rArenaResult/rArenaLeaderboard çağrılarının HİÇBİRİ değişmedi).
+function renderArenaHomeStatusCardHtml(attempt) {
   if (attempt?.status === 'completed') {
-    arenaResult = attempt;
-    body.innerHTML = levelCard + leagueEntryCard + `
-      <div class="feat" style="text-align:center;padding:28px 20px">
-        <div style="font-size:38px;margin-bottom:8px">🏆</div>
-        <div style="font-size:17px;font-weight:700;margin-bottom:4px">Bugünkü yarışmayı tamamladın!</div>
-        <div style="color:var(--text2);font-size:13px;margin-bottom:18px">Yarın tekrar dene, serini bozma.</div>
-        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:18px">
-          <div class="pstat-item"><div class="pstat-num">${attempt.totalScore||0}</div><div>Puan</div></div>
-          <div class="pstat-item"><div class="pstat-num" style="color:var(--green)">${attempt.correctCount||0}</div><div>Doğru</div></div>
-          <div class="pstat-item"><div class="pstat-num" style="color:var(--red)">${attempt.wrongCount||0}</div><div>Yanlış</div></div>
-          ${attempt.dailyRank?`<div class="pstat-item"><div class="pstat-num">#${attempt.dailyRank}</div><div>Sıra</div></div>`:''}
-        </div>
-        <button class="apbtn" style="background:var(--cdim);color:var(--cyan);border-color:var(--border)" onclick="rArenaResult()">Sonuçları Gör</button>
-        <button class="apbtn" onclick="rArenaLeaderboard()">🏆 Liderlik Tablosu</button>
-      </div>`;
-    return;
+    return `<div class="feat" style="text-align:center;padding:28px 20px;margin-bottom:14px">
+      <div style="font-size:38px;margin-bottom:8px">🏆</div>
+      <div style="font-size:17px;font-weight:700;margin-bottom:4px">Bugünkü yarışmayı tamamladın!</div>
+      <div style="color:var(--text2);font-size:13px;margin-bottom:18px">Yarın tekrar dene, serini bozma.</div>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:18px">
+        <div class="pstat-item"><div class="pstat-num">${attempt.totalScore||0}</div><div>Puan</div></div>
+        <div class="pstat-item"><div class="pstat-num" style="color:var(--green)">${attempt.correctCount||0}</div><div>Doğru</div></div>
+        <div class="pstat-item"><div class="pstat-num" style="color:var(--red)">${attempt.wrongCount||0}</div><div>Yanlış</div></div>
+        ${attempt.dailyRank?`<div class="pstat-item"><div class="pstat-num">#${attempt.dailyRank}</div><div>Sıra</div></div>`:''}
+        ${attempt.xpEarned!=null?`<div class="pstat-item"><div class="pstat-num" style="color:var(--cyan)">+${attempt.xpEarned}</div><div>XP</div></div>`:''}
+      </div>
+      <button class="apbtn" style="background:var(--cdim);color:var(--cyan);border-color:var(--border)" onclick="rArenaResult()">Sonuçları Gör</button>
+      <button class="apbtn" onclick="rArenaLeaderboard()">🏆 Liderlik Tablosu</button>
+    </div>`;
   }
   if (attempt?.status === 'in_progress') {
-    body.innerHTML = levelCard + leagueEntryCard + `
-      <div class="feat" style="text-align:center;padding:28px 20px">
-        <div style="font-size:38px;margin-bottom:8px">⏳</div>
-        <div style="font-size:17px;font-weight:700;margin-bottom:4px">Bugünkü hakkın kullanılmış</div>
-        <div style="color:var(--text2);font-size:13px">Bir önceki denemen yarıda kalmış. Yarın tekrar deneyebilirsin.</div>
+    return `<div class="feat" style="text-align:center;padding:28px 20px;margin-bottom:14px">
+      <div style="font-size:38px;margin-bottom:8px">⏳</div>
+      <div style="font-size:17px;font-weight:700;margin-bottom:4px">Bugünkü hakkın kullanılmış</div>
+      <div style="color:var(--text2);font-size:13px">Bir önceki denemen yarıda kalmış. Yarın tekrar deneyebilirsin.</div>
+    </div>`;
+  }
+  return `<div class="feat" style="text-align:center;padding:28px 20px;margin-bottom:14px">
+    <div style="font-size:38px;margin-bottom:8px">🎮</div>
+    <div style="font-size:18px;font-weight:700;margin-bottom:6px">Bugünkü Yarışma</div>
+    <div style="color:var(--text2);font-size:13px;margin-bottom:14px">Teknoloji bilgini test et, puanını yükselt ve sıralamada zirveye çık!</div>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:14px;font-size:12px;color:var(--text2)">
+      <span class="post-cat-badge">10 Soru</span><span class="post-cat-badge">Soru başına 15sn</span><span class="post-cat-badge">Ödüllü Puan</span>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:4px">⏱️ Bugünkü yarışmanın bitmesine</div>
+    <div id="arena-home-quiz-countdown" style="font-size:20px;font-weight:800;color:var(--cyan);letter-spacing:1px;margin-bottom:14px;font-variant-numeric:tabular-nums">--:--:--</div>
+    <div style="font-size:11px;color:var(--text3);line-height:1.5;margin-bottom:18px">⚠️ Başladıktan sonra uygulamadan çıkarsan (arka plana atarsan) yarışma o an, kalan sorular cevapsız sayılarak biter — bugünkü hakkın kullanılmış olur.</div>
+    <button class="apbtn" style="background:linear-gradient(135deg,var(--cyan),#0091FF);color:#00040F;font-weight:700;border:none" onclick="arenaBeginQuiz()">🔥 Yarışmaya Katıl →</button>
+  </div>
+  <button class="apbtn" style="margin-top:-6px;margin-bottom:14px" onclick="rArenaLeaderboard()">🏆 Liderlik Tablosu</button>`;
+}
+
+// "Şimdi ne yapmalıyım?" — TEK bir öncelikli öneri. Zaten kendi CTA'sı olan durumları (günün yarışması
+// bitmemiş / lig maçı bekliyor) tekrar etmez, yalnızca başka yerde görünmeyen GERÇEK bir içgörü
+// (terfiye yakınlık / küme düşme riski) varsa gösterir. Hiçbir puan/sıra burada hesaplanmıyor —
+// yalnızca leagueData.members[].leagueScore/rank üzerinde basit fark alma.
+function arenaHomeNextActionHtml(attempt, leagueData) {
+  if (!attempt || attempt.status !== 'completed') return ''; // durum kartının kendi CTA'sı zaten yeterli
+  if (!leagueData || leagueData.success !== true) return '';
+  const members = leagueData.members || [];
+  const totalM = members.length;
+  const isFull = (leagueData.memberCount ?? 0) >= (leagueData.capacity ?? 10) && totalM > 0;
+  const myIdx = members.findIndex(m => m.uid === user?.uid);
+  const myRank = leagueData.userRank ?? (myIdx >= 0 ? myIdx + 1 : null);
+  const myScore = leagueData.userLeagueScore ?? 0;
+  if (isFull && leagueData.todayMatch?.status !== 'completed') {
+    return `<div class="feat" style="padding:14px 16px;margin-bottom:14px;border:1px solid rgba(0,212,255,.4);cursor:pointer" onclick="rArenaLeague()">
+      <div style="font-size:12px;font-weight:700;color:var(--cyan);margin-bottom:2px">🏆 BUGÜNÜN LİG MAÇINA BAŞLA</div>
+      <div style="font-size:11.5px;color:var(--text2)">Lig sıralamanı yükseltmek için bugünkü hakkını kullan.</div>
+    </div>`;
+  }
+  if (isFull && myRank && myRank > 3 && myRank <= totalM - 3) {
+    const promoEdge = members[2];
+    const diff = promoEdge ? Math.max(0, (promoEdge.leagueScore||0) - myScore) : null;
+    if (diff != null && diff > 0 && diff <= 60) {
+      return `<div class="feat" style="padding:14px 16px;margin-bottom:14px;border:1px solid rgba(48,209,88,.4);cursor:pointer" onclick="rArenaLeague()">
+        <div style="font-size:12px;font-weight:700;color:#30D158;margin-bottom:2px">🏆 TERFİ BÖLGESİNE SADECE ${diff} PUAN UZAKTASIN</div>
+        <div style="font-size:11.5px;color:var(--text2)">Bir üst sıraya çıkabilirsin.</div>
       </div>`;
-    return;
+    }
+  }
+  if (isFull && myRank && myRank > totalM - 3) {
+    const safe = members[totalM - 4];
+    const need = safe ? Math.max(0, (safe.leagueScore||0) - myScore + 1) : null;
+    return `<div class="feat" style="padding:14px 16px;margin-bottom:14px;border:1px solid rgba(255,69,58,.4);cursor:pointer" onclick="rArenaLeague()">
+      <div style="font-size:12px;font-weight:700;color:#FF453A;margin-bottom:2px">⚠️ KÜME DÜŞME HATTINDASIN</div>
+      <div style="font-size:11.5px;color:var(--text2)">${need!=null?`Kurtulmak için en az ${need} puan gerekiyor.`:'Sıralamanı yükseltmen gerekiyor.'}</div>
+    </div>`;
+  }
+  return '';
+}
+
+// Ev ekranındaki zengin lig kartı — renderArenaLeagueScreen()'deki AYNI terfi/küme düşme bölge
+// mantığının birebir tekrarı (isPromoZone/isRelegateZone), farklı bir yorum ASLA üretilmiyor.
+function renderArenaHomeLeagueCardHtml(data) {
+  const members = data.members || [];
+  const totalM = members.length;
+  const isFull = (data.memberCount ?? 0) >= (data.capacity ?? 10) && totalM > 0;
+  const myIdx = members.findIndex(m => m.uid === user?.uid);
+  const myRank = data.userRank ?? (myIdx >= 0 ? myIdx + 1 : null);
+  const myScore = data.userLeagueScore ?? 0;
+  const isPromoZone = isFull && myRank && myRank <= 3;
+  const isRelegateZone = isFull && myRank && myRank > totalM - 3;
+
+  let zoneHtml;
+  if (!isFull) {
+    zoneHtml = `<span style="color:var(--cyan)">🔵 Lig henüz dolmadı (${data.memberCount ?? 0}/${data.capacity ?? 10}) — terfi/küme düşme bölgeleri lig dolunca belirlenir.</span>`;
+  } else if (isPromoZone) {
+    zoneHtml = `<span style="color:#30D158">🟢 TERFİ BÖLGESİNDESİN — sezon sonunda bir üst kümeye yükseliyorsun.</span>`;
+  } else if (isRelegateZone) {
+    const safe = members[totalM - 4];
+    const need = safe ? Math.max(0, (safe.leagueScore||0) - myScore + 1) : null;
+    zoneHtml = `<span style="color:#FF453A">🔴 KÜME DÜŞME RİSKİNDESİN${need!=null?` — kurtulmak için en az ${need} puan gerekiyor`:''}</span>`;
+  } else {
+    const promoEdge = members[2];
+    const diff = promoEdge ? Math.max(0, (promoEdge.leagueScore||0) - myScore) : null;
+    zoneHtml = `<span style="color:#FF9500">🟡 GÜVENLİ BÖLGE${diff!=null?` — terfi sınırına ${diff} puan uzaktasın`:''}</span>`;
   }
 
-  body.innerHTML = levelCard + leagueEntryCard + `
-    <div class="feat" style="text-align:center;padding:28px 20px">
-      <div style="font-size:38px;margin-bottom:8px">🎮</div>
-      <div style="font-size:18px;font-weight:700;margin-bottom:6px">Bugünkü Yarışma</div>
-      <div style="color:var(--text2);font-size:13px;margin-bottom:18px">Teknoloji bilgini test et, puanını yükselt ve sıralamada zirveye çık!</div>
-      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:16px;font-size:12px;color:var(--text2)">
-        <span class="post-cat-badge">10 Soru</span><span class="post-cat-badge">Soru başına 15sn</span><span class="post-cat-badge">Ödüllü Puan</span>
+  let neighborsHtml = '';
+  if (myIdx > 0) {
+    const above = members[myIdx-1];
+    neighborsHtml += `<div>⬆️ Önündeki: <b>${escapeHtml(above.displayName||'Kullanıcı')}</b> — ${above.leagueScore||0} puan (fark: ${Math.max(0,(above.leagueScore||0)-myScore)})</div>`;
+  }
+  if (myIdx >= 0 && myIdx < totalM - 1) {
+    const below = members[myIdx+1];
+    neighborsHtml += `<div>⬇️ Arkandaki: <b>${escapeHtml(below.displayName||'Kullanıcı')}</b> — ${below.leagueScore||0} puan (fark: ${Math.max(0,myScore-(below.leagueScore||0))})</div>`;
+  }
+
+  const previewMap = new Map();
+  members.slice(0,3).forEach(m => previewMap.set(m.uid, m));
+  if (myIdx >= 0) { for (let i = Math.max(0,myIdx-1); i <= Math.min(totalM-1,myIdx+1); i++) previewMap.set(members[i].uid, members[i]); }
+  const previewMembers = [...previewMap.values()].sort((a,b) => a.rank - b.rank);
+  const rankIcon = r => r===1?'🥇':r===2?'🥈':r===3?'🥉':`#${r}`;
+  let lastRank = 0;
+  const previewHtml = previewMembers.map(m => {
+    const gap = (lastRank && m.rank - lastRank > 1) ? `<div style="text-align:center;color:var(--text3);font-size:11px;padding:1px 0">⋯</div>` : '';
+    lastRank = m.rank;
+    const isMe = m.uid === user?.uid;
+    return gap + `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;${isMe?'background:var(--cdim)':''}">
+      <span style="font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${isMe?'font-weight:700':''}"><span style="display:inline-block;width:22px;flex-shrink:0">${rankIcon(m.rank)}</span>${escapeHtml(m.displayName||'Kullanıcı')}${isMe?' (Sen)':''}</span>
+      <span style="font-size:12px;font-weight:700;color:var(--cyan);flex-shrink:0">${m.leagueScore||0}</span>
+    </div>`;
+  }).join('');
+
+  let seasonProgressHtml = '';
+  if (data.seasonStartsAt && data.seasonEndsAt) {
+    const startMs = Date.parse(data.seasonStartsAt), endMs = Date.parse(data.seasonEndsAt);
+    if (!isNaN(startMs) && !isNaN(endMs) && endMs > startMs) {
+      const totalDays = Math.max(1, Math.round((endMs-startMs)/86400000));
+      const dayNum = Math.min(totalDays, Math.max(1, Math.ceil((Date.now()-startMs)/86400000)));
+      const pct = Math.round((dayNum/totalDays)*100);
+      const daysLeft = Math.max(0, Math.ceil((endMs-Date.now())/86400000));
+      seasonProgressHtml = `<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border2)">
+        <div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--text3);margin-bottom:3px"><span>SEZON İLERLEMESİ</span><span>Gün ${dayNum} / ${totalDays}</span></div>
+        <div style="height:5px;border-radius:3px;background:var(--surf2);overflow:hidden"><div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--cyan),#0091FF);border-radius:3px"></div></div>
+        <div style="font-size:10.5px;color:var(--text3);margin-top:4px">⏳ Sezonun bitmesine ${daysLeft} gün kaldı.</div>
+      </div>`;
+    }
+  }
+
+  const tierTheme = arenaLeagueTierTheme(data.tier);
+  const matchCardHtml = renderArenaLeagueMatchCardHtml(data.todayMatch, data.memberCount, data.capacity);
+
+  return `<div class="feat" style="padding:0;overflow:hidden;margin-bottom:14px">
+    <div style="padding:16px 18px;background:${tierTheme.bg};cursor:pointer" onclick="rArenaLeague()">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+        <div style="min-width:0">
+          <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:${tierTheme.text};opacity:.85">ARENA LİGİN</div>
+          <div style="font-size:16px;font-weight:800;color:${tierTheme.text};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${arenaLeagueTierLabel(data.tier)} Lig #${data.leagueNumber ?? '-'}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:22px;font-weight:800;color:${tierTheme.text}">#${myRank ?? '-'}</div>
+          <div style="font-size:11px;color:${tierTheme.text};opacity:.85">${myScore} puan</div>
+        </div>
       </div>
-      <div style="font-size:11px;color:var(--text3);line-height:1.5;margin-bottom:18px">⚠️ Başladıktan sonra uygulamadan çıkarsan (arka plana atarsan) yarışma o an, kalan sorular cevapsız sayılarak biter — bugünkü hakkın kullanılmış olur.</div>
-      <button class="apbtn" style="background:linear-gradient(135deg,var(--cyan),#0091FF);color:#00040F;font-weight:700;border:none" onclick="arenaBeginQuiz()">Yarışmaya Katıl →</button>
+      <div id="arena-home-league-countdown" style="font-size:11px;color:${tierTheme.text};opacity:.85;margin-top:8px"></div>
     </div>
-    <button class="apbtn" style="margin-top:14px" onclick="rArenaLeaderboard()">🏆 Liderlik Tablosu</button>`;
+    <div style="padding:14px 18px 4px">
+      <div style="font-size:12px;font-weight:600;margin-bottom:10px">${zoneHtml}</div>
+      ${neighborsHtml?`<div style="font-size:11.5px;color:var(--text2);display:flex;flex-direction:column;gap:3px;margin-bottom:12px">${neighborsHtml}</div>`:''}
+    </div>
+    ${matchCardHtml.replace('margin-bottom:14px','margin:0 18px 14px')}
+    <div style="padding:0 18px">${previewHtml}</div>
+    <div style="padding:0 18px">${seasonProgressHtml}</div>
+    <div style="padding:14px 18px 16px;cursor:pointer" onclick="rArenaLeague()"><div style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--cyan)">Ligi Gör →</div></div>
+  </div>`;
 }
 
 // ==== FAZ 0 — QUIZ CEVABI KAYBI KORUMASI (sessionStorage recovery) ====
@@ -15827,14 +16034,15 @@ async function arenaLeagueJoin() {
 // bunu temizler — memory leak riski yok. EK TALİMAT: 14 günlük süre artık SEZONUN değil, LİGİN
 // kendi 10/10 dolma anına göre işliyor (bkz. worker'daki filledAt/leagueEndsAt) — lig henüz
 // dolmadıysa leagueEndsAt null gelir, geri sayım YERİNE "süre henüz başlamadı" mesajı gösterilir.
-function arenaLeagueStartCountdown(leagueEndsAt, isFull) {
-  const el = document.getElementById('arena-league-countdown');
+function arenaLeagueStartCountdown(leagueEndsAt, isFull, elId) {
+  elId = elId || 'arena-league-countdown';
+  const el = document.getElementById(elId);
   if (!el) return;
   if (!leagueEndsAt) { el.textContent = isFull ? '' : 'Lig 10/10 dolunca 14 günlük süre başlayacak'; return; }
   const endMs = Date.parse(leagueEndsAt);
   if (!endMs || isNaN(endMs)) return;
   function tick() {
-    const el2 = document.getElementById('arena-league-countdown');
+    const el2 = document.getElementById(elId);
     if (!el2) { arenaStopTimer(); return; } // ekran değişmiş, kendi kendini temizle
     const diff = endMs - Date.now();
     if (diff <= 0) { el2.textContent = 'Lig süresi sona erdi.'; arenaStopTimer(); return; }
