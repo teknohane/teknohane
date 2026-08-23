@@ -2231,6 +2231,13 @@ body.tk-maintenance #maintenance-gate{
       <div class="csel" data-for="ep-city" data-title="Şehir Seç" onclick="openPicker(this)"><span class="csel-label">Şehir Seçin</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
       <select id="ep-city" style="display:none"><option value=""></option></select>
     </div>
+    <div class="fg" id="ep-store-fields" style="display:none">
+      <label class="fl">👑 VIP Mağaza Adı <span style="color:var(--text3);font-weight:400">(isteğe bağlı)</span></label>
+      <input class="fi" type="text" id="ep-storename" maxlength="40" placeholder="Örn. Yusuf'un Telefon Dünyası">
+      <label class="fl" style="margin-top:10px">Mağaza Açıklaması <span style="color:var(--text3);font-weight:400">(isteğe bağlı)</span></label>
+      <textarea class="fi" id="ep-storedesc" rows="2" maxlength="200" style="resize:none;font-family:inherit" oninput="document.getElementById('ep-storedesc-count').textContent=this.value.length"></textarea>
+      <span style="font-size:11px;color:var(--text3);display:block;margin-top:4px"><span id="ep-storedesc-count">0</span>/200 karakter · Mağaza kapağı profil kapak fotoğrafınla aynıdır</span>
+    </div>
     <button class="sbtn2" onclick="saveProfileInfo()">Kaydet</button>
 
     <div id="ep-pass-section" style="display:none;margin-top:24px;padding-top:20px;border-top:1px solid var(--border2)">
@@ -3742,9 +3749,22 @@ function isTrustedSellerActive(profileData) {
 // onlarca "if user.vip" satırına DAĞITILMIYOR, buradan çözülüyor. Yeni bir rozet (ör. ileride
 // "Premium"/"Arena Veteranı") eklendiğinde tek yapılması gereken ENTITLEMENT_SOURCES'a bir satır
 // eklemek — var olan hasEntitlement() çağrıları otomatik olarak doğru sonucu üretir.
+// VIP Mağaza / Premium Satıcı 2.0 — TEK merkezi limit kaynağı (spec: "bu sayıyı kodun içine farklı
+// yerlerde hard-code etme"). Yalnızca EKRANDA "X/Y" göstermek için kullanılıyor — GERÇEK yetki
+// kontrolü/tüketim SUNUCU tarafında (cloudflare-push-worker.js VIP_STORE_LIMITS, AYNI değerler,
+// iki ayrı statik uygulama olduğu için kod paylaşımı yok, elle senkron tutuluyor) — client bu
+// sabitleri değiştirse bile worker kendi kopyasına göre karar verir.
+const VIP_STORE_LIMITS = { boosts: 3, refreshes: 5 };
 const ENTITLEMENT_SOURCES = {
   vip: ['vip_profile_badge', 'vip_profile_frame', 'vip_arena_badge', 'advanced_arena_stats',
-    'vip_marketplace_badge', 'vip_community_badge'],
+    'vip_marketplace_badge', 'vip_community_badge',
+    // VIP Mağaza / Premium Satıcı 2.0 (2026-08-23) — mevcut 6 entitlement'ın ÜZERİNE, aynı desenle
+    // eklendi. "source" bugün yalnızca isVipActive() (vip+vipExpiresAt) — ileride ücretli abonelik
+    // eklendiğinde bu anahtarların KAYNAĞI değişebilir (ör. google_play/app_store), ama TÜKETİCİ
+    // taraf (hasEntitlement çağıran her yer) hiç değişmeden çalışmaya devam eder.
+    'vip_marketplace_store', 'vip_marketplace_premium_listing', 'vip_marketplace_monthly_boost',
+    'vip_marketplace_monthly_refresh', 'vip_marketplace_analytics', 'vip_marketplace_featured_store',
+    'vip_marketplace_store_customization'],
   trustedSeller: ['trusted_seller_badge', 'trusted_seller_listing_indicator'],
 };
 // VIP 2.0 — profildeki "VIP Ayrıcalıkların" listesi ve admin panelindeki VIP verme ekranı için TEK
@@ -3760,6 +3780,13 @@ const VIP_ENTITLEMENT_LABELS = {
   vip_community_badge: 'Toplulukta VIP rozeti',
   vip_arena_badge: "Arena'da VIP tacı",
   advanced_arena_stats: 'Gelişmiş Arena istatistikleri',
+  vip_marketplace_store: 'Kişisel VIP Mağaza sayfası',
+  vip_marketplace_premium_listing: 'Premium ilan görünümü',
+  vip_marketplace_monthly_boost: `Aylık ${VIP_STORE_LIMITS.boosts} ücretsiz öne çıkarma hakkı`,
+  vip_marketplace_monthly_refresh: `Aylık ${VIP_STORE_LIMITS.refreshes} ücretsiz ilan yenileme hakkı`,
+  vip_marketplace_analytics: 'Mağaza istatistikleri',
+  vip_marketplace_featured_store: 'Mağazada öne çıkan ilanlar',
+  vip_marketplace_store_customization: 'Mağaza adı/açıklama/kapak özelleştirme',
 };
 function getUserEntitlements(profileData) {
   const set = new Set();
@@ -3797,6 +3824,69 @@ function renderVipStatusCardHTML(profileData) {
       ${vipItems.map(k=>`<div style="font-size:12px;color:var(--text2)"><span style="color:#3DDC97">✓</span> ${escapeHtml(VIP_ENTITLEMENT_LABELS[k]||k)}</div>`).join('')}
     </div>
   </div>`;
+}
+
+// VIP Mağaza / Premium Satıcı 2.0 — sahibinin kendi profilinde gördüğü mağaza paneli. TAMAMEN
+// mevcut yüklü veriden hesaplanır (marketMineListings zaten profil/Pazar ile PAYLAŞILAN kaynak) —
+// EK bir Firestore okuması yapmaz. viewCount/contactCount gerçek atomik sayaçlar (bkz. mcardHTML/
+// trackListingContact), favoritedByUids gerçek bir dizi — hiçbir değer uydurulmuyor; hiç ilan/veri
+// yoksa boş/empty-state gösterilir, 0 gibi anlamsız sahte sayılar YAZILMAZ.
+function renderVipStoreDashboardHTML(profileData, myListings) {
+  if (!hasEntitlement(profileData, 'vip_marketplace_store')) return '';
+  const listings = myListings || [];
+  const active = listings.filter(l => !l.sold && l.approved !== false);
+  const totalViews = listings.reduce((s,l) => s + (l.viewCount||0), 0);
+  const totalFavs = listings.reduce((s,l) => s + (l.favoritedByUids||[]).length, 0);
+  const totalContacts = listings.reduce((s,l) => s + (l.contactCount||0), 0);
+  const top = active.length ? [...active].sort((a,b) => (b.viewCount||0) - (a.viewCount||0))[0] : null;
+  const usage = vipStoreUsageThisMonth || { boostsUsed: 0, refreshesUsed: 0 };
+  const featuredIds = profileData.featuredListingIds || [];
+  return `<div class="pbadge-card">
+    <div class="psec-title" style="margin-bottom:6px">🏪 VIP Mağazam${profileData.storeName?` — ${escapeHtml(profileData.storeName)}`:''}</div>
+    ${!listings.length ? `<div class="no" style="padding:4px 0 10px;text-align:left">Henüz hiç ilanın yok. Veri biriktikçe mağaza istatistiklerin burada görünecek.</div>` : `
+    <div class="pbadge-row" style="margin-bottom:10px">
+      <div class="pbadge-item"><div class="pbadge-ic" style="font-size:16px">📦</div><div class="pbadge-lbl">${active.length} aktif ilan</div></div>
+      <div class="pbadge-item"><div class="pbadge-ic" style="font-size:16px">👁️</div><div class="pbadge-lbl">${totalViews} görüntülenme</div></div>
+      <div class="pbadge-item"><div class="pbadge-ic" style="font-size:16px">❤️</div><div class="pbadge-lbl">${totalFavs} favori</div></div>
+      <div class="pbadge-item"><div class="pbadge-ic" style="font-size:16px">💬</div><div class="pbadge-lbl">${totalContacts} mesaj</div></div>
+    </div>
+    ${top ? `<div style="font-size:11.5px;color:var(--text2);margin-bottom:10px">🏆 En çok görüntülenen: <b>${escapeHtml(top.model||'İlan')}</b> (${top.viewCount||0} görüntülenme)</div>` : ''}`}
+    <div style="font-size:12px;font-weight:700;margin-bottom:6px">Bu Ay Ücretsiz Haklar</div>
+    <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;font-size:12px"><span>📌 Öne çıkarma</span><span style="color:var(--text2)">${usage.boostsUsed||0} / ${VIP_STORE_LIMITS.boosts} kullanıldı</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:12px"><span>🔄 İlan yenileme</span><span style="color:var(--text2)">${usage.refreshesUsed||0} / ${VIP_STORE_LIMITS.refreshes} kullanıldı</span></div>
+    </div>
+    ${active.length ? `
+    <div style="font-size:12px;font-weight:700;margin-bottom:6px">⭐ Öne Çıkan İlanlar <span style="color:var(--text3);font-weight:400">(en fazla 3, mağaza sayfanın üstünde gösterilir)</span></div>
+    <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:12px">
+      ${active.slice(0,20).map(l => `<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer">
+        <input type="checkbox" ${featuredIds.includes(l.id)?'checked':''} onchange="toggleFeaturedListing('${l.id}',this.checked)" ${(!featuredIds.includes(l.id)&&featuredIds.length>=3)?'disabled':''}>
+        <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(l.model||'İlan')}</span>
+      </label>`).join('')}
+    </div>` : ''}
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="sbtn2" style="width:auto;padding:9px 14px;font-size:12.5px" onclick="openEditProfile();document.getElementById('ep-store-fields')?.scrollIntoView({behavior:'smooth'})">✏️ Mağazamı Düzenle</button>
+      <button class="sbtn2" style="width:auto;padding:9px 14px;font-size:12.5px;background:var(--surf2);color:var(--cyan)" onclick="shareProfile('${user?.uid||''}','${escapeJsAttr(profileData.storeName||profileData.displayName||'Mağazam')}')">🔗 Mağazamı Paylaş</button>
+    </div>
+  </div>`;
+}
+
+// Öne çıkan ilan seçimi — yalnızca KENDİ ilanları listesinde (renderVipStoreDashboardHTML zaten
+// yalnızca `active` = marketMineListings'ten süzülmüş kendi ilanlarını gösteriyor) checkbox'la
+// değiştirilir; en fazla 3. Rules'ta ayrı bir doğrulama GEREKMİYOR (bkz. görev notu: bu alan başka
+// bir kullanıcının ilanına REFERANS verse bile yalnızca KENDİ mağaza ekranında, KENDİ marketMineListings
+// listesinden render edilir — başkasının içeriği asla bu yoldan gösterilmez).
+async function toggleFeaturedListing(listingId, checked) {
+  if (!user) return;
+  let ids = [...(myProfileData.featuredListingIds || [])];
+  if (checked) { if (ids.length >= 3 || ids.includes(listingId)) return; ids.push(listingId); }
+  else { ids = ids.filter(id => id !== listingId); }
+  try {
+    await db.collection('teknohane_users').doc(user.uid).set({ featuredListingIds: ids }, { merge: true });
+    myProfileData.featuredListingIds = ids;
+    const el = document.getElementById('vip-store-dashboard');
+    if (el) el.innerHTML = renderVipStoreDashboardHTML(myProfileData, marketMineLoaded ? marketMineListings : []);
+  } catch (e) { showErrorToast(e); }
 }
 
 // Giriş yapıldığında (syncUserProfile içinden) çağrılır; banlıysa tam ekran engelleme ekranını açar.
@@ -4074,7 +4164,19 @@ function rprof() {
       <div id="my-trust-card">${renderTrustCardHTML(0, 0, { trustedSeller: isTrustedSellerActive(myProfileData), verified: user.emailVerified||myProfileData.adminVerified, joinedYear, uid: user.uid, displayName: myProfileData.displayName||user.displayName||'Ben' })}</div>
       <div id="my-trust-reviews-raw" style="display:none"></div>
       ${renderVipStatusCardHTML(myProfileData)}
+      <div id="vip-store-dashboard">${renderVipStoreDashboardHTML(myProfileData, marketMineLoaded ? marketMineListings : [])}</div>
       <button class="apbtn" onclick="openEditProfile()">✏️ Profili Düzenle</button>
+      ${(() => {
+        // Bu ayki hak sayacı henüz hiç yüklenmediyse (vipStoreUsageThisMonth===null) VE VIP aktifse,
+        // TEK seferlik yükleyip yalnızca mağaza panelini (tüm profili DEĞİL) tazeler.
+        if (isVipActive(myProfileData) && vipStoreUsageThisMonth === null) {
+          loadVipStoreUsageIfNeeded().then(() => {
+            const el = document.getElementById('vip-store-dashboard');
+            if (el) el.innerHTML = renderVipStoreDashboardHTML(myProfileData, marketMineLoaded ? marketMineListings : []);
+          });
+        }
+        return '';
+      })()}
       <div class="psec-title" style="margin-top:4px">⚡ Hızlı İşlemler</div>
       <div class="pqa-grid">
         <div class="pqa-item" onclick="document.getElementById('push-panel')?.scrollIntoView({behavior:'smooth'})">
@@ -4307,6 +4409,14 @@ function openEditProfile() {
   citySel.value = myProfileData.city || '';
   const cityTrigger = document.querySelector('.csel[data-for="ep-city"] .csel-label');
   if (cityTrigger) cityTrigger.textContent = myProfileData.city || 'Şehir Seçin';
+  // VIP Mağaza alanları yalnızca aktif VIP'e gösterilir (vip_marketplace_store_customization).
+  const storeFields = document.getElementById('ep-store-fields');
+  if (storeFields) {
+    storeFields.style.display = hasEntitlement(myProfileData, 'vip_marketplace_store_customization') ? 'block' : 'none';
+    document.getElementById('ep-storename').value = myProfileData.storeName || '';
+    document.getElementById('ep-storedesc').value = myProfileData.storeDescription || '';
+    document.getElementById('ep-storedesc-count').textContent = (myProfileData.storeDescription || '').length;
+  }
   const err = document.getElementById('ep-err');
   err.textContent = ''; err.classList.remove('on');
 
@@ -4801,6 +4911,9 @@ async function saveProfileInfo() {
   const bio = document.getElementById('ep-bio').value.trim();
   const city = document.getElementById('ep-city').value.trim();
   const signature = document.getElementById('ep-signature').value.trim();
+  const canEditStore = hasEntitlement(myProfileData, 'vip_marketplace_store_customization');
+  const storeName = canEditStore ? (document.getElementById('ep-storename')?.value.trim() || '') : null;
+  const storeDescription = canEditStore ? (document.getElementById('ep-storedesc')?.value.trim() || '') : null;
 
   if (!firstRaw.trim() || !lastRaw.trim()) { err.textContent = 'Ad ve soyad boş olamaz'; err.classList.add('on'); return; }
   if (!isValidNamePart(firstRaw) || !isValidNamePart(lastRaw)) { err.textContent = 'Ad ve soyad yalnızca harflerden oluşmalı'; err.classList.add('on'); return; }
@@ -4816,6 +4929,8 @@ async function saveProfileInfo() {
   }
   if (bio.length > 150) { err.textContent = 'Biyografi en fazla 150 karakter olabilir'; err.classList.add('on'); return; }
   if (signature.length > 120) { err.textContent = 'İmza en fazla 120 karakter olabilir'; err.classList.add('on'); return; }
+  if (storeName && storeName.length > 40) { err.textContent = 'Mağaza adı en fazla 40 karakter olabilir'; err.classList.add('on'); return; }
+  if (storeDescription && storeDescription.length > 200) { err.textContent = 'Mağaza açıklaması en fazla 200 karakter olabilir'; err.classList.add('on'); return; }
   if (!guardSubmit('profile')) return;
 
   try {
@@ -4839,6 +4954,9 @@ async function saveProfileInfo() {
 
     const fsUpdates = { firstName, lastName, displayName: name, displayNameLower: name.toLocaleLowerCase('tr-TR'), username: uname || firebase.firestore.FieldValue.delete(), bio: bio || firebase.firestore.FieldValue.delete(), city: city || firebase.firestore.FieldValue.delete(), signature: signature || firebase.firestore.FieldValue.delete() };
     if (epNewPhotoDataUrl) { fsUpdates.photoURL = epNewPhotoDataUrl; fsUpdates.customPhoto = true; }
+    // VIP Mağaza — yalnızca entitlement aktifken (alanlar zaten gizliyse boş gelir, canEditStore=false
+    // olduğunda mevcut değere HİÇ dokunulmaz, VIP süresi bitmişken sessizce silinmez, bkz. görev §15).
+    if (canEditStore) { fsUpdates.storeName = storeName || firebase.firestore.FieldValue.delete(); fsUpdates.storeDescription = storeDescription || firebase.firestore.FieldValue.delete(); }
     await db.collection('teknohane_users').doc(user.uid).set(fsUpdates, { merge: true });
     db.collection('teknohane_user_index').doc(user.uid).set({
       uid: user.uid, displayName: name, displayNameLower: name.toLocaleLowerCase('tr-TR'),
@@ -4852,6 +4970,7 @@ async function saveProfileInfo() {
     myProfileData.bio = bio || null;
     myProfileData.city = city || null;
     myProfileData.signature = signature || null;
+    if (canEditStore) { myProfileData.storeName = storeName || null; myProfileData.storeDescription = storeDescription || null; }
     if (epNewPhotoDataUrl) { myProfileData.photoURL = epNewPhotoDataUrl; myProfileData.customPhoto = true; }
     epNewPhotoDataUrl = null;
 
@@ -5806,6 +5925,21 @@ const BOOST_TYPE_LABELS = {
 let boostReqTargetListingId = null;
 let boostReqPendingTypes = new Set();
 
+// VIP Mağaza / Premium Satıcı 2.0 — aylık ücretsiz hak sayacı, yalnızca AÇIK bu forma girildiğinde
+// (VIP kullanıcı için) yükleniyor; kendi dokümanı olduğu için rules zaten izin veriyor (bkz.
+// teknohane_vip_store_usage kuralı — sahibi kendi hakkını görebilir). Gerçek YETKİ/TÜKETİM kontrolü
+// HER ZAMAN worker'da (bkz. /internal/vip-store-action) — burası yalnızca "X/Y kaldı" göstermek için.
+let vipStoreUsageThisMonth = null;
+function vipStorePeriodKey(d) { d = d || new Date(); return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}`; }
+async function loadVipStoreUsageIfNeeded() {
+  vipStoreUsageThisMonth = null;
+  if (!user || !isVipActive(myProfileData)) return;
+  try {
+    const doc = await db.collection('teknohane_vip_store_usage').doc(`${user.uid}_${vipStorePeriodKey()}`).get();
+    vipStoreUsageThisMonth = doc.exists ? doc.data() : { boostsUsed: 0, refreshesUsed: 0 };
+  } catch (e) { vipStoreUsageThisMonth = { boostsUsed: 0, refreshesUsed: 0 }; }
+}
+
 async function openBoostRequestForm(listingId) {
   if (!user) { gt('profile'); return; }
   boostReqTargetListingId = listingId;
@@ -5816,8 +5950,10 @@ async function openBoostRequestForm(listingId) {
   const l = currentListing && currentListing.id === listingId ? currentListing : await getListingById(listingId);
   if (!l) { optsEl.innerHTML = `<div class="no">İlan bulunamadı.</div>`; return; }
   try {
-    const snap = await db.collection('teknohane_boost_requests')
-      .where('listingId', '==', listingId).where('status', '==', 'pending').limit(10).get();
+    const [snap] = await Promise.all([
+      db.collection('teknohane_boost_requests').where('listingId', '==', listingId).where('status', '==', 'pending').limit(10).get(),
+      loadVipStoreUsageIfNeeded(),
+    ]);
     boostReqPendingTypes = new Set(snap.docs.map(d => d.data().boostType));
   } catch(e) { boostReqPendingTypes = new Set(); }
   renderBoostRequestOptions(l);
@@ -5825,13 +5961,24 @@ async function openBoostRequestForm(listingId) {
 
 function renderBoostRequestOptions(l) {
   const optsEl = document.getElementById('boost-req-options');
+  const vip = isVipActive(myProfileData);
   optsEl.innerHTML = Object.keys(BOOST_TYPE_LABELS).map(type => {
     const meta = BOOST_TYPE_LABELS[type];
     const alreadyActive = type !== 'extend' && !!l[type];
     const pending = boostReqPendingTypes.has(type);
+    // VIP ücretsiz hak: 'extend' → refreshesUsed/5, diğer 3 tür (showcase/urgent/featured) → BİRLİKTE boostsUsed/3.
+    const isRefresh = type === 'extend';
+    const usageField = isRefresh ? 'refreshesUsed' : 'boostsUsed';
+    const limit = isRefresh ? VIP_STORE_LIMITS.refreshes : VIP_STORE_LIMITS.boosts;
+    const used = vipStoreUsageThisMonth ? (vipStoreUsageThisMonth[usageField] || 0) : 0;
+    const hasVipQuota = vip && vipStoreUsageThisMonth && used < limit;
     let statusHtml = '', actionHtml = '';
     if (alreadyActive) { statusHtml = `<span style="font-size:11px;color:var(--green);font-weight:700">✓ Zaten Açık</span>`; }
     else if (pending) { statusHtml = `<span style="font-size:11px;color:var(--cyan);font-weight:700">⏳ Onay Bekliyor</span>`; }
+    else if (hasVipQuota) {
+      statusHtml = `<span style="font-size:10.5px;color:#FFD700;font-weight:700">👑 ${used}/${limit} kullanıldı</span>`;
+      actionHtml = `<button class="sbtn2" style="width:auto;padding:6px 14px;font-size:12px;background:linear-gradient(135deg,#FFD700,#FFA500);color:#3a2600" onclick="useVipStoreQuota('${type}')">✨ VIP Hakkını Kullan</button>`;
+    }
     else { actionHtml = `<button class="sbtn2" style="width:auto;padding:6px 14px;font-size:12px" onclick="submitBoostRequest('${type}')">Talep Et</button>`; }
     return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
       <div style="font-size:20px;flex-shrink:0">${meta.ic}</div>
@@ -5842,6 +5989,31 @@ function renderBoostRequestOptions(l) {
       ${statusHtml}${actionHtml}
     </div>`;
   }).join('');
+}
+
+// VIP kullanıcı ÜCRETSİZ aylık hakkını kullanır — admin onayı BEKLEMEDEN anında uygulanır. Gerçek
+// yetki/tüketim kontrolü SUNUCU tarafında (bkz. /internal/vip-store-action) — burada guardSubmit
+// dışında hiçbir istemci kontrolü "izin" anlamına gelmiyor, yalnızca UX.
+async function useVipStoreQuota(action) {
+  const listingId = boostReqTargetListingId;
+  if (!listingId || !guardSubmit('vipStoreAction')) return;
+  try {
+    const idToken = await user.getIdToken();
+    const res = await arenaApiCall(VIP_STORE_ACTION_API, { idToken, listingId, action });
+    if (res?.success) {
+      showToast('✨', 'rgba(255,215,0,.15)', 'VIP Hakkın Kullanıldı', action === 'refresh' ? 'İlanın 30 gün uzatıldı.' : `İlanın "${BOOST_TYPE_LABELS[action]?.label||action}" oldu.`);
+      closemo('boost-request-mo');
+      vipStoreUsageThisMonth = null; // profil ekranındaki hak sayacı bir sonraki görüntülemede taze veriyle yeniden yüklensin
+      if (currentListing?.id === listingId) openDetail(listingId); // ekranı taze veriyle yeniden çiz
+      rlistings();
+    } else {
+      const msgMap = { vip_required: 'VIP üyeliğin aktif görünmüyor.', quota_exceeded: 'Bu ayki ücretsiz hakkın doldu.', not_owner: 'Bu ilan sana ait değil.', listing_sold: 'Satılmış bir ilan öne çıkarılamaz.', user_banned: 'Hesabın kısıtlı.' };
+      showToast('⚠️', 'rgba(255,69,58,.15)', 'İşlem Yapılamadı', msgMap[res?.error] || 'Bir sorun oluştu, tekrar dene.');
+      await loadVipStoreUsageIfNeeded();
+      const l = currentListing && currentListing.id === listingId ? currentListing : await getListingById(listingId);
+      if (l) renderBoostRequestOptions(l);
+    }
+  } catch (e) { showErrorToast(e); } finally { releaseSubmit('vipStoreAction'); }
 }
 
 async function submitBoostRequest(boostType) {
@@ -12569,9 +12741,10 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
       <div class="pcover" style="${data.coverPhotoURL?`background-image:url('${data.coverPhotoURL}');background-size:cover;background-position:center;`:''}"></div>
       <img class="pav${isVipActive(data)?' pav-vip':''}" src="${av}" onerror="this.onerror=null;this.src='${avFallback}'" alt="">
       <div class="pname">${escapeHtml(displayName)}${isMe?' (Sen)':''} ${isVipActive(data)?'<span class="vip-badge">👑 VIP</span>':''} ${isOnlineNow?'<span style="color:#3DDC97;font-size:12px;vertical-align:middle">●</span>':''}</div>
+      ${hasEntitlement(data, 'vip_marketplace_store') && data.storeName ? `<div style="font-size:15px;font-weight:700;color:#FFD700;margin-top:2px">🏪 ${escapeHtml(data.storeName)}</div>` : ''}
       ${data.username?`<div class="puname">@${escapeHtml(data.username)}</div>`:''}
       ${data.city?`<div class="puname" style="color:var(--text3)">📍 ${escapeHtml(data.city)}</div>`:''}
-      ${data.bio?`<div class="pbio">${escapeHtml(data.bio)}</div>`:''}
+      ${hasEntitlement(data, 'vip_marketplace_store') && data.storeDescription ? `<div class="pbio">${escapeHtml(data.storeDescription)}</div>` : (data.bio?`<div class="pbio">${escapeHtml(data.bio)}</div>`:'')}
       <div class="pverify">
         <span class="pverify-item${data.emailVerified?' ok':''}">${data.emailVerified?'✓':'○'} E-posta ${data.emailVerified?'doğrulandı':'doğrulanmadı'}</span>
       </div>
@@ -12669,9 +12842,23 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
       ${renderSellerReviewForm(uid)}
     </div>
 
+    ${!privacy.hideListings && hasEntitlement(data, 'vip_marketplace_featured_store') && (data.featuredListingIds||[]).length ? `
+    <div class="ud-section">
+      <div class="ud-section-title">⭐ Öne Çıkan İlanlar</div>
+      ${userListings.filter(l => (data.featuredListingIds||[]).includes(l.id)).map(l => `
+        <div class="pub-listing-card" onclick="closemo('pub-profile-mo');openDetail('${l.id}')" style="border-color:rgba(255,215,0,.35)">
+          <div class="pub-listing-img">${l.photo1 ? `<img src="${l.photo1Thumb||l.photo1}" alt="" style="width:100%;height:100%;border-radius:8px;object-fit:cover" loading="lazy" decoding="async">` : '📱'}</div>
+          <div class="pub-listing-info">
+            <div class="pub-listing-model">${escapeHtml(l.model)}</div>
+            <div class="pub-listing-price">₺${parseInt(l.price||0).toLocaleString('tr-TR')} · ${escapeHtml(l.condition)}</div>
+          </div>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text3)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>`).join('')}
+    </div>` : ''}
+
     ${!privacy.hideListings ? `
     <div class="ud-section" id="pub-listings-section">
-      <div class="ud-section-title">Aktif İlanlar</div>
+      <div class="ud-section-title">${hasEntitlement(data, 'vip_marketplace_store') ? 'Tüm İlanlar' : 'Aktif İlanlar'}</div>
       ${userListings.length ? userListings.map(l => `
         <div class="pub-listing-card" onclick="closemo('pub-profile-mo');openDetail('${l.id}')">
           <div class="pub-listing-img">${l.photo1 ? `<img src="${l.photo1Thumb||l.photo1}" alt="" style="width:100%;height:100%;border-radius:8px;object-fit:cover" loading="lazy" decoding="async">` : '📱'}</div>
@@ -15048,6 +15235,9 @@ const ARENA_LEAGUE_LEADERBOARD_API = 'https://teknohane-api.yusuf-aykac.workers.
 const ARENA_LEAGUE_HISTORY_API = 'https://teknohane-api.yusuf-aykac.workers.dev/arena-league-history';
 const ARENA_LEAGUE_MATCH_START_API = 'https://teknohane-api.yusuf-aykac.workers.dev/arena-league-match-start';
 const ARENA_LEAGUE_MATCH_SUBMIT_API = 'https://teknohane-api.yusuf-aykac.workers.dev/arena-league-match-submit';
+// VIP Mağaza / Premium Satıcı 2.0 — arenaApiCall() Arena'ya özgü değil, genel bir "worker'a idToken'lı
+// POST at, yeniden dene" yardımcısı; aynı isim altında burada da yeniden kullanılıyor.
+const VIP_STORE_ACTION_API = 'https://teknohane-api.yusuf-aykac.workers.dev/vip-store-action';
 const ARENA_CATEGORY_LABELS = {
   phones: '📱 Akıllı Telefonlar', cpu: '⚙️ İşlemciler', display: '🖥️ Ekran Teknolojileri',
   camera: '📷 Kamera', battery: '🔋 Batarya ve Şarj', android: '🤖 Android', apple: '🍎 Apple',
