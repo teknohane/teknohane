@@ -2502,7 +2502,7 @@ body.tk-maintenance #maintenance-gate{
   <div class="ms" onclick="event.stopPropagation()" style="max-height:85vh">
     <div class="mh"></div>
     <div class="mtit">🚀 Öne Çıkarma Talebi</div>
-    <div style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.5">İlanın için aşağıdaki seçeneklerden birini talep edebilirsin, yönetici ekibimiz inceleyip onaylayacak.</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.5" id="boost-req-intro">İlanın için aşağıdaki seçeneklerden birini talep edebilirsin, yönetici ekibimiz inceleyip onaylayacak.</div>
     <div id="boost-req-options"><div class="load" style="padding:10px 0"><div class="spin"></div></div></div>
     <div class="fg" style="margin-top:12px"><label class="fl">Not (isteğe bağlı)</label><textarea class="fi" id="boost-req-note" rows="2" style="resize:vertical;font-family:inherit" placeholder="Eklemek istediğin bir not varsa yaz…"></textarea></div>
   </div>
@@ -5967,6 +5967,10 @@ async function openBoostRequestForm(listingId) {
 function renderBoostRequestOptions(l) {
   const optsEl = document.getElementById('boost-req-options');
   const vip = isVipActive(myProfileData);
+  const introEl = document.getElementById('boost-req-intro');
+  if (introEl) introEl.textContent = vip
+    ? 'VIP üye olarak aylık ücretsiz haklarını anında kullanabilirsin. Hakların dolarsa admin onayına talep gönderebilirsin.'
+    : 'İlanın için aşağıdaki seçeneklerden birini talep edebilirsin, yönetici ekibimiz inceleyip onaylayacak.';
   optsEl.innerHTML = Object.keys(BOOST_TYPE_LABELS).map(type => {
     const meta = BOOST_TYPE_LABELS[type];
     const alreadyActive = type !== 'extend' && !!l[type];
