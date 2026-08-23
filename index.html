@@ -2201,7 +2201,8 @@ body.tk-maintenance #maintenance-gate{
     </div>
 
     <div class="aerr" id="ep-err"></div>
-    <div class="fg"><label class="fl">Görünen Ad</label><input class="fi" type="text" id="ep-name" placeholder="Adınız Soyadınız"></div>
+    <div class="fg"><label class="fl">Ad</label><input class="fi" type="text" id="ep-firstname" placeholder="Adınız" maxlength="40"></div>
+    <div class="fg"><label class="fl">Soyad</label><input class="fi" type="text" id="ep-lastname" placeholder="Soyadınız" maxlength="40"></div>
     <div class="fg">
       <label class="fl">Kullanıcı Adı</label>
       <input class="fi" type="text" id="ep-username" placeholder="kullaniciadi" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9_]/g,'')">
@@ -3392,17 +3393,27 @@ async function syncUserProfile(u) {
     const lastSync = parseInt(localStorage.getItem('tk_last_profile_sync') || '0');
     const needsUpdate = !snap.exists || !snap.data().email || (now - lastSync > 24*60*60*1000);
     if (needsUpdate) {
-      const syncedDisplayName = u.displayName || u.email?.split('@')[0] || 'Kullanıcı';
       const updateData = {
         favorites: existingData.favorites || [],
-        displayName: syncedDisplayName,
-        // Ad-soyad arama dizini (bkz. runUserSearch) — günde 1 kez, kendi belgesine yazılıyor,
-        // eski hesapları geriye dönük olarak organik biçimde dolduruyor.
-        displayNameLower: syncedDisplayName.toLocaleLowerCase('tr-TR'),
         email: u.email || '',
         createdAt: existingData.createdAt || firebase.firestore.FieldValue.serverTimestamp(),
         emailVerified: !!u.emailVerified
       };
+      // AD/SOYAD (Kullanıcı Profili 2.0): firstName ZATEN VARSA (normal durum — kayıt formu veya
+      // migration script'i zaten doğru şekilde doldurmuştur) buraya HİÇ DOKUNULMUYOR — displayName'i
+      // tekrar tekrar (günde 1) Auth'tan ezme riskini ortadan kaldırıyor. Yalnızca firstName HİÇ
+      // yoksa (marjinal durum — doküman ilk kez oluşuyor ya da migration'dan önceki bir ilk giriş)
+      // Auth displayName'inden TEK SEFERLİK bir ayrıştırma yapılır — soyad ASLA uydurulmaz (bkz.
+      // splitAuthDisplayNameForFirstSync: tek kelimeyse lastName boş kalır, profil "eksik" sayılır).
+      let effectiveDisplayName = existingData.displayName || composeDisplayName(existingData.firstName || '', existingData.lastName || '');
+      if (!existingData.firstName) {
+        const split = splitAuthDisplayNameForFirstSync(u.displayName || u.email?.split('@')[0] || 'Kullanıcı');
+        updateData.firstName = split.firstName;
+        if (split.lastName) updateData.lastName = split.lastName;
+        effectiveDisplayName = composeDisplayName(split.firstName, split.lastName);
+        updateData.displayName = effectiveDisplayName;
+        updateData.displayNameLower = effectiveDisplayName.toLocaleLowerCase('tr-TR');
+      }
       // Kullanıcı özel bir profil fotoğrafı yüklediyse (customPhoto), onu asla üye olurken
       // gelen sağlayıcı (Google vb.) fotoğrafıyla ezme — sadece hiç özel fotoğraf yoksa senkronize et
       if (!existingData.customPhoto) {
@@ -3410,7 +3421,7 @@ async function syncUserProfile(u) {
       }
       await db.collection('teknohane_users').doc(u.uid).set(updateData, { merge: true });
       db.collection('teknohane_user_index').doc(u.uid).set({
-        uid: u.uid, displayName: syncedDisplayName, displayNameLower: syncedDisplayName.toLocaleLowerCase('tr-TR'),
+        uid: u.uid, displayName: effectiveDisplayName, displayNameLower: effectiveDisplayName.toLocaleLowerCase('tr-TR'),
         photoURL: updateData.photoURL ?? existingData.photoURL ?? '', username: existingData.username || null
       }, { merge: true }).catch(()=>{});
       localStorage.setItem('tk_last_profile_sync', String(now));
@@ -3477,6 +3488,81 @@ function computeTeknohaneScore(uid, profileData, listingsArr) {
   ];
   const score = criteria.reduce((sum,item)=>sum+(item.done?item.weight:0),0);
   return { score, listingsCount, forumCount, compareCount, referralCount, isRecentlyActive };
+}
+
+// ==== KULLANICI PROFİLİ 2.0 — AD/SOYAD STANDARDİZASYONU (2026-08-23) ====
+// Tek kaynak: displayName HER ZAMAN normalizeTurkishName(firstName) + ' ' + normalizeTurkishName(lastName)
+// olarak türetilir; kullanıcı displayName'i doğrudan serbest metin olarak asla yazamaz (kayıt/profil
+// düzenleme formları artık yalnızca Ad/Soyad alanı sunuyor — bkz. doregister/saveProfileInfo).
+// Türkçe büyük/küçük harf dönüşümü BİLEREK düz toUpperCase/toLowerCase DEĞİL, toLocaleLowerCase('tr-TR')/
+// toLocaleUpperCase('tr-TR') kullanıyor — İngilizce kurallarla 'i'.toUpperCase()==='I' olur ama Türkçe'de
+// noktalı 'İ' olması gerekir (ve tersi: 'I'.toLowerCase() İngilizce'de 'i', Türkçe'de noktasız 'ı' olmalı).
+// Birden fazla kelimeli isimler ("Mehmet Ali") de HER kelime ayrı normalize edilerek doğru işlenir.
+function normalizeTurkishName(raw) {
+  if (!raw) return '';
+  return raw
+    .trim()
+    .replace(/\s+/g, ' ')
+    .split(' ')
+    .filter(Boolean)
+    .map(word => {
+      const lower = word.toLocaleLowerCase('tr-TR');
+      return lower.charAt(0).toLocaleUpperCase('tr-TR') + lower.slice(1);
+    })
+    .join(' ');
+}
+// Section 5 — yalnızca harf (Türkçe dahil) + boşluk + kesme işareti kabul edilir; HTML/script/SQL-
+// benzeri payload'lar, kontrol karakterleri, salt rakam/sembol reddedilir. Aşırı kısıtlayıcı olmamak
+// için gerçek Türkçe isimlerdeki TÜM harfler (Çç Ğğ İi Iı Öö Şş Üü dahil) açıkça destekleniyor.
+const NAME_VALID_RE = /^[A-Za-zÇĞİIıÖŞÜçğıiöşü' ]+$/;
+function isValidNamePart(raw) {
+  const v = (raw || '').trim();
+  if (!v || v.length > 40) return false;
+  if (!NAME_VALID_RE.test(v)) return false;
+  if (!/[A-Za-zÇĞİIıÖŞÜçğıiöşü]/.test(v)) return false; // yalnızca boşluk/kesme işareti tek başına geçersiz
+  return true;
+}
+// Yeni bir kullanıcının Firestore profil dokümanı İLK KEZ oluşturulurken (bkz. syncUserProfile'daki
+// needsUpdate bloğu) yalnızca TEK BİR Auth displayName string'i var — bunu firstName/lastName'e
+// ayrıştırır. SOYAD ASLA UYDURULMAZ: tek kelimeyse lastName boş döner (profil "eksik" sayılır, bkz.
+// renderProfileIncompleteBanner) — iki veya daha fazla kelimeyse ilk kelime=ad, GERİ KALANI=soyad kabul
+// edilir (spec §18'in izin verdiği TEK seferlik, düzenlemeye açık bir ilk tahmin).
+function splitAuthDisplayNameForFirstSync(raw) {
+  const parts = (raw || '').trim().replace(/\s+/g, ' ').split(' ').filter(Boolean);
+  if (parts.length >= 2) {
+    return { firstName: normalizeTurkishName(parts[0]), lastName: normalizeTurkishName(parts.slice(1).join(' ')) };
+  } else if (parts.length === 1) {
+    return { firstName: normalizeTurkishName(parts[0]), lastName: '' };
+  }
+  return { firstName: '', lastName: '' };
+}
+function composeDisplayName(firstName, lastName) {
+  return lastName ? `${firstName} ${lastName}` : firstName;
+}
+function isProfileNameComplete(profileData) {
+  return !!(profileData?.firstName && profileData?.lastName);
+}
+// "Profilini Tamamla" uyarısı (spec §17) — yalnızca soyadı GERÇEKTEN eksik olan kullanıcıya (migration
+// sırasında tahmin ETMEDEN bıraktığımız durum) gösterilir; her açılışta ısrarcı olmasın diye
+// localStorage'da "kapatıldı" bayrağı tutulur (güvenlik açısından önemsiz, salt UX tercihi — bu yüzden
+// Firestore'a değil localStorage'a yazılması yeterli ve daha basit).
+function profileIncompleteBannerHTML(profileData) {
+  if (isProfileNameComplete(profileData)) return '';
+  if (localStorage.getItem('tk_profile_incomplete_dismissed') === '1') return '';
+  return `<div class="feat" style="padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:12px;border-color:rgba(255,159,10,.4)">
+    <div style="font-size:22px;flex-shrink:0">⚠️</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:13px;font-weight:700;margin-bottom:2px">Profilin eksik</div>
+      <div style="font-size:12px;color:var(--text2)">Daha güvenilir ve profesyonel bir Teknohane profili için ad ve soyadını tamamla.</div>
+    </div>
+    <button class="sbtn2" style="width:auto;padding:8px 14px;font-size:12.5px;flex-shrink:0" onclick="openEditProfile()">Tamamla</button>
+    <span onclick="dismissProfileIncompleteBanner()" style="cursor:pointer;color:var(--text3);font-size:16px;flex-shrink:0;padding:4px">✕</span>
+  </div>`;
+}
+function dismissProfileIncompleteBanner() {
+  localStorage.setItem('tk_profile_incomplete_dismissed', '1');
+  const el = document.getElementById('profile-incomplete-banner');
+  if (el) el.remove();
 }
 
 // Rozet tanımları: gerçek veriden hesaplanır, hem kendi hem başka profil için aynı liste kullanılır.
@@ -3861,6 +3947,7 @@ function rprof() {
     activityItems.sort((a,b)=>b.ts-a.ts);
     const topActivity = activityItems.slice(0,4);
     c.innerHTML = `
+      <div id="profile-incomplete-banner">${profileIncompleteBannerHTML(myProfileData)}</div>
       <div class="phero">
         <div class="pcover" style="${myProfileData.coverPhotoURL?`background-image:url('${myProfileData.coverPhotoURL}');background-size:cover;background-position:center;`:''}">
           <div class="pcover-edit" onclick="pickCoverPhoto()">
@@ -4054,7 +4141,10 @@ function rprof() {
         <form class="aform" id="auth-form" autocomplete="on" onsubmit="return onAuthFormSubmit(event)">
           <div class="atabs"><div class="atab on" onclick="satab('login',this)">Giriş Yap</div><div class="atab" onclick="satab('register',this)">Kayıt Ol</div></div>
           <div class="aerr" id="aerr"></div>
-          <div class="fg" id="aname-g" style="display:none"><label class="fl">Ad Soyad</label><input class="fi" type="text" id="aname" name="name" placeholder="Adınız" autocomplete="name"></div>
+          <div class="fg" id="aname-g" style="display:none">
+            <label class="fl">Ad</label><input class="fi" type="text" id="afirstname" name="given-name" placeholder="Adınız" autocomplete="given-name" maxlength="40">
+            <label class="fl" style="margin-top:10px">Soyad</label><input class="fi" type="text" id="alastname" name="family-name" placeholder="Soyadınız" autocomplete="family-name" maxlength="40">
+          </div>
           <div class="fg"><label class="fl">E-posta</label><input class="fi" type="email" id="aemail" name="username" placeholder="ornek@mail.com" autocomplete="username"></div>
           <div class="fg"><label class="fl">Şifre</label><input class="fi" type="password" id="apass" name="password" placeholder="••••••••" autocomplete="current-password"></div>
           <div id="afgt-wrap" style="text-align:right;margin:-8px 0 12px"><span id="afgt-link" onclick="forgotPassword()" style="font-size:12px;color:var(--cyan);cursor:pointer;text-decoration:underline">Şifremi unuttum?</span></div>
@@ -4144,7 +4234,8 @@ function openEditProfile() {
   if (!user) return;
   epNewPhotoDataUrl = null;
   setAvatarImg(document.getElementById('ep-avatar-preview'), myProfileData.photoURL, myProfileData.displayName||user.displayName||user.email, 256);
-  document.getElementById('ep-name').value = user.displayName || '';
+  document.getElementById('ep-firstname').value = myProfileData.firstName || '';
+  document.getElementById('ep-lastname').value = myProfileData.lastName || '';
   document.getElementById('ep-username').value = myProfileData.username || '';
   document.getElementById('ep-bio').value = myProfileData.bio || '';
   document.getElementById('ep-bio-count').textContent = (myProfileData.bio || '').length;
@@ -4648,13 +4739,20 @@ async function saveProfileInfo() {
   const err = document.getElementById('ep-err');
   err.textContent = ''; err.classList.remove('on');
   if (epPhotoUploading) { err.textContent = 'Fotoğraf yükleniyor, lütfen bekle...'; err.classList.add('on'); return; }
-  const name = document.getElementById('ep-name').value.trim();
+  const firstRaw = document.getElementById('ep-firstname').value;
+  const lastRaw = document.getElementById('ep-lastname').value;
   const uname = document.getElementById('ep-username').value.trim().toLowerCase();
   const bio = document.getElementById('ep-bio').value.trim();
   const city = document.getElementById('ep-city').value.trim();
   const signature = document.getElementById('ep-signature').value.trim();
 
-  if (!name) { err.textContent = 'Görünen ad boş olamaz'; err.classList.add('on'); return; }
+  if (!firstRaw.trim() || !lastRaw.trim()) { err.textContent = 'Ad ve soyad boş olamaz'; err.classList.add('on'); return; }
+  if (!isValidNamePart(firstRaw) || !isValidNamePart(lastRaw)) { err.textContent = 'Ad ve soyad yalnızca harflerden oluşmalı'; err.classList.add('on'); return; }
+  // Kullanıcı hangi formatta yazarsa yazsın standart forma normalize edilir — displayName burada TEK
+  // KAYNAKTAN (firstName+lastName) türetiliyor, kullanıcının serbest metin göndermesi mümkün değil.
+  const firstName = normalizeTurkishName(firstRaw);
+  const lastName = normalizeTurkishName(lastRaw);
+  const name = composeDisplayName(firstName, lastName);
   if (uname && !/^[a-z0-9_]{3,20}$/.test(uname)) {
     err.textContent = 'Kullanıcı adı 3-20 karakter olmalı, sadece küçük harf/rakam/_ içerebilir';
     err.classList.add('on');
@@ -4683,7 +4781,7 @@ async function saveProfileInfo() {
     await user.reload();
     user = auth.currentUser;
 
-    const fsUpdates = { displayName: name, displayNameLower: name.toLocaleLowerCase('tr-TR'), username: uname || firebase.firestore.FieldValue.delete(), bio: bio || firebase.firestore.FieldValue.delete(), city: city || firebase.firestore.FieldValue.delete(), signature: signature || firebase.firestore.FieldValue.delete() };
+    const fsUpdates = { firstName, lastName, displayName: name, displayNameLower: name.toLocaleLowerCase('tr-TR'), username: uname || firebase.firestore.FieldValue.delete(), bio: bio || firebase.firestore.FieldValue.delete(), city: city || firebase.firestore.FieldValue.delete(), signature: signature || firebase.firestore.FieldValue.delete() };
     if (epNewPhotoDataUrl) { fsUpdates.photoURL = epNewPhotoDataUrl; fsUpdates.customPhoto = true; }
     await db.collection('teknohane_users').doc(user.uid).set(fsUpdates, { merge: true });
     db.collection('teknohane_user_index').doc(user.uid).set({
@@ -4691,6 +4789,8 @@ async function saveProfileInfo() {
       photoURL: fsUpdates.photoURL || myProfileData.photoURL || '', username: uname || null
     }, { merge: true }).catch(()=>{});
 
+    myProfileData.firstName = firstName;
+    myProfileData.lastName = lastName;
     myProfileData.displayName = name;
     myProfileData.username = uname || null;
     myProfileData.bio = bio || null;
@@ -5019,11 +5119,22 @@ async function dologin() {
 async function doregister() {
   const e=document.getElementById('aemail')?.value;
   const p=document.getElementById('apass')?.value;
-  const n=document.getElementById('aname')?.value;
+  const firstRaw=document.getElementById('afirstname')?.value;
+  const lastRaw=document.getElementById('alastname')?.value;
   const err=document.getElementById('aerr');
   const remember = document.getElementById('aremember')?.checked !== false;
-  if (!e||!p||!n) { if(err){err.textContent='Tüm alanları doldurun';err.classList.add('on');} return; }
+  if (!e||!p||!firstRaw||!lastRaw) { if(err){err.textContent='Tüm alanları doldurun';err.classList.add('on');} return; }
+  if (!isValidNamePart(firstRaw) || !isValidNamePart(lastRaw)) {
+    if (err) { err.textContent = 'Ad ve soyad yalnızca harflerden oluşmalı'; err.classList.add('on'); }
+    return;
+  }
   if (systemSettings.registrationsDisabled) { if(err){err.textContent='Yeni kayıtlar şu anda geçici olarak kapalı.';err.classList.add('on');} return; }
+  // Kullanıcı hangi formatta yazarsa yazsın ("YUSUF AYKAÇ", "yusuf aykaç" vb.) — kayıt anında STANDART
+  // formata (yalnızca ilk harf büyük) normalize edilir. displayName tek kaynaktan (Ad+Soyad) türetilir,
+  // kullanıcı serbest metin olarak asla göndermez (bkz. görev talimatı §2/§7).
+  const firstName = normalizeTurkishName(firstRaw);
+  const lastName = normalizeTurkishName(lastRaw);
+  const n = composeDisplayName(firstName, lastName);
   try {
     await auth.setPersistence(remember ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION);
     const c=await auth.createUserWithEmailAndPassword(e,p); await c.user.updateProfile({displayName:n});
