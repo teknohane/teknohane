@@ -855,8 +855,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .mcard-date{color:var(--text3);opacity:.7;}
 .mcard-foot{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:4px;}
 .mcard-seller{display:flex;align-items:center;gap:4px;cursor:pointer;min-width:0;}
-.mcard-seller-name{font-size:9.5px;color:var(--text3);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mcard-seller-name{font-size:9.5px;color:var(--text3);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
 .mcard-seller-me{font-size:8.5px;color:var(--cyan);font-weight:700;flex-shrink:0;}
+/* Pazar VIP Görünürlüğü 2.0 — rozetler ARTIK isim span'inin İÇİNDE DEĞİL, kardeş bir öğe: uzun bir
+   satıcı adı olduğunda isim kısalır (ellipsis) ama VIP/Güvenilir Satıcı rozeti asla kırpılmaz
+   (flex-shrink:0). Önceki sürümde rozetler isim span'inin İÇİNDEYDİ — uzun isimlerde CSS tarafından
+   görünmez şekilde kesilebiliyordu, "VIP yeterince görünür değil" şikayetinin bir parçası buydu. */
+.mcard-seller-badges{display:flex;align-items:center;gap:3px;flex-shrink:0;}
+.mcard-vip-chip{display:inline-flex;align-items:center;gap:2px;background:linear-gradient(135deg,#FFD700,#FFA500);color:#3a2600;font-size:9px;font-weight:800;padding:2px 6px;border-radius:8px;line-height:1.35;white-space:nowrap;}
+.mcard-trust-chip{display:inline-flex;align-items:center;gap:2px;background:rgba(61,221,151,.14);color:#3DDC97;border:1px solid rgba(61,221,151,.3);font-size:9px;font-weight:700;padding:2px 6px;border-radius:8px;line-height:1.35;white-space:nowrap;}
 .mcard-qa{display:flex;gap:4px;flex-shrink:0;}
 .mcard-qa-btn{width:22px;height:22px;border-radius:7px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid transparent;flex-shrink:0;}
 .mcard-qa-btn svg{width:11px;height:11px;}
@@ -1037,6 +1044,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .seller-card-lg-btn{flex:1;text-align:center;padding:9px;border-radius:11px;font-size:12.5px;font-weight:600;cursor:pointer;background:var(--surf2);color:var(--cyan);border:1px solid var(--border2);}
 .seller-badge{font-size:10.5px;font-weight:700;color:var(--cyan);background:var(--cdim);border:1px solid rgba(0,212,255,.2);padding:3px 9px;border-radius:20px;}
 .seller-badge.trust{color:var(--green);background:rgba(48,209,88,.12);border-color:rgba(48,209,88,.3);}
+.seller-badge.vip{color:#3a2600;background:linear-gradient(135deg,#FFD700,#FFA500);border-color:transparent;}
 .similar-row{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;}
 .similar-row::-webkit-scrollbar{display:none;}
 .similar-card{flex:0 0 92px;cursor:pointer;}
@@ -3631,12 +3639,60 @@ function authorBadgesHTML(badges) {
   return `<span class="author-badge-icons">${badges.map(b => `<span class="author-badge-icon">${escapeHtml(b)}</span>`).join('')}</span>`;
 }
 
-// VIP + Güvenilir Satıcı — TEK merkezi görsel kaynak (VIP 2.0). Pazar kartı gibi denormalize alandan
-// (sellerVip/sellerTrustedSeller) okuyan yerler için — aynı iki ikonu her kartta ayrı ayrı yazmamak için.
+// VIP + Güvenilir Satıcı — TEK merkezi görsel kaynak (VIP 2.0, Pazar VIP Görünürlüğü 2.0'da gerçek
+// rozet/chip'e yükseltildi — bare emoji yeterince görünür DEĞİLDİ). Pazar kartı gibi denormalize
+// alandan (sellerVip/sellerTrustedSeller) okuyan yerler için — aynı iki rozeti ayrı ayrı yazmamak için.
 // VIP her zaman ÖNCE gösterilir (statü), Güvenilir Satıcı sonra (platform onayı) — sıra kasıtlı.
+// Döndürülen HTML çağıranın .mcard-seller-badges gibi flex-shrink:0 bir kapsayıcıya YERLEŞTİRMESİ
+// gerekir (isim span'inin İÇİNE değil) — aksi halde uzun isimlerde ellipsis rozeti kırpar.
 function sellerVipTrustIconsHTML(vip, trusted) {
   if (!vip && !trusted) return '';
-  return `${vip?' <span title="VIP Üye">👑</span>':''}${trusted?' <span title="Güvenilir Satıcı">🤝</span>':''}`;
+  return `${vip?'<span class="mcard-vip-chip" title="VIP Üye">👑 VIP</span>':''}${trusted?'<span class="mcard-trust-chip" title="Güvenilir Satıcı">🤝 Güvenilir</span>':''}`;
+}
+
+// Pazar VIP Görünürlüğü 2.0 (2026-08-23) — mcardHTML'in dayandığı sellerVip/sellerTrustedSeller
+// alanları YALNIZCA ilan oluşturulduğu ANDAKİ durumun bir kopyasıydı (ownerName ile AYNI, bilinen
+// bir sınır): VIP sonradan verilirse/süresi dolarsa, kullanıcı ilanı yeniden düzenlemedikçe ESKİ
+// ilanlarındaki gösterge asla güncellenmezdi — "VIP yeterince görünür değil" şikayetinin asıl kök
+// nedeni buydu. Çözüm: N+1 YARATMADAN (her ilan için ayrı sorgu YOK), ekranda o an görünen ilanların
+// FARKLI satıcı UID'lerini teknohane_user_index'ten TOPLU çözüyoruz — showCommunityReactionViewers'daki
+// AYNI kanıtlanmış desen (FieldPath.documentId() 'in', 10'luk gruplar). Sonuç bellek içi bir
+// önbellekte (sellerStatusCache) tutulur, aynı uid bir daha SORGULANMAZ. Önbellek dolana kadar (birkaç
+// yüz ms) kart ANLIK olarak denormalize sellerVip/sellerTrustedSeller ile çizilir — sonuç gelince
+// FARK varsa TEK bir ek render tetiklenir. Beklenen sonuç: yalnızca birkaç Firestore okuması (ilan
+// sayısından değil, EKRANDAKİ FARKLI SATICI sayısından bağımlı, ~10'ar gruplu), gerçek zamanlıya
+// yakın güncellik, sıfır N+1.
+const sellerStatusCache = {}; // uid -> { vip, trustedSeller }
+const sellerStatusInFlight = new Set();
+async function resolveSellerStatusForListings(items) {
+  const uids = [...new Set((items || []).map(l => l.real ? l.real.uid : l.uid).filter(u => u && !(u in sellerStatusCache) && !sellerStatusInFlight.has(u)))];
+  if (!uids.length) return;
+  uids.forEach(u => sellerStatusInFlight.add(u));
+  try {
+    const chunks = [];
+    for (let i = 0; i < uids.length; i += 10) chunks.push(uids.slice(i, i + 10));
+    const snaps = await Promise.all(chunks.map(c =>
+      db.collection('teknohane_user_index').where(firebase.firestore.FieldPath.documentId(), 'in', c).get()
+    ));
+    snaps.forEach(snap => snap.docs.forEach(d => {
+      const data = d.data();
+      sellerStatusCache[d.id] = { vip: isVipActive(data), trustedSeller: isTrustedSellerActive(data) };
+    }));
+    // teknohane_user_index'te hiç dokümanı OLMAYAN (nadir — çok eski/silinmiş hesap) uid'ler için de
+    // "bilgi yok" olarak boş bir kayıt eklenir — aksi halde her render'da aynı eksik uid TEKRAR sorgulanır.
+    uids.forEach(u => { if (!(u in sellerStatusCache)) sellerStatusCache[u] = { vip: false, trustedSeller: false }; });
+    const grid = document.getElementById('lgrid');
+    if (grid) { grid._renderedSig = null; rlistings(); } // yeni bilgiyle TEK ek render
+  } catch (e) { /* sessizce yut — kart zaten denormalize alanla anlık çizildi, kullanıcı deneyimi bozulmaz */ }
+  finally { uids.forEach(u => sellerStatusInFlight.delete(u)); }
+}
+// Önbellekte varsa CANLI durum, yoksa (henüz çözülmediyse) ilanın kendi anlık kopyası — flash-of-
+// no-badge yerine flash-of-stale-badge tercih edildi (spec önceliği: "1. Doğru gösterim" ama "3.
+// gerçek zamanlıya yakın güncellik" de önemli — ilk boyamada HİÇBİR şey göstermemek daha kötü bir UX).
+function sellerBadgesForListing(l) {
+  const cached = sellerStatusCache[l.uid];
+  const st = cached || { vip: !!l.sellerVip, trustedSeller: !!l.sellerTrustedSeller };
+  return sellerVipTrustIconsHTML(st.vip, st.trustedSeller);
 }
 
 // Gizlilik ayarlarını varsayılan değerlerle birlikte normalize eder (privacy alanı hiç yoksa hepsi açık kabul edilir).
@@ -9224,7 +9280,7 @@ function mcardHTML(l) {
         <div class="mcard-title">${l.category==='akillisaat'?'⌚ ':l.category==='kulaklik'?'🎧 ':listingEffectiveCategory(l)==='aksesuar'?(ACCESSORY_TYPE_ICON[listingEffectiveAccessoryType(l)]||'🎒')+' ':''}${escapeHtml(l.model)}</div>
         <div class="mcard-loc">📍 ${escapeHtml(l.location)||'Belirtilmedi'}${l.createdAt?.toDate?` · <span class="mcard-date">${timeAgo(l.createdAt.toDate())}</span>`:''}${remaining?` · <span class="mcard-date" style="color:${remaining.urgent?'var(--red)':'var(--text3)'}">${remaining.text}</span>`:''}</div>
         <div class="mcard-foot" onclick="event.stopPropagation()">
-          ${l.ownerName?`<div class="mcard-seller" onclick="openPublicProfile('${l.uid}','${escapeJsAttr(l.ownerName)}')"><span class="mcard-seller-name">${escapeHtml(l.ownerName)}${sellerVipTrustIconsHTML(l.sellerVip, l.sellerTrustedSeller)}</span>${mine?'<span class="mcard-seller-me">· Siz</span>':''}</div>`:'<span></span>'}
+          ${l.ownerName?`<div class="mcard-seller" onclick="openPublicProfile('${l.uid}','${escapeJsAttr(l.ownerName)}')"><span class="mcard-seller-name">${escapeHtml(l.ownerName)}</span><span class="mcard-seller-badges">${sellerBadgesForListing(l)}</span>${mine?'<span class="mcard-seller-me">· Siz</span>':''}</div>`:'<span></span>'}
           <div class="mcard-qa">
             ${mine&&isListingExpired(l)&&!l.sold?`<div class="mcard-qa-btn" onclick="renewListing('${l.id}')" title="Yeniden Yayınla (30 Gün)" style="color:var(--cyan)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></div>`:''}
             ${mine?`<div class="mcard-qa-btn edit" onclick="editListing('${l.id}')" title="Düzenle"><svg viewBox="0 0 24 24" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg></div>`:''}
@@ -9358,6 +9414,10 @@ function rlistings() {
     grid._renderedSig = null;
     return;
   }
+  // Ekrandaki ilanların satıcı VIP/Güvenilir Satıcı durumunu toplu çöz (bkz. resolveSellerStatusForListings
+  // tanımı) — imzayla ilgisiz, çünkü sonuç geldiğinde KENDİSİ zaten grid._renderedSig'i sıfırlayıp
+  // rlistings()'i tekrar çağırıyor. await EDİLMİYOR — ilk boyama asla bu yüzden beklemez.
+  resolveSellerStatusForListings(items);
   // PERFORMANS DÜZELTMESİ ("Pazar sekmesine her dönüşte kartlar/görseller yeniden yaratılıyordu"):
   // veri (ve dolayısıyla gösterilecek sonuç) bir önceki çizimle BİREBİR aynıysa DOM'a hiç
   // dokunulmuyor — sekmeler arası gidip-gelmede veya ilan detayından geri dönüşte, önbellekte
@@ -14680,11 +14740,11 @@ async function loadSellerCard(sellerUid, ownerName, mine, containerId) {
     const avEl = el.querySelector('.seller-card-lg-av');
     if (avEl && u.photoURL) avEl.outerHTML = `<img class="seller-card-lg-av" src="${avatarUrl(u.photoURL, ownerName, 112)}" alt="" loading="lazy" decoding="async">`;
     const badges = [];
-    if (isVipActive(u)) badges.push({t:'👑 VIP', trust:false});
-    if (isTrustedSellerActive(u)) badges.push({t:'🤝 Güvenilir Satıcı', trust:true});
-    if (u.adminVerified || u.emailVerified) badges.push({t:'✅ Doğrulanmış', trust:false});
+    if (isVipActive(u)) badges.push({t:'👑 VIP Üye', cls:'vip'});
+    if (isTrustedSellerActive(u)) badges.push({t:'🤝 Güvenilir Satıcı', cls:'trust'});
+    if (u.adminVerified || u.emailVerified) badges.push({t:'✅ Doğrulanmış', cls:''});
     const badgesEl = document.getElementById(`${containerId}-badges`);
-    if (badgesEl && badges.length) badgesEl.innerHTML = `<div class="seller-card-lg-badges">${badges.map(b=>`<span class="seller-badge${b.trust?' trust':''}">${b.t}</span>`).join('')}</div>`;
+    if (badgesEl && badges.length) badgesEl.innerHTML = `<div class="seller-card-lg-badges">${badges.map(b=>`<span class="seller-badge${b.cls?' '+b.cls:''}">${b.t}</span>`).join('')}</div>`;
   } catch(e) {
     const statsEl = document.getElementById(`${containerId}-stats`);
     if (statsEl) statsEl.textContent = '';
