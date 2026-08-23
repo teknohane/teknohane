@@ -5949,13 +5949,18 @@ async function openBoostRequestForm(listingId) {
   optsEl.innerHTML = `<div class="load" style="padding:10px 0"><div class="spin"></div></div>`;
   const l = currentListing && currentListing.id === listingId ? currentListing : await getListingById(listingId);
   if (!l) { optsEl.innerHTML = `<div class="no">İlan bulunamadı.</div>`; return; }
-  try {
-    const [snap] = await Promise.all([
-      db.collection('teknohane_boost_requests').where('listingId', '==', listingId).where('status', '==', 'pending').limit(10).get(),
-      loadVipStoreUsageIfNeeded(),
-    ]);
-    boostReqPendingTypes = new Set(snap.docs.map(d => d.data().boostType));
-  } catch(e) { boostReqPendingTypes = new Set(); }
+  // allSettled kasıtlı: sorgulardan biri reddedilirse diğerinin de (özellikle vipStoreUsageThisMonth'ı
+  // dolduran loadVipStoreUsageIfNeeded'in) sonuçlanmasını BEKLEMEDEN render'a geçmeyi önler — Promise.all
+  // kullanılsaydı ilk red tüm zinciri erken keserdi ve render, henüz güncellenmemiş (null) VIP hak
+  // durumuyla çalışırdı.
+  const [pendingRes, usageRes] = await Promise.allSettled([
+    // requesterUid filtresi GÜVENLİK KURALI gereği zorunlu: kural yalnızca "kendi talebini görebilir"
+    // dalını (resource.data.requesterUid==auth.uid) destekliyor, bu da sorgunun kendisinde de aynı
+    // alanla kısıtlanmasını gerektiriyor — yoksa Firestore list isteğinin tamamını reddediyor.
+    db.collection('teknohane_boost_requests').where('requesterUid', '==', user.uid).where('listingId', '==', listingId).where('status', '==', 'pending').limit(10).get(),
+    loadVipStoreUsageIfNeeded(),
+  ]);
+  boostReqPendingTypes = pendingRes.status === 'fulfilled' ? new Set(pendingRes.value.docs.map(d => d.data().boostType)) : new Set();
   renderBoostRequestOptions(l);
 }
 
