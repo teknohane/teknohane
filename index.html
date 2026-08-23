@@ -1114,6 +1114,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .pcover-progress{position:absolute;inset:0;background:rgba(0,4,15,.65);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:#fff;font-size:12px;font-weight:700;z-index:3;}
 .ep-photo-progress{position:absolute;inset:0;border-radius:50%;background:rgba(0,4,15,.65);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#fff;font-size:11px;font-weight:700;}
 .pav{width:92px;height:92px;border-radius:50%;object-fit:cover;border:3px solid var(--bg2);box-shadow:0 0 20px var(--cglow);margin:-46px auto 14px;display:block;position:relative;background:var(--surf);}
+/* VIP profil çerçevesi (vip_profile_frame entitlement'ı) — tek görsel dokunuş: altın kenarlık +
+   hafif parıltı. Ekranı sarıya boyamıyor, animasyon yok — spec'in "bağırmaz" ilkesine uygun. */
+.pav-vip{border-color:#FFD700;box-shadow:0 0 20px var(--cglow),0 0 0 2px rgba(255,215,0,.35);}
 .pav-edit-wrap{position:relative;width:90px;height:90px;margin:0 auto 16px;cursor:pointer;}
 .pav-edit-wrap img{width:90px;height:90px;border-radius:50%;object-fit:cover;border:3px solid var(--cyan);box-shadow:0 0 20px var(--cglow);display:block;}
 .pav-edit-badge{position:absolute;bottom:0;right:0;width:28px;height:28px;border-radius:50%;background:var(--cyan);display:flex;align-items:center;justify-content:center;border:2px solid var(--bg);}
@@ -3491,7 +3494,7 @@ function computeBadges(uid, profileData, isTargetAdmin, scoreInfo) {
     // Artık yalnızca e-posta doğrulamasıyla değil, admin onayıyla da (adminVerified) kazanılabiliyor.
     { id:'verified', icon:'✅', label:'Doğrulanmış Hesap', done: !!profileData.emailVerified || !!profileData.adminVerified },
     { id:'early-user', icon:'🚀', label:'Erken Kullanıcı', done: !!(joinedDate && joinedDate < EARLY_USER_CUTOFF) },
-    { id:'vip', icon:'💎', label:'VIP', done: isVipActive(profileData) },
+    { id:'vip', icon:'👑', label:'VIP', done: isVipActive(profileData) },
     { id:'trusted-seller', icon:'🤝', label:'Güvenilir Satıcı', done: isTrustedSellerActive(profileData) },
     // Rozet/VIP/Ayrıcalık Sistemi 2.0 (2026-08-23) — Arena sezon ödülleri. Süresiz (bir kez
     // kazanılınca kalıcı), worker'ın applyArenaSeasonReward() ile yazdığı arena*Count/arena*LastAt
@@ -3542,6 +3545,14 @@ function authorBadgesHTML(badges) {
   return `<span class="author-badge-icons">${badges.map(b => `<span class="author-badge-icon">${escapeHtml(b)}</span>`).join('')}</span>`;
 }
 
+// VIP + Güvenilir Satıcı — TEK merkezi görsel kaynak (VIP 2.0). Pazar kartı gibi denormalize alandan
+// (sellerVip/sellerTrustedSeller) okuyan yerler için — aynı iki ikonu her kartta ayrı ayrı yazmamak için.
+// VIP her zaman ÖNCE gösterilir (statü), Güvenilir Satıcı sonra (platform onayı) — sıra kasıtlı.
+function sellerVipTrustIconsHTML(vip, trusted) {
+  if (!vip && !trusted) return '';
+  return `${vip?' <span title="VIP Üye">👑</span>':''}${trusted?' <span title="Güvenilir Satıcı">🤝</span>':''}`;
+}
+
 // Gizlilik ayarlarını varsayılan değerlerle birlikte normalize eder (privacy alanı hiç yoksa hepsi açık kabul edilir).
 function getPrivacy(profileData) {
   const p = profileData.privacy || {};
@@ -3590,8 +3601,23 @@ function isTrustedSellerActive(profileData) {
 // "Premium"/"Arena Veteranı") eklendiğinde tek yapılması gereken ENTITLEMENT_SOURCES'a bir satır
 // eklemek — var olan hasEntitlement() çağrıları otomatik olarak doğru sonucu üretir.
 const ENTITLEMENT_SOURCES = {
-  vip: ['vip_profile_badge', 'vip_profile_frame', 'vip_arena_badge', 'advanced_arena_stats'],
+  vip: ['vip_profile_badge', 'vip_profile_frame', 'vip_arena_badge', 'advanced_arena_stats',
+    'vip_marketplace_badge', 'vip_community_badge'],
   trustedSeller: ['trusted_seller_badge', 'trusted_seller_listing_indicator'],
+};
+// VIP 2.0 — profildeki "VIP Ayrıcalıkların" listesi ve admin panelindeki VIP verme ekranı için TEK
+// insan-okunur kaynak. Her satır gerçekten UI'da karşılığı olan bir şey (uydurma vaat yok):
+// vip_profile_badge/frame → profil başlığı + avatar çerçevesi (rprof), vip_marketplace_badge →
+// Pazar kartı (mcardHTML sellerVip), vip_community_badge → forum/yorum/topluluk yazar rozeti
+// (computeAuthorBadgeIcons zaten 'vip' rozetini önceliklendiriyordu), vip_arena_badge → Arena lig
+// tablosu tacı, advanced_arena_stats → profildeki Gelişmiş Arena İstatistikleri kartı.
+const VIP_ENTITLEMENT_LABELS = {
+  vip_profile_badge: 'Profilinde VIP tacı',
+  vip_profile_frame: 'Özel profil görünümü',
+  vip_marketplace_badge: 'İlanlarında VIP satıcı göstergesi',
+  vip_community_badge: 'Toplulukta VIP rozeti',
+  vip_arena_badge: "Arena'da VIP tacı",
+  advanced_arena_stats: 'Gelişmiş Arena istatistikleri',
 };
 function getUserEntitlements(profileData) {
   const set = new Set();
@@ -3600,6 +3626,36 @@ function getUserEntitlements(profileData) {
   return set;
 }
 function hasEntitlement(profileData, key) { return getUserEntitlements(profileData).has(key); }
+
+// Profildeki "👑 VIP Üyelik" durum kartı — TEK doğruluk kaynağı (own-profile'da rprof() tarafından
+// çağrılıyor). VIP aktifse kalan süre/bitiş tarihi/kaynak + gerçek ayrıcalık listesi; değilse sade,
+// baskıcı olmayan bir bilgi notu (sahte "satın al" akışı YOK — Teknohane'de gerçek bir ücretli VIP
+// satın alma sistemi henüz yok, bu yüzden buton eklenmedi).
+function renderVipStatusCardHTML(profileData) {
+  const active = isVipActive(profileData);
+  if (!active) {
+    return `<div class="pbadge-card">
+      <div class="psec-title" style="margin-bottom:6px">VIP Üyelik</div>
+      <div class="no" style="padding:4px 0 2px;text-align:left">VIP kazanarak özel ayrıcalıkların kilidini aç.</div>
+    </div>`;
+  }
+  const expDate = profileData.vipExpiresAt?.toDate ? profileData.vipExpiresAt.toDate() : null;
+  const daysLeft = expDate ? Math.max(1, Math.ceil((expDate.getTime() - Date.now()) / 86400000)) : null;
+  const sourceLabel = profileData.vipSource === 'arena_season_reward' ? '🏆 Arena Sezon Ödülü'
+    : profileData.vipSource === 'admin' ? '🛡️ Yönetici Ödülü' : null;
+  const entitlements = getUserEntitlements(profileData);
+  const vipItems = ENTITLEMENT_SOURCES.vip.filter(k => entitlements.has(k));
+  return `<div class="pbadge-card">
+    <div class="psec-title" style="margin-bottom:6px">👑 VIP Üyelik</div>
+    <div style="font-size:13px;font-weight:700;color:#FFD700">Aktif${daysLeft?` · ${daysLeft} gün kaldı`:' · Süresiz'}</div>
+    ${expDate?`<div style="font-size:11.5px;color:var(--text3);margin-top:2px">Bitiş: ${expDate.toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric'})}</div>`:''}
+    ${sourceLabel?`<div style="font-size:11.5px;color:var(--text3);margin-top:2px">Kaynak: ${sourceLabel}</div>`:''}
+    <div style="font-size:12px;font-weight:700;margin-top:12px;margin-bottom:6px">VIP Ayrıcalıkların:</div>
+    <div style="display:flex;flex-direction:column;gap:5px">
+      ${vipItems.map(k=>`<div style="font-size:12px;color:var(--text2)"><span style="color:#3DDC97">✓</span> ${escapeHtml(VIP_ENTITLEMENT_LABELS[k]||k)}</div>`).join('')}
+    </div>
+  </div>`;
+}
 
 // Giriş yapıldığında (syncUserProfile içinden) çağrılır; banlıysa tam ekran engelleme ekranını açar.
 function checkBanStatus() {
@@ -3817,7 +3873,7 @@ function rprof() {
           </div>
         </div>
         <input type="file" id="cover-photo-input" accept="image/*" style="display:none" onchange="handleCoverPhoto(this)">
-        <img class="pav" src="${av}" onerror="this.onerror=null;this.src='${avFallback}'" alt="" loading="lazy" decoding="async">
+        <img class="pav${isVipActive(myProfileData)?' pav-vip':''}" src="${av}" onerror="this.onerror=null;this.src='${avFallback}'" alt="" loading="lazy" decoding="async">
         <div style="display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap">
           <span class="pname">${escapeHtml(user.displayName||'Kullanıcı')}</span>
           ${isAdmin?'<span class="admin-badge">ADMIN</span>':''}
@@ -3874,6 +3930,7 @@ function rprof() {
       </div>
       <div id="my-trust-card">${renderTrustCardHTML(0, 0, { trustedSeller: isTrustedSellerActive(myProfileData), verified: user.emailVerified||myProfileData.adminVerified, joinedYear, uid: user.uid, displayName: myProfileData.displayName||user.displayName||'Ben' })}</div>
       <div id="my-trust-reviews-raw" style="display:none"></div>
+      ${renderVipStatusCardHTML(myProfileData)}
       <button class="apbtn" onclick="openEditProfile()">✏️ Profili Düzenle</button>
       <div class="psec-title" style="margin-top:4px">⚡ Hızlı İşlemler</div>
       <div class="pqa-grid">
@@ -3924,6 +3981,7 @@ function rprof() {
       </div>
       <div class="pbadge-card" id="profile-arena-card"><div class="load"><div class="spin"></div></div></div>
       <div class="pbadge-card" id="profile-arena-category-card" style="display:none"></div>
+      <div class="pbadge-card" id="profile-arena-advanced-card" style="display:none"></div>
       <div class="psec-title" style="margin-top:4px">📂 İçeriklerim</div>
       <div class="profile-tabs">
         <div class="ptab${profileTab==='mine'?' on':''}" onclick="switchProfileTab('mine',this)">İlanlarım</div>
@@ -5219,6 +5277,7 @@ const NOTIF_TYPE_CATEGORY = {
   pool_accepted: 'market', pool_declined: 'market', pool_shipped: 'market', pool_completed: 'market', pool_cancelled: 'market', pool_payment_confirmed: 'market',
   offer_received: 'market', offer_response: 'market',
   boost_request: 'market', boost_approved: 'market', boost_rejected: 'market',
+  vip_expiry_reminder: 'system', vip_expiry_ended: 'system',
 };
 
 // fromUid/fromName/fromPhotoURL — OPSİYONEL aktör bilgisi (bildirimi tetikleyen kişi). Var olan
@@ -6307,6 +6366,8 @@ const NOTIF_ICONS = {
   boost_rejected: { ic: '❌', bg: 'rgba(255,69,58,.15)' },
   arena_league_started: { ic: '🏆', bg: 'rgba(255,204,0,.15)' },
   arena_season_result: { ic: '🏁', bg: 'rgba(255,204,0,.15)' },
+  vip_expiry_reminder: { ic: '👑', bg: 'rgba(255,215,0,.15)' },
+  vip_expiry_ended: { ic: '👑', bg: 'rgba(142,142,147,.15)' },
   followed_new_listing: { ic: '📦', bg: 'rgba(0,212,255,.12)' },
   mention: { ic: '📣', bg: 'rgba(0,212,255,.12)' },
   best_answer: { ic: '✓', bg: 'rgba(48,209,88,.15)' },
@@ -6772,6 +6833,11 @@ async function clickNotifGroup(idsCsv, listingId, wasUnread, postId, type, fromU
   } else if (type === 'seller_review') {
     // Değerlendireni anonimleştiren mesaj politikası gereği (bkz. notifyUser çağrısı) belirli bir
     // profile değil, yalnızca kendi Profil ekranına yönlendirilir.
+    closemo('notif-mo');
+    gt('profile');
+  } else if (type === 'vip_expiry_reminder' || type === 'vip_expiry_ended') {
+    // VIP 2.0 — "VIP ayrıcalıklarını görmek için profiline göz at": tıklanınca doğrudan yeni
+    // VIP Üyelik durum kartının (renderVipStatusCardHTML) bulunduğu Profil ekranına gider.
     closemo('notif-mo');
     gt('profile');
   }
@@ -9037,7 +9103,7 @@ function mcardHTML(l) {
         <div class="mcard-title">${l.category==='akillisaat'?'⌚ ':l.category==='kulaklik'?'🎧 ':listingEffectiveCategory(l)==='aksesuar'?(ACCESSORY_TYPE_ICON[listingEffectiveAccessoryType(l)]||'🎒')+' ':''}${escapeHtml(l.model)}</div>
         <div class="mcard-loc">📍 ${escapeHtml(l.location)||'Belirtilmedi'}${l.createdAt?.toDate?` · <span class="mcard-date">${timeAgo(l.createdAt.toDate())}</span>`:''}${remaining?` · <span class="mcard-date" style="color:${remaining.urgent?'var(--red)':'var(--text3)'}">${remaining.text}</span>`:''}</div>
         <div class="mcard-foot" onclick="event.stopPropagation()">
-          ${l.ownerName?`<div class="mcard-seller" onclick="openPublicProfile('${l.uid}','${escapeJsAttr(l.ownerName)}')"><span class="mcard-seller-name">${escapeHtml(l.ownerName)}${l.sellerTrustedSeller?' <span title="Güvenilir Satıcı">🤝</span>':''}</span>${mine?'<span class="mcard-seller-me">· Siz</span>':''}</div>`:'<span></span>'}
+          ${l.ownerName?`<div class="mcard-seller" onclick="openPublicProfile('${l.uid}','${escapeJsAttr(l.ownerName)}')"><span class="mcard-seller-name">${escapeHtml(l.ownerName)}${sellerVipTrustIconsHTML(l.sellerVip, l.sellerTrustedSeller)}</span>${mine?'<span class="mcard-seller-me">· Siz</span>':''}</div>`:'<span></span>'}
           <div class="mcard-qa">
             ${mine&&isListingExpired(l)&&!l.sold?`<div class="mcard-qa-btn" onclick="renewListing('${l.id}')" title="Yeniden Yayınla (30 Gün)" style="color:var(--cyan)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></div>`:''}
             ${mine?`<div class="mcard-qa-btn edit" onclick="editListing('${l.id}')" title="Düzenle"><svg viewBox="0 0 24 24" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg></div>`:''}
@@ -9734,6 +9800,7 @@ async function submitListing() {
       // bu da anlık bir kopya: rozet sonradan verilir/geri alınırsa ilan yeniden düzenlenene kadar
       // güncellenmez — mevcut ownerName denormalizasyonuyla AYNI, bilinçli kabul edilen sınır.
       data.sellerTrustedSeller = isTrustedSellerActive(myProfileData);
+      data.sellerVip = isVipActive(myProfileData);
       data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
       // İlan yaşam döngüsü: her yeni ilan 30 gün sonra otomatik olarak Pazar'dan gizlenir (bkz.
       // isListingExpired/rlistings). Süre dolunca sahibine bildirim gider, tek tuşla yeniden
@@ -12319,7 +12386,7 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
   body.innerHTML = `
     <div class="phero">
       <div class="pcover" style="${data.coverPhotoURL?`background-image:url('${data.coverPhotoURL}');background-size:cover;background-position:center;`:''}"></div>
-      <img class="pav" src="${av}" onerror="this.onerror=null;this.src='${avFallback}'" alt="">
+      <img class="pav${isVipActive(data)?' pav-vip':''}" src="${av}" onerror="this.onerror=null;this.src='${avFallback}'" alt="">
       <div class="pname">${escapeHtml(displayName)}${isMe?' (Sen)':''} ${isVipActive(data)?'<span class="vip-badge">👑 VIP</span>':''} ${isOnlineNow?'<span style="color:#3DDC97;font-size:12px;vertical-align:middle">●</span>':''}</div>
       ${data.username?`<div class="puname">@${escapeHtml(data.username)}</div>`:''}
       ${data.city?`<div class="puname" style="color:var(--text3)">📍 ${escapeHtml(data.city)}</div>`:''}
@@ -14492,7 +14559,7 @@ async function loadSellerCard(sellerUid, ownerName, mine, containerId) {
     const avEl = el.querySelector('.seller-card-lg-av');
     if (avEl && u.photoURL) avEl.outerHTML = `<img class="seller-card-lg-av" src="${avatarUrl(u.photoURL, ownerName, 112)}" alt="" loading="lazy" decoding="async">`;
     const badges = [];
-    if (isVipActive(u)) badges.push({t:'💎 VIP', trust:false});
+    if (isVipActive(u)) badges.push({t:'👑 VIP', trust:false});
     if (isTrustedSellerActive(u)) badges.push({t:'🤝 Güvenilir Satıcı', trust:true});
     if (u.adminVerified || u.emailVerified) badges.push({t:'✅ Doğrulanmış', trust:false});
     const badgesEl = document.getElementById(`${containerId}-badges`);
@@ -15161,9 +15228,43 @@ async function loadProfileArenaStats() {
         ${badges.map(b=>`<div class="pbadge-item earned" title="${escapeHtml(ARENA_BADGE_LABELS[b]||b)}"><div class="pbadge-ic">${(ARENA_BADGE_LABELS[b]||b).split(' ')[0]}</div><div class="pbadge-lbl">${escapeHtml((ARENA_BADGE_LABELS[b]||b).split(' ').slice(1).join(' '))}</div></div>`).join('')}
       </div>` : ''}`;
     renderProfileArenaCategoryStats(s.categoryStats || {});
+    renderProfileArenaAdvancedStats(myProfileData, s.categoryStats || {});
   } catch (e) {
     card.innerHTML = `<div class="psec-title">🎮 Arena</div><div class="no" style="padding:12px 0">Yüklenemedi.</div>`;
   }
+}
+
+// VIP 2.0 — "Gelişmiş Arena İstatistikleri" (advanced_arena_stats entitlement'ının ilk gerçek kullanımı).
+// EK bir Firestore okuması YOK: loadProfileArenaStats()'ın zaten çektiği categoryStats'tan toplam
+// doğru/yanlış türetiliyor, ilk-3 dereceleri de zaten bellekte olan myProfileData'dan (arena*Count —
+// Rozet/VIP/Ayrıcalık Sistemi 2.0'ın Arena sezon ödülü sayaçları). Yalnızca bu kart bu şekilde
+// çekiliyor; kullanıcı hiç Arena oynamadıysa loadProfileArenaStats() zaten erken dönüyor, bu yüzden
+// VIP olmayan bir kullanıcıya rastgele yerde agresif bir "VIP al" ekranı ÇIKMIYOR — yalnızca Arena
+// oynamış birine, tam bağlamında (Arena istatistikleri arasında) gösteriliyor.
+function renderProfileArenaAdvancedStats(profileData, categoryStats) {
+  const card = document.getElementById('profile-arena-advanced-card');
+  if (!card) return;
+  if (!hasEntitlement(profileData, 'advanced_arena_stats')) {
+    card.style.display = '';
+    card.innerHTML = `<div class="psec-title">👑 Gelişmiş Arena İstatistikleri</div>
+      <div class="no" style="padding:12px 0">🔒 VIP üyelik ile daha detaylı Arena performansını görüntüle.</div>`;
+    return;
+  }
+  const totalAnswered = Object.values(categoryStats).reduce((s,c)=>s+(c.answered||0),0);
+  const totalCorrectSum = Object.values(categoryStats).reduce((s,c)=>s+(c.correct||0),0);
+  const totalWrong = Math.max(0, totalAnswered - totalCorrectSum);
+  const champ = profileData.arenaChampionCount||0, second = profileData.arenaSecondCount||0, third = profileData.arenaThirdCount||0;
+  const podium = champ + second + third;
+  if (!totalAnswered && !podium) { card.style.display = 'none'; card.innerHTML = ''; return; }
+  card.style.display = '';
+  card.innerHTML = `
+    <div class="psec-title">👑 Gelişmiş Arena İstatistikleri</div>
+    <div class="pbadge-row" style="margin-bottom:${podium?'10':'0'}px">
+      <div class="pbadge-item"><div class="pbadge-ic" style="font-size:16px">🎯</div><div class="pbadge-lbl">${totalCorrectSum} Doğru</div></div>
+      <div class="pbadge-item"><div class="pbadge-ic" style="font-size:16px">❌</div><div class="pbadge-lbl">${totalWrong} Yanlış</div></div>
+      ${podium?`<div class="pbadge-item"><div class="pbadge-ic" style="font-size:16px">🏆</div><div class="pbadge-lbl">${podium}× İlk 3</div></div>`:''}
+    </div>
+    ${podium?`<div style="font-size:11.5px;color:var(--text2)">${champ?`🏆 Şampiyon ×${champ}  `:''}${second?`🥈 İkincilik ×${second}  `:''}${third?`🥉 Üçüncülük ×${third}`:''}</div>`:''}`;
 }
 
 // Aşama 4 — kategori bazlı istatistikler. Ayrı bir Firestore okuması YAPMIYOR: loadProfileArenaStats()
