@@ -15676,6 +15676,9 @@ const ARENA_LEAGUE_TIER_THEME = [
   { bg: 'linear-gradient(135deg,#7C3AED,#3B82F6)', text: '#FFFFFF' },   // Elmas
 ];
 function arenaLeagueTierTheme(tier) { return ARENA_LEAGUE_TIER_THEME[tier] ?? ARENA_LEAGUE_TIER_THEME[0]; }
+// KİŞİSEL REKABET DASHBOARD 5.0 — worker'daki LEAGUE_MATCH_DIFFICULTY_PLAN'ın (1 kolay+2 orta+2 zor)
+// toplam soru sayısıyla AYNI kalmalı — yalnızca "X/5 doğru" gösterimi için, puanlamaya karışmıyor.
+const ARENA_LEAGUE_MATCH_QUESTION_COUNT = 5;
 // Arena 3.0 — sezon sonu ödülleri GÖRÜNTÜLEME kopyası. Gerçek kaynak worker'daki
 // ARENA_SEASON_REWARD_VIP_DAYS (cloudflare-push-worker.js, applyArenaSeasonReward) — {1:30,2:15,3:7} —
 // burası yalnızca kullanıcıya "sezon şu an bitse ne kazanırım" göstermek için, ödülü GERÇEKTEN veren
@@ -16202,11 +16205,12 @@ async function rArenaHome() {
   }
 
   if (attempt?.status === 'completed') arenaResult = attempt;
-  // ARENA ANA EKRAN UX 4.0 — bilgi hiyerarşisi artık kesin sırayla: 1) SEVİYE, 2) LİG, 3) BUGÜNKÜ
-  // YARIŞMA (statusCard). Hiçbir kartın kendi içeriği/hesaplaması değişmedi — yalnızca DOM sırası
-  // değişti (nextActionCard, lig durumuna dair tamamlayıcı bir ipucu olduğu için lig+bugünkü yarışma
-  // ikilisinin hemen ardından, en sonda kalmaya devam ediyor).
-  body.innerHTML = levelCard + leagueSection + statusCard + nextActionCard;
+  // KİŞİSEL REKABET DASHBOARD 5.0 — bilgi hiyerarşisi kesin sırayla: 1) SEVİYE, 2) LİG,
+  // 3) KİŞİSEL REKABET DASHBOARD, 4) BUGÜNKÜ YARIŞMA (statusCard). dashboardSection yalnızca
+  // gerçekten kendi ligindeyken (isMyLeague) bir şey döner; katılmamış/sezon-aktif-değil
+  // durumlarında boş string (leagueSection zaten o durumları kendi tanıtım kartıyla karşılıyor).
+  const dashboardSection = (leagueData?.success === true) ? renderArenaPersonalDashboardHtml(leagueData, attempt) : '';
+  body.innerHTML = levelCard + leagueSection + dashboardSection + statusCard + nextActionCard;
   if (leagueData?.success === true) arenaLeagueStartCountdown(leagueData.leagueEndsAt, (leagueData.memberCount??0) >= (leagueData.capacity??10), 'arena-home-league-countdown');
   if (!attempt || attempt.status === 'not_started' || !attempt.status) arenaStartHomeQuizCountdown();
 }
@@ -16294,6 +16298,94 @@ function arenaHomeNextActionHtml(attempt, leagueData) {
     </div>`;
   }
   return '';
+}
+
+// KİŞİSEL REKABET DASHBOARD 5.0 — "sıra değişimi" için gerçek bir geçmiş rank gerekiyor, ama yeni bir
+// Firestore koleksiyonu/alanı AÇMADAN: bu CİHAZDA daha önce görülen GERÇEK rank değeri localStorage'da
+// tutulur (uid+seasonId+leagueId'ye göre anahtarlanır — aynı cihazda farklı hesap/lig karışmasın diye).
+// Geçmiş kayıt yoksa (ilk görüntüleme) fonksiyon boş döner — SAHTE bir "değişim" asla üretilmez.
+function arenaRankSnapKey(seasonId, leagueId) { return `tk_arena_rank_snap_${user?.uid || ''}_${seasonId}_${leagueId}`; }
+function arenaRankChangeHtml(seasonId, leagueId, currentRank) {
+  const key = arenaRankSnapKey(seasonId, leagueId);
+  let prev = null;
+  try { const raw = localStorage.getItem(key); if (raw) prev = JSON.parse(raw); } catch (e) {}
+  try { localStorage.setItem(key, JSON.stringify({ rank: currentRank, ts: Date.now() })); } catch (e) {}
+  if (!prev || typeof prev.rank !== 'number') return '';
+  if (prev.rank === currentRank) {
+    return `<div style="font-size:12.5px;color:var(--text2);margin-bottom:12px">━ Sıran değişmedi (#${currentRank})</div>`;
+  }
+  const improved = currentRank < prev.rank; // küçük rank değeri = daha iyi sıra
+  const delta = Math.abs(prev.rank - currentRank);
+  return `<div style="font-size:13px;font-weight:700;color:${improved?'#30D158':'#FF453A'};margin-bottom:12px">${improved?'▲':'▼'} #${prev.rank} → #${currentRank} — ${delta} sıra ${improved?'yükseldin':'geriledin'}</div>`;
+}
+
+// KİŞİSEL REKABET DASHBOARD 5.0 — SEVİYE → LİG'den hemen sonra, BUGÜNKÜ YARIŞMA'dan önce gösterilir
+// (bkz. rArenaHome). TAMAMEN zaten çekilmiş leagueData (arena-league-leaderboard) + attempt (günlük
+// quiz) verisinden türetilir — EK bir Firestore/worker isteği ATMAZ. Yalnızca kullanıcı GERÇEKTEN
+// kendi ligindeyken (isMyLeague) gösterilir; "Diğer Ligler" görüntüleme modunda kişisel veri yok,
+// kart hiç basılmaz (spec §14: "başka ligler için kişisel dashboard bilgileri gösterilmemeli").
+function renderArenaPersonalDashboardHtml(data, attempt) {
+  if (!data.isMyLeague) return '';
+  const members = data.members || [];
+  const totalM = members.length;
+  const isFull = (data.memberCount ?? 0) >= (data.capacity ?? 10) && totalM > 0;
+  const myIdx = members.findIndex(m => m.uid === user?.uid);
+  const myRank = data.userRank ?? (myIdx >= 0 ? myIdx + 1 : null);
+  const myScore = data.userLeagueScore ?? 0;
+  const sections = [];
+
+  // 1) BUGÜNKÜ PERFORMANS — yalnızca GERÇEKTEN tamamlanmış veri varsa (lig maçı ve/veya günlük
+  // yarışma); ikisi de tamamlanmadıysa bölüm TAMAMEN gizlenir (spec §4/§22: sahte "başarı oranı" ASLA).
+  const perfRows = [];
+  if (data.todayMatch?.status === 'completed') {
+    const tm = data.todayMatch;
+    const breakdown = (tm.totalBasePoints != null && tm.totalBonusPoints != null) ? ` <span style="color:var(--text3);font-weight:400">(🎯+${tm.totalBasePoints} ⚡+${tm.totalBonusPoints})</span>` : '';
+    perfRows.push(`<div style="font-size:12.5px"><b>🏆 Lig Maçı:</b> ${tm.correctCount!=null?`${tm.correctCount}/${ARENA_LEAGUE_MATCH_QUESTION_COUNT} doğru · `:''}+${tm.earnedScore ?? 0} puan${breakdown}</div>`);
+  }
+  if (attempt?.status === 'completed') {
+    const total = (attempt.correctCount||0) + (attempt.wrongCount||0);
+    const pct = total > 0 ? Math.round((attempt.correctCount||0) / total * 100) : null;
+    perfRows.push(`<div style="font-size:12.5px"><b>🎮 Günlük Yarışma:</b> ${attempt.correctCount||0} doğru, ${attempt.wrongCount||0} yanlış${pct!=null?` (%${pct})`:''} · +${attempt.totalScore||0} puan</div>`);
+  }
+  if (perfRows.length) {
+    sections.push(`<div style="margin-bottom:12px">
+      <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px">📊 BUGÜNKÜ PERFORMANSIN</div>
+      <div style="display:flex;flex-direction:column;gap:4px">${perfRows.join('')}</div>
+    </div>`);
+  }
+
+  // 2) SIRA DEĞİŞİMİ — yalnızca lig DOLUYKEN anlamlı (dolmadan rank, yeni üye katıldıkça oynar —
+  // "sıra değişimi" o zaman performansı değil roster değişimini yansıtır, yanıltıcı olur) VE bu
+  // cihazda gerçek bir önceki görüntüleme varsa (bkz. arenaRankChangeHtml).
+  if (isFull && myRank != null && user) {
+    const rc = arenaRankChangeHtml(data.seasonId, data.leagueId, myRank);
+    if (rc) sections.push(rc);
+  }
+
+  // 3) "KİME YAKINSIN" — mevcut leaderboard'daki komşu üyelerden (EK sorgu YOK, renderArenaHomeLeagueCardHtml'in
+  // neighborsHtml'iyle AYNI ham veri, yalnızca hedef-odaklı bir çerçevede tekrar sunuluyor).
+  if (isFull && myIdx >= 0) {
+    const above = myIdx > 0 ? members[myIdx-1] : null;
+    const below = myIdx < totalM-1 ? members[myIdx+1] : null;
+    const rows = [];
+    if (above) rows.push(`<div style="font-size:12.5px;margin-bottom:4px">🎯 <b>Sıradaki hedefin:</b> #${above.rank} ${escapeHtml(above.displayName||'Kullanıcı')} — ${Math.max(0,(above.leagueScore||0)-myScore)} puan uzağında. Onu geçersen #${above.rank} olursun.</div>`);
+    if (below) rows.push(`<div style="font-size:12.5px">🛡️ <b>Seni takip eden:</b> #${below.rank} ${escapeHtml(below.displayName||'Kullanıcı')} — ${Math.max(0,myScore-(below.leagueScore||0))} puan gerinde.</div>`);
+    if (rows.length) sections.push(`<div style="margin-bottom:12px">${rows.join('')}</div>`);
+  }
+
+  // 4) SONRAKİ HEDEF — bir üst küme, mevcut ARENA_LEAGUE_TIER_LABELS'ten (worker'daki gerçek tier
+  // sırasıyla AYNI dizi) — yeni bir terfi kuralı İCAT EDİLMİYOR, yalnızca zaten var olan sıralama okunuyor.
+  const tier = data.tier ?? 0;
+  sections.push(tier < ARENA_LEAGUE_TIER_LABELS.length - 1
+    ? `<div style="font-size:12px;color:var(--text2);margin-bottom:12px">🚀 <b>Sonraki hedefin:</b> ${ARENA_LEAGUE_TIER_LABELS[tier+1]} Lig — bu sezon terfi ederek ulaşabilirsin.</div>`
+    : `<div style="font-size:12px;color:var(--text2);margin-bottom:12px">👑 En üst kümedesin — Elmas Lig'de kalmak için sezon sonunda güvenli bölgede bitir.</div>`);
+
+  sections.push(`<div style="cursor:pointer" onclick="rArenaLeague()"><span style="font-size:12px;font-weight:700;color:var(--cyan)">🌍 Diğer Ligleri Gör →</span></div>`);
+
+  return `<div class="feat" style="padding:16px 18px;margin-bottom:14px">
+    <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--text3);margin-bottom:10px">📊 KİŞİSEL REKABET DASHBOARD</div>
+    ${sections.join('')}
+  </div>`;
 }
 
 // Ev ekranındaki zengin lig kartı — renderArenaLeagueScreen()'deki AYNI terfi/küme düşme bölge
@@ -17276,6 +17368,10 @@ function renderArenaLeagueMatchCardHtml(todayMatch, memberCount, capacity) {
       <div style="font-size:15px;font-weight:700;margin-bottom:10px">BUGÜNÜN LİG MAÇI TAMAMLANDI</div>
       <div style="font-size:12px;color:var(--text2)">Bugünkü skor</div>
       <div style="font-size:22px;font-weight:700;color:var(--cyan);margin-bottom:6px">+${todayMatch.earnedScore ?? 0} Lig Puanı</div>
+      ${(todayMatch.totalBasePoints != null && todayMatch.totalBonusPoints != null) ? `
+      <div style="display:flex;gap:14px;justify-content:center;font-size:11.5px;color:var(--text2);margin-bottom:8px">
+        <span>🎯 Temel: +${todayMatch.totalBasePoints}</span><span>⚡ Zaman Bonusu: +${todayMatch.totalBonusPoints}</span>
+      </div>` : ''}
       <div style="font-size:11px;color:var(--text3)">Yarın yeni maç seni bekliyor.</div>
     </div>`;
   }
