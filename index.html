@@ -2519,6 +2519,16 @@ body.tk-maintenance #maintenance-gate{
   </div>
 </div>
 
+<!-- VIP MAĞAZA 3.0 — mağaza sahibinin İLAN BAZINDA performans tablosu (bkz. openStoreStats). Yalnızca
+     zaten yüklü marketMineListings'ten (kendi ilanları, rules zaten yalnızca sahibine açık) render eder. -->
+<div class="mo" id="store-stats-mo" onclick="closemo('store-stats-mo')">
+  <div class="ms" onclick="event.stopPropagation()" style="max-height:85vh">
+    <div class="mh"></div>
+    <div class="mtit">📊 Mağaza İstatistikleri</div>
+    <div id="store-stats-body"></div>
+  </div>
+</div>
+
 <!-- PAZARLIK TEKLİFİ FORMU: alıcı fiyat teklifi + isteğe bağlı mesaj yazar, doğrudan satıcıya
      gider (bkz. submitOffer); satıcı kendi ilan detayında (det-offers-section) yanıtlar. -->
 <div class="mo" id="offer-mo" onclick="closemo('offer-mo')">
@@ -3869,8 +3879,10 @@ function renderVipStatusCardHTML(profileData) {
   const active = isVipActive(profileData);
   if (!active) {
     return `<div class="pbadge-card">
-      <div class="psec-title" style="margin-bottom:4px">👑 VIP Mağaza</div>
-      <div style="font-size:12.5px;color:var(--text2);line-height:1.5;margin-bottom:10px">İlanlarını profesyonel bir mağazada sergile, ücretsiz öne çıkarma ve yenileme haklarından yararlan.</div>
+      <div class="psec-title" style="margin-bottom:6px">👑 VIP Mağaza</div>
+      <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:10px">
+        ${['VIP ile profesyonel bir satıcı mağazan olur.','Mağazanda ilanlarını vitrine çıkar.','Her ay ücretsiz öne çıkarma ve yenileme haklarından yararlan.','Takipçilerin yeni ilanlarından haberdar olsun.','Satıcı performansını takip et.'].map(t=>`<div style="font-size:12px;color:var(--text2);line-height:1.4">✓ ${t}</div>`).join('')}
+      </div>
       <button class="sbtn2" style="width:auto;padding:8px 14px;font-size:12.5px;background:linear-gradient(135deg,#FFD700,#FFA500);color:#3a2600" onclick="openVipBenefits()">✨ VIP Avantajlarını Gör</button>
     </div>`;
   }
@@ -3908,20 +3920,27 @@ function renderVipStoreDashboardHTML(profileData, myListings) {
   const top = active.length ? [...active].sort((a,b) => (b.viewCount||0) - (a.viewCount||0))[0] : null;
   const usage = vipStoreUsageThisMonth || { boostsUsed: 0, refreshesUsed: 0 };
   const featuredIds = profileData.featuredListingIds || [];
+  const boostsLeft = Math.max(0, VIP_STORE_LIMITS.boosts - (usage.boostsUsed||0));
+  const refreshesLeft = Math.max(0, VIP_STORE_LIMITS.refreshes - (usage.refreshesUsed||0));
+  const followerCount = (profileData.followerUids || []).length;
+  const expDate = profileData.vipExpiresAt?.toDate ? profileData.vipExpiresAt.toDate() : null;
+  const daysLeft = expDate ? Math.max(1, Math.ceil((expDate.getTime() - Date.now()) / 86400000)) : null;
   return `<div class="pbadge-card">
     <div class="psec-title" style="margin-bottom:6px">🏪 VIP Mağazam${profileData.storeName?` — ${escapeHtml(profileData.storeName)}`:''}</div>
+    ${daysLeft && daysLeft <= 14 ? `<div style="font-size:11.5px;color:#FFA500;font-weight:700;margin-bottom:10px">⏳ VIP üyeliğin ${daysLeft} gün sonra sona eriyor.</div>` : ''}
     ${!listings.length ? `<div class="no" style="padding:4px 0 10px;text-align:left">Henüz hiç ilanın yok. Veri biriktikçe mağaza istatistiklerin burada görünecek.</div>` : `
     <div class="pbadge-row" style="margin-bottom:10px">
       <div class="pbadge-item"><div class="pbadge-ic" style="font-size:16px">📦</div><div class="pbadge-lbl">${active.length} aktif ilan</div></div>
       <div class="pbadge-item"><div class="pbadge-ic" style="font-size:16px">👁️</div><div class="pbadge-lbl">${totalViews} görüntülenme</div></div>
       <div class="pbadge-item"><div class="pbadge-ic" style="font-size:16px">❤️</div><div class="pbadge-lbl">${totalFavs} favori</div></div>
       <div class="pbadge-item"><div class="pbadge-ic" style="font-size:16px">💬</div><div class="pbadge-lbl">${totalContacts} mesaj</div></div>
+      <div class="pbadge-item"><div class="pbadge-ic" style="font-size:16px">👥</div><div class="pbadge-lbl">${followerCount} takipçi</div></div>
     </div>
     ${top ? `<div style="font-size:11.5px;color:var(--text2);margin-bottom:10px">🏆 En çok görüntülenen: <b>${escapeHtml(top.model||'İlan')}</b> (${top.viewCount||0} görüntülenme)</div>` : ''}`}
-    <div style="font-size:12px;font-weight:700;margin-bottom:6px">Bu Ay Ücretsiz Haklar</div>
+    <div style="font-size:12px;font-weight:700;margin-bottom:6px">Bu Ay VIP Hakların</div>
     <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:12px">
-      <div style="display:flex;justify-content:space-between;font-size:12px"><span>📌 Öne çıkarma</span><span style="color:var(--text2)">${usage.boostsUsed||0} / ${VIP_STORE_LIMITS.boosts} kullanıldı</span></div>
-      <div style="display:flex;justify-content:space-between;font-size:12px"><span>🔄 İlan yenileme</span><span style="color:var(--text2)">${usage.refreshesUsed||0} / ${VIP_STORE_LIMITS.refreshes} kullanıldı</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px"><span>📌 Öne çıkarma</span><span style="color:var(--text2)">${usage.boostsUsed||0}/${VIP_STORE_LIMITS.boosts} kullanıldı<span style="color:${boostsLeft?'#3DDC97':'var(--text3)'};margin-left:6px;font-weight:600">${boostsLeft?`· ${boostsLeft} hakkın kaldı`:'· hakkın kalmadı'}</span></span></div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px"><span>🔄 İlan yenileme</span><span style="color:var(--text2)">${usage.refreshesUsed||0}/${VIP_STORE_LIMITS.refreshes} kullanıldı<span style="color:${refreshesLeft?'#3DDC97':'var(--text3)'};margin-left:6px;font-weight:600">${refreshesLeft?`· ${refreshesLeft} hakkın kaldı`:'· hakkın kalmadı'}</span></span></div>
     </div>
     ${active.length ? `
     <div style="font-size:12px;font-weight:700;margin-bottom:6px">⭐ Öne Çıkan İlanlar <span style="color:var(--text3);font-weight:400">(${featuredIds.length}/3 seçildi, mağaza sayfanın üstünde gösterilir)</span></div>
@@ -3935,9 +3954,42 @@ function renderVipStoreDashboardHTML(profileData, myListings) {
       <button class="sbtn2" style="width:auto;padding:9px 16px;font-size:12.5px;background:linear-gradient(135deg,#FFD700,#FFA500);color:#3a2600;font-weight:700" onclick="openPublicProfile('${user?.uid||''}','${escapeJsAttr(profileData.storeName||profileData.displayName||'Mağazam')}')">🏪 Mağazamı Gör</button>
       <button class="sbtn2" style="width:auto;padding:9px 14px;font-size:12.5px" onclick="openEditProfile();document.getElementById('ep-store-fields')?.scrollIntoView({behavior:'smooth'})">✏️ Mağazamı Düzenle</button>
       <button class="sbtn2" style="width:auto;padding:9px 14px;font-size:12.5px;background:var(--surf2);color:var(--cyan)" onclick="shareProfile('${user?.uid||''}','${escapeJsAttr(profileData.storeName||profileData.displayName||'Mağazam')}')">🔗 Mağazamı Paylaş</button>
+      ${listings.length ? `<button class="sbtn2" style="width:auto;padding:9px 14px;font-size:12.5px;background:var(--surf2);color:var(--cyan)" onclick="openStoreStats()">📊 Mağaza İstatistikleri</button>` : ''}
       <button class="sbtn2" style="width:auto;padding:9px 14px;font-size:12.5px;background:var(--surf2);color:#FFD700" onclick="openVipBenefits()">✨ VIP Avantajlarım</button>
     </div>
   </div>`;
+}
+
+// VIP MAĞAZA 3.0 — İlan bazında performans tablosu. YENİ bir Firestore okuması YOK: marketMineListings
+// zaten "İlanlarım" sekmesi için yüklü (rules seviyesinde de yalnızca kendi ilanların — where('uid','
+// =='',user.uid) — bu yüzden başka satıcının bu detayları görmesi zaten mümkün değil, UI'da ayrıca bir
+// "gizleme" gerekmiyor, gerçek sınır zaten Rules'ta). En çok ilgi gören ilan en üstte.
+function renderStoreStatsHTML(myListings) {
+  const listings = [...(myListings||[])].filter(l => l.approved !== false)
+    .sort((a,b) => ((b.viewCount||0)+(b.favoritedByUids||[]).length*3+(b.contactCount||0)*2) - ((a.viewCount||0)+(a.favoritedByUids||[]).length*3+(a.contactCount||0)*2));
+  if (!listings.length) return `<div class="ud-empty">Henüz ilanın yok. İlan verince performans verileri burada görünecek.</div>`;
+  return listings.map(l => `
+    <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px">
+        <div style="font-weight:700;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">${escapeHtml(l.model||'İlan')}</div>
+        ${l.sold?'<span style="font-size:10.5px;color:var(--text3);flex-shrink:0">Satıldı</span>':''}
+      </div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;color:var(--text2);margin-bottom:4px">
+        <span>👁️ ${l.viewCount||0}</span>
+        <span>❤️ ${(l.favoritedByUids||[]).length}</span>
+        <span>💬 ${l.contactCount||0}</span>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${l.featured?'<span style="font-size:10px;color:#FFD700">⭐ Öne Çıkarılmış</span>':''}
+        ${l.urgent?'<span style="font-size:10px;color:#FF6B6B">🔥 Acil</span>':''}
+        ${l.showcase?'<span style="font-size:10px;color:var(--cyan)">📌 Vitrin</span>':''}
+      </div>
+    </div>`).join('');
+}
+function openStoreStats() {
+  const body = document.getElementById('store-stats-body');
+  if (body) body.innerHTML = renderStoreStatsHTML(marketMineLoaded ? marketMineListings : []);
+  document.getElementById('store-stats-mo')?.classList.add('on');
 }
 
 // Öne çıkan ilan seçimi — yalnızca KENDİ ilanları listesinde (renderVipStoreDashboardHTML zaten
@@ -9604,6 +9656,9 @@ async function loadVipStoreShowcaseIfNeeded() {
     renderVipStoreShowcase();
   } catch (e) { /* vitrin opsiyonel bir özellik — sessiz hata, Pazar'ın kendisini asla engellemez */ }
 }
+// VIP MAĞAZA 3.0 — vitrin kartı genişletildi: mağaza adı + satıcı adı + gerçek takipçi/ilan sayısı.
+// İkisi de teknohane_user_index'te ZATEN mevcut (followerCount toggleFollow'un batch'i, listingsCount
+// submitListing/performListingDelete tarafından senkronize ediliyor) — EK BİR SORGU YOK.
 function renderVipStoreShowcase() {
   const el = document.getElementById('vip-store-showcase');
   if (!el) return;
@@ -9612,12 +9667,21 @@ function renderVipStoreShowcase() {
     <div style="font-size:13px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px"><span>👑</span><span>VIP Mağazaları Keşfet</span></div>
     <div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch">
       ${vipStoreShowcaseUsers.slice(0, 10).map(u => `
-      <div style="flex-shrink:0;width:84px;text-align:center;cursor:pointer" onclick="openPublicProfile('${u.uid}','${escapeJsAttr(u.displayName||'Kullanıcı')}')">
-        <div style="width:56px;height:56px;border-radius:50%;margin:0 auto 5px;padding:2px;background:linear-gradient(135deg,#FFD700,#FFA500)">
-          <img src="${escapeHtml(avatarUrl(u.photoURL, u.displayName, 112))}" alt="" loading="lazy" decoding="async" style="width:100%;height:100%;border-radius:50%;object-fit:cover;border:2px solid var(--bg)" onerror="this.onerror=null;this.src='${escapeJsAttr(avatarUrl(null, u.displayName, 112))}'">
+      <div style="flex-shrink:0;width:148px;padding:10px;border-radius:12px;background:var(--surf);border:1px solid rgba(255,215,0,.25);cursor:pointer" onclick="openPublicProfile('${u.uid}','${escapeJsAttr(u.displayName||'Kullanıcı')}')">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <div style="width:36px;height:36px;border-radius:50%;flex-shrink:0;padding:2px;background:linear-gradient(135deg,#FFD700,#FFA500)">
+            <img src="${escapeHtml(avatarUrl(u.photoURL, u.displayName, 72))}" alt="" loading="lazy" decoding="async" style="width:100%;height:100%;border-radius:50%;object-fit:cover;border:2px solid var(--bg)" onerror="this.onerror=null;this.src='${escapeJsAttr(avatarUrl(null, u.displayName, 72))}'">
+          </div>
+          <div style="min-width:0;flex:1">
+            <div style="font-size:11px;font-weight:700;color:#FFD700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">👑 ${escapeHtml(u.storeName)}</div>
+            ${u.displayName && u.displayName !== u.storeName ? `<div style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(u.displayName)}</div>` : ''}
+          </div>
         </div>
-        <div style="font-size:10.5px;font-weight:700;color:#FFD700;margin-bottom:1px">🏪 VIP</div>
-        <div style="font-size:10.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(u.storeName)}</div>
+        <div style="display:flex;gap:8px;font-size:10.5px;color:var(--text2)">
+          <span>👥 ${u.followerCount||0}</span>
+          <span>📦 ${u.listingsCount||0}</span>
+          ${isTrustedSellerActive(u) ? '<span>🤝</span>' : ''}
+        </div>
       </div>`).join('')}
     </div>
   </div>`;
@@ -10318,6 +10382,9 @@ async function submitListing() {
       // koleksiyonu tarayarak değil (bkz. rAdminUsers), bu sayaçtan okuyor. NOT (dürüstlük): bu alan
       // eklenmeden ÖNCE oluşturulmuş ilanlar sayılmaz — geriye dönük taşıma bu oturumun kapsamı dışında.
       db.collection('teknohane_users').doc(user.uid).set({ listingsCount: firebase.firestore.FieldValue.increment(1) }, { merge: true }).catch(()=>{});
+      // VIP MAĞAZA 3.0 — "📦 N ilan" Keşfet vitrininde gösterebilmek için AYNI sayacın herkese açık
+      // teknohane_user_index'teki görüntüleme kopyası (self-write, rules'ta zaten izinli alan listesi).
+      db.collection('teknohane_user_index').doc(user.uid).set({ listingsCount: firebase.firestore.FieldValue.increment(1) }, { merge: true }).catch(()=>{});
       notifyAdminsNewListing(newListingRef.id, model, data.ownerName); // uygulama kapalı olsa bile ilgili adminlere anlık push
       // VIP Mağaza Takip 2.0 — AYNI "fire-and-forget" desen (üstteki notifyAdminsNewListing gibi await
       // EDİLMİYOR): ilan oluşturma başarıyla BİTTİ, bundan sonrası (gerçek VIP kontrolü, takipçi
@@ -11137,6 +11204,7 @@ async function performListingDelete(id) {
     marketRefListings = marketRefListings.filter(x => x.id !== id);
     adminListingsCache = adminListingsCache.filter(x => x.id !== id);
     if (l?.uid) db.collection('teknohane_users').doc(l.uid).set({ listingsCount: firebase.firestore.FieldValue.increment(-1) }, { merge: true }).catch(()=>{});
+    if (l?.uid && l.uid === user?.uid) db.collection('teknohane_user_index').doc(l.uid).set({ listingsCount: firebase.firestore.FieldValue.increment(-1) }, { merge: true }).catch(()=>{});
     if (isAdminModeration) adminLog('delete_listing', 'listing', id, l?.model || id, l, null);
     rlistings();
   } catch(e) {
@@ -12950,25 +13018,16 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
       const followerCount = (data.followerUids || []).length;
       const activeCount = userListings.length;
       const featuredIds = data.featuredListingIds || [];
-      const preview = !privacy.hideListings ? (featuredIds.length ? userListings.filter(l => featuredIds.includes(l.id)) : userListings.slice(0, 3)) : [];
-      const remaining = Math.max(0, activeCount - preview.length);
       const bothBadges = isVipActive(data) && isTrustedSellerActive(data);
-      return `
-    <div class="pbadge-card" id="pub-store-section" style="border:1px solid rgba(255,215,0,.25)">
-      <div class="psec-title" style="margin-bottom:2px">🏪 VIP Mağaza</div>
-      <div style="font-size:16px;font-weight:700;color:#FFD700;margin-bottom:2px">${escapeHtml(data.storeName || displayName)}</div>
-      ${data.storeDescription ? `<div style="font-size:12px;color:var(--text2);margin-bottom:8px;line-height:1.5">${escapeHtml(data.storeDescription)}</div>` : ''}
-      <div style="font-size:12.5px;color:var(--text2);margin-bottom:12px">👥 ${followerCount} takipçi · 📦 ${activeCount} aktif ilan</div>
-      ${bothBadges ? `<div style="font-size:11.5px;color:#3DDC97;margin-bottom:12px">🤝 Teknohane tarafından doğrulanmış satıcı</div>` : ''}
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
-        <button class="sbtn2" style="width:auto;padding:9px 16px;font-size:12.5px;background:linear-gradient(135deg,#FFD700,#FFA500);color:#3a2600;font-weight:700" onclick="document.getElementById('pub-store-listings')?.scrollIntoView({behavior:'smooth'})">🏪 Mağazayı Gör</button>
-        ${!isMe
-          ? `<button class="sbtn2" id="pub-store-follow-btn" style="width:auto;padding:9px 16px;font-size:12.5px;background:var(--surf2);color:${isFollowingUser?'var(--cyan)':'var(--text)'}" onclick="toggleFollow('${uid}')">${isFollowingUser?'✓ Takip Ediliyor':'＋ Mağazayı Takip Et'}</button>`
-          : `<button class="sbtn2" style="width:auto;padding:9px 16px;font-size:12.5px;background:var(--surf2);color:var(--cyan)" onclick="closemo('pub-profile-mo');gt('profile')">🏪 Mağazanı Yönet</button>`}
-      </div>
-      <div id="pub-store-listings">
-        <div style="font-size:12px;font-weight:700;margin-bottom:8px">📦 Mağazadan İlanlar</div>
-        ${!preview.length ? `<div class="ud-empty">🏪 Mağaza hazır<br><span style="font-size:12px;color:var(--text3)">Bu satıcı henüz aktif bir ilan yayınlamadı.</span></div>` : preview.map(l => `
+      const joinedStoreStr = data.createdAt?.toDate ? data.createdAt.toDate().toLocaleDateString('tr-TR',{month:'long',year:'numeric'}) : null;
+
+      // VIP MAĞAZA 3.0 — vitrin artık TEK bir karışık liste değil, gerçek veriden 3 ayrı bölüm:
+      // ⭐ Öne Çıkan (sahibinin seçtiği, en fazla 3 — VIP_STORE_LIMITS ile aynı sınır), 🆕 Yeni
+      // (createdAt'e göre, zaten yüklü userListings'ten — EK SORGU YOK), 🔥 Popüler (yalnızca GERÇEK
+      // etkileşim sinyali varsa — viewCount/favori — hiçbiri yoksa bu bölüm TAMAMEN gizlenir, sahte
+      // "popüler" asla üretilmez, spec §2'nin açık talimatı). Bir ilan birden fazla bölümde TEKRAR
+      // etmez (Set'lerle dışlanıyor).
+      const listingCardHtml = (l) => `
         <div class="pub-listing-card" onclick="closemo('pub-profile-mo');openDetail('${l.id}')" style="border-color:rgba(255,215,0,.3)">
           <div class="pub-listing-img">${l.photo1 ? `<img src="${l.photo1Thumb||l.photo1}" alt="" style="width:100%;height:100%;border-radius:8px;object-fit:cover" loading="lazy" decoding="async">` : '📱'}</div>
           <div class="pub-listing-info">
@@ -12976,13 +13035,47 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
             <div class="pub-listing-price">₺${parseInt(l.price||0).toLocaleString('tr-TR')} · ${escapeHtml(l.condition)}</div>
           </div>
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text3)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-        </div>`).join('')}
-        ${remaining ? `<div style="text-align:center;margin-top:6px"><span onclick="document.getElementById('pub-listings-section')?.scrollIntoView({behavior:'smooth'})" style="font-size:12.5px;color:var(--cyan);cursor:pointer;font-weight:600">${remaining} ilanı daha gör →</span></div>` : ''}
+        </div>`;
+      const shownListings = !privacy.hideListings ? userListings : [];
+      const featuredListings = shownListings.filter(l => featuredIds.includes(l.id)).slice(0, 3);
+      const featuredIdSet = new Set(featuredListings.map(l => l.id));
+      const newListings = [...shownListings].filter(l => !featuredIdSet.has(l.id))
+        .sort((a,b) => (b.createdAt?.toMillis ? b.createdAt.toMillis() : 0) - (a.createdAt?.toMillis ? a.createdAt.toMillis() : 0)).slice(0, 3);
+      const newIdSet = new Set(newListings.map(l => l.id));
+      const hasEngagementSignal = shownListings.some(l => (l.viewCount||0) > 0 || (l.favoritedByUids||[]).length > 0);
+      const popularListings = hasEngagementSignal
+        ? [...shownListings].filter(l => !featuredIdSet.has(l.id) && !newIdSet.has(l.id) && ((l.viewCount||0) > 0 || (l.favoritedByUids||[]).length > 0))
+            .sort((a,b) => ((b.viewCount||0) + (b.favoritedByUids||[]).length*3) - ((a.viewCount||0) + (a.favoritedByUids||[]).length*3)).slice(0, 3)
+        : [];
+      const shownCount = featuredListings.length + newListings.length + popularListings.length;
+      const remaining = Math.max(0, activeCount - shownCount);
+      return `
+    <div class="pbadge-card" id="pub-store-section" style="border:1px solid rgba(255,215,0,.25)">
+      <div class="psec-title" style="margin-bottom:2px">🏪 VIP Mağaza</div>
+      <div style="font-size:16px;font-weight:700;color:#FFD700;margin-bottom:2px">${escapeHtml(data.storeName || displayName)}</div>
+      ${data.storeDescription ? `<div style="font-size:12px;color:var(--text2);margin-bottom:8px;line-height:1.5">${escapeHtml(data.storeDescription)}</div>` : ''}
+      <div style="font-size:12.5px;color:var(--text2);margin-bottom:4px">👥 ${followerCount} takipçi · 📦 ${activeCount} aktif ilan</div>
+      ${joinedStoreStr ? `<div style="font-size:11.5px;color:var(--text3);margin-bottom:12px">📅 Teknohane'ye katılım: ${joinedStoreStr}</div>` : '<div style="margin-bottom:8px"></div>'}
+      ${bothBadges ? `<div style="font-size:11.5px;color:#3DDC97;margin-bottom:12px">🤝 Teknohane tarafından doğrulanmış satıcı</div>` : ''}
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+        <button class="sbtn2" style="width:auto;padding:9px 16px;font-size:12.5px;background:linear-gradient(135deg,#FFD700,#FFA500);color:#3a2600;font-weight:700" onclick="document.getElementById('pub-store-listings')?.scrollIntoView({behavior:'smooth'})">🏪 Mağazayı Gör</button>
+        ${!isMe
+          ? `<button class="sbtn2" id="pub-store-follow-btn" style="width:auto;padding:9px 16px;font-size:12.5px;background:var(--surf2);color:${isFollowingUser?'var(--cyan)':'var(--text)'}" onclick="toggleFollow('${uid}')">${isFollowingUser?'✓ Takip Ediliyor':'＋ Mağazayı Takip Et'}</button>`
+          : `<button class="sbtn2" style="width:auto;padding:9px 16px;font-size:12.5px;background:var(--surf2);color:var(--cyan)" onclick="closemo('pub-profile-mo');gt('profile')">🏪 Mağazanı Yönet</button>
+          <button class="sbtn2" style="width:auto;padding:9px 16px;font-size:12.5px;background:var(--surf2);color:var(--text)" onclick="document.getElementById('pub-store-qr-wrap').style.display=document.getElementById('pub-store-qr-wrap').style.display==='none'?'block':'none'">📱 Mağaza QR</button>`}
+      </div>
+      ${isMe ? `<div id="pub-store-qr-wrap" style="display:none;margin-bottom:14px;text-align:center"><img src="${qrUrl}" alt="Mağaza QR kodu" style="width:120px;height:120px;border-radius:12px;border:1px solid var(--border)"></div>` : ''}
+      <div id="pub-store-listings">
+        ${!shownCount ? `<div style="font-size:12px;font-weight:700;margin-bottom:8px">📦 Mağazadan İlanlar</div><div class="ud-empty">🏪 Mağaza hazır<br><span style="font-size:12px;color:var(--text3)">Bu satıcı henüz aktif bir ilan yayınlamadı.</span></div>` : `
+        ${featuredListings.length ? `<div style="font-size:12px;font-weight:700;margin-bottom:8px">⭐ Öne Çıkan İlanlar</div>${featuredListings.map(listingCardHtml).join('')}` : ''}
+        ${newListings.length ? `<div style="font-size:12px;font-weight:700;margin:${featuredListings.length?'14px':'0'} 0 8px">🆕 Yeni İlanlar</div>${newListings.map(listingCardHtml).join('')}` : ''}
+        ${popularListings.length ? `<div style="font-size:12px;font-weight:700;margin:14px 0 8px">🔥 Popüler İlanlar</div>${popularListings.map(listingCardHtml).join('')}` : ''}
+        ${remaining ? `<div style="text-align:center;margin-top:6px"><span onclick="document.getElementById('pub-listings-section')?.scrollIntoView({behavior:'smooth'})" style="font-size:12.5px;color:var(--cyan);cursor:pointer;font-weight:600">${remaining} ilanı daha gör →</span></div>` : ''}`}
       </div>
       <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
         <div style="font-size:11.5px;font-weight:700;margin-bottom:6px;color:var(--text2)">👑 VIP Mağaza Avantajları</div>
         <div style="display:flex;flex-direction:column;gap:3px">
-          ${['Profesyonel mağaza','Takipçi kazanma','Yeni ilanlarda takipçilere bildirim','Ücretsiz aylık öne çıkarma hakları','Ücretsiz ilan yenileme hakları','Gelişmiş satıcı istatistikleri'].map(t=>`<div style="font-size:11px;color:var(--text3)"><span style="color:#3DDC97">✓</span> ${t}</div>`).join('')}
+          ${['Profesyonel mağaza','Takipçi kazanma','Yeni ilanlarda takipçilere bildirim',`Ücretsiz aylık ${VIP_STORE_LIMITS.boosts} öne çıkarma hakkı`,`Ücretsiz aylık ${VIP_STORE_LIMITS.refreshes} ilan yenileme hakkı`,'En fazla 3 öne çıkan ilan','Gelişmiş satıcı istatistikleri'].map(t=>`<div style="font-size:11px;color:var(--text3)"><span style="color:#3DDC97">✓</span> ${t}</div>`).join('')}
         </div>
       </div>
     </div>`;
@@ -13123,6 +13216,12 @@ async function toggleFollow(uid) {
     batch.update(db.collection('teknohane_users').doc(uid), {
       followerUids: isFollowing ? firebase.firestore.FieldValue.arrayRemove(user.uid) : firebase.firestore.FieldValue.arrayUnion(user.uid),
     });
+    // VIP MAĞAZA 3.0 — "👥 N takipçi" Keşfet vitrininde gösterebilmek için AYNI batch'e eklenen bir
+    // 3. yazma: teknohane_user_index (herkese açık, salt-okunur) üzerindeki followerCount ters-indeks
+    // sayacı — firestore.rules'ta ±1 sınırlı ayrı bir dalı var (followerUids'le AYNI güvenlik ilkesi).
+    batch.set(db.collection('teknohane_user_index').doc(uid), {
+      followerCount: firebase.firestore.FieldValue.increment(isFollowing ? -1 : 1),
+    }, { merge: true });
     await batch.commit();
     myProfileData.followingUids = updated;
     if (!isFollowing) {
@@ -15133,7 +15232,10 @@ async function loadSellerCard(sellerUid, ownerName, mine, containerId) {
     const listingCount = listingCountVal ?? 0;
     const u = userSnap.exists ? userSnap.data() : {};
     const statsEl = document.getElementById(`${containerId}-stats`);
-    if (statsEl) statsEl.textContent = `${ratingText} · ${listingCount} ilan`;
+    // VIP MAĞAZA 3.0 — VIP mağazası olan satıcıda takipçi sayısı da gösterilir (userSnap zaten
+    // çekilmiş, ek okuma yok — followerUids hedefin KENDİ dokümanında).
+    const followerSuffix = hasEntitlement(u, 'vip_marketplace_store') ? ` · 👥 ${(u.followerUids||[]).length} takipçi` : '';
+    if (statsEl) statsEl.textContent = `${ratingText} · ${listingCount} ilan${followerSuffix}`;
     // Profil fotoğrafı — zaten çekilmiş userSnap'ten, ekstra okuma yok. Uygulamanın her yerinde
     // kullanılan aynı avatarUrl() yardımcısıyla (isim bazlı yedek dahil) üretiliyor.
     const avEl = el.querySelector('.seller-card-lg-av');
