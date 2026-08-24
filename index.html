@@ -1651,6 +1651,8 @@ body.tk-maintenance #maintenance-gate{
         <div class="filter-brands" id="filter-conditions"></div>
         <label class="fl" style="margin:14px 0 8px;display:block">Sırala</label>
         <div class="filter-brands" id="filter-sort"></div>
+        <label class="fl" style="margin:14px 0 8px;display:block">Satıcı</label>
+        <div class="filter-brands" id="filter-seller-trust"></div>
         <div class="filter-actions">
           <button class="filter-apply" onclick="applyFilters()">Uygula</button>
           <button class="filter-clear" onclick="clearFilters()">Temizle</button>
@@ -4439,6 +4441,11 @@ function rprof() {
         <div class="psec-title">🔔 Bildirim Tercihleri</div>
         <div class="pacc-row" style="align-items:center"><span class="pacc-lbl">Takip Ettiklerimin Yeni İlanları</span><div class="ptoggle${myProfileData.notifyFollowedListings?' on':''}" onclick="toggleNotifyFollowedListings()"></div></div>
         <div class="pacc-row" style="align-items:center"><span class="pacc-lbl">🏪 Takip Ettiğim Mağazalardan Yeni İlanlar</span><div class="ptoggle${myProfileData.notifyStoreFollows!==false?' on':''}" onclick="toggleNotifyStoreFollows()"></div></div>
+        <div class="pacc-row" style="align-items:center"><span class="pacc-lbl">🏆 Arena (lig, terfi/düşme, sezon sonucu)</span><div class="ptoggle${myProfileData.notifyArenaEvents!==false?' on':''}" onclick="toggleNotifyPref('notifyArenaEvents','Arena bildirimlerini tekrar alacaksın.')"></div></div>
+        <div class="pacc-row" style="align-items:center"><span class="pacc-lbl">🛒 Pazar (fiyat düşüşü, ilan durumu)</span><div class="ptoggle${myProfileData.notifyPazarEvents!==false?' on':''}" onclick="toggleNotifyPref('notifyPazarEvents','Pazar bildirimlerini tekrar alacaksın.')"></div></div>
+        <div class="pacc-row" style="align-items:center"><span class="pacc-lbl">💬 Topluluk (yanıt, mention)</span><div class="ptoggle${myProfileData.notifyTopluluk!==false?' on':''}" onclick="toggleNotifyPref('notifyTopluluk','Topluluk bildirimlerini tekrar alacaksın.')"></div></div>
+        <div class="pacc-row" style="align-items:center"><span class="pacc-lbl">👑 VIP (süre, ödül, avantaj)</span><div class="ptoggle${myProfileData.notifyVipEvents!==false?' on':''}" onclick="toggleNotifyPref('notifyVipEvents','VIP bildirimlerini tekrar alacaksın.')"></div></div>
+        <div class="pacc-row" style="align-items:center"><span class="pacc-lbl">🔐 Sistem (güvenlik, hesap)</span><span style="font-size:11px;color:var(--text3)">Her zaman açık</span></div>
       </div>
       <div class="psec-title" style="margin-top:4px">⚙️ Ayarlar</div>
       ${pushPanelHTML()}
@@ -5364,6 +5371,25 @@ async function toggleNotifyStoreFollows() {
   } catch(e) { showErrorToast(e); }
 }
 
+// AKILLI BİLDİRİM MERKEZİ 3.0 — notifyStoreFollows ile AYNI desen (varsayılan AÇIK, kapatma false
+// YAZAR, açma alanı SİLER) — dört yeni kategori bunun üzerinden tekrar kod yazmadan eklendi. Sunucu
+// tarafı zorlama: worker zaten hedef kullanıcının TAM dokümanını okuduğu noktalarda (Arena olay
+// dispatch'i, VIP süresi hatırlatması) bu alanları EK MALİYETSİZ kontrol ediyor — bkz.
+// cloudflare-push-worker.js. Pazar/Topluluk toggle'ları şu an yalnızca istemci tarafında saklanıyor;
+// worker'ın ilgili dispatch noktalarına bağlanması ayrı bir turda yapılacak (dürüstçe: bu ikisi henüz
+// sunucu tarafında zorlanmıyor).
+async function toggleNotifyPref(field, onMsg, offMsg) {
+  if (!user) return;
+  const currentlyOn = myProfileData[field] !== false;
+  const updated = !currentlyOn;
+  try {
+    await db.collection('teknohane_users').doc(user.uid).set({ [field]: updated ? firebase.firestore.FieldValue.delete() : false }, { merge: true });
+    myProfileData[field] = updated ? undefined : false;
+    rprof();
+    showToast('✓', 'rgba(48,209,88,.15)', 'Kaydedildi', updated ? onMsg : (offMsg || 'Bu bildirim türü kapatıldı.'));
+  } catch(e) { showErrorToast(e); }
+}
+
 async function changePassword() {
   if (!user) return;
   const errEl = document.getElementById('ep-pass-err');
@@ -5751,6 +5777,7 @@ const NOTIF_TYPE_CATEGORY = {
   new_follower: 'followers',
   new_referrer: 'referrals',
   price_drop: 'market', listing_favorited: 'market', seller_review: 'market', listing_expired: 'market',
+  listing_sold_favorited: 'market', listing_deleted_favorited: 'market',
   listing_approved: 'market', listing_rejected: 'market', saved_search_match: 'market',
   listing_question: 'market', listing_question_answered: 'market', followed_new_listing: 'followers',
   post_liked: 'forum', post_comment: 'forum', comment_liked: 'forum', comment_reply: 'forum',
@@ -6923,6 +6950,8 @@ let unsubNotifBadge = null;
 const NOTIF_ICONS = {
   price_drop: { ic: '💰', bg: 'rgba(48,209,88,.15)' },
   listing_favorited: { ic: '❤️', bg: 'rgba(255,69,58,.12)' },
+  listing_sold_favorited: { ic: '🔴', bg: 'rgba(255,69,58,.12)' },
+  listing_deleted_favorited: { ic: '🗑️', bg: 'rgba(142,142,147,.15)' },
   new_referrer: { ic: '🤝', bg: 'rgba(255,149,0,.15)' },
   seller_review: { ic: '⭐', bg: 'rgba(255,204,0,.15)' },
   post_liked: { ic: '👍', bg: 'rgba(0,212,255,.12)' },
@@ -9224,10 +9253,21 @@ let filterMin = '', filterMax = '', filterBrand = 'Tümü';
 // "Durum" (Sıfır/Az Kullanılmış/İkinci El) filtresi ve kullanıcı seçimli sıralama (en yeni/fiyat
 // artan/fiyat azalan) eklendi — ikisi de tamamen istemci tarafında, ek Firestore okuması yok.
 let filterCondition = 'Tümü', filterSort = 'yeni';
+// PAZAR 3.0 — satıcı güveni filtreleri. l.sellerVip/l.sellerTrustedSeller ilan OLUŞTURULMA anında
+// denormalize edilen GERÇEK alanlar (mcardHTML'in rozet gösteriminde zaten kullandığı AYNI alanlar —
+// sellerBadgesForListing), l.poolSystem zaten var olan gerçek bir ilan alanı. Hiçbiri uydurulmadı,
+// hiçbiri yeni bir Firestore sorgusu/index gerektirmiyor (istemci tarafında, zaten yüklü sayfa üzerinde).
+// NOT: bare `let` üst-seviye script değişkenleri window.* olarak erişilemez (yalnızca `var` öyle
+// davranır) — bu yüzden dinamik anahtarla toggle edilebilmesi için GERÇEK bir obje kullanılıyor.
+let filterSellerTrust = { vip: false, trustedSeller: false, poolSystem: false };
 
 const MARKET_BRANDS = ['Tümü','Apple','Samsung','Xiaomi','Google','OnePlus','OPPO','vivo','Nothing','Sony','Motorola','realme','ASUS','Huawei','Honor'];
 const MARKET_CONDITIONS = ['Tümü','Sıfır','Az Kullanılmış','İkinci El'];
-const MARKET_SORTS = [{v:'yeni',l:'En Yeni'},{v:'price_asc',l:'Fiyat: Artan'},{v:'price_desc',l:'Fiyat: Azalan'}];
+// PAZAR 3.0 — "en çok favorilenen"/"en çok görüntülenen" GERÇEK sayaçlardan (favoritedByUids.length/
+// viewCount, ikisi de zaten var olan alanlar — VIP mağaza istatistiklerinde de kullanılıyor).
+// "Fiyatı düşenler" YALNIZCA gerçek priceHistory verisi olan ilanları öne alır (bkz. rlistings) —
+// geçmişi olmayan ilan için sahte bir "düştü" iddiası ASLA üretilmez.
+const MARKET_SORTS = [{v:'yeni',l:'En Yeni'},{v:'price_asc',l:'Fiyat: Artan'},{v:'price_desc',l:'Fiyat: Azalan'},{v:'most_favorited',l:'En Çok Favorilenen'},{v:'most_viewed',l:'En Çok Görüntülenen'},{v:'price_drop',l:'Fiyatı Düşenler'}];
 
 function toggleFilterPanel() {
   const panel = document.getElementById('filter-panel');
@@ -9244,9 +9284,19 @@ function toggleFilterPanel() {
     document.getElementById('filter-sort').innerHTML = MARKET_SORTS.map(s =>
       `<button class="bf ${s.v===filterSort?'on':'off'}" onclick="setFilterSort('${s.v}',this)">${s.l}</button>`
     ).join('');
+    document.getElementById('filter-seller-trust').innerHTML = [
+      { k: 'vip', label: '👑 VIP' }, { k: 'trustedSeller', label: '🤝 Güvenilir Satıcı' }, { k: 'poolSystem', label: '🛡️ Havuz Sistemi' },
+    ].map(o => `<button class="bf ${filterSellerTrust[o.k]?'on':'off'}" onclick="toggleSellerTrustFilter('${o.k}',this)">${o.label}</button>`).join('');
     document.getElementById('f-min').value = filterMin;
     document.getElementById('f-max').value = filterMax;
   }
+}
+
+// PAZAR 3.0 — VIP/Güvenilir Satıcı/Havuz Sistemi filtreleri birbirini DIŞLAMIYOR (birden fazlası
+// birlikte açılabilir, hepsi AND ile birleşiyor — rlistings'te uygulanıyor).
+function toggleSellerTrustFilter(key, el) {
+  filterSellerTrust[key] = !filterSellerTrust[key];
+  el.className = filterSellerTrust[key] ? 'bf on' : 'bf off';
 }
 
 function setFilterBrand(b, el) {
@@ -9267,7 +9317,8 @@ function setFilterSort(v, el) {
 function applyFilters() {
   filterMin = document.getElementById('f-min').value;
   filterMax = document.getElementById('f-max').value;
-  const hasActive = filterMin || filterMax || filterBrand !== 'Tümü' || filterCondition !== 'Tümü' || filterSort !== 'yeni';
+  const hasActive = filterMin || filterMax || filterBrand !== 'Tümü' || filterCondition !== 'Tümü' || filterSort !== 'yeni'
+    || filterSellerTrust.vip || filterSellerTrust.trustedSeller || filterSellerTrust.poolSystem;
   document.getElementById('filter-toggle').classList.toggle('active', !!hasActive);
   document.getElementById('filter-panel').classList.remove('on');
   rlistings();
@@ -9275,11 +9326,13 @@ function applyFilters() {
 
 function clearFilters() {
   filterMin = ''; filterMax = ''; filterBrand = 'Tümü'; filterCondition = 'Tümü'; filterSort = 'yeni';
+  filterSellerTrust = { vip: false, trustedSeller: false, poolSystem: false };
   document.getElementById('f-min').value = '';
   document.getElementById('f-max').value = '';
   document.querySelectorAll('#filter-brands .bf').forEach(x => x.className = x.textContent.trim()==='Tümü' ? 'bf on' : 'bf off');
   document.querySelectorAll('#filter-conditions .bf').forEach(x => x.className = x.textContent.trim()==='Tümü' ? 'bf on' : 'bf off');
   document.querySelectorAll('#filter-sort .bf').forEach(x => x.className = x.textContent.trim()==='En Yeni' ? 'bf on' : 'bf off');
+  document.querySelectorAll('#filter-seller-trust .bf').forEach(x => x.className = 'bf off');
   document.getElementById('filter-toggle').classList.remove('active');
   document.getElementById('filter-panel').classList.remove('on');
   rlistings();
@@ -9666,6 +9719,19 @@ function listingRemainingLabel(l) {
   return { text: `${days} gün kaldı`, urgent: days <= 5 };
 }
 
+// PAZAR 3.0 — GERÇEK fiyat düşüşü göstergesi. priceHistory YOKSA (geçmiş hiç tutulmamışsa) HİÇBİR
+// ŞEY döndürmez — "geçmiş varmış gibi" göstermek KESİNLİKLE yapılmaz. Yalnızca son kayıtlı fiyat
+// güncel fiyattan yüksekse (gerçek bir düşüş) bir bilgi döner; son 7 gün içindeyse "🔥" vurgusu eklenir.
+function listingPriceDropInfo(l) {
+  if (!Array.isArray(l.priceHistory) || !l.priceHistory.length) return null;
+  const last = l.priceHistory[l.priceHistory.length - 1];
+  const curPrice = parseInt(l.price || 0);
+  if (typeof last?.price !== 'number' || last.price <= curPrice) return null;
+  const drop = last.price - curPrice;
+  const atMs = last.at ? Date.parse(last.at) : NaN;
+  const within7d = !isNaN(atMs) && (Date.now() - atMs) < 7 * 86400000;
+  return { drop, within7d };
+}
 function mcardHTML(l) {
   const mine = user && l.uid === user.uid;
   const fav = favs.has(l.id);
@@ -9673,6 +9739,7 @@ function mcardHTML(l) {
   const pending = l.approved === false && !rejected;
   const isNew = l.condition === 'Sıfır';
   const remaining = !l.sold ? listingRemainingLabel(l) : null;
+  const priceDrop = !l.sold ? listingPriceDropInfo(l) : null;
   return `<div class="mcard ${l.sold?'sold':''} ${l.showcase?'showcase':''} ${l.featured?'featured':''} ${l.urgent?'urgent-listing':''}" onclick="openDetail('${l.id}')">
     <div class="mcard-row">
       <div class="mcard-photo">
@@ -9693,6 +9760,7 @@ function mcardHTML(l) {
         ${user
           ? `<div class="mcard-price"><span class="cur">₺</span>${parseInt(l.price||0).toLocaleString('tr-TR')}</div>`
           : `<div class="mcard-price-locked" onclick="event.stopPropagation();gt('profile')">🔒 Giriş yap</div>`}
+        ${priceDrop ? `<div style="font-size:10.5px;font-weight:700;color:#30D158;margin-top:-2px;margin-bottom:2px">${priceDrop.within7d?'🔥 ':'⬇️ '}Fiyat ₺${priceDrop.drop.toLocaleString('tr-TR')} düştü</div>` : ''}
         <div class="mcard-title">${l.category==='akillisaat'?'⌚ ':l.category==='kulaklik'?'🎧 ':listingEffectiveCategory(l)==='aksesuar'?(ACCESSORY_TYPE_ICON[listingEffectiveAccessoryType(l)]||'🎒')+' ':''}${escapeHtml(l.model)}</div>
         <div class="mcard-loc">📍 ${escapeHtml(l.location)||'Belirtilmedi'}${l.createdAt?.toDate?` · <span class="mcard-date">${timeAgo(l.createdAt.toDate())}</span>`:''}${remaining?` · <span class="mcard-date" style="color:${remaining.urgent?'var(--red)':'var(--text3)'}">${remaining.text}</span>`:''}</div>
         <div class="mcard-foot" onclick="event.stopPropagation()">
@@ -9867,24 +9935,42 @@ function rlistings() {
   // brandLower/cityLower/districtLower alanlarını da kullanıyor — arayüzde (tek arama kutusu)
   // hiçbir değişiklik yok, yalnızca eşleşme kapsamı genişledi. Eski ilanlarda bu alanlar yoksa
   // (undefined), ?. ile sessizce atlanır — geriye dönük uyumluluk bozulmadı.
+  // PAZAR 3.0 — arama artık satıcı adı ve kategori adını da kapsıyor (ownerName zaten her ilanda
+  // var, listingEffectiveCategory zaten mevcut bir yardımcı — YENİ bir alan/sorgu YOK).
   let items = source.filter(l => !q
     || l.model?.toLowerCase().includes(q)
     || l.brandLower?.includes(q)
     || l.cityLower?.includes(q)
     || l.districtLower?.includes(q)
-    || l.neighborhoodLower?.includes(q));
+    || l.neighborhoodLower?.includes(q)
+    || l.ownerName?.toLowerCase().includes(q)
+    || listingEffectiveCategory(l)?.includes(q));
   if (mktab !== 'mine') items = items.filter(l => !isSoldExpired(l) && !l.paused && !isListingExpired(l));
   if (filterMin) items = items.filter(l => parseInt(l.price||0) >= parseInt(filterMin));
   if (filterMax) items = items.filter(l => parseInt(l.price||0) <= parseInt(filterMax));
   if (filterBrand !== 'Tümü') items = items.filter(l => (l.model||'').toLowerCase().includes(filterBrand.toLowerCase()));
   if (filterCondition !== 'Tümü') items = items.filter(l => l.condition === filterCondition);
   if (filterCategory !== 'tumu') items = items.filter(l => listingEffectiveCategory(l) === filterCategory);
-  // Sıralama: kullanıcı açıkça fiyat sıralaması seçtiyse (filterSort), Vitrin/Öne Çıkan önceliği
-  // yerine doğrudan fiyata göre sıralanır — satılanlar yine de en altta kalır. Varsayılan ("yeni")
-  // durumda önceki davranış (Vitrin > Öne Çıkan > diğerleri, zaten en yeniden eskiye gelen sorgu
-  // sırası üzerine) korunur. Tamamen istemci tarafında — composite index gerektirmez.
+  // PAZAR 3.0 — satıcı güveni filtreleri. sellerVip/sellerTrustedSeller ilan oluşturulma anında
+  // denormalize edilen GERÇEK alanlar (mcardHTML'in rozet gösteriminde de kullandığı aynı alanlar).
+  if (filterSellerTrust.vip) items = items.filter(l => l.sellerVip === true);
+  if (filterSellerTrust.trustedSeller) items = items.filter(l => l.sellerTrustedSeller === true);
+  if (filterSellerTrust.poolSystem) items = items.filter(l => l.poolSystem === true);
+  // Sıralama: kullanıcı açıkça fiyat/favori/görüntülenme/fiyat-düşüşü sıralaması seçtiyse (filterSort),
+  // Vitrin/Öne Çıkan önceliği yerine doğrudan o kritere göre sıralanır — satılanlar yine de en altta
+  // kalır. Varsayılan ("yeni") durumda önceki davranış korunur. Tamamen istemci tarafında — composite
+  // index gerektirmez. favoritedByUids/viewCount zaten var olan GERÇEK sayaçlar (VIP mağaza
+  // istatistiklerinde de kullanılıyor) — hiçbir sayı uydurulmuyor.
   if (filterSort === 'price_asc') items = [...items].sort((a,b) => (a.sold?1:0) - (b.sold?1:0) || parseInt(a.price||0) - parseInt(b.price||0));
   else if (filterSort === 'price_desc') items = [...items].sort((a,b) => (a.sold?1:0) - (b.sold?1:0) || parseInt(b.price||0) - parseInt(a.price||0));
+  else if (filterSort === 'most_favorited') items = [...items].sort((a,b) => (a.sold?1:0) - (b.sold?1:0) || (b.favoritedByUids||[]).length - (a.favoritedByUids||[]).length);
+  else if (filterSort === 'most_viewed') items = [...items].sort((a,b) => (a.sold?1:0) - (b.sold?1:0) || (b.viewCount||0) - (a.viewCount||0));
+  else if (filterSort === 'price_drop') {
+    // Yalnızca GERÇEK priceHistory'si olan (bkz. submitListing edit dalı) ilanlar öne alınır — geçmişi
+    // olmayan bir ilan için "düştü" iddiası ASLA üretilmez, o ilanlar listenin geri kalanında (yeni→eski) kalır.
+    const dropAmount = l => { const h = l.priceHistory; if (!Array.isArray(h) || !h.length) return 0; const first = h[0]?.price; const cur = parseInt(l.price||0); return (typeof first === 'number' && first > cur) ? (first - cur) : 0; };
+    items = [...items].sort((a,b) => (a.sold?1:0) - (b.sold?1:0) || dropAmount(b) - dropAmount(a));
+  }
   else items = [...items].sort((a,b) => (a.sold?1:0) - (b.sold?1:0) || (b.showcase?1:0) - (a.showcase?1:0) || (b.featured?1:0) - (a.featured?1:0));
   if (!items.length) {
     grid.innerHTML = `<div class="load"><div style="font-size:40px">${mktab==='fav'?'❤️':mktab==='mine'?'📋':'📭'}</div><div>${mktab==='fav'?'Favori yok':mktab==='mine'?'Henüz ilanın yok':'Sonuç bulunamadı'}</div></div>`;
@@ -10422,6 +10508,14 @@ async function submitListing() {
       photos.forEach((p, i) => { data['photo' + (i+1)] = p ? p : firebase.firestore.FieldValue.delete(); });
       photosThumb.forEach((p, i) => { data['photo' + (i+1) + 'Thumb'] = p ? p : firebase.firestore.FieldValue.delete(); });
       data.videoUrl = listingVideoUrl ? listingVideoUrl : firebase.firestore.FieldValue.delete();
+      // PAZAR 3.0 — GERÇEK fiyat geçmişi: yalnızca fiyat GERÇEKTEN değiştiğinde eski fiyat + zaman
+      // damgası ekleniyor (ne "geçmiş varmış gibi" gösterme, ne sahte bir ilk kayıt uydurma — geçmiş
+      // yalnızca bu andan itibaren, gerçek değişikliklerle birikir). En fazla 20 kayıt tutulur (eski
+      // olanlar düşer) — sınırsız büyüme yok, ilan geçmişi/istatistikleri SİLİNMİYOR.
+      if (parseInt(data.price) !== parseInt(old.price || 0)) {
+        const existingHistory = Array.isArray(old.priceHistory) ? old.priceHistory : [];
+        data.priceHistory = [...existingHistory, { price: parseInt(old.price || 0), at: new Date().toISOString() }].slice(-20);
+      }
       await db.collection('teknohane_listings').doc(editingListingId).update(data);
       // data içindeki photo1..8/photo1..8Thumb alanları silinen fotoğraflar için FieldValue.delete()
       // "sentinel" objesi taşıyabilir — bu, yerel state'e ham obje olarak yazılamaz (kırık <img>
@@ -10434,7 +10528,7 @@ async function submitListing() {
       // taşıyor (bkz. yukarıdaki photo yorumu — aynı risk) — yerel önbellekte gerçekten silinmiş gibi
       // görünmesi için burada da undefined ile eziliyor.
       const rejectSyncFields = wasRejected ? { rejectReasonCode: undefined, rejectReasonLabel: undefined, rejectNote: undefined } : {};
-      syncListingFieldEverywhere(editingListingId, { ...data, ...photoSyncFields, ...rejectSyncFields, videoUrl: listingVideoUrl || undefined });
+      syncListingFieldEverywhere(editingListingId, { ...data, ...photoSyncFields, ...rejectSyncFields, videoUrl: listingVideoUrl || undefined, priceHistory: data.priceHistory || old.priceHistory || undefined });
       if (isAdminEdit) adminLog('admin_edit_listing', 'listing', editingListingId, model, { model: old.model, price: old.price }, { model, price }, 'success');
 
       // Fiyat düştüyse, bu ilanı favorileyen HERKESE kalıcı bildirim gönder (çevrimdışı olsalar bile)
@@ -10907,6 +11001,7 @@ function renderDetailPage(l) {
       </div>
     </div>
     <div id="det-price-analysis"></div>
+    ${(() => { const pd = !l.sold ? listingPriceDropInfo(l) : null; return pd ? `<div class="det-anim" style="background:rgba(48,209,88,.12);border:1px solid rgba(48,209,88,.3);border-radius:14px;padding:12px 14px;margin-bottom:12px"><div style="font-size:12px;font-weight:700;color:#30D158">${pd.within7d?'🔥 Son 7 günde fiyatı düştü':'⬇️ Fiyat düştü'}</div><div style="font-size:11px;color:var(--text3);margin-top:2px">₺${pd.drop.toLocaleString('tr-TR')} indirim (önceki fiyat: ₺${(parseInt(l.price||0)+pd.drop).toLocaleString('tr-TR')})</div></div>` : ''; })()}
     <div class="det-status-row det-anim" style="animation-delay:.08s">
       ${l.sold ? `<div class="det-status-badge st-sold"><span class="dot"></span>🔴 Satıldı</div>` : (l.condition==='Sıfır' ? `<div class="det-status-badge st-new"><span class="dot"></span>🟢 Sıfır</div>` : `<div class="det-status-badge st-used"><span class="dot"></span>🟠 ${escapeHtml(l.condition)||'İkinci El'}</div>`)}
       ${l.origin?`<div class="det-status-badge st-info">${escapeHtml(l.origin)}</div>`:''}
@@ -11093,6 +11188,15 @@ async function toggleSold(id) {
     await db.collection('teknohane_listings').doc(id).update(upd);
     l.sold = newSold;
     l.soldAt = newSold ? new Date() : null;
+    // PAZAR 3.0 — favorileyenlere GERÇEK bir olay bildirimi: yalnızca SATILDI olarak işaretlenirken
+    // (satış işareti kaldırılırken değil), yalnızca gerçekten favorileyen kişiler varsa. Spam değil —
+    // tek seferlik, gerçek bir durum değişikliği.
+    if (newSold && Array.isArray(l.favoritedByUids) && l.favoritedByUids.length) {
+      const sellerName = myProfileData.displayName || user.displayName || null;
+      l.favoritedByUids.filter(uid => uid !== user.uid).forEach(uid => {
+        notifyUser(uid, 'listing_sold_favorited', `Favorilediğin "${l.model}" ilanı satıldı.`, id, null, user.uid, sellerName, myProfileData.photoURL);
+      });
+    }
     openDetail(id);
     rlistings();
   } catch(e) { showErrorToast(e); }
@@ -11296,6 +11400,13 @@ async function performListingDelete(id) {
     adminListingsCache = adminListingsCache.filter(x => x.id !== id);
     if (l?.uid) db.collection('teknohane_users').doc(l.uid).set({ listingsCount: firebase.firestore.FieldValue.increment(-1) }, { merge: true }).catch(()=>{});
     if (l?.uid && l.uid === user?.uid) db.collection('teknohane_user_index').doc(l.uid).set({ listingsCount: firebase.firestore.FieldValue.increment(-1) }, { merge: true }).catch(()=>{});
+    // PAZAR 3.0 — favorileyenlere GERÇEK bir olay bildirimi: ilan kaldırıldı. l zaten silme
+    // ÖNCESİNDE okunmuştu (getListingById yukarıda), favoritedByUids hâlâ elimizde.
+    if (Array.isArray(l?.favoritedByUids) && l.favoritedByUids.length) {
+      l.favoritedByUids.filter(uid => uid !== user?.uid).forEach(uid => {
+        notifyUser(uid, 'listing_deleted_favorited', `Favorilediğin "${l.model}" ilanı kaldırıldı.`, null, null, l.uid, l.ownerName || null, null);
+      });
+    }
     if (isAdminModeration) adminLog('delete_listing', 'listing', id, l?.model || id, l, null);
     rlistings();
   } catch(e) {
