@@ -829,7 +829,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .mcard-tag-ic.showcase-ic{background:rgba(175,82,222,.95);}
 .mcard-tag-ic.featured-ic{background:rgba(0,212,255,.95);}
 .mcard-tag-ic.urgent-ic{background:rgba(255,184,0,.95);}
-.mcard-tag-ic.pool-ic{background:rgba(0,122,255,.95);}
+.mcard-tag-ic.pool-ic{background:rgba(0,122,255,.95);cursor:pointer;}
 .mcard-fav{position:absolute;bottom:5px;right:5px;width:22px;height:22px;border-radius:50%;background:rgba(8,14,26,.6);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:3;transition:transform .15s ease,background .15s ease;}
 .mcard-fav:active{transform:scale(.88);}
 .mcard-fav svg{width:11px;height:11px;stroke:#fff;fill:none;stroke-width:2;transition:all .15s ease;}
@@ -9629,7 +9629,7 @@ function mcardHTML(l) {
           ${l.showcase?'<div class="mcard-tag-ic showcase-ic" title="Vitrin">📌</div>':''}
           ${l.featured?'<div class="mcard-tag-ic featured-ic" title="Öne Çıkan">⭐</div>':''}
           ${l.urgent?'<div class="mcard-tag-ic urgent-ic" title="Acil">🔥</div>':''}
-          ${l.poolSystem?'<div class="mcard-tag-ic pool-ic" title="Havuz Sistemi">🛡️</div>':''}
+          ${l.poolSystem?'<div class="mcard-tag-ic pool-ic" title="Havuz Sistemi — dokun, ne olduğunu öğren" onclick="event.stopPropagation();openPoolInfo()">🛡️</div>':''}
         </div>`:''}
         <div class="mcard-fav ${fav?'on':''}" onclick="event.stopPropagation();toggleFav('${l.id}',this)">
           <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
@@ -13092,7 +13092,7 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
           <div class="pub-listing-info">
             <div class="pub-listing-model"${featured?' style="font-size:14px"':''}>${escapeHtml(l.model)}</div>
             <div class="pub-listing-price">₺${parseInt(l.price||0).toLocaleString('tr-TR')} · ${escapeHtml(l.condition)}</div>
-            ${l.urgent||l.showcase?`<div style="margin-top:2px">${l.urgent?'<span style="font-size:9.5px;color:#FF6B6B;margin-right:6px">🔥 Acil</span>':''}${l.showcase?'<span style="font-size:9.5px;color:var(--cyan)">📌 Vitrin</span>':''}</div>`:''}
+            ${l.urgent||l.showcase||l.poolSystem?`<div style="margin-top:2px">${l.urgent?'<span style="font-size:9.5px;color:#FF6B6B;margin-right:6px">🔥 Acil</span>':''}${l.showcase?'<span style="font-size:9.5px;color:var(--cyan);margin-right:6px">📌 Vitrin</span>':''}${l.poolSystem?'<span style="font-size:9.5px;color:#0A84FF;cursor:pointer" onclick="event.stopPropagation();openPoolInfo()">🛡️ Havuz Sistemi</span>':''}</div>`:''}
           </div>
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text3)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
         </div>`;
