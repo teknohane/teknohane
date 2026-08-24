@@ -3881,7 +3881,7 @@ function renderVipStatusCardHTML(profileData) {
     return `<div class="pbadge-card">
       <div class="psec-title" style="margin-bottom:6px">👑 VIP Mağaza</div>
       <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:10px">
-        ${['VIP ile profesyonel bir satıcı mağazan olur.','Mağazanda ilanlarını vitrine çıkar.','Her ay ücretsiz öne çıkarma ve yenileme haklarından yararlan.','Takipçilerin yeni ilanlarından haberdar olsun.','Satıcı performansını takip et.'].map(t=>`<div style="font-size:12px;color:var(--text2);line-height:1.4">✓ ${t}</div>`).join('')}
+        ${['VIP ile profesyonel bir satıcı mağazan olur.','Mağazanda ilanlarını vitrine çıkar.','Her ay ücretsiz öne çıkarma ve yenileme haklarından yararlan.','Takipçilerin yeni ilanlarından haberdar olsun.','Satıcı performansını takip et.','QR kod ve tek tuşla mağaza paylaşımı.'].map(t=>`<div style="font-size:12px;color:var(--text2);line-height:1.4">✓ ${t}</div>`).join('')}
       </div>
       <button class="sbtn2" style="width:auto;padding:8px 14px;font-size:12.5px;background:linear-gradient(135deg,#FFD700,#FFA500);color:#3a2600" onclick="openVipBenefits()">✨ VIP Avantajlarını Gör</button>
     </div>`;
@@ -3941,6 +3941,7 @@ function renderVipStoreDashboardHTML(profileData, myListings) {
     <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:12px">
       <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px"><span>📌 Öne çıkarma</span><span style="color:var(--text2)">${usage.boostsUsed||0}/${VIP_STORE_LIMITS.boosts} kullanıldı<span style="color:${boostsLeft?'#3DDC97':'var(--text3)'};margin-left:6px;font-weight:600">${boostsLeft?`· ${boostsLeft} hakkın kaldı`:'· hakkın kalmadı'}</span></span></div>
       <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px"><span>🔄 İlan yenileme</span><span style="color:var(--text2)">${usage.refreshesUsed||0}/${VIP_STORE_LIMITS.refreshes} kullanıldı<span style="color:${refreshesLeft?'#3DDC97':'var(--text3)'};margin-left:6px;font-weight:600">${refreshesLeft?`· ${refreshesLeft} hakkın kaldı`:'· hakkın kalmadı'}</span></span></div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px"><span>⭐ Öne Çıkan İlan</span><span style="color:var(--text2)">${featuredIds.length}/3 seçili</span></div>
     </div>
     ${active.length ? `
     <div style="font-size:12px;font-weight:700;margin-bottom:6px">⭐ Öne Çıkan İlanlar <span style="color:var(--text3);font-weight:400">(${featuredIds.length}/3 seçildi, mağaza sayfanın üstünde gösterilir)</span></div>
@@ -13027,12 +13028,16 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
       // etkileşim sinyali varsa — viewCount/favori — hiçbiri yoksa bu bölüm TAMAMEN gizlenir, sahte
       // "popüler" asla üretilmez, spec §2'nin açık talimatı). Bir ilan birden fazla bölümde TEKRAR
       // etmez (Set'lerle dışlanıyor).
-      const listingCardHtml = (l) => `
-        <div class="pub-listing-card" onclick="closemo('pub-profile-mo');openDetail('${l.id}')" style="border-color:rgba(255,215,0,.3)">
-          <div class="pub-listing-img">${l.photo1 ? `<img src="${l.photo1Thumb||l.photo1}" alt="" style="width:100%;height:100%;border-radius:8px;object-fit:cover" loading="lazy" decoding="async">` : '📱'}</div>
+      // VIP MAĞAZA 4.0 — "Öne çıkan ilanlar en güçlü vitrin alanı olmalı" (spec §7): featured=true
+      // olduğunda kart daha büyük görsel + altın vurgu alıyor, öne çıkarma göstergesi (boost durumu:
+      // featured/urgent/showcase — GERÇEK ilan alanları, uydurulmuş değil) rozet olarak ekleniyor.
+      const listingCardHtml = (l, featured) => `
+        <div class="pub-listing-card" onclick="closemo('pub-profile-mo');openDetail('${l.id}')" style="border-color:rgba(255,215,0,.3);${featured?'background:linear-gradient(135deg,rgba(255,215,0,.08),transparent)':''}">
+          <div class="pub-listing-img" style="${featured?'width:56px;height:56px':''}">${l.photo1 ? `<img src="${l.photo1Thumb||l.photo1}" alt="" style="width:100%;height:100%;border-radius:8px;object-fit:cover" loading="lazy" decoding="async">` : '📱'}</div>
           <div class="pub-listing-info">
-            <div class="pub-listing-model">${escapeHtml(l.model)}</div>
+            <div class="pub-listing-model"${featured?' style="font-size:14px"':''}>${escapeHtml(l.model)}</div>
             <div class="pub-listing-price">₺${parseInt(l.price||0).toLocaleString('tr-TR')} · ${escapeHtml(l.condition)}</div>
+            ${l.urgent||l.showcase?`<div style="margin-top:2px">${l.urgent?'<span style="font-size:9.5px;color:#FF6B6B;margin-right:6px">🔥 Acil</span>':''}${l.showcase?'<span style="font-size:9.5px;color:var(--cyan)">📌 Vitrin</span>':''}</div>`:''}
           </div>
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text3)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
         </div>`;
@@ -13049,33 +13054,64 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
         : [];
       const shownCount = featuredListings.length + newListings.length + popularListings.length;
       const remaining = Math.max(0, activeCount - shownCount);
+
+      // VIP MAĞAZA 4.0 — "🛡️ Satıcı Güveni" + "Neden Bu Satıcı?" + "Son Aktivite" TAMAMEN gerçek,
+      // zaten yüklü veriden hesaplanıyor — sıfır ek Firestore okuması. Sahte yıldız/satış/başarı oranı
+      // ASLA üretilmez; bir sinyalin karşılığı yoksa o satır/madde basitçe listeye hiç girmiyor.
+      const lastListing = shownListings.length ? [...shownListings].filter(l=>l.createdAt?.toDate).sort((a,b)=>b.createdAt.toMillis()-a.createdAt.toMillis())[0] : null;
+      const trustRows = [
+        isVipActive(data) ? { ic:'👑', t:'VIP Satıcı' } : null,
+        isTrustedSellerActive(data) ? { ic:'🤝', t:'Güvenilir Satıcı' } : null,
+        joinedStoreStr ? { ic:'📅', t:`Teknohane'de katılım: ${joinedStoreStr}` } : null,
+        { ic:'📦', t:`${activeCount} aktif ilan` },
+        { ic:'👥', t:`${followerCount} mağaza takipçisi` },
+        featuredListings.length ? { ic:'⭐', t:`${featuredListings.length} öne çıkan ilan` } : null,
+      ].filter(Boolean);
+      const whyReasons = [
+        isVipActive(data) ? '👑 VIP mağaza sahibi' : null,
+        isTrustedSellerActive(data) ? '🤝 Teknohane tarafından doğrulanmış satıcı' : null,
+        activeCount ? `📦 ${activeCount} aktif ilanı bulunuyor` : null,
+        followerCount ? `👥 ${followerCount} kişi bu mağazayı takip ediyor` : null,
+        featuredListings.length ? `⭐ ${featuredListings.length} öne çıkan ilanı bulunuyor` : null,
+      ].filter(Boolean);
       return `
     <div class="pbadge-card" id="pub-store-section" style="border:1px solid rgba(255,215,0,.25)">
       <div class="psec-title" style="margin-bottom:2px">🏪 VIP Mağaza</div>
       <div style="font-size:16px;font-weight:700;color:#FFD700;margin-bottom:2px">${escapeHtml(data.storeName || displayName)}</div>
-      ${data.storeDescription ? `<div style="font-size:12px;color:var(--text2);margin-bottom:8px;line-height:1.5">${escapeHtml(data.storeDescription)}</div>` : ''}
-      <div style="font-size:12.5px;color:var(--text2);margin-bottom:4px">👥 ${followerCount} takipçi · 📦 ${activeCount} aktif ilan</div>
-      ${joinedStoreStr ? `<div style="font-size:11.5px;color:var(--text3);margin-bottom:12px">📅 Teknohane'ye katılım: ${joinedStoreStr}</div>` : '<div style="margin-bottom:8px"></div>'}
-      ${bothBadges ? `<div style="font-size:11.5px;color:#3DDC97;margin-bottom:12px">🤝 Teknohane tarafından doğrulanmış satıcı</div>` : ''}
+      ${data.storeDescription ? `<div style="font-size:10.5px;font-weight:700;color:var(--text3);margin-top:8px;margin-bottom:2px;text-transform:uppercase;letter-spacing:.3px">Satıcı Hakkında</div><div style="font-size:12px;color:var(--text2);margin-bottom:8px;line-height:1.5">${escapeHtml(data.storeDescription)}</div>` : ''}
+      <div style="margin-top:10px;padding:10px 12px;background:var(--surf2);border-radius:10px;margin-bottom:12px">
+        <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px">🛡️ Satıcı Güveni</div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          ${trustRows.map(r=>`<div style="font-size:12px;color:var(--text2)">${r.ic} ${escapeHtml(r.t)}</div>`).join('')}
+        </div>
+      </div>
+      ${whyReasons.length ? `<div style="margin-bottom:12px">
+        <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px">Neden Bu Satıcı?</div>
+        <div style="display:flex;flex-direction:column;gap:3px">
+          ${whyReasons.map(t=>`<div style="font-size:12px;color:var(--text2)">${t}</div>`).join('')}
+        </div>
+      </div>` : ''}
+      ${lastListing ? `<div style="font-size:11.5px;color:var(--text3);margin-bottom:12px">🕐 Son ilanını ${timeAgo(lastListing.createdAt.toDate())} ekledi</div>` : ''}
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
         <button class="sbtn2" style="width:auto;padding:9px 16px;font-size:12.5px;background:linear-gradient(135deg,#FFD700,#FFA500);color:#3a2600;font-weight:700" onclick="document.getElementById('pub-store-listings')?.scrollIntoView({behavior:'smooth'})">🏪 Mağazayı Gör</button>
         ${!isMe
-          ? `<button class="sbtn2" id="pub-store-follow-btn" style="width:auto;padding:9px 16px;font-size:12.5px;background:var(--surf2);color:${isFollowingUser?'var(--cyan)':'var(--text)'}" onclick="toggleFollow('${uid}')">${isFollowingUser?'✓ Takip Ediliyor':'＋ Mağazayı Takip Et'}</button>`
+          ? `<button class="sbtn2" id="pub-store-follow-btn" style="width:auto;padding:9px 16px;font-size:12.5px;background:var(--surf2);color:${isFollowingUser?'var(--cyan)':'var(--text)'}" onclick="toggleFollow('${uid}')">${isFollowingUser?'✓ Takip Ediliyor':'＋ Mağazayı Takip Et'}</button>
+          <button class="sbtn2" style="width:auto;padding:9px 16px;font-size:12.5px;background:var(--surf2);color:var(--text)" onclick="shareProfile('${uid}','${escapeJsAttr(data.storeName||displayName)}')">🔗 Paylaş</button>`
           : `<button class="sbtn2" style="width:auto;padding:9px 16px;font-size:12.5px;background:var(--surf2);color:var(--cyan)" onclick="closemo('pub-profile-mo');gt('profile')">🏪 Mağazanı Yönet</button>
           <button class="sbtn2" style="width:auto;padding:9px 16px;font-size:12.5px;background:var(--surf2);color:var(--text)" onclick="document.getElementById('pub-store-qr-wrap').style.display=document.getElementById('pub-store-qr-wrap').style.display==='none'?'block':'none'">📱 Mağaza QR</button>`}
       </div>
       ${isMe ? `<div id="pub-store-qr-wrap" style="display:none;margin-bottom:14px;text-align:center"><img src="${qrUrl}" alt="Mağaza QR kodu" style="width:120px;height:120px;border-radius:12px;border:1px solid var(--border)"></div>` : ''}
       <div id="pub-store-listings">
         ${!shownCount ? `<div style="font-size:12px;font-weight:700;margin-bottom:8px">📦 Mağazadan İlanlar</div><div class="ud-empty">🏪 Mağaza hazır<br><span style="font-size:12px;color:var(--text3)">Bu satıcı henüz aktif bir ilan yayınlamadı.</span></div>` : `
-        ${featuredListings.length ? `<div style="font-size:12px;font-weight:700;margin-bottom:8px">⭐ Öne Çıkan İlanlar</div>${featuredListings.map(listingCardHtml).join('')}` : ''}
-        ${newListings.length ? `<div style="font-size:12px;font-weight:700;margin:${featuredListings.length?'14px':'0'} 0 8px">🆕 Yeni İlanlar</div>${newListings.map(listingCardHtml).join('')}` : ''}
-        ${popularListings.length ? `<div style="font-size:12px;font-weight:700;margin:14px 0 8px">🔥 Popüler İlanlar</div>${popularListings.map(listingCardHtml).join('')}` : ''}
+        ${featuredListings.length ? `<div style="font-size:13px;font-weight:700;margin-bottom:8px;color:#FFD700">⭐ Öne Çıkan İlanlar</div><div style="margin-bottom:${newListings.length||popularListings.length?'14px':'0'}">${featuredListings.map(l=>listingCardHtml(l,true)).join('')}</div>` : ''}
+        ${newListings.length ? `<div style="font-size:12px;font-weight:700;margin-bottom:8px">🆕 Yeni İlanlar</div>${newListings.map(l=>listingCardHtml(l,false)).join('')}` : ''}
+        ${popularListings.length ? `<div style="font-size:12px;font-weight:700;margin:14px 0 8px">🔥 Popüler İlanlar</div>${popularListings.map(l=>listingCardHtml(l,false)).join('')}` : ''}
         ${remaining ? `<div style="text-align:center;margin-top:6px"><span onclick="document.getElementById('pub-listings-section')?.scrollIntoView({behavior:'smooth'})" style="font-size:12.5px;color:var(--cyan);cursor:pointer;font-weight:600">${remaining} ilanı daha gör →</span></div>` : ''}`}
       </div>
       <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
         <div style="font-size:11.5px;font-weight:700;margin-bottom:6px;color:var(--text2)">👑 VIP Mağaza Avantajları</div>
         <div style="display:flex;flex-direction:column;gap:3px">
-          ${['Profesyonel mağaza','Takipçi kazanma','Yeni ilanlarda takipçilere bildirim',`Ücretsiz aylık ${VIP_STORE_LIMITS.boosts} öne çıkarma hakkı`,`Ücretsiz aylık ${VIP_STORE_LIMITS.refreshes} ilan yenileme hakkı`,'En fazla 3 öne çıkan ilan','Gelişmiş satıcı istatistikleri'].map(t=>`<div style="font-size:11px;color:var(--text3)"><span style="color:#3DDC97">✓</span> ${t}</div>`).join('')}
+          ${['Profesyonel mağaza','Takipçi kazanma','Yeni ilanlarda takipçilere bildirim',`Ücretsiz aylık ${VIP_STORE_LIMITS.boosts} öne çıkarma hakkı`,`Ücretsiz aylık ${VIP_STORE_LIMITS.refreshes} ilan yenileme hakkı`,'En fazla 3 öne çıkan ilan','Gelişmiş satıcı istatistikleri','QR kod ve mağaza paylaşımı'].map(t=>`<div style="font-size:11px;color:var(--text3)"><span style="color:#3DDC97">✓</span> ${t}</div>`).join('')}
         </div>
       </div>
     </div>`;
