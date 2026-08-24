@@ -16556,80 +16556,58 @@ function homeArenaHubHtml(attempt, leagueData) {
     </div>`;
   }).join('') : '';
 
-  // §6 — önündeki rakiple puan farkı, GERÇEK leaderboard verisinden.
-  let rivalHtml = '';
-  if (isFull && myIdx > 0) {
-    const above = members[myIdx - 1];
-    const diff = Math.max(0, (above.leagueScore || 0) - myScore);
-    rivalHtml = myRank === 2
-      ? `<div style="font-size:12px;color:var(--text2);margin-top:8px">👑 <b style="color:#FFD700">Zirveyi kovalıyorsun</b> — liderden ${diff} puan geridesin.</div>`
-      : `<div style="font-size:12px;color:var(--text2);margin-top:8px">⚔️ Önündeki: <b>${escapeHtml(above.displayName || 'Kullanıcı')}</b> — <span style="color:#FF9500;font-weight:700">${diff} puan geridesin</span></div>`;
-  } else if (isFull && myRank === 1) {
-    rivalHtml = `<div style="font-size:12px;color:#FFD700;margin-top:8px;font-weight:700">👑 Ligde zirvedesin!</div>`;
-  }
+  // ARENA ANA SAYFA UX (2026-08-24, kompaktlaştırma) — eskiden ayrı bir "rakip farkı" paragrafı vardı;
+  // mini-leaderboard ZATEN puanları gösterdiği için (aşağıdaki komşu satırlar) bu bilgi tekrar ediyordu
+  // — kaldırıldı, kartın dikey yüksekliğini azaltmak için (spec: "%40-50 daha kompakt"). Zone/skor/rank
+  // mantığının KENDİSİ (isPromoZone/isRelegateZone/myRank/myScore) HİÇ değişmedi — yalnızca hangi
+  // paragrafların render edildiği değişti.
 
-  // §8 — sezon ödülü, mevcut ARENA_SEASON_REWARD_VIP_DAYS'ten kişiselleştirilmiş TEK satır.
+  // §8 — sezon ödülü, kısa TEK satır (eskiden "Şu anki ödülün:" gibi daha uzun bir cümleydi).
   let rewardHtml = '';
   if (isFull && myRank) {
     rewardHtml = myRank <= 3
-      ? `<div style="font-size:12px;margin-top:6px">🎁 Şu anki ödülün: <b style="color:#FFD700">👑 ${ARENA_SEASON_REWARD_VIP_DAYS[myRank]} Gün VIP</b></div>`
-      : `<div style="font-size:12px;color:var(--text2);margin-top:6px">🎯 İlk 3'e gir → <b style="color:#FFD700">👑 VIP ödülü</b> kazan</div>`;
+      ? `<div style="padding:4px 16px 0;font-size:11.5px"><b style="color:#FFD700">👑 Ödülün: ${ARENA_SEASON_REWARD_VIP_DAYS[myRank]} Gün VIP</b></div>`
+      : `<div style="padding:4px 16px 0;font-size:11.5px;color:var(--text2)">🎯 İlk 3 → <b style="color:#FFD700">👑 VIP ödülü</b></div>`;
   }
 
-  // §9 — bugünkü lig maçı. Maksimum puan LEAGUE_MATCH_DIFFICULTY_PLAN'dan (worker) türeyen GERÇEK
-  // değer — "Maksimum +100" hatası (bkz. Arena 3.0 düzeltmesi) burada da KESİNLİKLE tekrarlanmıyor.
-  let leagueMatchHtml;
+  // §9-10 — bugünkü lig maçı + günlük yarışma artık TEK ortak satırda (eskiden iki ayrı satırdı).
+  // Maksimum puan (+150) yine LEAGUE_MATCH_DIFFICULTY_PLAN'dan (worker) türeyen GERÇEK, sabit değer —
+  // "Maksimum +100" hatası burada da KESİNLİKLE tekrarlanmıyor. Detaylı puan dökümü (temel+bonus) artık
+  // ana sayfada YOK (kasıtlı — "gereksiz detay gösterme"), Arena ekranındaki tam dashboard'da hâlâ var.
+  let combinedStatusHtml;
   if (!isFull) {
-    leagueMatchHtml = `<div style="font-size:12px;color:var(--text2)">🎮 Bugünkü Lig Maçın: <span style="color:var(--text3)">lig dolunca başlayacak</span></div>`;
+    combinedStatusHtml = `🎮 Lig dolunca bugünkü maçın başlayacak`;
+  } else if (todayLeagueDone && todayQuizDone) {
+    combinedStatusHtml = `✅ <b style="color:#30D158">Bugünü tamamladın</b> — lig maçı + günlük yarışma`;
   } else if (todayLeagueDone) {
-    const tm = leagueData.todayMatch;
-    const breakdown = (tm.totalBasePoints != null && tm.totalBonusPoints != null) ? ` (⚡+${tm.totalBasePoints} temel, +${tm.totalBonusPoints} bonus)` : '';
-    leagueMatchHtml = `<div style="font-size:12px">✅ Bugünkü Lig Maçı: <b style="color:#30D158">tamamlandı</b> — ${tm.correctCount != null ? `${tm.correctCount}/${ARENA_LEAGUE_MATCH_QUESTION_COUNT} doğru, ` : ''}<b style="color:var(--cyan)">+${tm.earnedScore ?? 0} puan</b>${breakdown}</div>`;
+    combinedStatusHtml = `✅ Bugünkü maçın tamamlandı${todayQuizDone ? '' : ' · 🎯 günlük yarışma seni bekliyor'}`;
   } else {
-    leagueMatchHtml = `<div style="font-size:12px">🎮 Bugünkü Lig Maçın: <b style="color:var(--text2)">henüz oynamadın</b> — maks. <b style="color:#FFD700">+150 puan</b></div>`;
-  }
-
-  // §10 — günlük teknoloji yarışması, lig maçından NET şekilde ayrı bir satır.
-  let dailyQuizHtml;
-  if (todayQuizDone) {
-    const total = (attempt.correctCount || 0) + (attempt.wrongCount || 0);
-    const pct = total > 0 ? Math.round((attempt.correctCount || 0) / total * 100) : null;
-    dailyQuizHtml = `<div style="font-size:12px">✅ Günlük Yarışma: <b style="color:#30D158">tamamlandı</b> — ${attempt.correctCount || 0}/${total || 10} doğru${pct != null ? ` (%${pct})` : ''}</div>`;
-  } else {
-    dailyQuizHtml = `<div style="font-size:12px">🎯 Günlük Yarışma: <b style="color:var(--text2)">henüz katılmadın</b></div>`;
+    combinedStatusHtml = `🔥 <b>Bugünkü maçın hazır</b> — maks. <b style="color:#FFD700">+150 puan</b>${todayQuizDone ? ' · 🎯 günlük yarışma ✅' : ''}`;
   }
 
   return `<div class="feat" style="padding:0;overflow:hidden;border:1px solid ${accentColor}55">
-    <div style="padding:14px 18px 12px;background:linear-gradient(135deg,${tierTheme.bg})">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <span style="font-weight:800;font-size:14px;color:${tierTheme.text}">🎮 TEKNOHANE ARENA</span>
-        <span style="font-size:10.5px;font-weight:800;color:${statusBadge.c};background:rgba(0,0,0,.25);padding:3px 9px;border-radius:99px;white-space:nowrap">${statusBadge.t}</span>
+    <div style="padding:11px 16px 9px;background:linear-gradient(135deg,${tierTheme.bg})">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-weight:800;font-size:13px;color:${tierTheme.text}">🎮 TEKNOHANE ARENA</span>
+        <span style="font-size:10px;font-weight:800;color:${statusBadge.c};background:rgba(0,0,0,.25);padding:3px 8px;border-radius:99px;white-space:nowrap">${statusBadge.t}</span>
       </div>
-      <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:10px">
-        <div style="min-width:0">
-          <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:${tierTheme.text};opacity:.85">${isFull ? 'LİGİN' : 'LİGİN (DOLUYOR)'}</div>
-          <div style="font-size:17px;font-weight:800;color:${tierTheme.text};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${arenaLeagueTierLabel(leagueData.tier ?? 0)} Lig</div>
-        </div>
-        <div style="text-align:right;flex-shrink:0">
-          <div style="font-size:24px;font-weight:800;color:${tierTheme.text}">${isFull && myRank ? '#' + myRank : '—'}</div>
-          <div style="font-size:11px;color:${tierTheme.text};opacity:.85">${myScore} puan</div>
-        </div>
+      <div style="display:flex;align-items:baseline;gap:7px;margin-top:7px">
+        <span style="font-size:19px;font-weight:800;color:${tierTheme.text};flex-shrink:0">${isFull && myRank ? '#' + myRank : '—'}</span>
+        <span style="font-size:12.5px;font-weight:700;color:${tierTheme.text};opacity:.9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${arenaLeagueTierLabel(leagueData.tier ?? 0)} Lig</span>
+        <span style="font-size:12px;color:${tierTheme.text};opacity:.75;margin-left:auto;flex-shrink:0">${myScore} Puan</span>
       </div>
     </div>
-    <div style="padding:12px 18px 4px;font-size:12.5px;font-weight:600">${zoneHtml}</div>
-    ${miniLeaderboardHtml ? `<div style="padding:6px 18px 4px;display:flex;flex-direction:column;gap:2px">${miniLeaderboardHtml}</div>` : ''}
-    <div style="padding:0 18px">${rivalHtml}${rewardHtml}</div>
-    <div style="padding:12px 18px 4px;display:flex;justify-content:space-between;align-items:center">
-      <span style="font-size:10.5px;color:var(--text3)">⏳ Sezonun bitmesine</span>
-      <span id="home-arena-countdown" style="font-size:11.5px;font-weight:700;font-variant-numeric:tabular-nums"></span>
+    <div style="padding:8px 16px 0;font-size:12px;font-weight:600">${zoneHtml}</div>
+    ${miniLeaderboardHtml ? `<div style="padding:5px 16px 0;display:flex;flex-direction:column;gap:1px">${miniLeaderboardHtml}</div>` : ''}
+    ${rewardHtml}
+    <div style="padding:7px 16px 0;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:10px;color:var(--text3)">⏳ Sezon bitimi</span>
+      <span id="home-arena-countdown" style="font-size:11px;font-weight:700;font-variant-numeric:tabular-nums"></span>
     </div>
-    <div style="padding:10px 18px;display:flex;flex-direction:column;gap:5px;margin-top:4px;border-top:1px solid rgba(255,255,255,.08)">
-      ${leagueMatchHtml}
-      ${dailyQuizHtml}
-    </div>
-    <div style="display:flex;gap:8px;padding:12px 18px 16px">
-      <button class="sbtn2" style="flex:1;padding:10px;font-size:12px;background:linear-gradient(135deg,${tierTheme.bg});color:${tierTheme.text};font-weight:700" onclick="openArenaLeagueDirect()">🏆 Ligime Git</button>
-      <button class="sbtn2" style="flex:1;padding:10px;font-size:12px;background:var(--surf2);color:var(--text)" onclick="openArenaPage()">🎮 Yarışmaya Katıl</button>
+    <div style="padding:7px 16px 0;font-size:11.5px;color:var(--text2)">${combinedStatusHtml}</div>
+    <div style="display:flex;gap:8px;padding:10px 16px 14px">
+      <button class="sbtn2" style="flex:1;padding:9px;font-size:12px;background:linear-gradient(135deg,${tierTheme.bg});color:${tierTheme.text};font-weight:700" onclick="openArenaLeagueDirect()">🏆 Ligimi Gör</button>
+      <button class="sbtn2" style="flex:1;padding:9px;font-size:12px;background:var(--surf2);color:var(--text)" onclick="openArenaPage()">🎮 Yarışmaya Katıl</button>
     </div>
   </div>`;
 }
