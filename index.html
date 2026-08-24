@@ -1553,6 +1553,15 @@ body.tk-maintenance #maintenance-gate{
       <div class="phone-discover-search">
         <input class="si" type="text" id="pd-search" placeholder="🔎 Telefon, marka veya model ara…" oninput="onPhoneDiscoverSearchInput(this.value)">
       </div>
+      <div style="display:flex;gap:8px;margin:8px 0 2px">
+        <div class="filter-toggle" id="pd-filter-toggle" onclick="togglePhoneFilterPanel()">
+          <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+          Filtrele
+          <span id="pd-filter-count" style="display:none;background:var(--cyan);color:#00040F;font-size:10.5px;font-weight:800;border-radius:99px;padding:1px 6px;margin-left:4px"></span>
+        </div>
+        <div id="pd-result-count" style="align-self:center;font-size:12px;color:var(--text2)"></div>
+      </div>
+      <div class="filter-panel" id="pd-filter-panel"></div>
       <div class="phone-discover-brands" id="pd-brands"></div>
       <div class="pdgrid" id="pd-grid"><div class="load"><div class="spin"></div></div></div>
       <button class="apbtn phone-discover-more" id="pd-more-btn" style="display:none" onclick="phoneDiscoverShowMore()">Daha Fazla Göster</button>
@@ -14871,6 +14880,10 @@ const PD_PAGE_SIZE = 24;
 function initPhoneDiscover() {
   pdSearch = ''; pdBrand = 'Tümü'; pdVisibleCount = PD_PAGE_SIZE;
   const s = document.getElementById('pd-search'); if (s) s.value = '';
+  // Mevcut arama/marka sıfırlama deseniyle TUTARLI — gelişmiş filtreler de ekrana her girişte sıfırlanır.
+  clearPhoneFilters();
+  const panel = document.getElementById('pd-filter-panel');
+  if (panel) { panel.classList.remove('on'); panel.dataset.built = ''; }
   renderPhoneDiscoverBrands();
   renderPhoneDiscoverGrid();
 }
@@ -14902,6 +14915,8 @@ function phoneDiscoverFiltered() {
   } else if (pdBrand !== 'Tümü') {
     list = list.filter(p => brandDisplay(p.brand) === pdBrand);
   }
+  // FAZ 2 — gelişmiş filtreler ARAMA/MARKA ile BİRLİKTE (AND) çalışır, onları değiştirmez.
+  if (phoneActiveFilterCount() > 0) list = list.filter(phoneMatchesAdvancedFilters);
   return list;
 }
 // DOM'a TÜM PHONES'u (600+) tek seferde basmıyoruz — sayfalanmış render, "Daha Fazla Göster" ile
@@ -14911,7 +14926,9 @@ function renderPhoneDiscoverGrid() {
   const moreBtn = document.getElementById('pd-more-btn');
   if (!grid) return;
   const filtered = phoneDiscoverFiltered();
-  if (!filtered.length) { grid.innerHTML = '<div class="no" style="grid-column:1/-1">Telefon bulunamadı.</div>'; if (moreBtn) moreBtn.style.display = 'none'; return; }
+  const countEl = document.getElementById('pd-result-count');
+  if (countEl) countEl.textContent = phoneActiveFilterCount() > 0 ? `${filtered.length} sonuç` : '';
+  if (!filtered.length) { grid.innerHTML = '<div class="no" style="grid-column:1/-1">Telefon bulunamadı. Filtreleri değiştirmeyi deneyin.</div>'; if (moreBtn) moreBtn.style.display = 'none'; return; }
   const visible = filtered.slice(0, pdVisibleCount);
   grid.innerHTML = visible.map(p => phoneCardHTML(p)).join('');
   if (moreBtn) moreBtn.style.display = filtered.length > pdVisibleCount ? 'block' : 'none';
@@ -14919,6 +14936,172 @@ function renderPhoneDiscoverGrid() {
 function phoneDiscoverShowMore() {
   pdVisibleCount += PD_PAGE_SIZE;
   renderPhoneDiscoverGrid();
+}
+
+// ==== TELEFON GELİŞMİŞ FİLTRELER (Büyük Geliştirme Turu — FAZ 2) ====
+// Tüm parser'lar TAMAMEN deterministik, GERÇEK metin alanlarından (ram/storage/scr/bat/chip/name/
+// gsmarenaUrl/price/yr) türetilir. Bir cihazın ilgili alanı yoksa/parse edilemiyorsa o cihaz o
+// filtre AKTİFKEN SESSİZCE dışlanır — asla varsayılan/tahmini bir değer atanmaz (spec: "yanlış filtre
+// sonucu üretmemeli"). PHONES; hem elle girilen 111 kayıt (ram:"8GB", scr:"6.9\" 120Hz" gibi zengin
+// alanlar) hem loadExtraPhones ile eklenen 600+ LEGACY_CATALOG kaydını (scr yalnızca "7.6\"" — yenileme
+// hızı YOK, cam/price/os/yr YOK) içerdiği için HER filtre bu heterojenliğe göre tasarlandı.
+function phoneRamGB(p) { const m = /([\d.]+)\s*GB/i.exec(p.ram || ''); return m ? parseFloat(m[1]) : null; }
+function phoneStorageGB(p) {
+  const s = p.storage || '';
+  let m = /([\d.]+)\s*TB/i.exec(s); if (m) return parseFloat(m[1]) * 1024;
+  m = /([\d.]+)\s*GB/i.exec(s); return m ? parseFloat(m[1]) : null;
+}
+function phoneScreenInch(p) { const m = /([\d.]+)\s*"/.exec(p.scr || ''); return m ? parseFloat(m[1]) : null; }
+function phoneRefreshHz(p) { const m = /(\d+)\s*Hz/i.exec(p.scr || ''); return m ? parseInt(m[1], 10) : null; }
+function phoneBatteryMah(p) { const m = /([\d.]+)\s*mAh/i.exec(p.bat || ''); return m ? parseFloat(m[1]) : null; }
+// Kamera MP: yalnızca elle girilen kayıtlarda var (ör. "200+50+10+50MP") — ana (ilk/en yüksek) sensör
+// baz alınır. LEGACY_CATALOG kayıtlarında cam alanı hiç yok — bu cihazlar bu filtrede dışlanır.
+function phoneMainCamMP(p) {
+  if (!p.cam) return null;
+  const nums = [...String(p.cam).matchAll(/([\d.]+)\s*MP/gi)].map(m => parseFloat(m[1]));
+  return nums.length ? Math.max(...nums) : null;
+}
+// 5G: veri kaynağında AYRI bir boolean alan yok — GERÇEK metinden (isim/GSMArena URL slug'ı) çıkarım
+// yapılıyor. GSMArena slug'ları 5G modelleri için her zaman "..._5g-" içerir (ör. samsung_galaxy_a17_5g),
+// 4G-only modeller ismin kendisinde "4G" belirtir (ör. "Galaxy A07 4G"). Belirlenemeyen (ne isimde ne
+// URL'de sinyal olan) cihazlar bu filtrede dışlanır — "5G değil" diye TAHMİN edilmez. BİLİNÇLİ OLARAK
+// yıl/çip bazlı bir genelleme (ör. "2023+ olan her şey 5G'dir") KULLANILMIYOR — bu, gerçek metinden
+// değil istatistiksel varsayımdan üretilen bir değer olurdu ("yanlış filtre sonucu" riski, spec §2).
+function phone5GStatus(p) {
+  const name = String(p.name || '');
+  const url = String(p.gsmarenaUrl || '');
+  if (/\b4G\b/i.test(name)) return false;
+  if (/_5g[-.]/i.test(url) || /\b5G\b/i.test(name)) return true;
+  return null;
+}
+function phoneChipFamily(p) {
+  const c = String(p.chip || '');
+  if (!c) return null;
+  if (/^A\d|Bionic/i.test(c)) return 'Apple';
+  if (/Snapdragon|SD\s?\d/i.test(c)) return 'Snapdragon';
+  if (/Exynos/i.test(c)) return 'Exynos';
+  if (/Helio|Dimensity|MediaTek/i.test(c)) return 'MediaTek';
+  if (/Tensor/i.test(c)) return 'Tensor';
+  if (/Unisoc/i.test(c)) return 'Unisoc';
+  return 'Diğer';
+}
+function phoneOS(p) {
+  const os = String(p.os || '');
+  if (/iOS/i.test(os)) return 'iOS';
+  if (/Android/i.test(os)) return 'Android';
+  return null; // LEGACY_CATALOG'da os alanı hiç yok — belirsizken filtre dışı bırakılır
+}
+
+const PD_BUDGET_BANDS = [
+  { l: 'Tümü', max: null },
+  { l: '≤15.000₺', max: 15000 },
+  { l: '≤30.000₺', max: 30000 },
+  { l: '≤50.000₺', max: 50000 },
+  { l: '≤75.000₺', max: 75000 },
+  { l: '75.000₺+', min: 75000 },
+];
+const PD_RAM_BANDS = ['Tümü', 4, 6, 8, 12, 16];
+const PD_STORAGE_BANDS = ['Tümü', 64, 128, 256, 512, 1024];
+const PD_SCREEN_BANDS = [
+  { l: 'Tümü' },
+  { l: 'Kompakt (<6.3")', max: 6.3 },
+  { l: 'Standart (6.3-6.7")', min: 6.3, max: 6.7 },
+  { l: 'Büyük (6.7"+)', min: 6.7 },
+];
+const PD_REFRESH_BANDS = ['Tümü', 90, 120, 144];
+const PD_CHIP_FAMILIES = ['Tümü', 'Apple', 'Snapdragon', 'Exynos', 'MediaTek', 'Tensor', 'Diğer'];
+const PD_CAM_BANDS = ['Tümü', 48, 50, 100, 200];
+const PD_BATT_BANDS = ['Tümü', 4000, 5000, 6000];
+const PD_OS_BANDS = ['Tümü', 'iOS', 'Android'];
+const PD_YEAR_BANDS = ['Tümü', 2026, 2025, 2024, 2023];
+
+let phoneFilters = { budget: 'Tümü', ram: 'Tümü', storage: 'Tümü', only5G: false, screen: 'Tümü', refresh: 'Tümü', chip: 'Tümü', cam: 'Tümü', batt: 'Tümü', os: 'Tümü', year: 'Tümü' };
+function phoneActiveFilterCount() {
+  return Object.entries(phoneFilters).filter(([k, v]) => k === 'only5G' ? v === true : v !== 'Tümü').length;
+}
+function togglePhoneFilterPanel() {
+  const panel = document.getElementById('pd-filter-panel');
+  if (!panel) return;
+  const isOpen = panel.classList.contains('on');
+  panel.classList.toggle('on', !isOpen);
+  if (!isOpen && !panel.dataset.built) { panel.dataset.built = '1'; renderPhoneFilterPanel(); }
+}
+function pdChipRow(id, label, options, current, valueOf, labelOf, onSelect) {
+  // ÖNEMLİ: JSON.stringify() ÇİFT tırnak üretir — onclick="..." zaten çift tırnaklı olduğu için bu,
+  // string değerlerde (ör. "Apple") HTML'i BOZAR. Sayısal değerler çıplak, string değerler TEK tırnaklı
+  // + escapeJsAttr() ile gömülüyor (codebase genelindeki AYNI desen, bkz. quickPick('${p.id}',...)).
+  return `<label class="fl" style="margin:14px 0 8px;display:block">${label}</label>
+    <div class="filter-brands" id="${id}">${options.map(o => {
+      const v = valueOf(o), l = labelOf(o);
+      const arg = typeof v === 'number' ? v : `'${escapeJsAttr(v)}'`;
+      return `<button class="bf ${v === current ? 'on' : 'off'}" onclick="${onSelect}(${arg})">${escapeHtml(String(l))}</button>`;
+    }).join('')}</div>`;
+}
+function renderPhoneFilterPanel() {
+  const panel = document.getElementById('pd-filter-panel');
+  if (!panel) return;
+  panel.innerHTML = `
+    ${pdChipRow('pd-f-budget', '💰 Bütçe', PD_BUDGET_BANDS, phoneFilters.budget, o => o.l, o => o.l, 'setPhoneFilterBudget')}
+    ${pdChipRow('pd-f-ram', '⚙️ RAM', PD_RAM_BANDS, phoneFilters.ram, o => o, o => o === 'Tümü' ? 'Tümü' : o + 'GB+', 'setPhoneFilterSimple_ram')}
+    ${pdChipRow('pd-f-storage', '💾 Depolama', PD_STORAGE_BANDS, phoneFilters.storage, o => o, o => o === 'Tümü' ? 'Tümü' : (o >= 1024 ? (o/1024)+'TB+' : o + 'GB+'), 'setPhoneFilterSimple_storage')}
+    <label class="fl" style="margin:14px 0 8px;display:block">📶 Bağlantı</label>
+    <div class="filter-brands"><button class="bf ${phoneFilters.only5G ? 'on' : 'off'}" onclick="togglePhoneFilter5G()">Yalnızca 5G</button></div>
+    ${pdChipRow('pd-f-screen', '📱 Ekran Boyutu', PD_SCREEN_BANDS, phoneFilters.screen, o => o.l, o => o.l, 'setPhoneFilterScreen')}
+    ${pdChipRow('pd-f-refresh', '🔄 Yenileme Hızı', PD_REFRESH_BANDS, phoneFilters.refresh, o => o, o => o === 'Tümü' ? 'Tümü' : o + 'Hz+', 'setPhoneFilterSimple_refresh')}
+    ${pdChipRow('pd-f-chip', '🧠 İşlemci', PD_CHIP_FAMILIES, phoneFilters.chip, o => o, o => o, 'setPhoneFilterSimple_chip')}
+    ${pdChipRow('pd-f-cam', '📷 Kamera', PD_CAM_BANDS, phoneFilters.cam, o => o, o => o === 'Tümü' ? 'Tümü' : o + 'MP+', 'setPhoneFilterSimple_cam')}
+    ${pdChipRow('pd-f-batt', '🔋 Batarya', PD_BATT_BANDS, phoneFilters.batt, o => o, o => o === 'Tümü' ? 'Tümü' : o + 'mAh+', 'setPhoneFilterSimple_batt')}
+    ${pdChipRow('pd-f-os', '💻 İşletim Sistemi', PD_OS_BANDS, phoneFilters.os, o => o, o => o, 'setPhoneFilterSimple_os')}
+    ${pdChipRow('pd-f-year', '📅 Çıkış Yılı', PD_YEAR_BANDS, phoneFilters.year, o => o, o => o === 'Tümü' ? 'Tümü' : o + '+', 'setPhoneFilterSimple_year')}
+    <button class="apbtn" style="margin-top:16px;width:100%" onclick="clearPhoneFilters()">Filtreleri Temizle</button>`;
+}
+function applyPhoneFilterChange() {
+  pdVisibleCount = PD_PAGE_SIZE;
+  renderPhoneFilterPanel();
+  renderPhoneDiscoverGrid();
+  updatePhoneFilterToggleBadge();
+}
+function setPhoneFilterBudget(l) { phoneFilters.budget = l; applyPhoneFilterChange(); }
+function setPhoneFilterScreen(l) { phoneFilters.screen = l; applyPhoneFilterChange(); }
+function togglePhoneFilter5G() { phoneFilters.only5G = !phoneFilters.only5G; applyPhoneFilterChange(); }
+['ram', 'storage', 'refresh', 'chip', 'cam', 'batt', 'os', 'year'].forEach(key => {
+  window['setPhoneFilterSimple_' + key] = function (v) { phoneFilters[key] = v; applyPhoneFilterChange(); };
+});
+function clearPhoneFilters() {
+  phoneFilters = { budget: 'Tümü', ram: 'Tümü', storage: 'Tümü', only5G: false, screen: 'Tümü', refresh: 'Tümü', chip: 'Tümü', cam: 'Tümü', batt: 'Tümü', os: 'Tümü', year: 'Tümü' };
+  applyPhoneFilterChange();
+}
+function updatePhoneFilterToggleBadge() {
+  const n = phoneActiveFilterCount();
+  const el = document.getElementById('pd-filter-count');
+  if (el) { el.style.display = n ? 'inline-flex' : 'none'; el.textContent = n; }
+}
+function phoneMatchesAdvancedFilters(p) {
+  const f = phoneFilters;
+  if (f.budget !== 'Tümü') {
+    const band = PD_BUDGET_BANDS.find(b => b.l === f.budget);
+    const price = phonePriceNum(p);
+    if (price == null) return false;
+    if (band.max != null && price > band.max) return false;
+    if (band.min != null && price < band.min) return false;
+  }
+  if (f.ram !== 'Tümü') { const v = phoneRamGB(p); if (v == null || v < f.ram) return false; }
+  if (f.storage !== 'Tümü') { const v = phoneStorageGB(p); if (v == null || v < f.storage) return false; }
+  if (f.only5G) { if (phone5GStatus(p) !== true) return false; }
+  if (f.screen !== 'Tümü') {
+    const band = PD_SCREEN_BANDS.find(b => b.l === f.screen);
+    const v = phoneScreenInch(p);
+    if (v == null) return false;
+    if (band.max != null && v >= band.max) return false;
+    if (band.min != null && v < band.min) return false;
+  }
+  if (f.refresh !== 'Tümü') { const v = phoneRefreshHz(p); if (v == null || v < f.refresh) return false; }
+  if (f.chip !== 'Tümü') { if (phoneChipFamily(p) !== f.chip) return false; }
+  if (f.cam !== 'Tümü') { const v = phoneMainCamMP(p); if (v == null || v < f.cam) return false; }
+  if (f.batt !== 'Tümü') { const v = phoneBatteryMah(p); if (v == null || v < f.batt) return false; }
+  if (f.os !== 'Tümü') { if (phoneOS(p) !== f.os) return false; }
+  if (f.year !== 'Tümü') { if (!p.yr || p.yr < f.year) return false; }
+  return true;
 }
 function phoneCardHTML(p) {
   const initial = (p.brand||'?')[0].toUpperCase();
