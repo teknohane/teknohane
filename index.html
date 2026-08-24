@@ -583,6 +583,18 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .pcl-ic{font-size:20px;flex-shrink:0;}
 .pcl-txt{font-size:12px;font-weight:600;line-height:1.3;}
 .pcl-sub{font-size:10.5px;color:var(--text3);margin-top:1px;}
+.phone-summary-card{background:var(--surf);border:1px solid var(--border2);border-radius:14px;padding:14px 16px;margin:16px 0;}
+.ps-row{font-size:12.5px;line-height:1.5;padding:3px 0;}
+.ps-pos{color:var(--text);}
+.ps-neg{color:var(--text2);}
+.phone-proscons-card{display:flex;gap:10px;margin:16px 0;flex-wrap:wrap;}
+.pc-col{flex:1;min-width:140px;background:var(--surf);border:1px solid var(--border2);border-radius:14px;padding:12px 14px;}
+.pc-col.pc-pros{border-color:rgba(48,209,88,.25);}
+.pc-col.pc-cons{border-color:rgba(255,69,58,.2);}
+.pc-tit{font-size:12.5px;font-weight:700;margin-bottom:8px;}
+.pc-col.pc-pros .pc-tit{color:#30D158;}
+.pc-col.pc-cons .pc-tit{color:#FF9500;}
+.pc-row{font-size:12px;color:var(--text2);line-height:1.5;padding:2px 0;}
 /* Katalog arka planda yüklenirken (bkz. ensureFullCatalog) picker'ın kendi hafif iskelet
    görünümü — boş liste yerine "yükleniyor" hissi versin diye. */
 .pitem-skel{height:58px;border-radius:12px;background:linear-gradient(90deg,var(--surf) 0%,var(--surf2) 50%,var(--surf) 100%);background-size:200% 100%;animation:pskel 1.3s ease-in-out infinite;}
@@ -14954,11 +14966,24 @@ function phoneStorageGB(p) {
 function phoneScreenInch(p) { const m = /([\d.]+)\s*"/.exec(p.scr || ''); return m ? parseFloat(m[1]) : null; }
 function phoneRefreshHz(p) { const m = /(\d+)\s*Hz/i.exec(p.scr || ''); return m ? parseInt(m[1], 10) : null; }
 function phoneBatteryMah(p) { const m = /([\d.]+)\s*mAh/i.exec(p.bat || ''); return m ? parseFloat(m[1]) : null; }
-// Kamera MP: yalnızca elle girilen kayıtlarda var (ör. "200+50+10+50MP") — ana (ilk/en yüksek) sensör
-// baz alınır. LEGACY_CATALOG kayıtlarında cam alanı hiç yok — bu cihazlar bu filtrede dışlanır.
+function phoneWeightG(p) { const m = /([\d.]+)\s*g\b/i.exec(p.wt || ''); return m ? parseFloat(m[1]) : null; }
+// "Amiral gemisi" işlemci: gerçek çip metnindeki BİLİNEN üst-segment model adlarına karşı deterministik
+// eşleşme (metin listesi, tahmin/skor DEĞİL) — Teknohane Özeti'nin "Güçlü işlemci" yargısı için.
+function phoneIsFlagshipChip(p) {
+  const c = String(p.chip || '');
+  if (!c) return null;
+  return /8 Elite|8 Gen [23]|A1[6-9]\b|A2\d\b|Tensor G[3-9]|Dimensity 9\d{3}|Bionic/i.test(c);
+}
+// Kamera MP: veri formatı "50+12+5MP" — "MP" birimi TEK SEFER, sondaki toplam ifadeye ait (her sayının
+// kendi "MP"si YOK). "+" ile ayrılmış sayıları TEK TEK MP olarak yorumlamak yanlış sonuç üretir (ör.
+// "50+12+5MP" içinde yalnızca "5MP" doğrudan eşleşir, ana sensör 50MP kaçırılmış olur — GERÇEK bir
+// bug, test sırasında Galaxy A57'nin ham "50+12+5MP" verisiyle yakalandı ve düzeltildi). Önce "MP"den
+// önceki TÜM "+"lı sayı dizisini al, SONRA "+" ile ayır — ana (en yüksek) sensör MAX'tır.
 function phoneMainCamMP(p) {
   if (!p.cam) return null;
-  const nums = [...String(p.cam).matchAll(/([\d.]+)\s*MP/gi)].map(m => parseFloat(m[1]));
+  const m = /^([\d.+]+)\s*MP/i.exec(String(p.cam).trim());
+  if (!m) return null;
+  const nums = m[1].split('+').map(s => parseFloat(s)).filter(n => !isNaN(n));
   return nums.length ? Math.max(...nums) : null;
 }
 // 5G: veri kaynağında AYRI bir boolean alan yok — GERÇEK metinden (isim/GSMArena URL slug'ı) çıkarım
@@ -15155,6 +15180,8 @@ async function openPhoneDetail(id) {
       ${phoneQuickSpecsHTML(p)}
     </div>
     ${phoneSuitedForHTML(p)}
+    ${phoneSummaryHTML(p)}
+    ${phoneProsConsHTML(p)}
     ${phoneCrossLinksHTML(p)}
     <div class="ctbl">${cmpCategoryAccordionHTML(p, null)}</div>
     <div class="cmp-price-note">🔄 simgesi olan fiyatlar Cimri.com'dan canlı kontrol edilebilir</div>
@@ -15203,6 +15230,77 @@ function phoneSuitedForHTML(p) {
   if (ramGb > 0 && ramGb <= 6) tags.push(['📱','Günlük kullanım için uygun']);
   if (!tags.length) return '';
   return `<div class="phone-suited-for">${tags.map(([ic,t]) => `<span class="psf-tag">${ic} ${t}</span>`).join('')}</div>`;
+}
+
+// ==== "🧠 TEKNOHANE ÖZETİ" (Büyük Geliştirme Turu — FAZ 3) ====
+// TAMAMEN deterministik eşik kuralları, FAZ 2'nin GERÇEK parser'ları (phoneRamGB/phoneBatteryMah/
+// phoneRefreshHz/phoneMainCamMP/phoneWeightG/phoneIsFlagshipChip) üzerinden. Bir sinyal (ör. yenileme
+// hızı) o cihaz için parse EDİLEMİYORSA o madde HİÇ ÜRETİLMEZ — ne olumlu ne olumsuz, sessizce atlanır.
+// AI/harici bir API YOK — pahalı/yeni bir bağımlılık kurulmadı, tamamen mevcut PHONES verisi üzerinde
+// istemci tarafında çalışıyor. "Şarj hızı", "microSD", "IP sertifikası" gibi örnekler bilinçli olarak
+// YOK — veri modelinde bu alanlar hiç mevcut değil, üretmek sahte veri olurdu.
+function phoneSummaryPoints(p) {
+  const pos = [], neg = [];
+  const flagship = phoneIsFlagshipChip(p);
+  if (flagship === true) pos.push('Güçlü/amiral gemisi işlemci');
+  const refresh = phoneRefreshHz(p);
+  if (refresh != null) { if (refresh >= 120) pos.push('Çok akıcı, yüksek yenileme hızlı ekran'); else if (refresh < 90) neg.push('Standart 60Hz ekran (yüksek yenileme hızı yok)'); }
+  const cam = phoneMainCamMP(p);
+  if (cam != null) { if (cam >= 100) pos.push('Yüksek çözünürlüklü, güçlü kamera'); else if (cam < 16) neg.push('Düşük çözünürlüklü kamera'); }
+  const bat = phoneBatteryMah(p);
+  if (bat != null) { if (bat >= 5000) pos.push('Uzun pil ömrü potansiyeli (büyük batarya)'); else if (bat < 3500) neg.push('Küçük batarya kapasitesi'); }
+  const wt = phoneWeightG(p);
+  if (wt != null && wt >= 220) neg.push(`Büyük ve ağır gövde (${wt}g)`);
+  const ram = phoneRamGB(p);
+  if (ram != null && ram <= 4) neg.push('Sınırlı RAM — çoklu görevde zorlanabilir');
+  const storage = phoneStorageGB(p);
+  if (storage != null && storage < 128) neg.push('Sınırlı dahili depolama');
+  return { pos, neg };
+}
+function phoneSummaryHTML(p) {
+  const { pos, neg } = phoneSummaryPoints(p);
+  if (!pos.length && !neg.length) return '';
+  return `<div class="phone-summary-card">
+    <div class="psec-title" style="margin-bottom:8px">🧠 Teknohane Özeti</div>
+    ${pos.map(t => `<div class="ps-row ps-pos">✅ ${escapeHtml(t)}</div>`).join('')}
+    ${neg.map(t => `<div class="ps-row ps-neg">⚠️ ${escapeHtml(t)}</div>`).join('')}
+  </div>`;
+}
+
+// ==== "👍 ARTILARI / 👎 EKSİLERİ" (Büyük Geliştirme Turu — FAZ 4) ====
+// Teknohane Özeti'nden FARKLI amaç: burada YARGI değil, SOMUT/sayısal özellik maddeleri var (spec
+// örneği: "200 MP kamera", "120 Hz AMOLED", "yüksek ağırlık") — ikisi birbirini TEKRARLAMAZ, ayrı
+// eşik/ifade setleri kullanır. Aynı disiplin: veri yoksa madde YOK.
+function phoneProsConsPoints(p) {
+  const pros = [], cons = [];
+  const cam = phoneMainCamMP(p);
+  if (cam != null) { if (cam >= 200) pros.push(`${cam} MP kamera`); else if (cam >= 100) pros.push(`${cam} MP yüksek çözünürlüklü kamera`); }
+  const refresh = phoneRefreshHz(p);
+  if (refresh != null && refresh >= 90) pros.push(`${refresh} Hz yüksek yenileme hızlı ekran`);
+  const bat = phoneBatteryMah(p);
+  if (bat != null && bat >= 5000) pros.push(`${bat} mAh büyük batarya`);
+  const ram = phoneRamGB(p);
+  if (ram != null && ram >= 12) pros.push(`${ram} GB yüksek RAM`);
+  const storage = phoneStorageGB(p);
+  if (storage != null && storage >= 512) pros.push(`${storage >= 1024 ? (storage/1024)+' TB' : storage+' GB'} geniş depolama`);
+  if (phoneIsFlagshipChip(p) === true) pros.push(`${p.chip} işlemci`);
+
+  const wt = phoneWeightG(p);
+  if (wt != null && wt >= 220) cons.push(`Yüksek ağırlık (${wt}g)`);
+  if (cam != null && cam < 16) cons.push(`Düşük kamera çözünürlüğü (${cam} MP)`);
+  if (bat != null && bat < 3500) cons.push(`Küçük batarya (${bat} mAh)`);
+  if (ram != null && ram <= 4) cons.push(`Sınırlı RAM (${ram} GB)`);
+  if (storage != null && storage < 128) cons.push(`Sınırlı depolama (${storage} GB)`);
+  if (refresh != null && refresh < 90) cons.push('Standart 60Hz ekran');
+  return { pros, cons };
+}
+function phoneProsConsHTML(p) {
+  const { pros, cons } = phoneProsConsPoints(p);
+  if (!pros.length && !cons.length) return '';
+  return `<div class="phone-proscons-card">
+    ${pros.length ? `<div class="pc-col pc-pros"><div class="pc-tit">👍 Artıları</div>${pros.map(t => `<div class="pc-row">${escapeHtml(t)}</div>`).join('')}</div>` : ''}
+    ${cons.length ? `<div class="pc-col pc-cons"><div class="pc-tit">👎 Eksileri</div>${cons.map(t => `<div class="pc-row">${escapeHtml(t)}</div>`).join('')}</div>` : ''}
+  </div>`;
 }
 // Pazar/Forum'a — GERÇEK bir sayı UYDURMUYOR (iki farklı eşleştirme algoritmasından çelişkili
 // sayılar çıkma riskini önlemek için, bkz. görev talimatı §27): mevcut arama kutularını AYNEN
