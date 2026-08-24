@@ -3776,7 +3776,10 @@ function isTrustedSellerActive(profileData) {
 // kontrolü/tüketim SUNUCU tarafında (cloudflare-push-worker.js VIP_STORE_LIMITS, AYNI değerler,
 // iki ayrı statik uygulama olduğu için kod paylaşımı yok, elle senkron tutuluyor) — client bu
 // sabitleri değiştirse bile worker kendi kopyasına göre karar verir.
-const VIP_STORE_LIMITS = { boosts: 3, refreshes: 5 };
+// VIP HAKLARI 2.1 — KRİTİK ONARIM: worker'daki AYNI değişiklikle (bkz. cloudflare-push-worker.js
+// üstündeki not) BİREBİR senkron kalmalı — featured/urgent/showcase artık GERÇEKTEN bağımsız,
+// eskiden ÜÇÜ birden tek bir 'boosts' havuzunu paylaşıyordu.
+const VIP_STORE_LIMITS = { featured: 3, urgent: 3, showcase: 3, refreshes: 5 };
 const ENTITLEMENT_SOURCES = {
   vip: ['vip_profile_badge', 'vip_profile_frame', 'vip_arena_badge', 'advanced_arena_stats',
     'vip_marketplace_badge', 'vip_community_badge',
@@ -3804,7 +3807,9 @@ const VIP_ENTITLEMENT_LABELS = {
   advanced_arena_stats: 'Gelişmiş Arena istatistikleri',
   vip_marketplace_store: 'Kişisel VIP Mağaza sayfası',
   vip_marketplace_premium_listing: 'Premium ilan görünümü',
-  vip_marketplace_monthly_boost: `Aylık ${VIP_STORE_LIMITS.boosts} ücretsiz öne çıkarma hakkı`,
+  vip_marketplace_monthly_showcase: `Aylık ${VIP_STORE_LIMITS.showcase} ücretsiz vitrin hakkı`,
+  vip_marketplace_monthly_urgent: `Aylık ${VIP_STORE_LIMITS.urgent} ücretsiz "acil" rozeti hakkı`,
+  vip_marketplace_monthly_boost: `Aylık ${VIP_STORE_LIMITS.featured} ücretsiz öne çıkarma hakkı`,
   vip_marketplace_monthly_refresh: `Aylık ${VIP_STORE_LIMITS.refreshes} ücretsiz ilan yenileme hakkı`,
   vip_marketplace_analytics: 'Mağaza istatistikleri',
   vip_marketplace_featured_store: 'Mağazada öne çıkan ilanlar',
@@ -3830,7 +3835,13 @@ const VIP_BENEFITS_LIST = [
   // gateKey ile AYNI entitlement anahtarını paylaşıyor, yalnızca görüntüleme satırı ayrı.
   { key: 'vip_marketplace_followers', gateKey: 'vip_marketplace_store', ic: '👥', labelOverride: 'Mağazayı takip eden müşteriler' },
   { key: 'vip_marketplace_follow_notify', gateKey: 'vip_marketplace_store', ic: '🔔', labelOverride: 'Yeni ilanlarda takipçilere bildirim' },
-  { key: 'vip_marketplace_monthly_boost', ic: '📌', usageField: 'boostsUsed', limit: VIP_STORE_LIMITS.boosts },
+  // VIP HAKLARI 2.1 — eskiden TEK bir satır (boostsUsed/3) featured+urgent+showcase'i BİRLİKTE
+  // temsil ediyordu (yanlış — üçü artık gerçekten bağımsız sayaçlar). gateKey deseni AYNEN
+  // yukarıdaki takip/bildirim çiftinde olduğu gibi: hepsi vip_marketplace_monthly_boost
+  // entitlement'ının (VIP aktifken herkeste açık) altında, yalnızca usageField/limit farklı.
+  { key: 'vip_marketplace_monthly_boost', gateKey: 'vip_marketplace_monthly_boost', ic: '⭐', labelOverride: 'Aylık ücretsiz öne çıkarma hakkı', usageField: 'featuredUsed', limit: VIP_STORE_LIMITS.featured },
+  { key: 'vip_marketplace_monthly_showcase', gateKey: 'vip_marketplace_monthly_boost', ic: '📌', usageField: 'showcaseUsed', limit: VIP_STORE_LIMITS.showcase },
+  { key: 'vip_marketplace_monthly_urgent', gateKey: 'vip_marketplace_monthly_boost', ic: '🔥', usageField: 'urgentUsed', limit: VIP_STORE_LIMITS.urgent },
   { key: 'vip_marketplace_monthly_refresh', ic: '🔄', usageField: 'refreshesUsed', limit: VIP_STORE_LIMITS.refreshes },
   { key: 'vip_marketplace_analytics', ic: '📊' },
   { key: 'vip_marketplace_featured_store', ic: '⭐' },
@@ -3941,10 +3952,16 @@ function renderVipStoreDashboardHTML(profileData, myListings) {
   const totalFavs = listings.reduce((s,l) => s + (l.favoritedByUids||[]).length, 0);
   const totalContacts = listings.reduce((s,l) => s + (l.contactCount||0), 0);
   const top = active.length ? [...active].sort((a,b) => (b.viewCount||0) - (a.viewCount||0))[0] : null;
-  const usage = vipStoreUsageThisMonth || { boostsUsed: 0, refreshesUsed: 0 };
+  // VIP HAKLARI 2.1 — dört hakkın DÖRDÜ de kendi bağımsız alanından okunuyor (featuredUsed/
+  // showcaseUsed/urgentUsed/refreshesUsed) — artık hiçbiri diğerinin sayacını paylaşmıyor.
+  const usage = vipStoreUsageThisMonth || {};
   const featuredIds = profileData.featuredListingIds || [];
-  const boostsLeft = Math.max(0, VIP_STORE_LIMITS.boosts - (usage.boostsUsed||0));
-  const refreshesLeft = Math.max(0, VIP_STORE_LIMITS.refreshes - (usage.refreshesUsed||0));
+  const rightsLeft = {
+    featured: Math.max(0, VIP_STORE_LIMITS.featured - (usage.featuredUsed||0)),
+    showcase: Math.max(0, VIP_STORE_LIMITS.showcase - (usage.showcaseUsed||0)),
+    urgent: Math.max(0, VIP_STORE_LIMITS.urgent - (usage.urgentUsed||0)),
+    refreshes: Math.max(0, VIP_STORE_LIMITS.refreshes - (usage.refreshesUsed||0)),
+  };
   const followerCount = (profileData.followerUids || []).length;
   const expDate = profileData.vipExpiresAt?.toDate ? profileData.vipExpiresAt.toDate() : null;
   const daysLeft = expDate ? Math.max(1, Math.ceil((expDate.getTime() - Date.now()) / 86400000)) : null;
@@ -3962,8 +3979,12 @@ function renderVipStoreDashboardHTML(profileData, myListings) {
     ${top ? `<div style="font-size:11.5px;color:var(--text2);margin-bottom:10px">🏆 En çok görüntülenen: <b>${escapeHtml(top.model||'İlan')}</b> (${top.viewCount||0} görüntülenme)</div>` : ''}`}
     <div style="font-size:12px;font-weight:700;margin-bottom:6px">Bu Ay VIP Hakların</div>
     <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:12px">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px"><span>📌 Öne çıkarma</span><span style="color:var(--text2)">${usage.boostsUsed||0}/${VIP_STORE_LIMITS.boosts} kullanıldı<span style="color:${boostsLeft?'#3DDC97':'var(--text3)'};margin-left:6px;font-weight:600">${boostsLeft?`· ${boostsLeft} hakkın kaldı`:'· hakkın kalmadı'}</span></span></div>
-      <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px"><span>🔄 İlan yenileme</span><span style="color:var(--text2)">${usage.refreshesUsed||0}/${VIP_STORE_LIMITS.refreshes} kullanıldı<span style="color:${refreshesLeft?'#3DDC97':'var(--text3)'};margin-left:6px;font-weight:600">${refreshesLeft?`· ${refreshesLeft} hakkın kaldı`:'· hakkın kalmadı'}</span></span></div>
+      ${[
+        { ic: '⏳', label: 'Süre Uzatma', used: usage.refreshesUsed||0, limit: VIP_STORE_LIMITS.refreshes, left: rightsLeft.refreshes },
+        { ic: '📌', label: 'Vitrin', used: usage.showcaseUsed||0, limit: VIP_STORE_LIMITS.showcase, left: rightsLeft.showcase },
+        { ic: '🔥', label: 'Acil', used: usage.urgentUsed||0, limit: VIP_STORE_LIMITS.urgent, left: rightsLeft.urgent },
+        { ic: '⭐', label: 'Öne Çıkar', used: usage.featuredUsed||0, limit: VIP_STORE_LIMITS.featured, left: rightsLeft.featured },
+      ].map(r => `<div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px"><span>${r.ic} ${r.label}</span><span style="color:var(--text2)">${r.used}/${r.limit} kullanıldı<span style="color:${r.left?'#3DDC97':'var(--text3)'};margin-left:6px;font-weight:600">${r.left?`· ${r.left} hakkın kaldı`:'· hakkın kalmadı'}</span></span></div>`).join('')}
       <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px"><span>⭐ Öne Çıkan İlan</span><span style="color:var(--text2)">${featuredIds.length}/3 seçili</span></div>
     </div>
     ${active.length ? `
@@ -6145,20 +6166,29 @@ function renderBoostRequestOptions(l) {
     const meta = BOOST_TYPE_LABELS[type];
     const alreadyActive = type !== 'extend' && !!l[type];
     const pending = boostReqPendingTypes.has(type);
-    // VIP ücretsiz hak: 'extend' → refreshesUsed/5, diğer 3 tür (showcase/urgent/featured) → BİRLİKTE boostsUsed/3.
+    // VIP HAKLARI 2.1 — dördü de artık GERÇEKTEN bağımsız: 'extend' → refreshesUsed/5, 'featured' →
+    // featuredUsed/3, 'showcase' → showcaseUsed/3, 'urgent' → urgentUsed/3. Eskiden showcase/urgent/
+    // featured ÜÇÜ birden aynı boostsUsed/3 havuzunu paylaşıyordu (kök neden — bkz. worker notu).
     const isRefresh = type === 'extend';
-    const usageField = isRefresh ? 'refreshesUsed' : 'boostsUsed';
-    const limit = isRefresh ? VIP_STORE_LIMITS.refreshes : VIP_STORE_LIMITS.boosts;
+    const usageField = isRefresh ? 'refreshesUsed' : (type === 'featured' ? 'featuredUsed' : type === 'showcase' ? 'showcaseUsed' : 'urgentUsed');
+    const limit = isRefresh ? VIP_STORE_LIMITS.refreshes : VIP_STORE_LIMITS[type];
     const used = vipStoreUsageThisMonth ? (vipStoreUsageThisMonth[usageField] || 0) : 0;
-    const hasVipQuota = vip && vipStoreUsageThisMonth && used < limit;
+    const quotaKnown = vip && !!vipStoreUsageThisMonth;
+    const hasVipQuota = quotaKnown && used < limit;
+    const quotaExhausted = quotaKnown && used >= limit;
     let statusHtml = '', actionHtml = '';
     if (alreadyActive) { statusHtml = `<span style="font-size:11px;color:var(--green);font-weight:700">✓ Zaten Açık</span>`; }
     else if (pending) { statusHtml = `<span style="font-size:11px;color:var(--cyan);font-weight:700">⏳ Onay Bekliyor</span>`; }
     else if (hasVipQuota) {
       statusHtml = `<span style="font-size:10.5px;color:#FFD700;font-weight:700">👑 ${used}/${limit} kullanıldı</span>`;
-      actionHtml = `<button class="sbtn2" style="width:auto;padding:6px 14px;font-size:12px;background:linear-gradient(135deg,#FFD700,#FFA500);color:#3a2600" onclick="useVipStoreQuota('${type}')">✨ VIP Hakkını Kullan</button>`;
+      actionHtml = `<button class="sbtn2" style="width:auto;padding:6px 14px;font-size:12px;background:linear-gradient(135deg,#FFD700,#FFA500);color:#3a2600" onclick="useVipStoreQuota('${type}',this)">✨ VIP Hakkını Kullan</button>`;
     }
-    else { actionHtml = `<button class="sbtn2" style="width:auto;padding:6px 14px;font-size:12px" onclick="submitBoostRequest('${type}')">Talep Et</button>`; }
+    else {
+      // KRİTİK ONARIM §10 — hak gerçekten dolduysa ("used>=limit") bunu AÇIKÇA belirt, sonra da
+      // (hâlâ) admin onayına talep gönderme seçeneğini bırak — kullanıcıyı tamamen engellemiyoruz.
+      if (quotaExhausted) statusHtml = `<span style="font-size:10.5px;color:var(--text3);font-weight:700">✓ Bu ay hakkın doldu (${used}/${limit})</span>`;
+      actionHtml = `<button class="sbtn2" style="width:auto;padding:6px 14px;font-size:12px" onclick="submitBoostRequest('${type}')">Talep Et</button>`;
+    }
     return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
       <div style="font-size:20px;flex-shrink:0">${meta.ic}</div>
       <div style="flex:1;min-width:0">
@@ -6173,9 +6203,13 @@ function renderBoostRequestOptions(l) {
 // VIP kullanıcı ÜCRETSİZ aylık hakkını kullanır — admin onayı BEKLEMEDEN anında uygulanır. Gerçek
 // yetki/tüketim kontrolü SUNUCU tarafında (bkz. /internal/vip-store-action) — burada guardSubmit
 // dışında hiçbir istemci kontrolü "izin" anlamına gelmiyor, yalnızca UX.
-async function useVipStoreQuota(action) {
+async function useVipStoreQuota(action, btnEl) {
   const listingId = boostReqTargetListingId;
   if (!listingId || !guardSubmit('vipStoreAction')) return;
+  // KRİTİK ONARIM §10 — buton kesin bir loading durumu göstersin, tekrar tıklanamasın (guardSubmit
+  // zaten MANTIKSAL çift-gönderimi engelliyordu ama buton GÖRSEL olarak aktif kalıyordu).
+  const originalLabel = btnEl?.textContent;
+  if (btnEl) { btnEl.disabled = true; btnEl.style.opacity = '.6'; btnEl.textContent = '⏳ İşleniyor…'; }
   try {
     const idToken = await user.getIdToken();
     const res = await arenaApiCall(VIP_STORE_ACTION_API, { idToken, listingId, action });
@@ -6186,13 +6220,33 @@ async function useVipStoreQuota(action) {
       if (currentListing?.id === listingId) openDetail(listingId); // ekranı taze veriyle yeniden çiz
       rlistings();
     } else {
-      const msgMap = { vip_required: 'VIP üyeliğin aktif görünmüyor.', quota_exceeded: 'Bu ayki ücretsiz hakkın doldu.', not_owner: 'Bu ilan sana ait değil.', listing_sold: 'Satılmış bir ilan öne çıkarılamaz.', user_banned: 'Hesabın kısıtlı.' };
-      showToast('⚠️', 'rgba(255,69,58,.15)', 'İşlem Yapılamadı', msgMap[res?.error] || 'Bir sorun oluştu, tekrar dene.');
+      // KRİTİK ONARIM §11 — genel/anlamsız "Bir sorun oluştu, tekrar dene" yerine gerçek hata
+      // kategorisine göre anlamlı mesaj. Worker'ın döndürebileceği TÜM hata kodları burada
+      // eşleniyor (bkz. /internal/vip-store-action) — hiçbiri artık jenerik fallback'e düşmemeli.
+      // Teknik detay (varsa res.message) yalnızca console'a, kullanıcıya asla ham hata gösterilmez.
+      const msgMap = {
+        vip_required: 'VIP üyeliğin aktif değil.',
+        quota_exceeded: 'Bu ay bu VIP hakkını kullandın.',
+        not_owner: 'Bu işlem yalnızca kendi ilanlarında kullanılabilir.',
+        listing_not_found: 'İlan artık mevcut değil.',
+        listing_sold: 'Satılmış bir ilan için bu işlem kullanılamaz.',
+        user_banned: 'Hesabın kısıtlı olduğu için bu işlem kullanılamıyor.',
+        retry_exhausted: 'Şu anda yoğunluk var. Hakkın DÜŞÜRÜLMEDİ, birkaç saniye sonra tekrar dene.',
+        internal_error: 'İşlem tamamlanamadı. Hakkın düşürülmedi, tekrar deneyebilirsin.',
+      };
+      if (res?.error === 'internal_error' && res?.message) console.error('vip-store-action internal_error:', res.message);
+      showToast('⚠️', 'rgba(255,69,58,.15)', 'İşlem Yapılamadı', msgMap[res?.error] || 'Bağlantı sorunu oluştu. Hakkın kullanılmadı, tekrar deneyebilirsin.');
       await loadVipStoreUsageIfNeeded();
       const l = currentListing && currentListing.id === listingId ? currentListing : await getListingById(listingId);
       if (l) renderBoostRequestOptions(l);
     }
-  } catch (e) { showErrorToast(e); } finally { releaseSubmit('vipStoreAction'); }
+  } catch (e) {
+    showErrorToast(e);
+    // Ağ hatası gibi durumlarda renderBoostRequestOptions hiç ÇAĞRILMAZ (yalnızca yukarıdaki iki
+    // dal — başarı/bilinen-hata — bunu tetikliyor) — buton kalıcı "İşleniyor…" durumunda kalmasın diye
+    // burada ayrıca eski haline döndürülüyor.
+    if (btnEl) { btnEl.disabled = false; btnEl.style.opacity = ''; if (originalLabel) btnEl.textContent = originalLabel; }
+  } finally { releaseSubmit('vipStoreAction'); }
 }
 
 // VIP Mağaza Takip 2.0 — submitListing()'in create dalından fire-and-forget çağrılır (await EDİLMEZ).
@@ -14754,6 +14808,7 @@ async function openPhoneDetail(id) {
     ${phoneCrossLinksHTML(p)}
     <div class="ctbl">${cmpCategoryAccordionHTML(p, null)}</div>
     <div class="cmp-price-note">🔄 simgesi olan fiyatlar Cimri.com'dan canlı kontrol edilebilir</div>
+    ${similarPhonesHTML(p)}
     <div class="phone-reviews">
       <div class="pr-tit">${escapeHtml(brandDisplay(p.brand))} ${escapeHtml(p.name)} — Yorumlar</div>
       <div id="pr-list-detail"><div class="load"><div class="spin"></div></div></div>
@@ -14814,6 +14869,33 @@ function phoneCrossLinksHTML(p) {
       <span class="pcl-ic">💬</span>
       <div><div class="pcl-txt">Bu Telefon Hakkında</div><div class="pcl-sub">Forum'da ara →</div></div>
     </div>
+  </div>`;
+}
+// GERÇEK VERİDEN "Benzer Telefonlar" — sahte bir "benzerlik skoru" YOK: aynı markadan, fiyatça en
+// yakın olanlar öncelikli; aynı marka yoksa/yetersizse fiyatça en yakın (marka fark etmeksizin)
+// telefonlarla tamamlanır. Hiçbir alan uydurulmuyor, PHONES dizisindeki gerçek fiyat/marka kullanılıyor.
+function phonePriceNum(p) {
+  const n = parseInt(String(p.price || '').replace(/[^\d]/g, ''), 10);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+function similarPhonesHTML(p) {
+  const myPrice = phonePriceNum(p);
+  const pool = PHONES.filter(x => x.id !== p.id);
+  const sameBrand = pool.filter(x => x.brand === p.brand);
+  const scored = (list) => list
+    .map(x => ({ x, d: (myPrice != null && phonePriceNum(x) != null) ? Math.abs(phonePriceNum(x) - myPrice) : Infinity }))
+    .sort((a, b) => a.d - b.d)
+    .map(s => s.x);
+  const picked = [];
+  const seen = new Set();
+  for (const x of scored(sameBrand)) { if (picked.length >= 6) break; if (!seen.has(x.id)) { picked.push(x); seen.add(x.id); } }
+  if (picked.length < 6) {
+    for (const x of scored(pool.filter(x => x.brand !== p.brand))) { if (picked.length >= 6) break; if (!seen.has(x.id)) { picked.push(x); seen.add(x.id); } }
+  }
+  if (!picked.length) return '';
+  return `<div class="phone-similar">
+    <div class="pr-tit">🔄 Benzer Telefonlar</div>
+    <div class="pdgrid">${picked.map(x => phoneCardHTML(x)).join('')}</div>
   </div>`;
 }
 function goToMarketSearchFor(q) {
