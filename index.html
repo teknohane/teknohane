@@ -16597,6 +16597,9 @@ const ARENA_LEAGUE_LEADERBOARD_API = 'https://teknohane-api.yusuf-aykac.workers.
 const ARENA_LEAGUE_HISTORY_API = 'https://teknohane-api.yusuf-aykac.workers.dev/arena-league-history';
 const ARENA_LEAGUE_MATCH_START_API = 'https://teknohane-api.yusuf-aykac.workers.dev/arena-league-match-start';
 const ARENA_LEAGUE_MATCH_SUBMIT_API = 'https://teknohane-api.yusuf-aykac.workers.dev/arena-league-match-submit';
+// ERTELEME MAÇI 1.0
+const ARENA_LEAGUE_POSTPONED_START_API = 'https://teknohane-api.yusuf-aykac.workers.dev/arena-league-postponed-start';
+const ARENA_LEAGUE_POSTPONED_SUBMIT_API = 'https://teknohane-api.yusuf-aykac.workers.dev/arena-league-postponed-submit';
 // VIP Mağaza / Premium Satıcı 2.0 — arenaApiCall() Arena'ya özgü değil, genel bir "worker'a idToken'lı
 // POST at, yeniden dene" yardımcısı; aynı isim altında burada da yeniden kullanılıyor.
 const VIP_STORE_ACTION_API = 'https://teknohane-api.yusuf-aykac.workers.dev/vip-store-action';
@@ -16773,6 +16776,12 @@ let arenaLeagueMatchSubmitInFlight = false;
 let arenaLeagueMatchQStartMs = 0;
 let arenaLeagueMatchTimerHandle = null;
 let arenaLeagueMatchTimeLeftMs = 0;
+// ERTELEME MAÇI 1.0: soru ekranı/zamanlayıcı/cevap-seçme kodu (rArenaLeagueMatchQuestion/
+// arenaLeagueMatchStartTimer/arenaLeagueMatchSelectAnswer/arenaLeagueMatchAdvance) BİREBİR AYNI kalıyor,
+// yalnızca hangi API'ye submit edileceğini ve ekran metinlerini ayırt etmek için bir mod bayrağı
+// eklendi — "Erteleme ≠ ekstra maç" ilkesi gereği tamamen yeni bir quiz UI'ı İCAT EDİLMEDİ (kopya kod
+// riski + tutarsızlık riski), var olan akış küçük bir dallanmayla iki bağlamda da kullanılıyor.
+let arenaLeagueMatchMode = 'daily'; // 'daily' | 'postponed'
 
 // PHASE 1D-5A (performans denetimi bulgusu): rArenaHome() zaten teknohane_arena_stats/{uid}'i
 // çekiyor; rArenaBadges()'e ulaşmanın TEK yolu rArenaHome()'un kendi render ettiği "🏅 Rozetlerim"
@@ -17497,6 +17506,15 @@ function renderArenaPersonalDashboardHtml(data, attempt) {
     const pct = total > 0 ? Math.round((attempt.correctCount||0) / total * 100) : null;
     perfRows.push(`<div style="font-size:12.5px"><b>🎮 Günlük Yarışma:</b> ${attempt.correctCount||0} doğru, ${attempt.wrongCount||0} yanlış${pct!=null?` (%${pct})`:''} · +${attempt.totalScore||0} puan</div>`);
   }
+  // ERTELEME MAÇI 1.0: yalnızca BUGÜN tamamlanmışsa (completedAt'in takvim günü bugünle aynıysa)
+  // gösterilir — aksi halde eski bir tamamlanmış teklif, üzerine yeni bir kaçırma yazılana kadar
+  // günler boyunca burada takılı kalırdı (backend'deki postponedMatch dokümanı yalnızca YENİ bir
+  // kaçırma tespit edildiğinde üzerine yazılır, bkz. resolveArenaPostponedMatchOffer).
+  const pmc = data.postponedMatch;
+  if (pmc?.status === 'completed' && pmc?.completedAt && pmc.completedAt.slice(0, 10) === new Date().toISOString().slice(0, 10)) {
+    const breakdown = (pmc.totalBasePoints != null && pmc.totalBonusPoints != null) ? ` <span style="color:var(--text3);font-weight:400">(🎯+${pmc.totalBasePoints} ⚡+${pmc.totalBonusPoints})</span>` : '';
+    perfRows.push(`<div style="font-size:12.5px"><b>⏳ Erteleme Maçı (${arenaFormatMissedDateLabel(pmc.missedDate)}):</b> ${pmc.correctCount!=null?`${pmc.correctCount}/${ARENA_LEAGUE_MATCH_QUESTION_COUNT} doğru · `:''}+${pmc.earnedScore ?? 0} puan${breakdown}</div>`);
+  }
   if (perfRows.length) {
     sections.push(`<div style="margin-bottom:12px">
       <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px">📊 BUGÜNKÜ PERFORMANSIN</div>
@@ -17609,6 +17627,7 @@ function renderArenaHomeLeagueCardHtml(data) {
 
   const tierTheme = arenaLeagueTierTheme(data.tier);
   const matchCardHtml = renderArenaLeagueMatchCardHtml(data.todayMatch, data.memberCount, data.capacity);
+  const postponedCardHtml = renderArenaPostponedMatchCardHtml(data.postponedMatch);
 
   return `<div class="feat" style="padding:0;overflow:hidden;margin-bottom:14px">
     <div style="padding:16px 18px;background:${tierTheme.bg};cursor:pointer" onclick="rArenaLeague()">
@@ -17629,6 +17648,7 @@ function renderArenaHomeLeagueCardHtml(data) {
       ${neighborsHtml?`<div style="font-size:11.5px;color:var(--text2);display:flex;flex-direction:column;gap:3px;margin-bottom:12px">${neighborsHtml}</div>`:''}
     </div>
     ${matchCardHtml.replace('margin-bottom:14px','margin:0 18px 14px')}
+    ${postponedCardHtml.replace('margin-bottom:14px','margin:0 18px 14px')}
     <div style="padding:0 18px">${previewHtml}</div>
     <div style="padding:0 18px">${seasonProgressHtml}${arenaSeasonRewardsPanelHtml(myRank, isFull)}</div>
     <div style="padding:14px 18px 16px;cursor:pointer" onclick="rArenaLeague()"><div style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--cyan)">Ligi Gör →</div></div>
@@ -18437,7 +18457,8 @@ function renderArenaLeagueScreen() {
       <div style="font-size:26px;font-weight:800;color:var(--cyan)">#${data.userRank ?? '-'}</div>
       <div style="font-size:12px;color:var(--text2)">${data.userLeagueScore ?? 0} Lig Puanı</div>
     </div>
-    ${renderArenaLeagueMatchCardHtml(data.todayMatch, data.memberCount, data.capacity)}`}
+    ${renderArenaLeagueMatchCardHtml(data.todayMatch, data.memberCount, data.capacity)}
+    ${renderArenaPostponedMatchCardHtml(data.postponedMatch)}`}
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
       <div style="font-size:13px;font-weight:700;color:var(--text2)">📊 Puan Durumu</div>
       ${isFull?`<div style="font-size:10px;color:var(--text3)"><span style="color:#30D158">▲</span> Terfi · <span style="color:#FF453A">▼</span> Küme Düşer</div>`:''}
@@ -18545,6 +18566,43 @@ function renderArenaLeagueMatchCardHtml(todayMatch, memberCount, capacity) {
     </div>`;
 }
 
+// ERTELEME MAÇI 1.0 — "Erteleme = kaçırılmış hakkın telafisi. Erteleme ≠ ekstra maç": bu kart todayMatch
+// kartının YANINA, onu asla gizlemeden/değiştirmeden eklenen İKİNCİ, bağımsız bir kart. Yalnızca
+// GERÇEKTEN aktif bir teklif varken (pending/in_progress) görünür — postponedMatch null/'completed'/
+// 'expired' olduğunda hiçbir şey render edilmez (görev talimatı: "kaçırma yoksa kart hiç görünmemeli").
+// completed durumu burada BİLEREK gösterilmiyor (kalıcı bir "tamamlandı" kartı, o gün için bir sonraki
+// gerçek kaçırmaya kadar sürüncemede kalıp kafa karıştırırdı) — o geri bildirim, kullanıcı maçı
+// tamamladığı ANDA rArenaLeagueMatchResult() ekranında zaten bir kez gösteriliyor, ayrıca Kişisel
+// Rekabet Dashboard'da AYNI GÜN için tekrarlanıyor (bkz. renderArenaPersonalDashboardHtml).
+function renderArenaPostponedMatchCardHtml(pm) {
+  if (!pm || (pm.status !== 'pending' && pm.status !== 'in_progress')) return '';
+  const missedLabel = arenaFormatMissedDateLabel(pm.missedDate);
+  const expiresLabel = pm.expiresAt ? arenaFormatExpiresLabel(pm.expiresAt) : '';
+  return `
+    <div class="feat" style="text-align:center;padding:18px 18px;margin-bottom:14px;border:1px solid #FF9500">
+      <div style="font-size:24px;margin-bottom:4px">⏳</div>
+      <div style="font-size:14px;font-weight:700;margin-bottom:4px;color:#FF9500">ERTELEME MAÇI FIRSATI</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:4px">${missedLabel} kaçırdığın Lig Maçını telafi et</div>
+      ${expiresLabel ? `<div style="font-size:11px;color:var(--text3);margin-bottom:12px">${expiresLabel}</div>` : '<div style="margin-bottom:12px"></div>'}
+      <button class="apbtn" id="arena-league-postponed-start-btn" style="background:linear-gradient(135deg,#FF9500,#FF6B00);color:#00040F;font-weight:700;border:none" onclick="arenaLeaguePostponedMatchBegin()">${pm.status === 'in_progress' ? '▶️ Devam Et' : '⏳ Erteleme Maçını Oyna'}</button>
+    </div>`;
+}
+function arenaFormatMissedDateLabel(dateStr) {
+  if (!dateStr) return 'Geçen';
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const yestStr = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  if (dateStr === yestStr) return 'Dün';
+  if (dateStr === todayStr) return 'Bugün';
+  try { return new Date(dateStr + 'T00:00:00Z').toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', timeZone: 'UTC' }); }
+  catch (e) { return dateStr; }
+}
+function arenaFormatExpiresLabel(expiresAt) {
+  const ms = Date.parse(expiresAt) - Date.now();
+  if (!ms || ms <= 0) return 'Süresi az kaldı';
+  const hrs = Math.max(1, Math.round(ms / 3600000));
+  return hrs >= 24 ? `Yaklaşık ${Math.round(hrs / 24)} gün içinde sona erecek` : `${hrs} saat içinde sona erecek`;
+}
+
 async function arenaLeagueJoin() {
   if (!guardSubmit('arenaLeagueJoin')) return;
   const btn = document.getElementById('arena-league-join-btn');
@@ -18629,6 +18687,7 @@ function arenaLeagueStartCountdown(leagueEndsAt, isFull, elId) {
 // (arenaTimerHandle/arenaQStartMs) BİLEREK AYRI bir zamanlayıcı kullanılıyor (arenaLeagueMatchTimerHandle/
 // arenaLeagueMatchQStartMs), iki mod arasında hiçbir mutable state paylaşılmıyor.
 async function arenaLeagueMatchBegin() {
+  arenaLeagueMatchMode = 'daily';
   if (!(await arenaRequireEmailVerified())) return;
   if (!guardSubmit('arenaLeagueMatchBegin')) return;
   const btn = document.getElementById('arena-league-match-start-btn');
@@ -18669,14 +18728,59 @@ async function arenaLeagueMatchBegin() {
   }
 }
 
+// ERTELEME MAÇI 1.0 — arenaLeagueMatchBegin()'in AYNI iskeleti, yalnızca postponed-start ucuna gidiyor
+// ve arenaLeagueMatchMode='postponed' işaretliyor (soru ekranı/timer/cevap seçimi/bitirme akışının
+// GERİ KALANI TAMAMEN PAYLAŞILIYOR — bkz. rArenaLeagueMatchQuestion/arenaLeagueMatchFinish'teki mod
+// dallanması). Başlatma butonu bu düğmenin kendisi değil, renderArenaPostponedMatchCardHtml'deki
+// #arena-league-postponed-start-btn — o yüzden bu fonksiyon KENDİ id'siyle disable/loading yönetiyor.
+async function arenaLeaguePostponedMatchBegin() {
+  arenaLeagueMatchMode = 'postponed';
+  if (!(await arenaRequireEmailVerified())) return;
+  if (!guardSubmit('arenaLeaguePostponedMatchBegin')) return;
+  const btn = document.getElementById('arena-league-postponed-start-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Yükleniyor…'; }
+  try {
+    const idToken = await user.getIdToken();
+    const data = await arenaApiCall(ARENA_LEAGUE_POSTPONED_START_API, { idToken });
+    if (data.success === false) {
+      if (data.error === 'postponed_offer_expired') {
+        showMsg('Erteleme Maçı fırsatının süresi doldu.');
+        rArenaLeague();
+      } else if (data.error === 'already_completed') {
+        showMsg('Bu Erteleme Maçını zaten tamamladın.');
+        rArenaLeague();
+      } else if (data.error === 'no_postponed_offer') {
+        showMsg('Şu anda aktif bir Erteleme Maçı fırsatın yok.');
+        rArenaLeague();
+      } else if (data.error === 'season_not_active') {
+        renderArenaLeagueError('season_not_active');
+      } else {
+        showMsg('Erteleme Maçı başlatılamadı. Lütfen tekrar dene.');
+      }
+      return;
+    }
+    arenaLeagueMatch = { missedDate: data.missedDate, questions: data.questions };
+    arenaLeagueMatchCurrentQ = 0;
+    arenaLeagueMatchAnswers = [];
+    rArenaLeagueMatchQuestion();
+  } catch (e) {
+    showMsg('Bağlantı kurulamadı. Lütfen tekrar dene.');
+  } finally {
+    releaseSubmit('arenaLeaguePostponedMatchBegin');
+    const btn2 = document.getElementById('arena-league-postponed-start-btn');
+    if (btn2) { btn2.disabled = false; btn2.textContent = '⏳ Erteleme Maçını Oyna'; }
+  }
+}
+
 function rArenaLeagueMatchQuestion() {
   arenaView = 'league-match-question';
   arenaLeagueMatchSelectedIndex = null;
   const q = arenaLeagueMatch.questions[arenaLeagueMatchCurrentQ];
   const body = document.getElementById('arena-body');
+  const headerLabel = arenaLeagueMatchMode === 'postponed' ? '⏳ Erteleme Maçı' : '🏆 Lig Maçı';
   body.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:12px;color:var(--text2)">
-      <span>🏆 Lig Maçı — ${arenaLeagueMatchCurrentQ+1}/${arenaLeagueMatch.questions.length}</span>
+      <span>${headerLabel} — ${arenaLeagueMatchCurrentQ+1}/${arenaLeagueMatch.questions.length}</span>
       <span id="arena-league-match-timer-txt" style="font-weight:700;color:var(--cyan)">${q.timeLimitSec}sn</span>
     </div>
     <div style="height:4px;background:var(--surf2);border-radius:99px;overflow:hidden;margin-bottom:16px">
@@ -18739,7 +18843,8 @@ async function arenaLeagueMatchFinish() {
     const body = document.getElementById('arena-body');
     body.innerHTML = `<div class="load"><div class="spin"></div><span>Puanlanıyor…</span></div>`;
     const idToken = await user.getIdToken();
-    const data = await arenaApiCall(ARENA_LEAGUE_MATCH_SUBMIT_API, { idToken, answers: arenaLeagueMatchAnswers });
+    const submitApi = arenaLeagueMatchMode === 'postponed' ? ARENA_LEAGUE_POSTPONED_SUBMIT_API : ARENA_LEAGUE_MATCH_SUBMIT_API;
+    const data = await arenaApiCall(submitApi, { idToken, answers: arenaLeagueMatchAnswers });
     if (data.success === false) {
       body.innerHTML = `<div class="no">Sonuç gönderilemedi.<br><span style="font-size:11px;color:var(--text3)">İnternet bağlantınızı kontrol edip tekrar deneyin.</span></div>
         <button class="apbtn" style="background:linear-gradient(135deg,var(--cyan),#0091FF);color:#00040F;font-weight:700;border:none" onclick="arenaLeagueMatchFinish()">↻ Tekrar Dene</button>
@@ -18763,14 +18868,15 @@ async function arenaLeagueMatchFinish() {
 function rArenaLeagueMatchResult() {
   arenaView = 'league-match-result';
   const r = arenaLeagueMatchResult;
+  const isPostponed = arenaLeagueMatchMode === 'postponed';
   const body = document.getElementById('arena-body');
   body.innerHTML = `
     <div class="feat" style="text-align:center;padding:28px 20px">
-      <div style="font-size:38px;margin-bottom:8px">🏆</div>
-      <div style="font-size:17px;font-weight:700;margin-bottom:18px">LİG MAÇI TAMAMLANDI</div>
+      <div style="font-size:38px;margin-bottom:8px">${isPostponed ? '⏳' : '🏆'}</div>
+      <div style="font-size:17px;font-weight:700;margin-bottom:18px">${isPostponed ? `ERTELEME MAÇI TAMAMLANDI${r.missedDate ? ` (${arenaFormatMissedDateLabel(r.missedDate)})` : ''}` : 'LİG MAÇI TAMAMLANDI'}</div>
       <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:18px">
         <div class="pstat-item"><div class="pstat-num" style="color:var(--green)">${r.correctCount ?? 0}/5</div><div>Doğru</div></div>
-        <div class="pstat-item"><div class="pstat-num" style="color:var(--cyan)">+${r.earnedScore ?? 0}</div><div>Bugünkü Lig Puanı</div></div>
+        <div class="pstat-item"><div class="pstat-num" style="color:var(--cyan)">+${r.earnedScore ?? 0}</div><div>${isPostponed ? 'Telafi Puanı' : 'Bugünkü Lig Puanı'}</div></div>
         <div class="pstat-item"><div class="pstat-num">${r.totalLeagueScore ?? 0}</div><div>Toplam Lig Puanın</div></div>
         ${r.rank?`<div class="pstat-item"><div class="pstat-num">#${r.rank}</div><div>Lig Sıralaman</div></div>`:''}
       </div>
