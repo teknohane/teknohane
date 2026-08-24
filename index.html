@@ -15617,6 +15617,36 @@ const ARENA_LEAGUE_TIER_THEME = [
   { bg: 'linear-gradient(135deg,#7C3AED,#3B82F6)', text: '#FFFFFF' },   // Elmas
 ];
 function arenaLeagueTierTheme(tier) { return ARENA_LEAGUE_TIER_THEME[tier] ?? ARENA_LEAGUE_TIER_THEME[0]; }
+// Arena 3.0 — sezon sonu ödülleri GÖRÜNTÜLEME kopyası. Gerçek kaynak worker'daki
+// ARENA_SEASON_REWARD_VIP_DAYS (cloudflare-push-worker.js, applyArenaSeasonReward) — {1:30,2:15,3:7} —
+// burası yalnızca kullanıcıya "sezon şu an bitse ne kazanırım" göstermek için, ödülü GERÇEKTEN veren
+// tek yer sezon kapanışında çalışan worker'dır, client hiçbir ödül/VIP alanı yazmaz.
+const ARENA_SEASON_REWARD_VIP_DAYS = { 1: 30, 2: 15, 3: 7 };
+function arenaSeasonRewardsPanelHtml(myRank, isFull) {
+  const ranks = [1, 2, 3];
+  const rows = ranks.map(r => {
+    const isMine = isFull && myRank === r;
+    const medal = r===1?'🥇':r===2?'🥈':'🥉';
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;${isMine?'font-weight:700':''}">
+      <span style="font-size:12.5px">${medal} ${r}. sıra${isMine?' — SEN':''}</span>
+      <span style="font-size:12.5px;color:#FFD700">👑 ${ARENA_SEASON_REWARD_VIP_DAYS[r]} Gün VIP</span>
+    </div>`;
+  }).join('');
+  let whatIWin = '';
+  if (isFull && myRank) {
+    if (myRank <= 3) {
+      whatIWin = `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border2);font-size:12px;color:#3DDC97">Sezon şu an biterse: <b>👑 ${ARENA_SEASON_REWARD_VIP_DAYS[myRank]} gün VIP kazanırsın.</b></div>`;
+    } else {
+      const nextRank = 3;
+      whatIWin = `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border2);font-size:12px;color:var(--text2)">3. sıraya çıkarsan: <b style="color:#FFD700">👑 ${ARENA_SEASON_REWARD_VIP_DAYS[nextRank]} gün VIP</b> kazanırsın.</div>`;
+    }
+  }
+  return `<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border2)">
+    <div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.3px;margin-bottom:6px">🏆 SEZON ÖDÜLLERİ</div>
+    ${rows}
+    ${whatIWin}
+  </div>`;
+}
 const ARENA_BADGE_LABELS = {
   'teknoloji-kurdu': '🧠 Teknoloji Kurdu', 'hizli-cevapci': '⚡ Hızlı Cevapçı',
   'seri-bagimlisi': '🔥 Seri Bağımlısı', 'ilk-sampiyon': '🏆 İlk Şampiyon', 'kusursuz': '💯 Kusursuz',
@@ -16247,7 +16277,7 @@ function renderArenaHomeLeagueCardHtml(data) {
     lastRank = m.rank;
     const isMe = m.uid === user?.uid;
     return gap + `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;${isMe?'background:var(--cdim)':''}">
-      <span style="font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${isMe?'font-weight:700':''}"><span style="display:inline-block;width:22px;flex-shrink:0">${rankIcon(m.rank)}</span>${escapeHtml(m.displayName||'Kullanıcı')}${m.vip?' 👑':''}${isMe?' (Sen)':''}</span>
+      <span style="font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${isMe?'font-weight:700':''}"><span style="display:inline-block;width:22px;flex-shrink:0">${rankIcon(m.rank)}</span>${escapeHtml(m.displayName||'Kullanıcı')}${m.vip?' 👑':''}${m.trustedSeller?' 🤝':''}${isMe?' (Sen)':''}</span>
       <span style="font-size:12px;font-weight:700;color:var(--cyan);flex-shrink:0">${m.leagueScore||0}</span>
     </div>`;
   }).join('');
@@ -16291,7 +16321,7 @@ function renderArenaHomeLeagueCardHtml(data) {
     </div>
     ${matchCardHtml.replace('margin-bottom:14px','margin:0 18px 14px')}
     <div style="padding:0 18px">${previewHtml}</div>
-    <div style="padding:0 18px">${seasonProgressHtml}</div>
+    <div style="padding:0 18px">${seasonProgressHtml}${arenaSeasonRewardsPanelHtml(myRank, isFull)}</div>
     <div style="padding:14px 18px 16px;cursor:pointer" onclick="rArenaLeague()"><div style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--cyan)">Ligi Gör →</div></div>
   </div>`;
 }
@@ -17064,7 +17094,7 @@ function renderArenaLeagueScreen() {
       <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer" onclick="openPublicProfile('${m.uid}','${escapeJsAttr(name)}')">
         ${m.photoURL?`<img src="${escapeHtml(m.photoURL)}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;flex-shrink:0" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${escapeJsAttr(avatarUrl(null, name, 60))}'">`:`<div style="width:30px;height:30px;border-radius:50%;background:var(--surf3,var(--surf2));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${escapeHtml(name.charAt(0).toUpperCase())}</div>`}
         <div style="flex:1;min-width:0">
-          <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(name)}${m.vip?' 👑':''}${isMe?' (Sen)':''}</div>
+          <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(name)}${m.vip?' 👑':''}${m.trustedSeller?' 🤝':''}${isMe?' (Sen)':''}</div>
           <div style="height:4px;border-radius:2px;background:var(--surf3,rgba(255,255,255,.08));overflow:hidden;margin-top:4px;max-width:140px">
             <div style="height:100%;width:${barPct}%;background:${isPromoZone?'#30D158':isRelegateZone?'#FF453A':'var(--cyan)'};border-radius:2px"></div>
           </div>
@@ -17074,10 +17104,15 @@ function renderArenaLeagueScreen() {
     </div>`;
   }).join('');
   const tierTheme = arenaLeagueTierTheme(data.tier);
+  // Arena 3.0 — §12/§13 "Diğer Ligleri Gör": isMyLeague===false ise bu ekran BAŞKA bir ligi salt-okunur
+  // "gezinme modunda" gösteriyor — kendi sıran/bugünkü maç kartı/ödül "ne kazanırım" satırı bu ligin
+  // BAĞLAMINDA anlamsız (worker zaten maç başlatmayı her zaman ÇAĞIRANIN KENDİ ligine sabitliyor,
+  // bkz. arena-league-match-start — burada yalnızca GÖRÜNÜRLÜK/UX netliği için gizleniyor).
+  const browseMode = data.isMyLeague === false;
 
   body.innerHTML = `
     <div class="feat" style="text-align:center;padding:22px 18px;margin-bottom:14px;background:${tierTheme.bg};border:none">
-      <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:${tierTheme.text};opacity:.85;margin-bottom:2px">ARENA LİGLERİ</div>
+      <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:${tierTheme.text};opacity:.85;margin-bottom:2px">${browseMode?'DİĞER LİGLER':'ARENA LİGLERİ'}</div>
       <div style="font-size:19px;font-weight:800;color:${tierTheme.text};margin-bottom:8px">${arenaLeagueTierLabel(data.tier)} Lig #${data.leagueNumber ?? '-'}</div>
       <div style="height:6px;border-radius:3px;background:rgba(0,0,0,.2);overflow:hidden;max-width:220px;margin:0 auto 6px">
         <div style="height:100%;width:${Math.round(((data.memberCount??0)/(data.capacity??10))*100)}%;background:${tierTheme.text};border-radius:3px;opacity:.9"></div>
@@ -17085,21 +17120,79 @@ function renderArenaLeagueScreen() {
       <div style="font-size:12px;color:${tierTheme.text};opacity:.9;margin-bottom:10px">${data.memberCount ?? (data.members||[]).length} / ${data.capacity ?? 10} Üye${isFull?' · Lig DOLU':''}</div>
       <div id="arena-league-countdown" style="font-size:12px;color:${tierTheme.text};opacity:.85"></div>
     </div>
+    ${browseMode ? `<div class="feat" style="text-align:center;padding:12px 18px;margin-bottom:14px;background:var(--surf2)">
+      <div style="font-size:12px;color:var(--text2)">👀 Bu ligi gezinme modunda görüntülüyorsun — bu senin liginin değil.</div>
+    </div>` : `
     <div class="feat" style="text-align:center;padding:16px 18px;margin-bottom:14px;background:var(--cdim)">
       <div style="font-size:13px;color:var(--text2)">Senin sıran</div>
       <div style="font-size:26px;font-weight:800;color:var(--cyan)">#${data.userRank ?? '-'}</div>
       <div style="font-size:12px;color:var(--text2)">${data.userLeagueScore ?? 0} Lig Puanı</div>
     </div>
-    ${renderArenaLeagueMatchCardHtml(data.todayMatch, data.memberCount, data.capacity)}
+    ${renderArenaLeagueMatchCardHtml(data.todayMatch, data.memberCount, data.capacity)}`}
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
       <div style="font-size:13px;font-weight:700;color:var(--text2)">📊 Puan Durumu</div>
       ${isFull?`<div style="font-size:10px;color:var(--text3)"><span style="color:#30D158">▲</span> Terfi · <span style="color:#FF453A">▼</span> Küme Düşer</div>`:''}
     </div>
     <div>${membersHtml || `<div class="no">Lig üyesi bulunamadı.</div>`}</div>
+    ${!browseMode ? `<div class="feat" style="padding:14px 18px;margin-top:14px">${arenaSeasonRewardsPanelHtml(data.userRank, isFull)}</div>` : ''}
+    ${!browseMode ? `<div id="arena-other-leagues-section" style="margin-top:14px"></div>` : ''}
     <div id="arena-league-history-section" style="margin-top:18px"></div>
-    <button class="apbtn" style="margin-top:14px" onclick="rArenaHome()">← Arena'ya Dön</button>`;
+    ${browseMode
+      ? `<button class="apbtn" style="margin-top:14px" onclick="${data.myLeagueId ? 'arenaViewLeague(null)' : 'rArenaHome()'}">← ${data.myLeagueId ? 'Kendi Ligime Dön' : 'Arena’ya Dön'}</button>`
+      : `<button class="apbtn" style="margin-top:14px" onclick="rArenaHome()">← Arena'ya Dön</button>`}`;
+  if (!browseMode) arenaLoadOtherLeagues();
 
   arenaLeagueStartCountdown(data.leagueEndsAt, isFull);
+}
+
+// Arena 3.0 — "🌍 Diğer Ligler" (§12). teknohane_arena_leagues zaten HERKESE (giriş yapmış) açık
+// salt-okunur (bkz. firestore.rules, "gelecekteki lig sıralama ekranı doğrudan client SDK ile
+// okuyabilsin diye" yorumu — TAM OLARAK bu özellik için bırakılmış). TEK sorgu, seasonId'ye göre
+// filtreli, N+1 YOK — teknohane_arena_league_members'a (herkese kapalı) HİÇ dokunulmuyor burada.
+async function arenaLoadOtherLeagues() {
+  const el = document.getElementById('arena-other-leagues-section');
+  if (!el || !arenaLeagueData?.seasonId) return;
+  el.innerHTML = `<div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:8px">🌍 Diğer Ligler</div><div class="load" style="padding:10px 0"><div class="spin"></div></div>`;
+  try {
+    const snap = await db.collection('teknohane_arena_leagues').where('seasonId', '==', arenaLeagueData.seasonId).limit(100).get();
+    const leagues = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(l => l.id !== arenaLeagueData.leagueId);
+    if (!leagues.length) { el.innerHTML = ''; return; }
+    const byTier = {};
+    leagues.forEach(l => { const t = l.tier ?? 0; (byTier[t] = byTier[t] || []).push(l); });
+    const tiers = Object.keys(byTier).map(Number).sort((a,b) => a-b);
+    el.innerHTML = `<div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:8px">🌍 Diğer Ligler</div>
+      ${tiers.map(t => {
+        const theme = arenaLeagueTierTheme(t);
+        const list = byTier[t].sort((a,b) => (a.leagueNumber||0) - (b.leagueNumber||0));
+        return `<div style="margin-bottom:10px">
+          <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px">${arenaLeagueTierLabel(t)}</div>
+          <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch">
+            ${list.map(l => `<div onclick="arenaViewLeague('${l.id}')" style="flex-shrink:0;min-width:110px;padding:10px 12px;border-radius:10px;background:${theme.bg};cursor:pointer">
+              <div style="font-size:12px;font-weight:700;color:${theme.text}">Lig #${l.leagueNumber ?? '-'}</div>
+              <div style="font-size:11px;color:${theme.text};opacity:.85">${l.memberCount ?? 0}/${l.capacity ?? 10} üye</div>
+            </div>`).join('')}
+          </div>
+        </div>`;
+      }).join('')}`;
+  } catch (e) { el.innerHTML = ''; /* opsiyonel bölüm — sessiz hata, ana lig ekranını asla bloklamaz */ }
+}
+
+// Arena 3.0 — bir başka ligi (veya leagueId=null ile kendi ligine) gezinme modunda açar. Worker'ın
+// viewLeagueId dalı YALNIZCA aktif sezona ait bir ligi kabul ediyor (bkz. cloudflare-push-worker.js) —
+// başka/kapalı bir sezonun kadrosu asla istemciye ulaşmaz.
+async function arenaViewLeague(leagueId) {
+  if (!leagueId) { rArenaLeague(); return; } // "Kendi Ligime Dön" — mevcut rArenaLeague() akışının AYNISI (history dahil)
+  arenaStopTimer();
+  const body = document.getElementById('arena-body');
+  body.innerHTML = `<div class="load"><div class="spin"></div></div>`;
+  try {
+    const idToken = await user.getIdToken();
+    const data = await arenaApiCall(ARENA_LEAGUE_LEADERBOARD_API, { idToken, viewLeagueId: leagueId });
+    arenaLeagueData = data;
+    renderArenaLeagueScreen();
+  } catch (e) {
+    renderArenaLeagueError('network');
+  }
 }
 
 // FAZ 2I — "Bugünün Lig Maçı" kartı. todayMatch/memberCount/capacity, arena-league-leaderboard'un
@@ -17134,7 +17227,7 @@ function renderArenaLeagueMatchCardHtml(todayMatch, memberCount, capacity) {
     <div class="feat" style="text-align:center;padding:20px 18px;margin-bottom:14px">
       <div style="font-size:28px;margin-bottom:4px">🏆</div>
       <div style="font-size:15px;font-weight:700;margin-bottom:6px">BUGÜNÜN LİG MAÇI</div>
-      <div style="font-size:12px;color:var(--text2);margin-bottom:14px">5 soru · Maksimum +100 Lig Puanı<br>Rakiplerinle yarış!</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:14px">5 soru · Doğru cevap + hız bonusuyla maksimum 150 Lig Puanı<br>Rakiplerinle yarış!</div>
       <button class="apbtn" id="arena-league-match-start-btn" style="background:linear-gradient(135deg,var(--cyan),#0091FF);color:#00040F;font-weight:700;border:none" onclick="arenaLeagueMatchBegin()">🏆 Lig Maçına Başla</button>
     </div>`;
 }
@@ -17180,16 +17273,32 @@ function arenaLeagueStartCountdown(leagueEndsAt, isFull, elId) {
   if (!leagueEndsAt) { el.textContent = isFull ? '' : 'Lig 10/10 dolunca 14 günlük süre başlayacak'; return; }
   const endMs = Date.parse(leagueEndsAt);
   if (!endMs || isNaN(endMs)) return;
+  // Arena 3.0 — saniye eklendi (spec §4: gün/saat/dakika/SANİYE canlı) + son 24s/12s/1s'de görsel
+  // aciliyet (spec §17) — YALNIZCA metin/renk, animasyon/performans etkisi yok.
   function tick() {
     const el2 = document.getElementById(elId);
     if (!el2) { arenaStopTimer(); return; } // ekran değişmiş, kendi kendini temizle
     const diff = endMs - Date.now();
-    if (diff <= 0) { el2.textContent = 'Lig süresi sona erdi.'; arenaStopTimer(); return; }
+    if (diff <= 0) { el2.textContent = '🏁 Lig sona erdi'; el2.style.color = ''; el2.style.fontWeight = ''; arenaStopTimer(); return; }
     const totalSec = Math.floor(diff / 1000);
     const days = Math.floor(totalSec / 86400);
     const hours = Math.floor((totalSec % 86400) / 3600);
     const mins = Math.floor((totalSec % 3600) / 60);
-    el2.textContent = `Lig süresinin bitişine: ${days}g ${hours}s ${mins}d`;
+    const secs = totalSec % 60;
+    const parts = days > 0 ? `${days}g ${hours}s ${mins}d ${secs}sn` : `${hours}s ${mins}d ${secs}sn`;
+    if (diff < 3600000) { // <1 saat
+      el2.textContent = `🔥 SON ${mins}:${String(secs).padStart(2,'0')} DAKİKA!`;
+      el2.style.color = '#FF453A'; el2.style.fontWeight = '800';
+    } else if (diff < 12*3600000) { // <12 saat
+      el2.textContent = `⚠️ Lig süresinin bitişine: ${parts}`;
+      el2.style.color = '#FF9500'; el2.style.fontWeight = '700';
+    } else if (diff < 24*3600000) { // <24 saat
+      el2.textContent = `⏱️ Lig süresinin bitişine: ${parts}`;
+      el2.style.color = '#FFD700'; el2.style.fontWeight = '700';
+    } else {
+      el2.textContent = `Lig süresinin bitişine: ${parts}`;
+      el2.style.color = ''; el2.style.fontWeight = '';
+    }
   }
   // Lig süresi zaten bitmişse interval'ı HİÇ kurma — aksi halde "Lig süresi sona erdi." bir sonraki
   // tick'e (1sn sonra) kadar gereksiz bir interval açık bırakırdı (izole testte yakalandı).
@@ -17352,6 +17461,12 @@ function rArenaLeagueMatchResult() {
         <div class="pstat-item"><div class="pstat-num">${r.totalLeagueScore ?? 0}</div><div>Toplam Lig Puanın</div></div>
         ${r.rank?`<div class="pstat-item"><div class="pstat-num">#${r.rank}</div><div>Lig Sıralaman</div></div>`:''}
       </div>
+      ${r.totalBasePoints!=null && r.totalBonusPoints!=null ? `
+      <div style="max-width:260px;margin:0 auto 18px;padding:12px 16px;background:var(--surf2);border-radius:10px;text-align:left">
+        <div style="display:flex;justify-content:space-between;font-size:12.5px;padding:3px 0"><span>🎯 Doğru cevap</span><span style="font-weight:700">+${r.totalBasePoints}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12.5px;padding:3px 0"><span>⚡ Hız bonusu</span><span style="font-weight:700;color:#FF9500">+${r.totalBonusPoints}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12.5px;padding:5px 0 0;margin-top:3px;border-top:1px solid var(--border2)"><span style="font-weight:700">🏆 Toplam</span><span style="font-weight:700;color:var(--cyan)">+${r.earnedScore ?? 0}</span></div>
+      </div>` : ''}
       <button class="apbtn" style="background:linear-gradient(135deg,var(--cyan),#0091FF);color:#00040F;font-weight:700;border:none" onclick="rArenaLeague()">← Ligime Dön</button>
     </div>`;
 }
