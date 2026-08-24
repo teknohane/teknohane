@@ -15187,6 +15187,14 @@ function addPhoneToCompare(id) {
   rslots(); refreshCmp();
   document.getElementById('cmp-res')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
+// Telefon detay sayfasından (FAZ 12 sıralama — "Rakipleriyle Karşılaştır") — mevcut addPhoneToCompare'i
+// AYNEN kullanır, ekstra bir karşılaştırma mantığı İCAT EDİLMEDİ. Detay sayfası herhangi bir ekrandan
+// (Pazar/Profil/vb.) açılabildiği için önce Karşılaştır ekranına geçiliyor.
+function comparePhoneFromDetail(id) {
+  exitPhoneDetail();
+  gt('compare');
+  addPhoneToCompare(id);
+}
 
 // ==== TELEFON DETAY / İNCELEME SAYFASI ====
 let phoneDetailReviewTarget = null; // submitPhoneReview'un 'detail' side'ı için — pA/pB'ye dokunmadan
@@ -15216,6 +15224,7 @@ async function openPhoneDetail(id) {
     ${phoneCrossLinksHTML(p)}
     <div class="ctbl">${cmpCategoryAccordionHTML(p, null)}</div>
     <div class="cmp-price-note">🔄 simgesi olan fiyatlar Cimri.com'dan canlı kontrol edilebilir</div>
+    <button class="apbtn" style="width:100%;margin:14px 0 4px;background:var(--surf2);color:var(--text)" onclick="comparePhoneFromDetail('${p.id}')">📊 Rakipleriyle Karşılaştır</button>
     ${similarPhonesHTML(p)}
     <div class="phone-reviews">
       <div class="pr-tit">${escapeHtml(brandDisplay(p.brand))} ${escapeHtml(p.name)} — Yorumlar</div>
