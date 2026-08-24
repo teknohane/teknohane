@@ -4455,6 +4455,17 @@ function rprof() {
         <div class="pacc-row" style="align-items:center"><span class="pacc-lbl">💬 Topluluk (yanıt, mention)</span><div class="ptoggle${myProfileData.notifyTopluluk!==false?' on':''}" onclick="toggleNotifyPref('notifyTopluluk','Topluluk bildirimlerini tekrar alacaksın.')"></div></div>
         <div class="pacc-row" style="align-items:center"><span class="pacc-lbl">👑 VIP (süre, ödül, avantaj)</span><div class="ptoggle${myProfileData.notifyVipEvents!==false?' on':''}" onclick="toggleNotifyPref('notifyVipEvents','VIP bildirimlerini tekrar alacaksın.')"></div></div>
         <div class="pacc-row" style="align-items:center"><span class="pacc-lbl">🔐 Sistem (güvenlik, hesap)</span><span style="font-size:11px;color:var(--text3)">Her zaman açık</span></div>
+        <div class="pacc-row" style="align-items:center"><span class="pacc-lbl">🌙 Sessiz Saatler (yalnızca push, bildirim zili etkilenmez)</span><div class="ptoggle${myProfileData.quietHoursEnabled===true?' on':''}" onclick="toggleQuietHours()"></div></div>
+        ${myProfileData.quietHoursEnabled===true?`
+        <div class="pacc-row" style="align-items:center;gap:10px;padding-top:0">
+          <select id="qh-start" onchange="saveQuietHoursRange()" style="background:var(--surf2);color:var(--text);border:1px solid var(--border2);border-radius:8px;padding:6px 10px;font-size:13px">
+            ${Array.from({length:24},(_,h)=>`<option value="${h}"${(myProfileData.quietHoursStart??22)===h?' selected':''}>${String(h).padStart(2,'0')}:00</option>`).join('')}
+          </select>
+          <span class="pacc-lbl" style="flex:none;color:var(--text3)">—</span>
+          <select id="qh-end" onchange="saveQuietHoursRange()" style="background:var(--surf2);color:var(--text);border:1px solid var(--border2);border-radius:8px;padding:6px 10px;font-size:13px">
+            ${Array.from({length:24},(_,h)=>`<option value="${h}"${(myProfileData.quietHoursEnd??8)===h?' selected':''}>${String(h).padStart(2,'0')}:00</option>`).join('')}
+          </select>
+        </div>`:''}
       </div>
       <div class="psec-title" style="margin-top:4px">⚙️ Ayarlar</div>
       ${pushPanelHTML()}
@@ -5381,12 +5392,12 @@ async function toggleNotifyStoreFollows() {
 }
 
 // AKILLI BİLDİRİM MERKEZİ 3.0 — notifyStoreFollows ile AYNI desen (varsayılan AÇIK, kapatma false
-// YAZAR, açma alanı SİLER) — dört yeni kategori bunun üzerinden tekrar kod yazmadan eklendi. Sunucu
-// tarafı zorlama: worker zaten hedef kullanıcının TAM dokümanını okuduğu noktalarda (Arena olay
-// dispatch'i, VIP süresi hatırlatması) bu alanları EK MALİYETSİZ kontrol ediyor — bkz.
-// cloudflare-push-worker.js. Pazar/Topluluk toggle'ları şu an yalnızca istemci tarafında saklanıyor;
-// worker'ın ilgili dispatch noktalarına bağlanması ayrı bir turda yapılacak (dürüstçe: bu ikisi henüz
-// sunucu tarafında zorlanmıyor).
+// YAZAR, açma alanı SİLER) — dört yeni kategori bunun üzerinden tekrar kod yazmadan eklendi.
+// FAZ 10 (2026-08-24): tüm dört kategori artık GERÇEKTEN zorlanıyor. Arena/VIP — worker zaten hedef
+// kullanıcının TAM dokümanını okuduğu noktalarda (dispatchArenaLeagueNotification, VIP süresi
+// hatırlatması) EK MALİYETSİZ kontrol ediyor (bkz. cloudflare-push-worker.js). Pazar/Topluluk — bu
+// fonksiyonun YAZDIĞI alanları notifyUser() (TÜM istemci-tetiklemeli bildirimlerin tek geçiş noktası)
+// gönderim ANINDA okuyup kontrol ediyor.
 async function toggleNotifyPref(field, onMsg, offMsg) {
   if (!user) return;
   const currentlyOn = myProfileData[field] !== false;
@@ -5396,6 +5407,36 @@ async function toggleNotifyPref(field, onMsg, offMsg) {
     myProfileData[field] = updated ? undefined : false;
     rprof();
     showToast('✓', 'rgba(48,209,88,.15)', 'Kaydedildi', updated ? onMsg : (offMsg || 'Bu bildirim türü kapatıldı.'));
+  } catch(e) { showErrorToast(e); }
+}
+
+// FAZ 8 — Sessiz Saatler: yalnızca PUSH bildirimini (zil/uygulama-içi bildirim ETKİLENMEZ) belirtilen
+// saat aralığında bastırır. Basitlik için TÜM kullanıcılar için Türkiye saati (UTC+3, DST yok) varsayılır
+// — kişi başı zaman dilimi alanı EKLENMEDİ (uygulama zaten yalnızca Türkiye pazarı için). Worker tarafı
+// kontrolü processNotifyQueue() içinde, mode==='user' dalında (bkz. cloudflare-push-worker.js) — tüm
+// kişisel push'ların (Arena/Pazar/Topluluk/VIP/duyuru) geçtiği TEK ortak nokta.
+async function toggleQuietHours() {
+  if (!user) return;
+  const enabling = myProfileData.quietHoursEnabled !== true;
+  const fields = { quietHoursEnabled: enabling };
+  if (enabling && myProfileData.quietHoursStart === undefined) fields.quietHoursStart = 22;
+  if (enabling && myProfileData.quietHoursEnd === undefined) fields.quietHoursEnd = 8;
+  try {
+    await db.collection('teknohane_users').doc(user.uid).set(fields, { merge: true });
+    Object.assign(myProfileData, fields);
+    rprof();
+    showToast('✓', 'rgba(48,209,88,.15)', 'Kaydedildi', enabling ? `Push bildirimleri ${String(myProfileData.quietHoursStart).padStart(2,'0')}:00–${String(myProfileData.quietHoursEnd).padStart(2,'0')}:00 arasında gelmeyecek.` : 'Sessiz saatler kapatıldı.');
+  } catch(e) { showErrorToast(e); }
+}
+async function saveQuietHoursRange() {
+  if (!user) return;
+  const start = parseInt(document.getElementById('qh-start')?.value, 10);
+  const end = parseInt(document.getElementById('qh-end')?.value, 10);
+  if (isNaN(start) || isNaN(end)) return;
+  try {
+    await db.collection('teknohane_users').doc(user.uid).set({ quietHoursStart: start, quietHoursEnd: end }, { merge: true });
+    myProfileData.quietHoursStart = start; myProfileData.quietHoursEnd = end;
+    showToast('✓', 'rgba(48,209,88,.15)', 'Kaydedildi', `Sessiz saatler ${String(start).padStart(2,'0')}:00–${String(end).padStart(2,'0')}:00 olarak güncellendi.`);
   } catch(e) { showErrorToast(e); }
 }
 
