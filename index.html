@@ -5822,10 +5822,25 @@ async function notifyUser(toUid, type, message, listingId, postId, fromUid, from
   const lastAt = notifyUser._recent.get(dedupeKey);
   if (lastAt && (now - lastAt) < 10000) return;
   notifyUser._recent.set(dedupeKey, now);
+  const category = NOTIF_TYPE_CATEGORY[type] || 'system';
+  // AKILLI BİLDİRİM MERKEZİ 3.0 — FAZ 10 (preference enforcement): market/forum kategorileri için
+  // TEK, merkezi kontrol noktası (notifyUser TÜM istemci-tetiklemeli bildirimlerin geçtiği tek yer).
+  // 'followers' kategorisi BİLİNÇLİ OLARAK burada kontrol EDİLMİYOR — followed_new_listing zaten
+  // kendi özel notifyFollowedListings kontrolüne sahip (bkz. notifyFollowersOfNewListing), new_follower
+  // düşük hacimli/her zaman istenen bir sosyal sinyal; burada AYRICA bir kategori kontrolü eklemek
+  // "aynı olay için iki farklı tercih kontrolü" çakışması yaratırdı (görev talimatının yasakladığı durum).
+  const PREF_FIELD_BY_CATEGORY = { market: 'notifyPazarEvents', forum: 'notifyTopluluk' };
+  const prefField = PREF_FIELD_BY_CATEGORY[category];
+  if (prefField) {
+    try {
+      const targetSnap = await db.collection('teknohane_users').doc(toUid).get();
+      if (targetSnap.exists && targetSnap.data()[prefField] === false) return; // kullanıcı bu kategoriyi kapatmış
+    } catch (e) { /* tercih okunamazsa varsayılan (açık) davranışla devam — kullanıcıyı bildirimsiz bırakmayalım */ }
+  }
   try {
     await db.collection('teknohane_notifications').add({
       toUid, type, message, listingId: listingId || null, postId: postId || null,
-      category: NOTIF_TYPE_CATEGORY[type] || 'system',
+      category,
       fromUid: fromUid || null, fromName: fromName || null, fromPhotoURL: fromPhotoURL || null,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       read: false
@@ -15485,6 +15500,20 @@ function updatePubRatingBadge(avg, count) {
 // Satıcı kartı — puan/yorum sayısı (mevcut yorum sorgusu), ilan sayısı (ucuz count() agregasyonu,
 // doküman okumaz) ve rozetler (VIP/Güvenilir Satıcı/Doğrulanmış — teknohane_users'tan TEK doküman
 // okuması) birlikte gösterilir. Toplam: 1 doküman okuma + 2 hafif sorgu, yalnızca detay açılışında.
+// AKILLI BİLDİRİM MERKEZİ 3.0 turu — FAZ 7 (satıcı hesap yaşı): TAMAMEN gerçek createdAt'ten,
+// gelecek/negatif tarih gibi hatalı veri varsa null (gösterilmez). Sahte bir "az önce katıldı" YA DA
+// "senelerdir üye" iddiası ASLA üretilmez — createdAt hiç yoksa (çok eski hesap) da null döner.
+function accountAgeLabel(createdAt) {
+  if (!createdAt?.toDate) return null;
+  const created = createdAt.toDate();
+  const days = Math.floor((Date.now() - created.getTime()) / 86400000);
+  if (isNaN(days) || days < 0) return null; // gelecek/bozuk tarih — asla gösterme
+  if (days < 1) return 'Bugün katıldı';
+  if (days < 30) return `${days} gündür`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months} aydır`;
+  return `${Math.floor(days / 365)} yıldır`;
+}
 async function loadSellerCard(sellerUid, ownerName, mine, containerId) {
   const el = document.getElementById(containerId);
   if (!el) return;
@@ -15519,7 +15548,8 @@ async function loadSellerCard(sellerUid, ownerName, mine, containerId) {
     // VIP MAĞAZA 3.0 — VIP mağazası olan satıcıda takipçi sayısı da gösterilir (userSnap zaten
     // çekilmiş, ek okuma yok — followerUids hedefin KENDİ dokümanında).
     const followerSuffix = hasEntitlement(u, 'vip_marketplace_store') ? ` · 👥 ${(u.followerUids||[]).length} takipçi` : '';
-    if (statsEl) statsEl.textContent = `${ratingText} · ${listingCount} ilan${followerSuffix}`;
+    const ageLabel = accountAgeLabel(u.createdAt);
+    if (statsEl) statsEl.textContent = `${ratingText} · ${listingCount} ilan${followerSuffix}${ageLabel ? ` · 👤 ${ageLabel}` : ''}`;
     // Profil fotoğrafı — zaten çekilmiş userSnap'ten, ekstra okuma yok. Uygulamanın her yerinde
     // kullanılan aynı avatarUrl() yardımcısıyla (isim bazlı yedek dahil) üretiliyor.
     const avEl = el.querySelector('.seller-card-lg-av');
