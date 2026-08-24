@@ -14998,6 +14998,15 @@ function phoneScreenInch(p) { const m = /([\d.]+)\s*"/.exec(p.scr || ''); return
 function phoneRefreshHz(p) { const m = /(\d+)\s*Hz/i.exec(p.scr || ''); return m ? parseInt(m[1], 10) : null; }
 function phoneBatteryMah(p) { const m = /([\d.]+)\s*mAh/i.exec(p.bat || ''); return m ? parseFloat(m[1]) : null; }
 function phoneWeightG(p) { const m = /([\d.]+)\s*g\b/i.exec(p.wt || ''); return m ? parseFloat(m[1]) : null; }
+// Şarj hızı: yalnızca "research-agent" ile zenginleştirilmiş (raw.battery.charging) cihazlarda var
+// (ör. "45W wired, 20W wireless") — YOKSA null, asla tahmin edilmez. Birden fazla W değeri varsa
+// (kablolu/kablosuz) EN YÜKSEĞİ (gerçek maksimum şarj kapasitesi) alınır.
+function phoneChargingW(p) {
+  const s = getByPath(p, 'raw.battery.charging');
+  if (!s) return null;
+  const nums = [...String(s).matchAll(/(\d+)\s*W/gi)].map(m => parseInt(m[1], 10));
+  return nums.length ? Math.max(...nums) : null;
+}
 // "Amiral gemisi" işlemci: gerçek çip metnindeki BİLİNEN üst-segment model adlarına karşı deterministik
 // eşleşme (metin listesi, tahmin/skor DEĞİL) — Teknohane Özeti'nin "Güçlü işlemci" yargısı için.
 function phoneIsFlagshipChip(p) {
@@ -15350,20 +15359,45 @@ function phoneProsConsHTML(p) {
 // şartları GERÇEK veriden karşılamayan (veya verisi eksik olan) cihaz sonuca HİÇ girmez. Kalanlar
 // ADIM 2 (kullanım amacı)/4 (kamera-performans önceliği)/5 (ekran tercihi) ile puanlanıp en yüksek
 // 5 tanesi gösterilir.
-let pfStep = 1;
-let pfAnswers = { budget: null, usage: null, os: 'Fark etmez', priority: null, screen: 'Fark etmez', need5G: false, minRam: 0, minStorage: 0 };
+let pfStep = 0;
+let pfAnswers = { budget: null, usage: null, os: 'Fark etmez', priority: null, screen: 'Fark etmez', need5G: false, minRam: 0, minStorage: 0, minCharging: 0 };
+let pfAdvancedOpen = false;
+let pfPreferNew = false; // FAZ 10 — sonuç ekranında AÇILIP KAPATILABİLİR, wizard adımı DEĞİL (spec: "kullanıcı isterse açabilsin")
 const PF_STEPS = 8;
 function openPhoneFinder() {
-  pfStep = 1;
-  pfAnswers = { budget: null, usage: null, os: 'Fark etmez', priority: null, screen: 'Fark etmez', need5G: false, minRam: 0, minStorage: 0 };
+  pfStep = 0;
+  pfAnswers = { budget: null, usage: null, os: 'Fark etmez', priority: null, screen: 'Fark etmez', need5G: false, minRam: 0, minStorage: 0, minCharging: 0 };
+  pfPreferNew = false;
+  pfAdvancedOpen = false;
   document.getElementById('phone-finder-mo').classList.add('on');
   loadExtraPhones().then(renderPhoneFinderStep);
   renderPhoneFinderStep();
 }
 function closePhoneFinder() { document.getElementById('phone-finder-mo').classList.remove('on'); }
 function pfProgressHTML() {
+  if (pfStep < 1) return '';
   return `<div style="display:flex;gap:4px;margin-bottom:18px">${Array.from({length:PF_STEPS},(_,i)=>`<div style="flex:1;height:4px;border-radius:2px;background:${i < pfStep ? 'var(--cyan)' : 'var(--border2)'}"></div>`).join('')}</div>
   <div style="font-size:11px;color:var(--text3);margin:-12px 0 14px">Adım ${pfStep} / ${PF_STEPS}</div>`;
+}
+// FAZ 4/11 — "🆕 Son Çıkan Telefonlar": TAMAMEN gerçek yr alanından, yr'si OLMAYAN cihazlar bu sıralı
+// listeye HİÇ girmez (spec §4: "tarihi olmayan cihazları listenin başına koyma" — burada tamamen
+// dışlanıyor, çünkü relative sıralama iddiası kuramayacağımız bir cihazı listede TUTMAK yanıltıcı
+// olurdu; sihirbazın kendisinde (aşağıda) tarihi olmayan cihazlar hâlâ önerilebilir, yalnızca BU
+// "en yeniler" vitrini için görünmezler).
+function pfLatestPhones(n) {
+  return [...PHONES].filter(p => p.yr).sort((a, b) => b.yr - a.yr).slice(0, n);
+}
+function pfLatestPhonesStripHTML() {
+  const latest = pfLatestPhones(10);
+  if (!latest.length) return '';
+  return `<div style="margin:18px 0 4px;font-size:12.5px;font-weight:700;color:var(--text2)">🆕 Son Çıkan Telefonlar</div>
+    <div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;margin:0 -2px">
+      ${latest.map(p => `<div style="flex:0 0 auto;width:120px;background:var(--surf);border:1px solid var(--border2);border-radius:12px;padding:10px;cursor:pointer" onclick="closePhoneFinder();openPhoneDetail('${p.id}')">
+        <div style="font-size:9.5px;font-weight:800;color:var(--cyan);background:var(--cdim);display:inline-block;padding:2px 6px;border-radius:99px;margin-bottom:5px">🆕 ${p.yr}</div>
+        <div style="font-size:11.5px;font-weight:700;line-height:1.25;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${escapeHtml(p.name||'')}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:3px">${escapeHtml(brandDisplay(p.brand))}</div>
+      </div>`).join('')}
+    </div>`;
 }
 function pfOptionRow(options, current, onSelect) {
   // ÖNEMLİ: boolean değerler de (5G adımı) sayılar gibi ÇIPLAK gömülmeli (true/false birer JS
@@ -15382,10 +15416,20 @@ function pfNavHTML(canBack) {
 function renderPhoneFinderStep() {
   const body = document.getElementById('phone-finder-body');
   if (!body) return;
+  if (pfStep === 0) {
+    body.innerHTML = `<div style="text-align:center;padding:8px 0 4px">
+        <div style="font-size:34px;margin-bottom:8px">🎯</div>
+        <div class="psec-title" style="font-size:17px">Senin İçin Telefon Bul</div>
+        <div style="font-size:13px;color:var(--text2);margin-top:6px">İhtiyacını söyle, sana uygun telefonları bulalım.</div>
+      </div>
+      ${pfLatestPhonesStripHTML()}
+      <button class="apbtn" style="width:100%;margin-top:20px" onclick="pfStep=1;renderPhoneFinderStep()">Başla →</button>`;
+    return;
+  }
   let html = pfProgressHTML();
   if (pfStep === 1) {
     html += `<div class="psec-title" style="margin-bottom:4px">💰 Bütçen ne kadar?</div>
-      <div style="font-size:12px;color:var(--text2);margin-bottom:14px">Yalnızca fiyatı bilinen cihazlar arasından, bu bütçeyi aşmayanlar önerilir.</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:14px">Fiyatı bilinmeyen yeni/keşfedilmiş cihazlar da sonuçlarda gösterilebilir (fiyat bilgisi eklendikçe netleşir) — yalnızca bu bütçeyi AŞTIĞI KESİN OLARAK bilinen cihazlar elenir.</div>
       ${pfOptionRow([[15000,'₺15.000 ve altı'],[30000,'₺30.000 ve altı'],[50000,'₺50.000 ve altı'],[75000,'₺75.000 ve altı'],[999999999,'Bütçe sınırım yok']], pfAnswers.budget, 'pfSetBudget')}`;
   } else if (pfStep === 2) {
     html += `<div class="psec-title" style="margin-bottom:14px">🎯 En önemli kullanım amacın?</div>
@@ -15414,11 +15458,20 @@ function renderPhoneFinderStep() {
   } else if (pfStep === 8) {
     html += `<div class="psec-title" style="margin-bottom:14px">💾 Minimum depolama ihtiyacın?</div>
       ${pfOptionRow([[0,'Fark etmez'],[128,'128GB+'],[256,'256GB+'],[512,'512GB+'],[1024,'1TB+']], pfAnswers.minStorage, 'pfSetMinStorage')}
+      <div style="margin-top:18px">
+        <div style="font-size:12.5px;font-weight:700;color:var(--text2);cursor:pointer" onclick="pfAdvancedOpen=!pfAdvancedOpen;renderPhoneFinderStep()">⚙️ Daha fazla seçenek (isteğe bağlı) ▾</div>
+        <div id="pf-advanced" class="filter-panel${pfAdvancedOpen?' on':''}" style="margin-top:8px">
+          <label class="fl" style="margin-bottom:8px;display:block">⚡ Şarj hızı önemli mi?</label>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Yalnızca şarj hızı bilinen cihazlarda değerlendirilir — veri yoksa cihaz elenmez.</div>
+          ${pfOptionRow([[0,'Fark etmez'],[33,'33W+'],[65,'65W+'],[100,'100W+']], pfAnswers.minCharging, 'pfSetMinCharging')}
+        </div>
+      </div>
+      <button class="apbtn" style="width:100%;margin-top:18px" onclick="renderPhoneFinderResults()">🎯 Sonuçları Göster</button>
       ${pfNavHTML(true)}`;
   }
   body.innerHTML = html;
 }
-function pfBack() { if (pfStep > 1) { pfStep--; renderPhoneFinderStep(); } }
+function pfBack() { if (pfStep > 0) { pfStep--; renderPhoneFinderStep(); } }
 function pfAdvance() { if (pfStep < PF_STEPS) { pfStep++; renderPhoneFinderStep(); } else { renderPhoneFinderResults(); } }
 function pfSetBudget(v) { pfAnswers.budget = v; pfAdvance(); }
 function pfSetUsage(v) { pfAnswers.usage = v; pfAdvance(); }
@@ -15427,12 +15480,36 @@ function pfSetPriority(v) { pfAnswers.priority = v; pfAdvance(); }
 function pfSetScreen(v) { pfAnswers.screen = v; pfAdvance(); }
 function pfSet5G(v) { pfAnswers.need5G = v; pfAdvance(); }
 function pfSetMinRam(v) { pfAnswers.minRam = v; pfAdvance(); }
-function pfSetMinStorage(v) { pfAnswers.minStorage = v; pfAdvance(); }
+// Son adım — artık otomatik ilerlemiyor (⚙️ Daha fazla seçenek burada, "Sonuçları Göster" butonuna
+// basılınca ilerleniyor), yalnızca seçimi güncelleyip AYNI adımı yeniden çiziyor.
+function pfSetMinStorage(v) { pfAnswers.minStorage = v; renderPhoneFinderStep(); }
+function pfSetMinCharging(v) { pfAnswers.minCharging = v; renderPhoneFinderStep(); }
 
-// Kullanım amacına göre 0-50 puan — HER dal GERÇEK, ölçülebilir bir eşiğe dayanır (spec §5: "rastgele
-// skor üretme"). Veri yoksa (ör. camMP bilinmiyorken 'kamera' amacı) o dalda 0 puan verilir — cihaz
-// tamamen elenmez (yalnızca o bileşenden puan alamaz), çünkü kullanım amacı TEK bir sert filtre değil.
-function pfUsageScore(p, usage) {
+// ================== "SENİN İÇİN TELEFON BUL" 2.0 — AĞIRLIKLI SKOR MOTORU ==================
+// KÖK NEDEN DÜZELTMESİ (2026-08-24, kullanıcı raporu: "son çıkan telefonlar sihirbazda eksik"):
+// eskiden phoneFinderCandidates() fiyatı BİLİNMEYEN her cihazı sert şekilde ELİYORDU. Katalogda
+// yr>=2025 olan 285 cihazdan yalnızca 56'sında (elle girilmiş kayıtlar) price alanı var — geri kalan
+// 229'u (Galaxy Z Fold8/Fold8 Ultra, iPhone 17e, S25 FE gibi GERÇEK, tam speclİ, zaten published
+// cihazlar dahil) sihirbazda ASLA görünmüyordu, sadece Türkiye perakende fiyatı henüz elle
+// girilmediği için. Bu YALNIZCA bir UI sorunu DEĞİLDİ — gerçek bir veri-kapsama mimarisi hatasıydı.
+// DÜZELTME: fiyatı bilinmeyen cihazlar ARTIK elenmiyor (yalnızca fiyatı KESİN OLARAK bütçeyi AŞTIĞI
+// bilinen cihazlar elenir) — bütçe puanlamasında nötr (ne ödül ne ceza) bir puan alıyorlar, "Fiyat
+// bilgisi yok" olarak dürüstçe işaretleniyor, ASLA "bütçene uygun" diye sahte bir iddia ÜRETİLMİYOR.
+//
+// Ağırlıklar (toplam 100, pfPreferNew kapalıyken "yenilik" hariç azami 95 üzerinden normalize edilir
+// — kapalıyken hiçbir cihaz asla ulaşamayacağı sahte bir tavana göre haksız yere düşük % almasın diye):
+//   Bütçe 25 · Kullanım amacı 30 · Kamera/Performans önceliği 20 · Ekran 10 · RAM 5 · Depolama 5 · Yenilik 5
+function pfBudgetScore(p, budget) {
+  const price = phonePriceNum(p);
+  if (price == null) return 12; // bilinmiyor — ne ödül ne ceza (nötr yarı-puan)
+  return price <= budget ? 25 : 0; // sert filtrede zaten elenir, buraya normalde over-budget gelmez
+}
+// Kullanım amacına göre 0-50 ham puan (aşağıda *0.6 ile 30'a ölçeklenir) — HER dal GERÇEK, ölçülebilir
+// bir eşiğe dayanır. Bu fonksiyonun KENDİSİ zaten "dinamik ağırlık" mekanizmasıdır: 'oyun' seçilince
+// performans/RAM/ekran hızı önem kazanır, 'pil' seçilince batarya, 'kamera' seçilince kamera MP'si —
+// spec §6'nın istediği "kullanıcının önemsediği kritere göre ağırlık artışı" burada, seçilen dala göre
+// TAMAMEN FARKLI sinyallere bakılarak sağlanıyor (ayrı bir "genel ağırlık çarpanı" katmanı GEREKMEDİ).
+function pfUsageScoreRaw(p, usage) {
   const ram = phoneRamGB(p), cam = phoneMainCamMP(p), bat = phoneBatteryMah(p), refresh = phoneRefreshHz(p), storage = phoneStorageGB(p), flagship = phoneIsFlagshipChip(p);
   if (usage === 'oyun') return (flagship === true ? 25 : 0) + (refresh != null && refresh >= 90 ? 15 : 0) + (ram != null && ram >= 8 ? 10 : 0);
   if (usage === 'kamera') { if (cam == null) return 0; return cam >= 200 ? 50 : cam >= 100 ? 40 : cam >= 48 ? 25 : cam >= 16 ? 10 : 0; }
@@ -15442,12 +15519,12 @@ function pfUsageScore(p, usage) {
   if (usage === 'pil') { if (bat == null) return 0; return bat >= 6000 ? 50 : bat >= 5000 ? 35 : bat >= 4000 ? 20 : 0; }
   return 0;
 }
-function pfPriorityScore(p, priority) {
+function pfPriorityScoreRaw(p, priority) {
   const cam = phoneMainCamMP(p), ram = phoneRamGB(p), flagship = phoneIsFlagshipChip(p);
   if (priority === 'kamera') { if (cam == null) return 0; return cam >= 200 ? 30 : cam >= 100 ? 22 : cam >= 48 ? 12 : 0; }
   return (flagship === true ? 20 : 0) + (ram != null && ram >= 8 ? 10 : 0); // performans
 }
-function pfScreenScore(p, screen) {
+function pfScreenScoreRaw(p, screen) {
   if (screen === 'Fark etmez') return 20;
   const inch = phoneScreenInch(p);
   if (inch == null) return 0;
@@ -15455,46 +15532,107 @@ function pfScreenScore(p, screen) {
   if (screen === 'buyuk') return inch >= 6.7 ? 20 : 0;
   return 0;
 }
+// RAM/Depolama: minimum ZATEN sert filtrede sağlanmış (minRam/minStorage seçilmediyse 0, o zaman
+// nötr taban puan) — burada yalnızca MİNİMUMUN NE KADAR ÜSTÜNDE olduğuna göre küçük bir bonus var,
+// spec §6'nın "RAM %5 / Depolama %5" ağırlığını anlamlı kılmak için (aksi halde her hayatta kalan
+// cihaz otomatik tam puan alırdı, ayırt edici olmazdı).
+function pfRamScore(p, minRam) {
+  const ram = phoneRamGB(p);
+  if (ram == null) return minRam > 0 ? 5 : 1.5; // sert filtreyi geçtiyse (minRam>0) GERÇEKTEN vardır; minRam=0 iken bilinmiyorsa nötr
+  return Math.min(5, ram / 4);
+}
+function pfStorageScore(p, minStorage) {
+  const storage = phoneStorageGB(p);
+  if (storage == null) return minStorage > 0 ? 5 : 1.5;
+  return Math.min(5, storage / 256);
+}
+// Yenilik (FAZ 10) — YALNIZCA kullanıcı "🆕 Yeni çıkan telefonları önceliklendir" AÇIKSA hesaba
+// katılır, maksimum 5 puan (toplam 100'ün %5'i — spec §10: "%5-10'u geçmemeli", teknik uygunluk
+// ASLA ezilmiyor çünkü diğer 95 puan tamamen bu toggle'dan bağımsız).
+function pfFreshnessScore(p) {
+  if (!pfPreferNew) return 0;
+  if (!p.yr) return 0;
+  return Math.max(0, Math.min(5, p.yr - 2023));
+}
+function pfChargingScore(p, minCharging) {
+  if (!minCharging) return 0;
+  const w = phoneChargingW(p);
+  if (w == null) return 0;
+  return w >= minCharging ? 1 : 0; // küçük bir tercih sinyali — sert filtre değil, "Dikkat" notuna da girebilir
+}
 function phoneFinderCandidates() {
   const a = pfAnswers;
+  const maxPossible = 95 + (pfPreferNew ? 5 : 0);
   return PHONES.filter(p => {
     const price = phonePriceNum(p);
-    if (price == null || price > a.budget) return false;
+    if (price != null && price > a.budget) return false; // yalnızca KESİN OLARAK bütçeyi aşan elenir — bilinmeyen fiyat ARTIK elenmiyor
     if (a.minRam > 0) { const r = phoneRamGB(p); if (r == null || r < a.minRam) return false; }
     if (a.minStorage > 0) { const s = phoneStorageGB(p); if (s == null || s < a.minStorage) return false; }
-    // ÖNEMLİ (test sırasında bulunan GERÇEK veri kapsama sorunu): fiyatı bilinen (elle girilmiş 111
-    // kayıt) telefonlarda gsmarenaUrl YOK — 5G tespiti neredeyse TAMAMEN LEGACY_CATALOG kaynaklı
-    // (fiyatsız) kayıtlarda çalışıyor. "Bütçe + 5G gerekli" birlikte, phone5GStatus()===true şartıyla
-    // HER ZAMAN 0 sonuç veriyordu (iki veri kümesi kesişmiyor) — bu, FAZ 2'nin "Yalnızca 5G" keşif
-    // çipinden (orada true şartı DOĞRU, çünkü o bir GÖSTER filtresi) farklı bir semantik gerektiriyor:
-    // burada bir "gereklilik" kapısı olduğu için yalnızca AÇIKÇA 4G-only olduğu bilinen cihazlar
-    // (isminde "4G" geçen) elenir — "5G olduğu KANITLANAMAYAN" ile "4G-only olduğu KANITLANAN" FARKLI
-    // şeylerdir; sahte bir "5G" iddiası ÜRETİLMİYOR, yalnızca belirsiz cihazlar elenmiyor.
+    // "5G gerekli" — yalnızca AÇIKÇA 4G-only olduğu bilinen cihazlar elenir ("kanıtlanamayan" ile
+    // "4G-only kanıtlanan" ayrımı, bkz. phone5GStatus yorumu) — fiyat sorunuyla AYNI kök nedenden.
     if (a.need5G && phone5GStatus(p) === false) return false;
     if (a.os !== 'Fark etmez' && phoneOS(p) !== a.os) return false;
     return true;
   }).map(p => {
-    const usageScore = pfUsageScore(p, a.usage);
-    const priorityScore = pfPriorityScore(p, a.priority);
-    const screenScore = pfScreenScore(p, a.screen);
-    const score = usageScore + priorityScore + screenScore; // maks 50+30+20=100
-    return { p, score, usageScore, priorityScore, screenScore };
-  }).sort((x, y) => y.score - x.score).slice(0, 5);
+    const budgetScore = pfBudgetScore(p, a.budget);
+    const usageScoreRaw = pfUsageScoreRaw(p, a.usage), usageScore = usageScoreRaw * 0.6; // 0-50 → 0-30
+    const priorityScoreRaw = pfPriorityScoreRaw(p, a.priority), priorityScore = priorityScoreRaw * (20/30); // 0-30 → 0-20
+    const screenScoreRaw = pfScreenScoreRaw(p, a.screen), screenScore = screenScoreRaw * 0.5; // 0-20 → 0-10
+    const ramScore = pfRamScore(p, a.minRam);
+    const storageScore = pfStorageScore(p, a.minStorage);
+    const freshnessScore = pfFreshnessScore(p);
+    const total = budgetScore + usageScore + priorityScore + screenScore + ramScore + storageScore + freshnessScore;
+    const pct = Math.round(Math.min(100, total / maxPossible * 100));
+    return { p, pct, total, budgetScore, usageScore, priorityScore, screenScore, ramScore, storageScore, freshnessScore, priceKnown: phonePriceNum(p) != null };
+  }).sort((x, y) => y.total - x.total).slice(0, 5);
 }
+// FAZ 7 — gerçek veriye dayalı artı/eksi listesi (yalnızca hesaplanan puanlardan/gerçek eşiklerden,
+// ASLA cihazda olmayan bir özellik yazılmıyor).
 function pfReasonsFor(entry) {
-  const { p, usageScore, priorityScore, screenScore } = entry;
-  const reasons = [`Bütçene uygun (${p.price || ''})`];
-  if (usageScore >= 25) reasons.push('Kullanım amacına uygun');
-  if (priorityScore >= 15) reasons.push(pfAnswers.priority === 'kamera' ? 'Kamera önceliğine uygun' : 'Performans önceliğine uygun');
-  if (screenScore >= 20 && pfAnswers.screen !== 'Fark etmez') reasons.push('Ekran boyutu tercihine uygun');
-  if (pfAnswers.minRam > 0) reasons.push('RAM beklentine uygun');
-  if (pfAnswers.minStorage > 0) reasons.push('Depolama beklentine uygun');
-  return reasons;
+  const { p, usageScore, priorityScore, screenScore, budgetScore, priceKnown } = entry;
+  const pros = [];
+  if (priceKnown) pros.push(`Bütçene uygun (${p.price})`);
+  if (usageScore >= 15) pros.push('Kullanım amacına uygun');
+  if (priorityScore >= 10) pros.push(pfAnswers.priority === 'kamera' ? 'Kamera önceliğine uygun' : 'Performans önceliğine uygun');
+  if (screenScore >= 10 && pfAnswers.screen !== 'Fark etmez') pros.push('Ekran boyutu tercihine uygun');
+  if (pfAnswers.minRam > 0) pros.push('RAM beklentine uygun');
+  if (pfAnswers.minStorage > 0) pros.push('Depolama beklentine uygun');
+  if (pfPreferNew && entry.freshnessScore >= 3) pros.push('Yeni çıkan bir model');
+
+  const cons = [];
+  if (!priceKnown) cons.push('Fiyat bilgisi henüz yok');
+  else if (budgetScore === 25) {
+    const price = phonePriceNum(p);
+    if (price != null && pfBudgetIsCapped(pfAnswers.budget) && price >= pfAnswers.budget * 0.85) cons.push('Bütçenin üst sınırına yakın');
+  }
+  const wt = phoneWeightG(p);
+  if (wt != null && wt >= 220) cons.push(`Büyük ve ağır (${wt}g)`);
+  if (pfAnswers.usage === 'kamera' && usageScore < 15) cons.push('Kamera bu iş için ideal olmayabilir');
+  if (pfAnswers.usage === 'pil' && usageScore < 10) cons.push('Pil ömrü bu iş için sınırlı olabilir');
+  return { pros, cons };
+}
+function pfBudgetIsCapped(b) { return b != null && b < 999999999; }
+let pfLastResults = [];
+// FAZ 8 — 🥇/🥈/🥉 rozetleri GERÇEK skordan: #1 her zaman 🥇. "Fiyat/performans" (🥉) yalnızca
+// fiyatı bilinen adaylar arasında (kullanım-puanı/fiyat oranı en yüksek) ve #1'den FARKLI bir cihazsa
+// gösterilir — aynı cihaz iki rozette ASLA tekrarlanmaz (spec §8).
+function pfAssignBadges(results) {
+  const badges = {};
+  if (!results.length) return badges;
+  badges[0] = '🥇 En Uygun';
+  const priced = results.map((r, i) => ({ i, r })).filter(x => x.r.priceKnown);
+  if (priced.length > 1) {
+    const bestValue = [...priced].sort((a, b) => (b.r.usageScore / phonePriceNum(b.r.p)) - (a.r.usageScore / phonePriceNum(a.r.p)))[0];
+    if (bestValue.i !== 0 && !badges[bestValue.i]) badges[bestValue.i] = '🥉 Fiyat/Performans';
+  }
+  if (results.length > 1 && !badges[1]) badges[1] = '🥈 Alternatif';
+  return badges;
 }
 function renderPhoneFinderResults() {
   const body = document.getElementById('phone-finder-body');
   if (!body) return;
   const results = phoneFinderCandidates();
+  pfLastResults = results;
   if (!results.length) {
     body.innerHTML = `<div class="no" style="padding:40px 0;text-align:center">
       <div style="font-size:32px;margin-bottom:8px">😕</div>
@@ -15504,21 +15642,66 @@ function renderPhoneFinderResults() {
     </div>`;
     return;
   }
+  const badges = pfAssignBadges(results);
   body.innerHTML = `<div class="psec-title" style="margin-bottom:4px">🎯 Sana Uygun Telefonlar</div>
-    <div style="font-size:12px;color:var(--text2);margin-bottom:14px">Gerçek özelliklerine göre en uygun ${results.length} cihaz</div>
-    ${results.map((r,i) => `
-      <div class="pf-result" onclick="closePhoneFinder();openPhoneDetail('${r.p.id}')">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-          <span style="font-weight:700;font-size:13.5px">${i+1}. ${escapeHtml(r.p.name)}</span>
-          <span style="font-weight:800;font-size:13px;color:var(--cyan)">Uyum: %${Math.round(r.score)}</span>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:10px">Gerçek özelliklerine göre en uygun ${results.length} cihaz</div>
+    <label style="display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:14px;cursor:pointer;background:var(--surf);border:1px solid var(--border2);border-radius:10px;padding:10px 12px">
+      <input type="checkbox" ${pfPreferNew?'checked':''} onchange="pfPreferNew=this.checked;renderPhoneFinderResults()">
+      🆕 Yeni çıkan telefonları önceliklendir <span style="color:var(--text3)">(küçük bonus, teknik uyumu ezmez)</span>
+    </label>
+    ${results.map((r,i) => {
+      const { pros, cons } = pfReasonsFor(r);
+      return `
+      <div class="pf-result">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;gap:8px">
+          <span style="font-weight:700;font-size:14px">${escapeHtml(r.p.name)}</span>
+          <span style="font-weight:800;font-size:13px;color:var(--cyan);white-space:nowrap">⭐ %${r.pct}</span>
         </div>
-        <div style="font-size:11.5px;color:var(--text3);margin-bottom:6px">${escapeHtml(brandDisplay(r.p.brand))} · ${escapeHtml(r.p.price||'')}</div>
-        <div style="display:flex;flex-wrap:wrap;gap:5px">${pfReasonsFor(r).map(t=>`<span class="psf-tag" style="font-size:10.5px;padding:4px 9px">${escapeHtml(t)}</span>`).join('')}</div>
-      </div>`).join('')}
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-size:11.5px;color:var(--text3)">${escapeHtml(brandDisplay(r.p.brand))}${r.p.yr?' · '+r.p.yr:''} · ${escapeHtml(r.p.price||'Fiyat bilgisi yok')}</span>
+          ${badges[i] ? `<span style="font-size:10px;font-weight:800;color:#FFD700;background:rgba(255,215,0,.1);padding:2px 8px;border-radius:99px">${badges[i]}</span>` : ''}
+        </div>
+        ${pros.length ? `<div style="margin-bottom:4px">${pros.map(t=>`<div style="font-size:11.5px;color:var(--text2);padding:1px 0">✅ ${escapeHtml(t)}</div>`).join('')}</div>` : ''}
+        ${cons.length ? `<div style="margin-bottom:6px">${cons.map(t=>`<div style="font-size:11.5px;color:#FF9500;padding:1px 0">⚠️ ${escapeHtml(t)}</div>`).join('')}</div>` : ''}
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <button class="btn-sm-like" style="flex:1;padding:8px;font-size:11.5px;border-radius:8px;background:var(--cdim);color:var(--cyan);border:none;cursor:pointer" onclick="pfShowFitAnalysis(${i})">🎯 Neden Bu Telefon?</button>
+          <button class="btn-sm-like" style="flex:1;padding:8px;font-size:11.5px;border-radius:8px;background:var(--surf2);color:var(--text);border:none;cursor:pointer" onclick="closePhoneFinder();openPhoneDetail('${r.p.id}')">📱 İncele</button>
+          <button class="btn-sm-like" style="flex:1;padding:8px;font-size:11.5px;border-radius:8px;background:var(--surf2);color:var(--text);border:none;cursor:pointer" onclick="closePhoneFinder();addPhoneToCompare('${r.p.id}');gt('compare')">⚖️ Karşılaştır</button>
+        </div>
+        <div id="pf-fit-${i}"></div>
+      </div>`;
+    }).join('')}
     <div style="display:flex;gap:8px;margin-top:18px">
       <button class="apbtn" style="flex:1;background:var(--surf2);color:var(--text)" onclick="openPhoneFinder()">Sonuçları Değiştir</button>
       <button class="apbtn" style="flex:1;background:var(--surf2);color:var(--text)" onclick="pfEditAnswers()">Filtreleri Düzenle</button>
     </div>`;
+}
+// FAZ 9 — "Neden bu telefon?" gerçek puan dökümü, çubuk grafik. Yalnızca zaten hesaplanmış (pfLastResults)
+// puanlardan — yeniden hesaplama/tahmin YOK, gösterilen HER çubuk phoneFinderCandidates()'ın ürettiği
+// GERÇEK sayı.
+function pfFitBarHTML(label, score, max) {
+  const pct = max > 0 ? Math.round(score / max * 100) : 0;
+  return `<div style="margin:6px 0">
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:2px"><span>${label}</span><span>%${pct}</span></div>
+    <div style="height:6px;border-radius:3px;background:var(--border2);overflow:hidden"><div style="height:100%;width:${pct}%;background:var(--cyan)"></div></div>
+  </div>`;
+}
+function pfShowFitAnalysis(i) {
+  const r = pfLastResults[i];
+  const el = document.getElementById(`pf-fit-${i}`);
+  if (!r || !el) return;
+  if (el.innerHTML) { el.innerHTML = ''; return; } // tekrar tıklayınca kapat
+  el.innerHTML = `<div style="margin-top:10px;padding:12px;background:var(--surf2);border-radius:10px">
+    <div style="font-size:11.5px;font-weight:700;margin-bottom:8px">🎯 Sana Uyum Analizi</div>
+    ${pfFitBarHTML('Bütçe', r.budgetScore, 25)}
+    ${pfFitBarHTML('Kullanım Amacı', r.usageScore, 30)}
+    ${pfFitBarHTML('Kamera/Performans', r.priorityScore, 20)}
+    ${pfFitBarHTML('Ekran', r.screenScore, 10)}
+    ${pfFitBarHTML('RAM', r.ramScore, 5)}
+    ${pfFitBarHTML('Depolama', r.storageScore, 5)}
+    ${pfPreferNew ? pfFitBarHTML('Yenilik', r.freshnessScore, 5) : ''}
+    <div style="font-size:12px;font-weight:800;color:var(--cyan);margin-top:8px;text-align:right">Toplam: ⭐ %${r.pct}</div>
+  </div>`;
 }
 function pfEditAnswers() { pfStep = 1; renderPhoneFinderStep(); }
 
