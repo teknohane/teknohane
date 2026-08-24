@@ -9878,13 +9878,17 @@ function showRejectReason(id) {
 // hassas alanlar içeriyor), herkese açık salt-okunur teknohane_user_index'ten (allow read: if true,
 // yalnızca uid/displayName/photoURL/vip/vipExpiresAt/storeName gibi zararsız alanlar) TEK
 // where('vip','==',true).limit(15) sorgusu — tek eşitlik filtresi, composite index GEREKMEZ (admin
-// panelindeki .where('vip','==',true) sorgusuyla AYNI desen). Pazar sekmesine girişte BİR KEZ yüklenir,
-// sekmeler arası geçişte tekrar sorgulanmaz.
-let vipStoreShowcaseLoaded = false;
+// panelindeki .where('vip','==',true) sorgusuyla AYNI desen). Pazar sekmesine girişte yüklenir.
+// KÖK NEDEN DÜZELTMESİ (kullanıcı raporu — VIP kaldırılan bir kullanıcı "VIP Mağazaları Keşfet"
+// vitrininde hâlâ görünüyordu; sellerStatusCache'teki AYNI kalıcı-önbellek hatasının BİR BAŞKA örneği):
+// eskiden "vipStoreShowcaseLoaded" bayrağı BİR KEZ true olduktan sonra oturum boyunca ASLA tekrar
+// sorgulanmıyordu (Pazar sekmesine her dönüşte, admin panelinden VIP kaldırılmış olsa bile AYNI eski
+// liste gösteriliyordu). sellerStatusCache'teki TTL deseniyle TUTARLI 2 dakikalık yenileme eklendi.
+let vipStoreShowcaseLoadedAt = 0;
 let vipStoreShowcaseUsers = [];
 async function loadVipStoreShowcaseIfNeeded() {
-  if (vipStoreShowcaseLoaded) return;
-  vipStoreShowcaseLoaded = true;
+  if (vipStoreShowcaseLoadedAt && (Date.now() - vipStoreShowcaseLoadedAt) < SELLER_STATUS_TTL_MS) return;
+  vipStoreShowcaseLoadedAt = Date.now();
   try {
     const snap = await db.collection('teknohane_user_index').where('vip', '==', true).limit(15).get();
     vipStoreShowcaseUsers = snap.docs.map(d => d.data()).filter(u => isVipActive(u) && u.storeName);
