@@ -3785,6 +3785,10 @@ async function resolveSellerStatusForListings(items) {
     uids.forEach(u => { if (!(u in sellerStatusCache) || sellerStatusCache[u].at !== now) sellerStatusCache[u] = { vip: false, trustedSeller: false, at: now }; });
     const grid = document.getElementById('lgrid');
     if (grid) { grid._renderedSig = null; rlistings(); } // yeni bilgiyle TEK ek render
+    // Profil'in İlanlarım/Favorilerim/Referanslarım sekmesi de AYNI mcardHTML'i kullanıyor ama
+    // rlistings()'in DIŞINDA, kendi renderProfileListings()'i var — o da tazelenmeli, aksi halde
+    // yalnızca Pazar ekranı düzelir, Profil'den bakan kullanıcı hâlâ eski rozeti görür.
+    if (document.getElementById('profile-listings')) renderProfileListings();
   } catch (e) { /* sessizce yut — kart zaten denormalize alanla anlık çizildi, kullanıcı deneyimi bozulmaz */ }
   finally { uids.forEach(u => sellerStatusInFlight.delete(u)); }
 }
@@ -4646,6 +4650,11 @@ function renderProfileListings() {
   // İlanlarım/Favorilerim/Referanslarım — Pazar ekranındaki TAM OLARAK AYNI kart (mcardHTML) ile,
   // hiçbir yeniden tasarım/kod tekrarı olmadan.
   c.innerHTML = items.map(mcardHTML).join('');
+  // KÖK NEDEN DÜZELTMESİ (VIP rozeti canlılığı — 3. kaynak): bu ekran rlistings()'in AKSİNE
+  // resolveSellerStatusForListings()'i HİÇ çağırmıyordu — Pazar'a hiç girilmeden doğrudan Profil'den
+  // buraya gelinirse sellerStatusCache o satıcılar için TAMAMEN BOŞ kalıyor, sellerBadgesForListing
+  // TTL'e bile bakmadan doğrudan ilanın oluşturulma anındaki eski sellerVip kopyasına düşüyordu.
+  resolveSellerStatusForListings(items);
 }
 
 function openEditProfile() {
