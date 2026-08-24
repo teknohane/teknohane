@@ -3754,10 +3754,19 @@ function sellerVipTrustIconsHTML(vip, trusted) {
 // FARK varsa TEK bir ek render tetiklenir. Beklenen sonuç: yalnızca birkaç Firestore okuması (ilan
 // sayısından değil, EKRANDAKİ FARKLI SATICI sayısından bağımlı, ~10'ar gruplu), gerçek zamanlıya
 // yakın güncellik, sıfır N+1.
-const sellerStatusCache = {}; // uid -> { vip, trustedSeller }
+const sellerStatusCache = {}; // uid -> { vip, trustedSeller, at }
 const sellerStatusInFlight = new Set();
+// KÖK NEDEN DÜZELTMESİ (kullanıcı raporu: "VIP rozetini kaldırdım ama Pazar'da hâlâ görünüyor"):
+// bu önbellek eskiden bir uid'i BİR KEZ çözdükten sonra o oturum boyunca ASLA yeniden sorgulamıyordu
+// ("!(u in sellerStatusCache)" — sonsuza dek geçerli kabul ediliyordu). Admin panelinden VIP zaten
+// DOĞRU şekilde hem teknohane_users hem teknohane_user_index'ten kaldırılıyor (bkz. saveUserEdit) —
+// sorun İSTEMCİ tarafındaydı: kullanıcı Pazar sekmesini revoke'dan ÖNCE bir kez açmışsa, sekmesini
+// kapatıp yeniden AÇMADAN (sayfayı tazelemeden) revoke sonrası tekrar baktığında hâlâ eski, önbellekte
+// kalmış VIP=true görüyordu. Düzeltme: TTL eklendi (2 dakika) — bu süre dolan bir uid tekrar sorgulanır.
+const SELLER_STATUS_TTL_MS = 2 * 60 * 1000;
 async function resolveSellerStatusForListings(items) {
-  const uids = [...new Set((items || []).map(l => l.real ? l.real.uid : l.uid).filter(u => u && !(u in sellerStatusCache) && !sellerStatusInFlight.has(u)))];
+  const now = Date.now();
+  const uids = [...new Set((items || []).map(l => l.real ? l.real.uid : l.uid).filter(u => u && !sellerStatusInFlight.has(u) && (!(u in sellerStatusCache) || (now - sellerStatusCache[u].at) > SELLER_STATUS_TTL_MS)))];
   if (!uids.length) return;
   uids.forEach(u => sellerStatusInFlight.add(u));
   try {
@@ -3768,11 +3777,12 @@ async function resolveSellerStatusForListings(items) {
     ));
     snaps.forEach(snap => snap.docs.forEach(d => {
       const data = d.data();
-      sellerStatusCache[d.id] = { vip: isVipActive(data), trustedSeller: isTrustedSellerActive(data) };
+      sellerStatusCache[d.id] = { vip: isVipActive(data), trustedSeller: isTrustedSellerActive(data), at: now };
     }));
     // teknohane_user_index'te hiç dokümanı OLMAYAN (nadir — çok eski/silinmiş hesap) uid'ler için de
-    // "bilgi yok" olarak boş bir kayıt eklenir — aksi halde her render'da aynı eksik uid TEKRAR sorgulanır.
-    uids.forEach(u => { if (!(u in sellerStatusCache)) sellerStatusCache[u] = { vip: false, trustedSeller: false }; });
+    // "bilgi yok" olarak boş bir kayıt eklenir — aksi halde her render'da aynı eksik uid TEKRAR sorgulanır
+    // (TTL süresi dolana kadar).
+    uids.forEach(u => { if (!(u in sellerStatusCache) || sellerStatusCache[u].at !== now) sellerStatusCache[u] = { vip: false, trustedSeller: false, at: now }; });
     const grid = document.getElementById('lgrid');
     if (grid) { grid._renderedSig = null; rlistings(); } // yeni bilgiyle TEK ek render
   } catch (e) { /* sessizce yut — kart zaten denormalize alanla anlık çizildi, kullanıcı deneyimi bozulmaz */ }
@@ -3781,9 +3791,11 @@ async function resolveSellerStatusForListings(items) {
 // Önbellekte varsa CANLI durum, yoksa (henüz çözülmediyse) ilanın kendi anlık kopyası — flash-of-
 // no-badge yerine flash-of-stale-badge tercih edildi (spec önceliği: "1. Doğru gösterim" ama "3.
 // gerçek zamanlıya yakın güncellik" de önemli — ilk boyamada HİÇBİR şey göstermemek daha kötü bir UX).
+function sellerLiveStatus(l) {
+  return sellerStatusCache[l.uid] || { vip: !!l.sellerVip, trustedSeller: !!l.sellerTrustedSeller };
+}
 function sellerBadgesForListing(l) {
-  const cached = sellerStatusCache[l.uid];
-  const st = cached || { vip: !!l.sellerVip, trustedSeller: !!l.sellerTrustedSeller };
+  const st = sellerLiveStatus(l);
   return sellerVipTrustIconsHTML(st.vip, st.trustedSeller);
 }
 
@@ -4477,7 +4489,6 @@ function rprof() {
         <div class="pacc-row"><span class="pacc-lbl">Kullanılan Cihaz</span><span class="pacc-val">${myProfileData.lastLoginDevice || detectDeviceLabel()}</span></div>
         <div class="pacc-row"><span class="pacc-lbl">Aktif Oturumlar</span><span class="pacc-val" id="pacc-sessions-count">Yükleniyor…</span></div>
         <button class="apbtn" style="margin-top:12px;background:rgba(255,69,58,.08);border-color:rgba(255,69,58,.25);color:var(--red)" onclick="auth.signOut()">Oturumu Kapat</button>
-        <button class="apbtn" style="margin-top:8px;background:transparent;border-color:rgba(255,69,58,.2);color:var(--red);font-size:12px;padding:8px" onclick="deleteMyAccount()">Hesabımı Kalıcı Olarak Sil</button>
       </div>
       <div class="pact-card">
         <div class="psec-title">Son Etkinlikler</div>
@@ -5515,46 +5526,6 @@ async function changePassword() {
     errEl.textContent = (ex.code === 'auth/invalid-credential' || ex.code === 'auth/wrong-password') ? 'Mevcut şifre yanlış' : (firebaseErrorToTurkish(ex) || 'Bir şeyler ters gitti, lütfen tekrar dene.');
     errEl.classList.add('on');
   } finally { releaseSubmit('changePassword'); }
-}
-
-// ÖZELLİK EKLENDİ (yayın öncesi tarama, "Yüksek" öncelik): self-servis hesap silme — mağaza
-// politikaları genellikle hesap oluşturmaya izin veren uygulamalarda uygulama içi bir silme yolu
-// şart koşuyor, bu daha önce hiç yoktu. Kapsam: hesabın (Firebase Auth) ve profilinin (teknohane_users)
-// kalıcı silinmesi + admin ekibinin bildirim alması — ilan/gönderi/yorum gibi ikincil içeriklerin tam
-// temizliği, veri bütünlüğü riski taşıyan geniş kapsamlı bir istemci-taraflı zincirleme silme yerine
-// bilinçli olarak admin ekibine bırakıldı (yaygın, politika uyumlu bir yaklaşım).
-async function deleteMyAccount() {
-  if (!user) return;
-  const ok = await confirmDialog(
-    'Hesabın ve profil bilgilerin kalıcı olarak silinecek. İlanların/gönderilerin ayrıca kaldırılması için destek ekibimize ulaşabilirsin. Bu işlem GERİ ALINAMAZ.',
-    { title: 'Hesabımı Sil', okLabel: 'Devam Et', cancelLabel: 'Vazgeç', danger: true }
-  );
-  if (!ok) return;
-  const password = await promptDialog(
-    'Güvenlik için mevcut şifreni gir.',
-    '',
-    { title: 'Şifreni Doğrula', okLabel: 'Hesabı Sil', placeholder: 'Şifren', type: 'password' }
-  );
-  if (!password) return;
-  if (!guardSubmit('deleteAccount')) return;
-  try {
-    const cred = firebase.auth.EmailAuthProvider.credential(user.email, password);
-    await user.reauthenticateWithCredential(cred);
-    const uid = user.uid;
-    await db.collection('teknohane_account_deletion_requests').add({
-      uid, email: user.email, displayName: user.displayName || '',
-      requestedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }).catch(()=>{});
-    await db.collection('teknohane_users').doc(uid).delete().catch(()=>{});
-    await user.delete();
-    showToast('✓', 'rgba(48,209,88,.15)', 'Hesabın Silindi', 'Görüşmek üzere.');
-  } catch(e) {
-    if (e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password') {
-      showToast('⚠️','rgba(255,69,58,.15)','Hata','Şifre yanlış, hesabın silinmedi.');
-    } else {
-      showErrorToast(e, 'Hesap silinemedi.');
-    }
-  } finally { releaseSubmit('deleteAccount'); }
 }
 
 let authFormMode = 'login';
@@ -10068,10 +10039,13 @@ function rlistings() {
   if (filterBrand !== 'Tümü') items = items.filter(l => (l.model||'').toLowerCase().includes(filterBrand.toLowerCase()));
   if (filterCondition !== 'Tümü') items = items.filter(l => l.condition === filterCondition);
   if (filterCategory !== 'tumu') items = items.filter(l => listingEffectiveCategory(l) === filterCategory);
-  // PAZAR 3.0 — satıcı güveni filtreleri. sellerVip/sellerTrustedSeller ilan oluşturulma anında
-  // denormalize edilen GERÇEK alanlar (mcardHTML'in rozet gösteriminde de kullandığı aynı alanlar).
-  if (filterSellerTrust.vip) items = items.filter(l => l.sellerVip === true);
-  if (filterSellerTrust.trustedSeller) items = items.filter(l => l.sellerTrustedSeller === true);
+  // PAZAR 3.0 — satıcı güveni filtreleri. KÖK NEDEN DÜZELTMESİ (kullanıcı raporu — VIP kaldırılan bir
+  // satıcının ilanları "Yalnızca VIP" filtresinde hâlâ çıkıyordu): eskiden doğrudan l.sellerVip'in
+  // (ilan oluşturulma ANINDAKİ denormalize kopya) okunuyordu — sellerBadgesForListing'in rozet
+  // gösteriminde ZATEN kullandığı CANLI sellerStatusCache'e (bkz. resolveSellerStatusForListings) artık
+  // burada da bakılıyor, tutarlı ve güncel.
+  if (filterSellerTrust.vip) items = items.filter(l => sellerLiveStatus(l).vip === true);
+  if (filterSellerTrust.trustedSeller) items = items.filter(l => sellerLiveStatus(l).trustedSeller === true);
   if (filterSellerTrust.poolSystem) items = items.filter(l => l.poolSystem === true);
   // Sıralama: kullanıcı açıkça fiyat/favori/görüntülenme/fiyat-düşüşü sıralaması seçtiyse (filterSort),
   // Vitrin/Öne Çıkan önceliği yerine doğrudan o kritere göre sıralanır — satılanlar yine de en altta
