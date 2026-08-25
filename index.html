@@ -16577,6 +16577,10 @@ function closeSupportPage() {
 // TEKNOHANE ARENA — Destek sayfasıyla BİREBİR aynı tam-ekran-sayfa deseni (openSupportPage/
 // closeSupportPage/supportPageOpen).
 let arenaPageOpen = false;
+// ARENA ANTI-CHEAT 1.0 — bkz. arenaHandleBackground(). Her yeni denemenin başında sıfırlanır
+// (arenaBeginQuiz/arenaLeagueMatchBegin/arenaLeaguePostponedMatchBegin).
+let arenaBackgroundCount = 0;
+let arenaLeagueMatchBackgroundCount = 0;
 function openArenaPage() {
   arenaPageOpen = true;
   document.getElementById('s-arena').classList.add('on');
@@ -17776,6 +17780,7 @@ function arenaClearRecovery(quizId) {
 
 async function arenaBeginQuiz() {
   if (!(await arenaRequireEmailVerified())) return;
+  arenaBackgroundCount = 0;
   const body = document.getElementById('arena-body');
   body.innerHTML = `<div class="load"><div class="spin"></div><span>Yarışma hazırlanıyor…</span></div>`;
   // KÖK NEDEN İYİLEŞTİRMESİ v3 (ayrı bir UX/sağlamlık düzeltmesi — "Connection reset" ağ sorununun
@@ -18031,8 +18036,15 @@ function arenaAdvanceQuestion() {
 // Bu, `document.visibilitychange` (web/genel) VE Capacitor'ın native `appStateChange`'i (Android
 // WebView'de visibilitychange'in güvenilmez olabildiği durumlar için yedek) tarafından çağrılır —
 // bkz. handleAppForeground'un hemen üstündeki/altındaki kayıt noktaları.
+// ARENA ANTI-CHEAT 1.0: soru ekranındayken kaç kez arka plana alınıp geri dönüldüğü sayılıyor —
+// PUANLAMAYA ASLA karışmıyor, yalnızca submit isteğine "backgroundCount" olarak eklenip worker'ın
+// admin-incelemesi-İÇİN risk skoruna bir GİRDİ olarak kullanılıyor (bkz. cloudflare-push-worker.js
+// computeArenaAntiCheatSignals). İstemci bu sayıyı sıfır göndererek "gizleyebilir" — bu yalnızca anti-
+// cheat'in KENDİ tespit etkinliğini azaltır, gerçek puanlama/sıralama güvenliğini HİÇ etkilemez (worker
+// bu değeri hiçbir skor/rütbe hesabında KULLANMIYOR).
 function arenaHandleBackground() {
-  if (arenaPageOpen && arenaView === 'question') arenaForceEndQuiz();
+  if (arenaPageOpen && arenaView === 'question') { arenaBackgroundCount++; arenaForceEndQuiz(); }
+  else if (arenaPageOpen && arenaView === 'league-match-question') { arenaLeagueMatchBackgroundCount++; }
 }
 
 function arenaForceEndQuiz() {
@@ -18061,7 +18073,7 @@ async function arenaFinishQuiz() {
     const body = document.getElementById('arena-body');
     body.innerHTML = `<div class="load"><div class="spin"></div><span>Puanlanıyor…</span></div>`;
     const idToken = await user.getIdToken();
-    const data = await arenaApiCall(ARENA_SUBMIT_API, { idToken, answers: arenaAnswers });
+    const data = await arenaApiCall(ARENA_SUBMIT_API, { idToken, answers: arenaAnswers, backgroundCount: arenaBackgroundCount });
     if (data.error) {
       // GÜVENİLİRLİK (FAZ 0): eskiden yalnızca "Arena'ya Dön" vardı — ağ hatasında kullanıcı
       // cevaplarını (arenaAnswers hâlâ RAM'de VE sessionStorage'da duruyor) kaybetmiş gibi
@@ -18764,6 +18776,7 @@ function arenaLeagueStartCountdown(leagueEndsAt, isFull, elId) {
 // arenaLeagueMatchQStartMs), iki mod arasında hiçbir mutable state paylaşılmıyor.
 async function arenaLeagueMatchBegin() {
   arenaLeagueMatchMode = 'daily';
+  arenaLeagueMatchBackgroundCount = 0;
   if (!(await arenaRequireEmailVerified())) return;
   if (!guardSubmit('arenaLeagueMatchBegin')) return;
   const btn = document.getElementById('arena-league-match-start-btn');
@@ -18813,6 +18826,7 @@ async function arenaLeagueMatchBegin() {
 // #arena-league-postponed-start-btn — o yüzden bu fonksiyon KENDİ id'siyle disable/loading yönetiyor.
 async function arenaLeaguePostponedMatchBegin() {
   arenaLeagueMatchMode = 'postponed';
+  arenaLeagueMatchBackgroundCount = 0;
   if (!(await arenaRequireEmailVerified())) return;
   if (!guardSubmit('arenaLeaguePostponedMatchBegin')) return;
   const btn = document.getElementById('arena-league-postponed-start-btn');
@@ -18924,7 +18938,7 @@ async function arenaLeagueMatchFinish() {
     body.innerHTML = `<div class="load"><div class="spin"></div><span>Puanlanıyor…</span></div>`;
     const idToken = await user.getIdToken();
     const submitApi = arenaLeagueMatchMode === 'postponed' ? ARENA_LEAGUE_POSTPONED_SUBMIT_API : ARENA_LEAGUE_MATCH_SUBMIT_API;
-    const data = await arenaApiCall(submitApi, { idToken, answers: arenaLeagueMatchAnswers });
+    const data = await arenaApiCall(submitApi, { idToken, answers: arenaLeagueMatchAnswers, backgroundCount: arenaLeagueMatchBackgroundCount });
     if (data.success === false) {
       body.innerHTML = `<div class="no">Sonuç gönderilemedi.<br><span style="font-size:11px;color:var(--text3)">İnternet bağlantınızı kontrol edip tekrar deneyin.</span></div>
         <button class="apbtn" style="background:linear-gradient(135deg,var(--cyan),#0091FF);color:#00040F;font-weight:700;border:none" onclick="arenaLeagueMatchFinish()">↻ Tekrar Dene</button>
