@@ -4873,7 +4873,15 @@ async function refreshEmailVerifiedStatus() {
       myProfileData.emailVerified = true;
       db.collection('teknohane_users').doc(user.uid).set({ emailVerified: true }, { merge: true }).catch(() => {});
     }
-  } catch(e) {}
+  } catch(e) {
+    // E-POSTA DOĞRULAMA DÖNGÜSÜ 2.0: bu catch eskiden TAMAMEN sessizdi ("doğruladım ama hâlâ
+    // doğrulanmamış görünüyor" raporlarının, hiçbir teşhis izi bırakmadan v1/v2/v3 boyunca tekrar
+    // tekrar araştırılmasının bir nedeni de buydu) — user.reload() BAŞARISIZ olursa artık
+    // logClientError ile kaydediliyor (dedup+oturum-başı-limit zaten logClientError'ın kendisinde),
+    // böylece bir dahaki sefere kör değil GERÇEK veriyle araştırılabilir. Davranış DEĞİŞMEDİ —
+    // fonksiyon hâlâ hatayı yutuyor, kullanıcıyı asla bir hata ekranına düşürmüyor.
+    logClientError('refreshEmailVerifiedStatus: user.reload() başarısız — ' + (e?.code || e?.message || e), e?.stack, 'refreshEmailVerifiedStatus');
+  }
 }
 
 // KÖK NEDEN DÜZELTMESİ v3 ("bu işlem için yetkin yok" hatası ilan/konu gönderirken — v1/v2 hâlâ
@@ -16923,14 +16931,80 @@ async function arenaApiCall(url, payload) {
 // açıldığı için (bkz. auth-action.html) uygulamanın kendi oturumu bunu asla otomatik ÖĞRENEMEZ —
 // kullanıcı e-postasını doğrulasa BİLE, uygulamaya geri döndüğünde local user nesnesi hâlâ eski hâliyle
 // kalır. Artık diğer TÜM doğrulama kontrolleriyle (submitListing/newTopic) AYNI desen kullanılıyor.
+// E-POSTA DOĞRULAMA DÖNGÜSÜ 2.0 — KÖK NEDEN (tekrarlayan/çoklu "E-posta Doğrulanmamış" uyarısı
+// raporu): bu fonksiyonun 4 çağrı noktasının (arenaBeginQuiz/openArenaLeagueRulesModal/
+// arenaLeagueMatchBegin/arenaLeaguePostponedMatchBegin) HİÇBİRİ, showToast()'un kendisi HİÇBİR
+// dedup/idempotency uygulamadığı hâlde, bu fonksiyonu çağırmadan ÖNCE bir kilit/disable UYGULAMIYORDU
+// — hızlı art arda dokunma (özellikle user.reload()'un ağ gecikmesi süresince) her seferinde AYRI bir
+// refreshEmailVerifiedStatus() + AYRI bir toast üretip ekranda ÜST ÜSTE birikiyordu. Çözüm: eşzamanlı
+// çağrılar ARTIK TEK bir paylaşılan reload() isteğini bekliyor (aşağıdaki _arenaEmailVerifyInFlight),
+// VE toast yerine openArenaEmailVerifyModal() kullanılıyor — o da (openArenaLeagueRulesModal'daki AYNI
+// desen) önce var olan kartı kaldırıp SONRA ekliyor, yani art arda kaç kez tetiklenirse tetiklensin
+// ekranda HER ZAMAN TEK bir kart kalıyor, asla yığılmıyor. Ayrıca eski toast yalnızca sendVerificationEmail'i
+// tetikliyordu — GERÇEKTEN doğrulamış bir kullanıcının "şimdi tekrar kontrol et" diyebileceği bir yol
+// YOKTU (tek çıkışı Arena butonuna TEKRAR basmaktı); yeni modalde "🔄 Doğruladım, Tekrar Kontrol Et"
+// butonu bunu AÇIKÇA sağlıyor.
+let _arenaEmailVerifyInFlight = null;
 async function arenaRequireEmailVerified() {
   if (!user) return true;
-  await refreshEmailVerifiedStatus();
+  if (!_arenaEmailVerifyInFlight) {
+    _arenaEmailVerifyInFlight = refreshEmailVerifiedStatus().finally(() => { _arenaEmailVerifyInFlight = null; });
+  }
+  await _arenaEmailVerifyInFlight;
   if (!user.emailVerified) {
-    showToast('📧', 'rgba(255,159,10,.15)', 'E-posta Doğrulanmamış', 'Arena\'ya katılabilmek için önce e-postanı doğrulaman gerekiyor. Doğrulama e-postası göndermek için dokun.', sendVerificationEmail, 6000);
+    openArenaEmailVerifyModal();
     return false;
   }
   return true;
+}
+
+function closeArenaEmailVerifyModal() { document.getElementById('arena-email-verify-overlay')?.remove(); }
+function openArenaEmailVerifyModal() {
+  closeArenaEmailVerifyModal(); // idempotent — önce varsa kaldır, SONRA ekle (asla yığılmaz)
+  const div = document.createElement('div');
+  div.id = 'arena-email-verify-overlay';
+  div.style.cssText = 'position:fixed;inset:0;z-index:2100;background:rgba(0,4,15,.8);display:flex;align-items:center;justify-content:center;padding:20px';
+  div.onclick = (e) => { if (e.target === div) closeArenaEmailVerifyModal(); };
+  div.innerHTML = `
+    <div style="background:var(--surf);border:1px solid var(--border2);border-radius:16px;max-width:340px;width:100%;padding:26px 22px;text-align:center" onclick="event.stopPropagation()">
+      <div style="font-size:34px;margin-bottom:10px">📧</div>
+      <div style="font-size:16px;font-weight:700;margin-bottom:8px">E-posta Doğrulaması Gerekli</div>
+      <div style="font-size:12.5px;color:var(--text2);line-height:1.5;margin-bottom:18px">Arena'ya katılmak için e-posta adresini doğrulaman gerekiyor. Doğruladıysan aşağıdan tekrar kontrol edebilirsin.</div>
+      <button class="apbtn" id="arena-everify-send-btn" style="background:linear-gradient(135deg,var(--cyan),#0091FF);color:#00040F;font-weight:700;border:none;margin-bottom:8px" onclick="arenaEmailVerifySend()">📨 Doğrulama Mailini Gönder</button>
+      <button class="apbtn" id="arena-everify-recheck-btn" onclick="arenaEmailVerifyRecheck()">🔄 Doğruladım, Tekrar Kontrol Et</button>
+      <div style="font-size:11px;color:var(--text3);margin-top:14px;cursor:pointer" onclick="closeArenaEmailVerifyModal()">Kapat</div>
+    </div>`;
+  document.body.appendChild(div);
+}
+async function arenaEmailVerifySend() {
+  const btn = document.getElementById('arena-everify-send-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Gönderiliyor…'; }
+  try {
+    await sendVerificationEmail();
+  } finally {
+    const btn2 = document.getElementById('arena-everify-send-btn');
+    if (btn2) { btn2.disabled = false; btn2.textContent = '📨 Doğrulama Mailini Gönder'; }
+  }
+}
+// Sahte başarı YOK: emailVerified GERÇEKTEN true olmadan modal ASLA kapanmaz/başarı göstermez —
+// refreshEmailVerifiedStatus() zaten user.reload() ile Firebase Auth'un GERÇEK sunucu durumunu okur.
+async function arenaEmailVerifyRecheck() {
+  const btn = document.getElementById('arena-everify-recheck-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Kontrol ediliyor…'; }
+  try {
+    await refreshEmailVerifiedStatus();
+    if (user.emailVerified) {
+      closeArenaEmailVerifyModal();
+      showToast('✅', 'rgba(48,209,88,.15)', 'E-posta Doğrulandı', 'Artık Arena\'ya katılabilirsin.');
+      return;
+    }
+    showToast('❌', 'rgba(255,69,58,.15)', 'Henüz Doğrulanmadı', 'E-postandaki doğrulama bağlantısına tıkladığından emin ol, birkaç saniye sonra tekrar dene.');
+  } catch (e) {
+    showToast('⚠️', 'rgba(255,69,58,.15)', 'Kontrol Edilemedi', 'İnternet bağlantını kontrol edip tekrar dene.');
+  } finally {
+    const btn2 = document.getElementById('arena-everify-recheck-btn');
+    if (btn2) { btn2.disabled = false; btn2.textContent = '🔄 Doğruladım, Tekrar Kontrol Et'; }
+  }
 }
 
 let arenaHomeQuizTimerHandle = null;
@@ -17747,6 +17821,11 @@ async function arenaBeginQuiz() {
       <button class="apbtn" onclick="rArenaHome()">Geri Dön</button>`;
     return;
   }
+  // GÜVENLİK/DOĞRULUK: bu dal normalde HİÇ tetiklenmemeli (arenaRequireEmailVerified zaten yukarıda
+  // engelledi) — ama sunucu GERÇEK/otoriter kaynak olduğu için (ör. token claim'i tam bu anda geçersiz
+  // kaldıysa) bu senaryoyu jenerik "bağlantı sorunu" mesajıyla YANLIŞ tanımlamak yerine doğru mesajı
+  // gösterip düzeltme yolu sunuyoruz.
+  if (data.error === 'email_not_verified') { rArenaHome(); openArenaEmailVerifyModal(); return; }
   if (data.error || !data.questions?.length) {
     // HATA DÜZELTMESİ (canlı vakada doğrulandı — "Connection reset"/"Failed to fetch"): bu ekrana en
     // sık düşen sebep geçici bir ağ kopukluğu (arenaApiCall artık CapacitorHttp+fetch'i AYNI ANDA
@@ -18612,6 +18691,7 @@ async function arenaLeagueJoin() {
     const data = await arenaApiCall(ARENA_LEAGUE_JOIN_API, { idToken });
     if (data.success === false) {
       if (data.error === 'season_not_active') { renderArenaLeagueError('season_not_active'); return; }
+      if (data.error === 'email_not_verified') { openArenaEmailVerifyModal(); renderArenaLeagueNotJoined(); return; }
       showMsg('Lige katılırken bir sorun oluştu. Lütfen tekrar dene.');
       renderArenaLeagueNotJoined();
       return;
@@ -18705,6 +18785,8 @@ async function arenaLeagueMatchBegin() {
         rArenaLeague();
       } else if (data.error === 'season_not_active') {
         renderArenaLeagueError('season_not_active');
+      } else if (data.error === 'email_not_verified') {
+        openArenaEmailVerifyModal();
       } else {
         showMsg('Lig Maçı başlatılamadı. Lütfen tekrar dene.');
       }
@@ -18754,6 +18836,8 @@ async function arenaLeaguePostponedMatchBegin() {
         rArenaLeague();
       } else if (data.error === 'season_not_active') {
         renderArenaLeagueError('season_not_active');
+      } else if (data.error === 'email_not_verified') {
+        openArenaEmailVerifyModal();
       } else {
         showMsg('Erteleme Maçı başlatılamadı. Lütfen tekrar dene.');
       }
