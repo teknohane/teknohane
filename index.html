@@ -6101,6 +6101,18 @@ function navigateFromNotificationUrl(url, attempt) {
   if (!url) return;
   try {
     const u = new URL(url, 'https://teknohane.github.io/teknohane/');
+    // KÖK NEDEN DÜZELTMESİ (kullanıcı raporu: e-posta doğrulama/şifre sıfırlama mailindeki linke
+    // dokununca uygulama açılıyor ama işlem başarısız oluyordu): AndroidManifest.xml'deki App Links
+    // intent-filter'ı pathPrefix="/teknohane/" ile TÜM alt yolları (auth-action.html DAHİL) tarayıcı
+    // yerine bu uygulamaya yönlendiriyor — ama applyActionCode()/confirmPasswordReset()'i GERÇEKTEN
+    // çağıran tek yer olan auth-action.html'in KENDİSİ bu WebView'e hiç YÜKLENMİYOR, yalnızca URL'si
+    // buraya bir string olarak geliyor. mode/oobCode parametreleri aşağıdaki listing/post/profile/...
+    // hiçbirine uymadığı için sessizce yok sayılıyor, kullanıcı "hiçbir şey olmadı" görüyordu. Çözüm:
+    // bu iki parametre tespit edilirse uygulama İÇİNDE yorumlamaya ÇALIŞMADAN, ol()'un (Kullanım
+    // Şartları linki için zaten kullandığı, App Links'i atlayan Capacitor Browser) AYNI yoluyla GERÇEK
+    // bir tarayıcı sekmesinde açılıyor — auth-action.html orada normal bir web sayfası gibi yüklenip
+    // GERÇEKTEN doğrulama/sıfırlama işlemini tamamlıyor.
+    if (u.searchParams.get('mode') && u.searchParams.get('oobCode')) { ol(u.href); return; }
     const listingId = u.searchParams.get('listing');
     const postId = u.searchParams.get('post');
     const profileUid = u.searchParams.get('profile');
