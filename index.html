@@ -19111,7 +19111,13 @@ const TIPS = {
   community: { ic:'💬', txt:'Burada telefon/teknoloji hakkında konu açabilir, soru sorabilir ve diğer kullanıcılarla tartışabilirsin.' },
   market: { ic:'🛒', txt:'<b>İlan Ver</b> butonuyla telefonunu satabilir, beğendiğin ilanlara dokunarak detayını görebilirsin.' },
   support: { ic:'💬', txt:'Soruların mı var? Buradan bize WhatsApp veya e-posta ile ulaşabilirsin.' },
-  profile: { ic:'👤', txt:'Giriş yaparak ilan verebilir, favorilerini buradan yönetebilirsin.' },
+  // KÖK NEDEN DÜZELTMESİ (FINAL denetim turu — 2026-08-26, gerçek test hesabıyla GÖZLEMLENDİ): bu
+  // metin eskiden "Giriş yaparak..." diyordu — showTabTip()'in kendisi giriş durumunu HİÇ kontrol
+  // etmiyor (yalnızca "bu cihazda daha önce gösterildi mi" bakıyor), bu yüzden ZATEN giriş yapmış bir
+  // kullanıcı Profil sekmesine ilk kez geldiğinde kendi dolu profilinin HEMEN altında "giriş yap" diyen
+  // bir ipucu görüyordu — kafa karıştırıcı/tutarsız. Diğer sekmelerin ipuçlarıyla AYNI desene (giriş
+  // durumundan bağımsız, genel özellik açıklaması) getirildi.
+  profile: { ic:'👤', txt:'Profilini düzenleyebilir, ilanlarını/favorilerini ve rozetlerini buradan yönetebilirsin.' },
 };
 
 function getSeenTips() {
