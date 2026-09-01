@@ -17616,6 +17616,7 @@ const ARENA_QUESTION_REPORT_API = 'https://teknohane-api.yusuf-aykac.workers.dev
 const ARENA_LEAGUE_JOIN_API = 'https://teknohane-api.yusuf-aykac.workers.dev/arena-league-join';
 const ARENA_LEAGUE_LEADERBOARD_API = 'https://teknohane-api.yusuf-aykac.workers.dev/arena-league-leaderboard';
 const ARENA_LEAGUE_HISTORY_API = 'https://teknohane-api.yusuf-aykac.workers.dev/arena-league-history';
+const ARENA_REWARD_HISTORY_API = 'https://teknohane-api.yusuf-aykac.workers.dev/arena-reward-history';
 const ARENA_LEAGUE_MATCH_START_API = 'https://teknohane-api.yusuf-aykac.workers.dev/arena-league-match-start';
 const ARENA_LEAGUE_MATCH_SUBMIT_API = 'https://teknohane-api.yusuf-aykac.workers.dev/arena-league-match-submit';
 // ERTELEME MAÇI 1.0
@@ -18405,6 +18406,7 @@ async function rArenaHome() {
     ${streak>0?`<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border2);font-size:12px;color:#FF9500;font-weight:700">🔥 ${streak} günlük serin devam ediyor${myStats?.longestStreak>streak?` <span style="color:var(--text3);font-weight:400">(en uzun: ${myStats.longestStreak})</span>`:''}${doneToday?`<div style="margin-top:4px;font-size:11px;color:var(--text2);font-weight:400">Yarın da oynarsan: ${streak+1} günlük seriye ulaşacaksın.</div>`:''}</div>`:''}
     <div style="display:flex;justify-content:center;gap:14px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border2);flex-wrap:wrap">
       <span style="font-size:12px;color:var(--cyan);font-weight:600;cursor:pointer" onclick="rArenaBadges()">🏅 Rozetlerim (${(myStats?.badges||[]).length}/${Object.keys(ARENA_BADGE_LABELS).length}) →</span>
+      <span style="font-size:12px;color:var(--cyan);font-weight:600;cursor:pointer" onclick="rArenaSeasonHistory()">📜 Sezon Geçmişi →</span>
     </div>
   </div>`;
 
@@ -19236,6 +19238,142 @@ function renderArenaLeagueAchievementsHtml(seasons) {
       ${firstPlaceCount > 0 ? `<div class="pstat-item"><div class="pstat-num" style="color:#FFD60A">🥇 ${firstPlaceCount}</div><div>Şampiyonluk</div></div>` : ''}
     </div>
     <div style="text-align:center;font-size:11px;color:var(--text3)">Kariyerinde toplam ${totalCareerScore} Lig Puanı topladın</div>`;
+}
+
+// ==== SEZON GEÇMİŞİ 1.0 ====
+// Yeni bir snapshot/koleksiyon İCAT EDİLMEDİ — mevcut, ZATEN salt-okunur/server-authoritative
+// /internal/arena-league-history ucu (finalRank'i her istekte YENİDEN, sezon kapandıktan sonra asla
+// değişmeyen leagueScore/joinedAt'ten hesaplıyor, bkz. o ucun kendi yorum bloğu) + üstüne eklenen
+// topMembers alanı + YENİ /internal/arena-reward-history ucu (aynı idToken→uid, tek eşitlik filtresi
+// deseni) birleştirilerek gösteriliyor. Aktif sezon "geçmiş" sayılmaz (renderArenaLeagueHistorySection
+// ile AYNI seasonId karşılaştırması). Bir alan gerçekten mevcut değilse (ör. finalRank null) o satır
+// TAMAMEN gizlenir — asla 0/varsayılan bir değer "gerçekmiş gibi" gösterilmez.
+let arenaSeasonHistoryData = null;
+let arenaSeasonHistoryExpanded = null; // o an açık (detay gösterilen) seasonId, yalnızca biri açık olabilir
+
+async function rArenaSeasonHistory() {
+  arenaView = 'seasonHistory';
+  arenaBackParent = rArenaHome;
+  arenaStopTimer();
+  arenaSeasonHistoryExpanded = null;
+  const body = document.getElementById('arena-body');
+  body.innerHTML = `<div class="load"><div class="spin"></div></div>`;
+  try {
+    const idToken = await user.getIdToken();
+    const [historyRes, rewardRes] = await Promise.allSettled([
+      arenaApiCall(ARENA_LEAGUE_HISTORY_API, { idToken }),
+      arenaApiCall(ARENA_REWARD_HISTORY_API, { idToken }),
+    ]);
+    const historyData = historyRes.status === 'fulfilled' ? historyRes.value : null;
+    if (!historyData || historyData.ok === false) { arenaSeasonHistoryData = null; renderArenaSeasonHistoryScreen(); return; }
+    const rewardData = rewardRes.status === 'fulfilled' ? rewardRes.value : null;
+    const rewardsBySeasonId = {};
+    // Ödül geçmişi İSTEĞE BAĞLI bir zenginleştirme — çekilemezse (ağ hatası vb.) sezon listesinin
+    // KENDİSİ hiç etkilenmez, yalnızca ödül satırları o sezonlarda görünmez (§17'deki "bir bölüm
+    // başarısız olursa diğerini bloke etmesin" disipliniyle AYNI).
+    if (rewardData && rewardData.ok !== false) (rewardData.rewards || []).forEach(r => { rewardsBySeasonId[r.seasonId] = r; });
+    arenaSeasonHistoryData = { seasons: historyData.seasons || [], rewardsBySeasonId };
+  } catch (e) {
+    arenaSeasonHistoryData = null;
+  }
+  renderArenaSeasonHistoryScreen();
+}
+
+function arenaToggleSeasonDetail(seasonId) {
+  arenaSeasonHistoryExpanded = arenaSeasonHistoryExpanded === seasonId ? null : seasonId;
+  renderArenaSeasonHistoryScreen();
+}
+
+function renderArenaSeasonHistoryScreen() {
+  const body = document.getElementById('arena-body');
+  if (!body) return;
+  const data = arenaSeasonHistoryData;
+  if (!data) {
+    body.innerHTML = `<div class="feat" style="padding:20px 18px;text-align:center">
+      <div style="font-size:18px;font-weight:700;margin-bottom:10px">📜 Sezon Geçmişi</div>
+      <div class="no" style="padding:16px">Sezon geçmişin şu anda yüklenemiyor.</div>
+      <button class="apbtn" style="margin-top:10px" onclick="rArenaSeasonHistory()">↻ Tekrar Dene</button>
+      <button class="apbtn" style="margin-top:8px" onclick="rArenaHome()">Arena'ya Dön</button>
+    </div>`;
+    return;
+  }
+  // Aktif sezon "geçmiş" sayılmaz — renderArenaLeagueHistorySection'daki AYNI karşılaştırma.
+  const activeSeasonId = arenaLeagueData?.seasonId || null;
+  const pastSeasons = data.seasons.filter(s => s.seasonId !== activeSeasonId);
+
+  if (!pastSeasons.length) {
+    body.innerHTML = `<div class="feat" style="padding:20px 18px;text-align:center">
+      <div style="font-size:18px;font-weight:700;margin-bottom:10px">📜 Sezon Geçmişi</div>
+      <div class="no" style="padding:16px">Henüz tamamlanmış bir Arena sezonun bulunmuyor.</div>
+      <button class="apbtn" style="margin-top:10px" onclick="rArenaHome()">Arena'ya Dön</button>
+    </div>`;
+    return;
+  }
+
+  // ---- 🏆 En İyi Sezon (görev talimatı §8) — kriter: 1) EN İYİ (en düşük) finalRank, 2) eşitlikte
+  // EN YÜKSEK leagueScore. finalRank'i olmayan sezonlar bu karşılaştırmaya HİÇ girmez. ----
+  const rankedPast = pastSeasons.filter(s => s.finalRank != null);
+  let bestSeasonHtml = '';
+  if (rankedPast.length) {
+    const best = [...rankedPast].sort((a, b) => (a.finalRank - b.finalRank) || (b.leagueScore - a.leagueScore))[0];
+    bestSeasonHtml = `<div class="feat" style="padding:14px 16px;margin-bottom:12px;background:linear-gradient(135deg,rgba(255,215,0,.1),rgba(255,215,0,.02));border-color:rgba(255,215,0,.25)">
+      <div style="font-size:12px;font-weight:700;color:#FFD700;margin-bottom:6px">🏆 En İyi Sezonun</div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;font-size:12.5px;color:var(--text)">
+        <span>${arenaLeagueTierLabel(best.tier)} Lig ${best.leagueNumber ?? '-'}</span>
+        <span style="font-weight:700">${arenaFormatFinalRank(best.finalRank)}</span>
+        <span>⭐ ${best.leagueScore} Lig Puanı</span>
+      </div>
+    </div>`;
+  }
+
+  // ---- 📈 Sezonlar Boyunca (görev talimatı §7) — en az 2 GERÇEK ranklı geçmiş sezon gerekiyor,
+  // aksi halde bölüm tamamen gizlenir (yetersiz veriyle "yükseldin/düştün" iddiası ÜRETİLMEZ). ----
+  let progressionHtml = '';
+  if (rankedPast.length >= 2) {
+    const chronological = [...rankedPast].sort((a, b) => (Date.parse(a.startsAt || 0) || 0) - (Date.parse(b.startsAt || 0) || 0));
+    const first = chronological[0], last = chronological[chronological.length - 1];
+    const delta = first.finalRank - last.finalRank; // pozitif = sıra numarası küçüldü = yükseldi
+    const deltaText = delta > 0 ? `Geçmiş sezonlar boyunca ${delta} sıra yükseldin.` : delta < 0 ? `Geçmiş sezonlar boyunca ${Math.abs(delta)} sıra düştün.` : 'Geçmiş sezonlar boyunca sıralamanı korudun.';
+    progressionHtml = `<div class="feat" style="padding:14px 16px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">📈 Sezonlar Boyunca</div>
+      <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px">
+        ${chronological.map(s => `<div style="flex:0 0 auto;text-align:center;padding:6px 10px;background:var(--surf2);border-radius:10px"><div style="font-size:10px;color:var(--text3)">${arenaFormatHistoryDate(s.startsAt)}</div><div style="font-size:13px;font-weight:700;color:var(--cyan)">${arenaFormatFinalRank(s.finalRank)}</div></div>`).join('')}
+      </div>
+      <div style="font-size:11.5px;color:var(--text3);margin-top:8px">${deltaText}</div>
+    </div>`;
+  }
+
+  // ---- Geçmiş sezon kartları — reward'lı olan gösterilir, olmayan sessizce atlanır (§10) ----
+  const cardsHtml = pastSeasons.map(s => {
+    const reward = data.rewardsBySeasonId[s.seasonId];
+    const expanded = arenaSeasonHistoryExpanded === s.seasonId;
+    return `<div class="feat" style="padding:14px 16px;margin-bottom:10px;cursor:pointer" onclick="arenaToggleSeasonDetail('${s.seasonId}')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div style="font-size:14px;font-weight:700;margin-bottom:4px">🏆 Arena Sezonu</div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:10px">📅 ${arenaFormatHistoryDate(s.startsAt)} — ${arenaFormatHistoryDate(s.endsAt)}</div>
+        </div>
+        <span style="font-size:11px;color:var(--text3)">${expanded ? '▲' : '▼'}</span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--text2)">
+        <span>${arenaLeagueTierLabel(s.tier)} Lig ${s.leagueNumber ?? '-'}</span>
+        <span>⭐ ${s.leagueScore ?? 0} Lig Puanı</span>
+        <span>📊 ${arenaFormatFinalRank(s.finalRank)}</span>
+        <span>👥 ${s.totalMembers ?? '-'} kişi</span>
+      </div>
+      ${reward ? `<div style="margin-top:8px;font-size:12px;color:#FFD700;font-weight:600">🎁 ${escapeHtml(reward.badgeLabel || 'Sezon Ödülü')}${reward.vipDays ? ` — ${reward.vipDays} gün VIP` : ''}</div>` : ''}
+      ${expanded ? `<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border2)" onclick="event.stopPropagation()">
+        ${(s.topMembers && s.topMembers.length) ? `
+          <div style="font-size:11.5px;font-weight:700;color:var(--text2);margin-bottom:6px">Sezonun En İyileri</div>
+          ${s.topMembers.map((m, i) => `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;${m.uid===user.uid?'color:var(--cyan);font-weight:700':'color:var(--text2)'}"><span>${i===0?'🥇':i===1?'🥈':'🥉'}</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(m.displayName || 'Bir kullanıcı')}</span><span>${m.leagueScore}</span></div>`).join('')}
+        ` : `<div style="font-size:11.5px;color:var(--text3)">Bu sezon için sıralama tablosu mevcut değil.</div>`}
+      </div>` : ''}
+    </div>`;
+  }).join('');
+
+  body.innerHTML = `<div style="font-size:18px;font-weight:700;margin-bottom:14px;text-align:center">📜 Sezon Geçmişi</div>
+    ${bestSeasonHtml}${progressionHtml}${cardsHtml}
+    <button class="apbtn" style="margin-top:8px" onclick="rArenaHome()">Arena'ya Dön</button>`;
 }
 
 // Arena Ligleri hata toast'ları (ör. "Lige katılırken bir sorun oluştu") bu sarmalayıcıyı
