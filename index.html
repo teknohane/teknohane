@@ -1115,6 +1115,34 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 @keyframes su{from{transform:translateY(20px);opacity:0;}to{transform:translateY(0);opacity:1;}}
 .mh{width:36px;height:4px;border-radius:2px;background:var(--text3);margin:0 auto 20px;}
 .mtit{font-size:18px;font-weight:700;margin-bottom:16px;}
+/* İLAN OLUŞTURMA SİHİRBAZI 1.0 — mevcut #listing-mo formunun ÜZERİNE kurulu görsel katman. Hiçbir
+   .fg/.fi/input id'si değişmedi — yalnızca var olan alan grupları .wiz-step konteynerlerine SARILDI
+   ve #listing-mo'ya "wizard-mode" sınıfı eklendiğinde (yalnızca YENİ ilan oluştururken, bkz. newListing())
+   bu konteynerler teker teker gösteriliyor. Düzenleme modunda (editListing()) wizard-mode sınıfı hiç
+   eklenmiyor — bu durumda TÜM .wiz-step'ler normal display:block ile aynı anda görünür, yani mevcut
+   "tek uzun form" düzenleme deneyimi TAMAMEN korunuyor, davranış değişmiyor.
+   Kanıt/tek sınır: submitListing() DOM'dan aynı id'leri okumaya devam ediyor, tek karakter değişmedi. */
+#listing-mo.wizard-mode .mtit{display:none}
+#listing-mo:not(.wizard-mode) .wiz-progress,#listing-mo:not(.wizard-mode) .wiz-step-label{display:none}
+#listing-mo.wizard-mode .wiz-step{display:none}
+#listing-mo.wizard-mode .wiz-step.wiz-active{display:block;animation:wizFadeIn .18s ease}
+@keyframes wizFadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.wiz-progress{display:flex;align-items:center;gap:5px;margin-bottom:6px}
+.wiz-dot{flex:1;height:4px;border-radius:2px;background:var(--border2);transition:background .2s ease}
+.wiz-dot.wiz-done{background:var(--cyan)}
+.wiz-dot.wiz-current{background:var(--cyan);opacity:.55}
+.wiz-step-label{font-size:12px;color:var(--text2);font-weight:600;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+.wiz-step-label b{color:var(--cyan);font-weight:800}
+.wiz-step-title{font-size:19px;font-weight:800;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.wiz-step-desc{font-size:12.5px;color:var(--text2);margin-bottom:18px;line-height:1.5}
+.wiz-nav{display:flex;gap:10px;margin-top:6px}
+.wiz-nav .sbtn2{margin-top:0}
+.wiz-back-btn{width:auto;flex-shrink:0;background:var(--surf2);border:1px solid var(--border2);color:var(--text);font-size:15px;font-weight:700;padding:14px 18px;border-radius:14px;cursor:pointer;font-family:inherit;}
+.wiz-chip-row{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}
+.wiz-chip{background:var(--surf2);border:1px solid var(--border2);color:var(--text2);font-size:12px;font-weight:600;padding:7px 12px;border-radius:20px;cursor:pointer;white-space:nowrap;}
+.wiz-chip:active{background:var(--cdim);color:var(--cyan);border-color:rgba(0,212,255,.4)}
+.wiz-err{font-size:12px;color:var(--red);margin:-8px 0 14px;display:none}
+.wiz-err.wiz-show{display:block}
 /* TAM EKRAN SAYFA GEÇİŞİ ("kayan pencere" yerine): Forum konusu, Mesajlar, Bildirimler, Yönetim gibi
    asıl içerik ekranları artık alttan kayan yarı-şeffaf bir bottom-sheet yerine, kenardan kenara, tam
    ekran bir "sayfa" gibi açılıyor. Yalnızca .fullscreen ekleyen modallerde devrede, mevcut .mo/.ms
@@ -2065,180 +2093,245 @@ body.tk-maintenance #maintenance-gate{
   <div class="ms" onclick="event.stopPropagation()">
     <div class="mh"></div>
     <div class="mtit">İlan Ver</div>
-    <div class="fg">
-      <label class="fl">Fotoğraflar <span id="l-photo-counter" style="color:var(--text3);font-weight:400">(0 / 8)</span></label>
-      <div id="l-photo-hint" style="font-size:11.5px;color:#FF9500;margin-top:4px">En az 1 fotoğraf eklemelisiniz.</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px">
-        <div class="pslot" id="ps0" onclick="onPslotTap(0)" onpointerdown="onPslotPointerDown(0)" onpointerup="onPslotPointerUp()" onpointerleave="onPslotPointerUp()">
-          <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-          <span>Ekle</span>
-          <input type="file" id="pf0" accept="image/*" multiple style="display:none" onchange="addPhotos(0,this)">
-        </div>
-        <div class="pslot" id="ps1" onclick="onPslotTap(1)" onpointerdown="onPslotPointerDown(1)" onpointerup="onPslotPointerUp()" onpointerleave="onPslotPointerUp()">
-          <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-          <span>Ekle</span>
-          <input type="file" id="pf1" accept="image/*" multiple style="display:none" onchange="addPhotos(1,this)">
-        </div>
-        <div class="pslot" id="ps2" onclick="onPslotTap(2)" onpointerdown="onPslotPointerDown(2)" onpointerup="onPslotPointerUp()" onpointerleave="onPslotPointerUp()">
-          <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-          <span>Ekle</span>
-          <input type="file" id="pf2" accept="image/*" multiple style="display:none" onchange="addPhotos(2,this)">
-        </div>
-        <div class="pslot" id="ps3" onclick="onPslotTap(3)" onpointerdown="onPslotPointerDown(3)" onpointerup="onPslotPointerUp()" onpointerleave="onPslotPointerUp()">
-          <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-          <span>Ekle</span>
-          <input type="file" id="pf3" accept="image/*" multiple style="display:none" onchange="addPhotos(3,this)">
-        </div>
-        <div class="pslot" id="ps4" onclick="onPslotTap(4)" onpointerdown="onPslotPointerDown(4)" onpointerup="onPslotPointerUp()" onpointerleave="onPslotPointerUp()">
-          <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-          <span>Ekle</span>
-          <input type="file" id="pf4" accept="image/*" multiple style="display:none" onchange="addPhotos(4,this)">
-        </div>
-        <div class="pslot" id="ps5" onclick="onPslotTap(5)" onpointerdown="onPslotPointerDown(5)" onpointerup="onPslotPointerUp()" onpointerleave="onPslotPointerUp()">
-          <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-          <span>Ekle</span>
-          <input type="file" id="pf5" accept="image/*" multiple style="display:none" onchange="addPhotos(5,this)">
-        </div>
-        <div class="pslot" id="ps6" onclick="onPslotTap(6)" onpointerdown="onPslotPointerDown(6)" onpointerup="onPslotPointerUp()" onpointerleave="onPslotPointerUp()">
-          <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-          <span>Ekle</span>
-          <input type="file" id="pf6" accept="image/*" multiple style="display:none" onchange="addPhotos(6,this)">
-        </div>
-        <div class="pslot" id="ps7" onclick="onPslotTap(7)" onpointerdown="onPslotPointerDown(7)" onpointerup="onPslotPointerUp()" onpointerleave="onPslotPointerUp()">
-          <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-          <span>Ekle</span>
-          <input type="file" id="pf7" accept="image/*" multiple style="display:none" onchange="addPhotos(7,this)">
-        </div>
-      </div>
-    </div>
-    <div class="fg">
-      <label class="fl">Video (isteğe bağlı — cihazın çalıştığını göster)</label>
-      <div id="l-video-wrap">
-        <div class="pslot" id="l-video-slot" onclick="document.getElementById('l-video-input').click()" style="width:100%;height:100px">
-          <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
-          <span>Video Ekle (max 30MB)</span>
-          <input type="file" id="l-video-input" accept="video/*" style="display:none" onchange="addListingVideo(this)">
-        </div>
-      </div>
-    </div>
-    <div class="fg"><label class="fl">Kategori</label>
-      <div class="csel" data-for="l-category" data-title="Kategori" onclick="openPicker(this)"><span class="csel-label">Telefon</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
-      <select id="l-category" style="display:none" onchange="onListingCategoryChange()"><option value="telefon">Telefon</option><option value="akillisaat">Akıllı Saat</option><option value="kulaklik">Kulaklık</option><option value="aksesuar">Aksesuar</option></select>
-    </div>
-    <div class="fg" id="l-accessory-type-wrap" style="display:none">
-      <label class="fl">Aksesuar Türü</label>
-      <div class="csel" data-for="l-accessory-type" data-title="Aksesuar Türü" onclick="openPicker(this)"><span class="csel-label">Kılıf</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
-      <select id="l-accessory-type" style="display:none" onchange="onAccessoryTypeChange()"><option value="kilif">Kılıf</option><option value="sarj">Şarj Adaptörü</option><option value="kablo">Şarj Kablosu</option><option value="powerbank">Powerbank</option><option value="ekran-koruyucu">Ekran Koruyucu</option><option value="hafiza-karti">Hafıza Kartı</option></select>
-    </div>
-    <div class="fg"><label class="fl">Marka</label>
-      <div class="csel" data-for="l-brand" data-title="Marka Seç" onclick="openPicker(this)"><span class="csel-label">Marka Seçin</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
-      <select id="l-brand" style="display:none" onchange="onListingBrandChange()"></select>
-    </div>
-    <div class="fg" id="l-brand-other-wrap" style="display:none">
-      <label class="fl" id="l-brand-other-label">Marka (elle yazın)</label><input class="fi" type="text" id="l-brand-other" placeholder="Markanızı yazın" oninput="syncListingBrandOtherLabel();listingFormOnChange()" onblur="titleCaseListingField('l-brand-other')">
-    </div>
-    <div class="fg"><label class="fl">Model</label><input class="fi" type="text" id="l-model" placeholder="Örn: Galaxy S24" oninput="listingFormOnChange()" onblur="titleCaseListingField('l-model')"></div>
-    <div class="fg"><label class="fl">Fiyat (₺)</label><input class="fi" type="number" id="l-price" placeholder="25000" oninput="listingFormOnChange()"></div>
-    <div class="fg"><label class="fl">Durum</label>
-      <div class="csel" data-for="l-cond" data-title="Durum" onclick="openPicker(this)"><span class="csel-label">Sıfır</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
-      <select id="l-cond" style="display:none"><option>Sıfır</option><option>Az Kullanılmış</option><option>İkinci El</option></select>
-    </div>
-    <div class="fg"><label class="fl">Menşei</label>
-      <div class="csel" data-for="l-origin" data-title="Menşei" onclick="openPicker(this)"><span class="csel-label">Yurtiçi</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
-      <select id="l-origin" style="display:none"><option>Yurtiçi</option><option>Yurtdışı</option></select>
-    </div>
-    <div class="fg2-row">
-      <div class="fg2"><label class="fl">İl</label>
-        <div class="csel" data-for="l-il" data-title="İl Seç" onclick="openPicker(this)"><span class="csel-label">İl Seçin</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
-        <select id="l-il" style="display:none" onchange="onListingIlChanged(this.value)"><option value=""></option></select>
-      </div>
-      <div class="fg2"><label class="fl">İlçe <span style="color:var(--text3);font-weight:400">(isteğe bağlı)</span></label>
-        <div class="csel" data-for="l-ilce" data-title="İlçe Seç" onclick="openPicker(this)"><span class="csel-label">Önce il seçin</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
-        <select id="l-ilce" style="display:none"><option value=""></option></select>
-      </div>
-    </div>
-    <div class="fg"><label class="fl">Mahalle/Semt <span style="color:var(--text3);font-weight:400">(isteğe bağlı)</span></label><input class="fi" type="text" id="l-mahalle" placeholder="Örn: Bağdat Caddesi"></div>
+    <!-- İLAN OLUŞTURMA SİHİRBAZI 1.0 — yalnızca #listing-mo.wizard-mode iken görünür (bkz. CSS notu). -->
+    <div class="wiz-progress" id="wiz-progress"></div>
+    <div class="wiz-step-label" id="wiz-step-label"></div>
 
-    <div class="detail-toggle" onclick="toggleDetailFields()">
-      <span>Detaylı Teknik Bilgiler</span>
-      <svg id="dt-chevron" viewBox="0 0 24 24" stroke="var(--cyan)" fill="none" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+    <div class="wiz-step" data-wiz-step="1">
+      <div class="wiz-step-title">📱 Telefonu Seç</div>
+      <div class="wiz-step-desc">Önce ne sattığını söyle — kategori, marka ve modelini seç.</div>
+      <div class="fg"><label class="fl">Kategori</label>
+        <div class="csel" data-for="l-category" data-title="Kategori" onclick="openPicker(this)"><span class="csel-label">Telefon</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+        <select id="l-category" style="display:none" onchange="onListingCategoryChange()"><option value="telefon">Telefon</option><option value="akillisaat">Akıllı Saat</option><option value="kulaklik">Kulaklık</option><option value="aksesuar">Aksesuar</option></select>
+      </div>
+      <div class="fg" id="l-accessory-type-wrap" style="display:none">
+        <label class="fl">Aksesuar Türü</label>
+        <div class="csel" data-for="l-accessory-type" data-title="Aksesuar Türü" onclick="openPicker(this)"><span class="csel-label">Kılıf</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+        <select id="l-accessory-type" style="display:none" onchange="onAccessoryTypeChange()"><option value="kilif">Kılıf</option><option value="sarj">Şarj Adaptörü</option><option value="kablo">Şarj Kablosu</option><option value="powerbank">Powerbank</option><option value="ekran-koruyucu">Ekran Koruyucu</option><option value="hafiza-karti">Hafıza Kartı</option></select>
+      </div>
+      <div class="fg"><label class="fl">Marka</label>
+        <div class="csel" data-for="l-brand" data-title="Marka Seç" onclick="openPicker(this)"><span class="csel-label">Marka Seçin</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+        <select id="l-brand" style="display:none" onchange="onListingBrandChange()"></select>
+      </div>
+      <div class="fg" id="l-brand-other-wrap" style="display:none">
+        <label class="fl" id="l-brand-other-label">Marka (elle yazın)</label><input class="fi" type="text" id="l-brand-other" placeholder="Markanızı yazın" oninput="syncListingBrandOtherLabel();listingFormOnChange()" onblur="titleCaseListingField('l-brand-other')">
+      </div>
+      <div class="fg" style="position:relative">
+        <label class="fl">Model</label>
+        <input class="fi" type="text" id="l-model" placeholder="Örn: Galaxy S24" autocomplete="off" oninput="listingFormOnChange();onListingModelInput()" onblur="titleCaseListingField('l-model');setTimeout(hideListingModelSuggestions,150)" onfocus="onListingModelInput()">
+        <div id="l-model-suggest" style="display:none;position:absolute;left:0;right:0;top:100%;margin-top:4px;background:var(--surf);border:1px solid var(--border2);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.35);z-index:20;max-height:220px;overflow-y:auto"></div>
+        <div id="l-model-catalog-hint" style="font-size:11px;color:var(--cyan);margin-top:5px;display:none">✓ Katalogdan seçildi — teknik bilgiler otomatik dolduruldu.</div>
+      </div>
+
+      <div class="detail-toggle" onclick="toggleDetailFields()">
+        <span>Detaylı Teknik Bilgiler <span style="color:var(--text3);font-weight:400">(isteğe bağlı)</span></span>
+        <svg id="dt-chevron" viewBox="0 0 24 24" stroke="var(--cyan)" fill="none" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div id="detail-fields" style="display:none">
+        <div id="l-phone-fields">
+          <div class="fg2-row">
+            <div class="fg2"><label class="fl">RAM</label><input class="fi" type="text" id="l-ram" placeholder="8GB"></div>
+            <div class="fg2"><label class="fl">Depolama</label><input class="fi" type="text" id="l-storage" placeholder="256GB"></div>
+          </div>
+          <div class="fg"><label class="fl">İşlemci</label><input class="fi" type="text" id="l-chip" placeholder="Snapdragon 8 Gen 3"></div>
+          <div class="fg"><label class="fl">Batarya Sağlığı</label><input class="fi" type="text" id="l-battery" placeholder="%95"></div>
+        </div>
+        <div id="l-kulaklik-fields" style="display:none">
+          <div class="fg"><label class="fl">Tip</label>
+            <div class="csel" data-for="l-earphone-type" data-title="Tip" onclick="openPicker(this)"><span class="csel-label">Kablosuz</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+            <select id="l-earphone-type" style="display:none"><option>Kablosuz</option><option>Kablolu</option></select>
+          </div>
+          <label class="fg fchk" style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="l-anc" style="width:18px;height:18px;accent-color:var(--cyan);flex-shrink:0"><span style="font-size:13px;color:var(--text)">Aktif Gürültü Önleme (ANC)</span></label>
+        </div>
+        <div id="l-sarj-subfields" style="display:none">
+          <div class="fg2-row">
+            <div class="fg2"><label class="fl">Çıkış Gücü</label><input class="fi" type="text" id="l-output-power" placeholder="65W"></div>
+            <div class="fg2"><label class="fl">Bağlantı Tipi</label>
+              <div class="csel" data-for="l-connector-type" data-title="Bağlantı Tipi" onclick="openPicker(this)"><span class="csel-label">USB-C</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+              <select id="l-connector-type" style="display:none"><option>USB-C</option><option>Lightning</option><option>Micro USB</option><option>Diğer</option></select>
+            </div>
+          </div>
+        </div>
+        <div id="l-kablo-subfields" style="display:none">
+          <div class="fg2-row">
+            <div class="fg2"><label class="fl">Kablo Uzunluğu</label><input class="fi" type="text" id="l-cable-length" placeholder="1m"></div>
+            <div class="fg2"><label class="fl">Bağlantı Tipi</label>
+              <div class="csel" data-for="l-cable-connector-type" data-title="Bağlantı Tipi" onclick="openPicker(this)"><span class="csel-label">USB-C</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+              <select id="l-cable-connector-type" style="display:none"><option>USB-C</option><option>Lightning</option><option>Micro USB</option><option>Diğer</option></select>
+            </div>
+          </div>
+        </div>
+        <div id="l-powerbank-subfields" style="display:none">
+          <div class="fg"><label class="fl">Kapasite</label><input class="fi" type="text" id="l-powerbank-capacity" placeholder="20000mAh"></div>
+        </div>
+        <div id="l-ekran-koruyucu-subfields" style="display:none">
+          <div class="fg"><label class="fl">Malzeme</label>
+            <div class="csel" data-for="l-screen-protector-material" data-title="Malzeme" onclick="openPicker(this)"><span class="csel-label">Cam</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+            <select id="l-screen-protector-material" style="display:none"><option>Cam</option><option>Plastik</option></select>
+          </div>
+        </div>
+        <div id="l-hafiza-karti-subfields" style="display:none">
+          <div class="fg"><label class="fl">Kapasite</label><input class="fi" type="text" id="l-memory-card-capacity" placeholder="128GB"></div>
+        </div>
+      </div>
+      <div class="wiz-nav"><button class="sbtn2" onclick="listingWizardNext()">Devam Et →</button></div>
     </div>
-    <div id="detail-fields" style="display:none">
-      <div id="l-phone-fields">
-        <div class="fg2-row">
-          <div class="fg2"><label class="fl">RAM</label><input class="fi" type="text" id="l-ram" placeholder="8GB"></div>
-          <div class="fg2"><label class="fl">Depolama</label><input class="fi" type="text" id="l-storage" placeholder="256GB"></div>
-        </div>
-        <div class="fg"><label class="fl">İşlemci</label><input class="fi" type="text" id="l-chip" placeholder="Snapdragon 8 Gen 3"></div>
-        <div class="fg"><label class="fl">Batarya Sağlığı</label><input class="fi" type="text" id="l-battery" placeholder="%95"></div>
+
+    <div class="wiz-step" data-wiz-step="2">
+      <div class="wiz-step-title">🔍 Cihaz Durumu</div>
+      <div class="wiz-step-desc">Cihazın gerçek durumunu doğru seçmek, alıcıyla güven inşa etmenin ilk adımı.</div>
+      <div class="fg"><label class="fl">Durum</label>
+        <div class="csel" data-for="l-cond" data-title="Durum" onclick="openPicker(this)"><span class="csel-label">Sıfır</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+        <select id="l-cond" style="display:none"><option>Sıfır</option><option>Az Kullanılmış</option><option>İkinci El</option></select>
       </div>
-      <div id="l-kulaklik-fields" style="display:none">
-        <div class="fg"><label class="fl">Tip</label>
-          <div class="csel" data-for="l-earphone-type" data-title="Tip" onclick="openPicker(this)"><span class="csel-label">Kablosuz</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
-          <select id="l-earphone-type" style="display:none"><option>Kablosuz</option><option>Kablolu</option></select>
-        </div>
-        <label class="fg fchk" style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="l-anc" style="width:18px;height:18px;accent-color:var(--cyan);flex-shrink:0"><span style="font-size:13px;color:var(--text)">Aktif Gürültü Önleme (ANC)</span></label>
+      <div class="fg"><label class="fl">Renk <span style="color:var(--text3);font-weight:400">(isteğe bağlı)</span></label><input class="fi" type="text" id="l-color" placeholder="Siyah"></div>
+      <div class="wiz-nav"><button class="wiz-back-btn" onclick="listingWizardBack()">← Geri</button><button class="sbtn2" onclick="listingWizardNext()">Devam Et →</button></div>
+    </div>
+
+    <div class="wiz-step" data-wiz-step="3">
+      <div class="wiz-step-title">📄 Garanti / Fatura / Kutu</div>
+      <div class="wiz-step-desc">Bu bilgiler eksikse boş bırakabilirsin — ama varsa yazman ilanına güven katar.</div>
+      <div class="fg"><label class="fl">Menşei</label>
+        <div class="csel" data-for="l-origin" data-title="Menşei" onclick="openPicker(this)"><span class="csel-label">Yurtiçi</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+        <select id="l-origin" style="display:none"><option>Yurtiçi</option><option>Yurtdışı</option></select>
       </div>
-      <div id="l-sarj-subfields" style="display:none">
-        <div class="fg2-row">
-          <div class="fg2"><label class="fl">Çıkış Gücü</label><input class="fi" type="text" id="l-output-power" placeholder="65W"></div>
-          <div class="fg2"><label class="fl">Bağlantı Tipi</label>
-            <div class="csel" data-for="l-connector-type" data-title="Bağlantı Tipi" onclick="openPicker(this)"><span class="csel-label">USB-C</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
-            <select id="l-connector-type" style="display:none"><option>USB-C</option><option>Lightning</option><option>Micro USB</option><option>Diğer</option></select>
+      <div class="fg"><label class="fl">Garanti <span style="color:var(--text3);font-weight:400">(isteğe bağlı)</span></label><input class="fi" type="text" id="l-warranty" placeholder="Var / Yok / X ay"></div>
+      <div class="fg"><label class="fl">Kutu/Aksesuar <span style="color:var(--text3);font-weight:400">(isteğe bağlı)</span></label><input class="fi" type="text" id="l-box" placeholder="Kutulu, şarj aleti var"></div>
+      <div class="wiz-nav"><button class="wiz-back-btn" onclick="listingWizardBack()">← Geri</button><button class="sbtn2" onclick="listingWizardNext()">Devam Et →</button></div>
+    </div>
+
+    <div class="wiz-step" data-wiz-step="4">
+      <div class="wiz-step-title">🖼️ Fotoğraflar</div>
+      <div class="wiz-step-desc">İyi fotoğraflar en çok tıklanan ilanların ortak noktasıdır. İlk fotoğraf kapak olur.</div>
+      <div class="fg">
+        <label class="fl">Fotoğraflar <span id="l-photo-counter" style="color:var(--text3);font-weight:400">(0 / 8)</span></label>
+        <div id="l-photo-hint" style="font-size:11.5px;color:#FF9500;margin-top:4px">En az 1 fotoğraf eklemelisiniz.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px">
+          <div class="pslot" id="ps0" onclick="onPslotTap(0)" onpointerdown="onPslotPointerDown(0)" onpointerup="onPslotPointerUp()" onpointerleave="onPslotPointerUp()">
+            <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <span>Ekle</span>
+            <input type="file" id="pf0" accept="image/*" multiple style="display:none" onchange="addPhotos(0,this)">
+          </div>
+          <div class="pslot" id="ps1" onclick="onPslotTap(1)" onpointerdown="onPslotPointerDown(1)" onpointerup="onPslotPointerUp()" onpointerleave="onPslotPointerUp()">
+            <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <span>Ekle</span>
+            <input type="file" id="pf1" accept="image/*" multiple style="display:none" onchange="addPhotos(1,this)">
+          </div>
+          <div class="pslot" id="ps2" onclick="onPslotTap(2)" onpointerdown="onPslotPointerDown(2)" onpointerup="onPslotPointerUp()" onpointerleave="onPslotPointerUp()">
+            <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <span>Ekle</span>
+            <input type="file" id="pf2" accept="image/*" multiple style="display:none" onchange="addPhotos(2,this)">
+          </div>
+          <div class="pslot" id="ps3" onclick="onPslotTap(3)" onpointerdown="onPslotPointerDown(3)" onpointerup="onPslotPointerUp()" onpointerleave="onPslotPointerUp()">
+            <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <span>Ekle</span>
+            <input type="file" id="pf3" accept="image/*" multiple style="display:none" onchange="addPhotos(3,this)">
+          </div>
+          <div class="pslot" id="ps4" onclick="onPslotTap(4)" onpointerdown="onPslotPointerDown(4)" onpointerup="onPslotPointerUp()" onpointerleave="onPslotPointerUp()">
+            <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <span>Ekle</span>
+            <input type="file" id="pf4" accept="image/*" multiple style="display:none" onchange="addPhotos(4,this)">
+          </div>
+          <div class="pslot" id="ps5" onclick="onPslotTap(5)" onpointerdown="onPslotPointerDown(5)" onpointerup="onPslotPointerUp()" onpointerleave="onPslotPointerUp()">
+            <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <span>Ekle</span>
+            <input type="file" id="pf5" accept="image/*" multiple style="display:none" onchange="addPhotos(5,this)">
+          </div>
+          <div class="pslot" id="ps6" onclick="onPslotTap(6)" onpointerdown="onPslotPointerDown(6)" onpointerup="onPslotPointerUp()" onpointerleave="onPslotPointerUp()">
+            <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <span>Ekle</span>
+            <input type="file" id="pf6" accept="image/*" multiple style="display:none" onchange="addPhotos(6,this)">
+          </div>
+          <div class="pslot" id="ps7" onclick="onPslotTap(7)" onpointerdown="onPslotPointerDown(7)" onpointerup="onPslotPointerUp()" onpointerleave="onPslotPointerUp()">
+            <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <span>Ekle</span>
+            <input type="file" id="pf7" accept="image/*" multiple style="display:none" onchange="addPhotos(7,this)">
           </div>
         </div>
       </div>
-      <div id="l-kablo-subfields" style="display:none">
-        <div class="fg2-row">
-          <div class="fg2"><label class="fl">Kablo Uzunluğu</label><input class="fi" type="text" id="l-cable-length" placeholder="1m"></div>
-          <div class="fg2"><label class="fl">Bağlantı Tipi</label>
-            <div class="csel" data-for="l-cable-connector-type" data-title="Bağlantı Tipi" onclick="openPicker(this)"><span class="csel-label">USB-C</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
-            <select id="l-cable-connector-type" style="display:none"><option>USB-C</option><option>Lightning</option><option>Micro USB</option><option>Diğer</option></select>
+      <div class="fg">
+        <label class="fl">Video (isteğe bağlı — cihazın çalıştığını göster)</label>
+        <div id="l-video-wrap">
+          <div class="pslot" id="l-video-slot" onclick="document.getElementById('l-video-input').click()" style="width:100%;height:100px">
+            <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+            <span>Video Ekle (max 30MB)</span>
+            <input type="file" id="l-video-input" accept="video/*" style="display:none" onchange="addListingVideo(this)">
           </div>
         </div>
       </div>
-      <div id="l-powerbank-subfields" style="display:none">
-        <div class="fg"><label class="fl">Kapasite</label><input class="fi" type="text" id="l-powerbank-capacity" placeholder="20000mAh"></div>
-      </div>
-      <div id="l-ekran-koruyucu-subfields" style="display:none">
-        <div class="fg"><label class="fl">Malzeme</label>
-          <div class="csel" data-for="l-screen-protector-material" data-title="Malzeme" onclick="openPicker(this)"><span class="csel-label">Cam</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
-          <select id="l-screen-protector-material" style="display:none"><option>Cam</option><option>Plastik</option></select>
-        </div>
-      </div>
-      <div id="l-hafiza-karti-subfields" style="display:none">
-        <div class="fg"><label class="fl">Kapasite</label><input class="fi" type="text" id="l-memory-card-capacity" placeholder="128GB"></div>
-      </div>
+      <div class="wiz-nav"><button class="wiz-back-btn" onclick="listingWizardBack()">← Geri</button><button class="sbtn2" onclick="listingWizardNext()">Devam Et →</button></div>
+    </div>
+
+    <div class="wiz-step" data-wiz-step="5">
+      <div class="wiz-step-title">✍️ Açıklama</div>
+      <div class="wiz-step-desc">Aşağıdaki başlıklara dokunarak açıklamana ekleyebilirsin — yalnızca sen doldurduğun kısımlar ilanında görünür.</div>
+      <div class="wiz-chip-row" id="wiz-desc-chips"></div>
+      <div class="fg"><label class="fl">Açıklama <span id="l-desc-counter" style="color:var(--text3);font-weight:400">(0 / 10)</span></label><textarea class="fi" id="l-desc" placeholder="Ürün hakkında detaylı bilgi verin…" style="min-height:120px;resize:vertical;font-family:inherit" oninput="listingFormOnChange()"></textarea></div>
+      <div class="wiz-nav"><button class="wiz-back-btn" onclick="listingWizardBack()">← Geri</button><button class="sbtn2" onclick="listingWizardNext()">Devam Et →</button></div>
+    </div>
+
+    <div class="wiz-step" data-wiz-step="6">
+      <div class="wiz-step-title">💰 Fiyat</div>
+      <div class="wiz-step-desc">Gerçekçi bir fiyat, ilanının daha hızlı satılmasını sağlar.</div>
+      <div class="fg"><label class="fl">Fiyat (₺)</label><input class="fi" type="number" id="l-price" placeholder="25000" oninput="listingFormOnChange();onListingPriceStepChange()"></div>
+      <div id="wiz-price-analysis"></div>
+      <div class="wiz-nav"><button class="wiz-back-btn" onclick="listingWizardBack()">← Geri</button><button class="sbtn2" onclick="listingWizardNext()">Devam Et →</button></div>
+    </div>
+
+    <div class="wiz-step" data-wiz-step="7">
+      <div class="wiz-step-title">🚚 Teslimat / Güvenlik</div>
+      <div class="wiz-step-desc">Konum ve iletişim bilgilerin, isteğe bağlı olarak da Havuz Sistemi güvencesi.</div>
       <div class="fg2-row">
-        <div class="fg2"><label class="fl">Renk</label><input class="fi" type="text" id="l-color" placeholder="Siyah"></div>
-        <div class="fg2"><label class="fl">Garanti</label><input class="fi" type="text" id="l-warranty" placeholder="Var / Yok / X ay"></div>
+        <div class="fg2"><label class="fl">İl</label>
+          <div class="csel" data-for="l-il" data-title="İl Seç" onclick="openPicker(this)"><span class="csel-label">İl Seçin</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <select id="l-il" style="display:none" onchange="onListingIlChanged(this.value)"><option value=""></option></select>
+        </div>
+        <div class="fg2"><label class="fl">İlçe <span style="color:var(--text3);font-weight:400">(isteğe bağlı)</span></label>
+          <div class="csel" data-for="l-ilce" data-title="İlçe Seç" onclick="openPicker(this)"><span class="csel-label">Önce il seçin</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <select id="l-ilce" style="display:none"><option value=""></option></select>
+        </div>
       </div>
-      <div class="fg"><label class="fl">Kutu/Aksesuar</label><input class="fi" type="text" id="l-box" placeholder="Kutulu, şarj aleti var"></div>
+      <div class="fg"><label class="fl">Mahalle/Semt <span style="color:var(--text3);font-weight:400">(isteğe bağlı)</span></label><input class="fi" type="text" id="l-mahalle" placeholder="Örn: Bağdat Caddesi"></div>
+      <div class="fg">
+        <label class="fl">WhatsApp Numaranız</label>
+        <div style="display:flex;gap:8px">
+          <input class="fi" type="tel" id="l-phone" placeholder="5XXXXXXXXX" style="flex:1">
+          <button type="button" class="apbtn" onclick="verifyListingPhoneOnWhatsApp()" style="width:auto;margin-top:0;padding:0 14px;white-space:nowrap;color:var(--cyan)">WhatsApp'ta Kontrol Et</button>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-top:5px">Numaranı girip yandaki butona basarsan WhatsApp sohbeti açılır — açılmazsa numaran hatalı olabilir.</div>
+      </div>
+      <div class="fg" style="background:var(--surf2);border:1px solid var(--border2);border-radius:14px;padding:14px">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+          <input type="checkbox" id="l-pool-system" style="width:18px;height:18px;accent-color:var(--cyan);flex-shrink:0">
+          <span style="font-size:13px;color:var(--text);font-weight:700">🛡️ Havuz Sistemi</span>
+          <span onclick="event.preventDefault();event.stopPropagation();openPoolInfo()" style="width:18px;height:18px;border-radius:50%;background:var(--surf3);color:var(--text2);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">?</span>
+        </label>
+        <div style="font-size:11.5px;color:var(--text2);margin-top:8px;line-height:1.5">Alıcı ile aranızdaki güven problemini azaltır: satıcı kabul eder → kargo takip bilgisi girilir → alıcı "Teslim Aldım" der. Ödeme yine taraflar arasında (elden/havale) gerçekleşir — <b>Teknohane parayı tutmaz.</b></div>
+      </div>
+      <label class="fg" style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-top:14px;margin-bottom:16px">
+        <input type="checkbox" id="l-negotiable" style="width:18px;height:18px;accent-color:var(--cyan);flex-shrink:0">
+        <span style="font-size:13px;color:var(--text);font-weight:600">Pazarlığa açık olsun</span>
+      </label>
+      <div class="wiz-nav"><button class="wiz-back-btn" onclick="listingWizardBack()">← Geri</button><button class="sbtn2" onclick="listingWizardNext()">Devam Et →</button></div>
     </div>
 
-    <div class="fg"><label class="fl">Açıklama <span id="l-desc-counter" style="color:var(--text3);font-weight:400">(0 / 10)</span></label><textarea class="fi" id="l-desc" placeholder="Ürün hakkında detaylı bilgi verin…" style="min-height:70px;resize:vertical;font-family:inherit" oninput="listingFormOnChange()"></textarea></div>
-    <div class="fg">
-      <label class="fl">WhatsApp Numaranız</label>
-      <div style="display:flex;gap:8px">
-        <input class="fi" type="tel" id="l-phone" placeholder="5XXXXXXXXX" style="flex:1">
-        <button type="button" class="apbtn" onclick="verifyListingPhoneOnWhatsApp()" style="width:auto;margin-top:0;padding:0 14px;white-space:nowrap;color:var(--cyan)">WhatsApp'ta Kontrol Et</button>
-      </div>
-      <div style="font-size:11px;color:var(--text3);margin-top:5px">Numaranı girip yandaki butona basarsan WhatsApp sohbeti açılır — açılmazsa numaran hatalı olabilir.</div>
+    <div class="wiz-step" data-wiz-step="8">
+      <div class="wiz-step-title">🚀 İlan Ayarları</div>
+      <div class="wiz-step-desc">Bu seçenekler ilanın YAYINLANDIKTAN hemen sonra karşına çıkacak — çünkü bir ilanı "öne çıkarmak" için önce ilanın var olması gerekiyor.</div>
+      <div id="wiz-boost-preview"></div>
+      <div class="wiz-nav"><button class="wiz-back-btn" onclick="listingWizardBack()">← Geri</button><button class="sbtn2" onclick="listingWizardNext()">Devam Et →</button></div>
     </div>
-    <label class="fg" style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:12px">
-      <input type="checkbox" id="l-pool-system" style="width:18px;height:18px;accent-color:var(--cyan);flex-shrink:0">
-      <span style="font-size:13px;color:var(--text);font-weight:600">Havuz Sistemi</span>
-      <span onclick="event.preventDefault();event.stopPropagation();openPoolInfo()" style="width:18px;height:18px;border-radius:50%;background:var(--surf2);color:var(--text2);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">?</span>
-    </label>
-    <label class="fg" style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:16px">
-      <input type="checkbox" id="l-negotiable" style="width:18px;height:18px;accent-color:var(--cyan);flex-shrink:0">
-      <span style="font-size:13px;color:var(--text);font-weight:600">Pazarlığa açık olsun</span>
-    </label>
-    <label id="l-agree-wrap" style="display:flex;align-items:flex-start;gap:10px;margin-bottom:16px;cursor:pointer">
-      <input type="checkbox" id="l-agree" style="width:18px;height:18px;margin-top:1px;accent-color:var(--cyan);flex-shrink:0" onchange="listingFormOnChange()">
-      <span style="font-size:12px;color:var(--text2);line-height:1.5">Bu ürünün bana ait olduğunu, bilgilerin doğru olduğunu beyan ederim ve <a href="javascript:void(0)" onclick="ol('https://teknohane.github.io/teknohane/sartlar.html')" style="color:var(--cyan)">Kullanım Şartları</a>'nı kabul ediyorum.</span>
-    </label>
-    <button class="sbtn2" id="l-submit-btn" onclick="submitListing()" disabled style="opacity:.4;cursor:not-allowed">İlanı Yayınla</button>
+
+    <div class="wiz-step" data-wiz-step="9">
+      <div class="wiz-step-title">✅ Önizleme ve Yayın</div>
+      <div class="wiz-step-desc">İlanın Pazar'da böyle görünecek. Bir şeyi değiştirmek istersen "Geri" ile ilgili adıma dönebilirsin.</div>
+      <div id="wiz-preview-card" style="margin-bottom:16px"></div>
+      <label id="l-agree-wrap" style="display:flex;align-items:flex-start;gap:10px;margin-bottom:16px;cursor:pointer">
+        <input type="checkbox" id="l-agree" style="width:18px;height:18px;margin-top:1px;accent-color:var(--cyan);flex-shrink:0" onchange="listingFormOnChange()">
+        <span style="font-size:12px;color:var(--text2);line-height:1.5">Bu ürünün bana ait olduğunu, bilgilerin doğru olduğunu beyan ederim ve <a href="javascript:void(0)" onclick="ol('https://teknohane.github.io/teknohane/sartlar.html')" style="color:var(--cyan)">Kullanım Şartları</a>'nı kabul ediyorum.</span>
+      </label>
+      <div class="wiz-nav"><button class="wiz-back-btn" onclick="listingWizardBack()">← Geri</button><button class="sbtn2" id="l-submit-btn" onclick="submitListing()" disabled style="opacity:.4;cursor:not-allowed">İlanı Yayınla</button></div>
+    </div>
   </div>
 </div>
 
@@ -10531,6 +10624,281 @@ function listingFormOnChange() {
   }
 }
 
+// ════════════════════════════════════════════════════════════════════════════════════════
+// İLAN OLUŞTURMA SİHİRBAZI 1.0 — mevcut #listing-mo formunun ÜZERİNE kurulu, tamamen sunum
+// katmanı bir eklenti. submitListing()/editListing()/newListing()'in DOM okuma mantığı,
+// Firestore yazma şekli, moderasyon/approve akışı TEK KARAKTER değişmedi (yalnızca 3 yerdeki
+// `.querySelector('#listing-mo .sbtn2')` çağrısı, art\ık birden fazla .sbtn2 olduğu için
+// `#l-submit-btn`'e sabitlendi — davranış AYNI, yalnızca doğru elemanı hedefliyor).
+// Yalnızca YENİ ilan oluştururken (#listing-mo'ya "wizard-mode" sınıfı eklendiğinde) devrede;
+// düzenlemede (editListing()) bu sınıf hiç eklenmiyor, tüm alanlar eskisi gibi tek seferde
+// görünür kalıyor.
+// ════════════════════════════════════════════════════════════════════════════════════════
+const LISTING_WIZARD_STEP_TITLES = {
+  1: 'Telefonu Seç', 2: 'Cihaz Durumu', 3: 'Garanti / Fatura / Kutu', 4: 'Fotoğraflar',
+  5: 'Açıklama', 6: 'Fiyat', 7: 'Teslimat / Güvenlik', 8: 'İlan Ayarları', 9: 'Önizleme ve Yayın',
+};
+const LISTING_WIZARD_STEP_COUNT = 9;
+const LISTING_DRAFT_KEY = 'teknohane_listing_draft_v1';
+let listingWizardStep = 1;
+
+function renderListingWizardProgress() {
+  const progEl = document.getElementById('wiz-progress');
+  const labelEl = document.getElementById('wiz-step-label');
+  if (!progEl || !labelEl) return;
+  progEl.innerHTML = Array.from({ length: LISTING_WIZARD_STEP_COUNT }).map((_, i) => {
+    const n = i + 1;
+    const cls = n < listingWizardStep ? 'wiz-done' : n === listingWizardStep ? 'wiz-current' : '';
+    return `<div class="wiz-dot ${cls}"></div>`;
+  }).join('');
+  labelEl.innerHTML = `<span>ADIM ${listingWizardStep} / ${LISTING_WIZARD_STEP_COUNT}</span><b>${LISTING_WIZARD_STEP_TITLES[listingWizardStep]}</b>`;
+}
+
+function showListingWizardStep(n) {
+  listingWizardStep = n;
+  document.querySelectorAll('#listing-mo .wiz-step').forEach(el => {
+    el.classList.toggle('wiz-active', parseInt(el.dataset.wizStep, 10) === n);
+  });
+  renderListingWizardProgress();
+  const sheet = document.querySelector('#listing-mo .ms');
+  if (sheet) sheet.scrollTop = 0;
+  if (n === 5) renderListingDescChips();
+  if (n === 6) onListingPriceStepChange();
+  if (n === 8) renderListingWizardBoostPreview();
+  if (n === 9) renderListingWizardPreview();
+  saveListingWizardDraft();
+}
+
+// Her adımın "Devam Et" öncesi KENDİ eksiklerini erken/anlaşılır gösterir — submitListing()'in
+// KENDİ (global, adım bilmeyen) doğrulamasının YERİNE geçmiyor, yalnızca daha iyi bir UX katmanı.
+function listingWizardValidateStep(n) {
+  const val = id => (document.getElementById(id)?.value || '').trim();
+  if (n === 1) {
+    const brand = getListingBrandValue();
+    const model = val('l-model');
+    if (!brand) return 'Lütfen bir marka seç.';
+    if (!model) return 'Lütfen model adını yaz.';
+    if ((brand + ' ' + model).trim().length < 4) return 'Marka + model bilgisi en az 4 karakter olmalı.';
+    return null;
+  }
+  if (n === 4) {
+    if (photos.filter(Boolean).length < 1) return 'En az 1 fotoğraf eklemelisin.';
+    return null;
+  }
+  if (n === 5) {
+    if (val('l-desc').length < 10) return 'Açıklama en az 10 karakter olmalı.';
+    return null;
+  }
+  if (n === 6) {
+    const price = val('l-price');
+    if (!price || parseInt(price, 10) <= 0) return 'Lütfen geçerli bir fiyat gir.';
+    return null;
+  }
+  if (n === 7) {
+    if (!document.getElementById('l-il')?.value) return 'Lütfen il seç.';
+    return null;
+  }
+  return null;
+}
+
+function listingWizardNext() {
+  const err = listingWizardValidateStep(listingWizardStep);
+  if (err) { showListingWizardStepError(err); return; }
+  if (listingWizardStep >= LISTING_WIZARD_STEP_COUNT) return;
+  showListingWizardStep(listingWizardStep + 1);
+}
+function listingWizardBack() {
+  if (listingWizardStep <= 1) return;
+  showListingWizardStep(listingWizardStep - 1);
+}
+function showListingWizardStepError(msg) {
+  const stepEl = document.querySelector('#listing-mo .wiz-step.wiz-active');
+  if (!stepEl) return;
+  let errEl = stepEl.querySelector('.wiz-err');
+  if (!errEl) {
+    errEl = document.createElement('div');
+    errEl.className = 'wiz-err';
+    stepEl.querySelector('.wiz-nav').before(errEl);
+  }
+  errEl.textContent = '⚠️ ' + msg;
+  errEl.classList.add('wiz-show');
+}
+
+// ---- ADIM 1: telefon kataloğu otomatik-tamamlama (yeni Firestore/alan İCAT EDİLMEDİ — PHONES
+// dizisi zaten Telefon Karşılaştır özelliği için yüklü/önbellekli, burada salt-okunur kullanılıyor) ----
+function onListingModelInput() {
+  const q = (document.getElementById('l-model')?.value || '').trim().toLowerCase();
+  const box = document.getElementById('l-model-suggest');
+  if (!box) return;
+  if (q.length < 2) { box.style.display = 'none'; return; }
+  const brandFilter = getListingBrandValue().toLowerCase();
+  const pool = brandFilter ? PHONES.filter(p => p.brand.toLowerCase() === brandFilter) : PHONES;
+  // Marka seçiliyken önce o markanın telefonları aranır — hiç eşleşme yoksa (nadir model adı
+  // farklılığı) tüm katalogda arama yapılır, kullanıcı hiç sonuç görmemektense doğru cihazı bulabilsin.
+  const searchIn = brandFilter && pool.some(p => p.name.toLowerCase().includes(q)) ? pool : PHONES;
+  const matches = searchIn
+    .filter(p => p.name.toLowerCase().includes(q))
+    .sort((a, b) => {
+      const an = a.name.toLowerCase(), bn = b.name.toLowerCase();
+      const aStarts = an.startsWith(q) ? 0 : 1, bStarts = bn.startsWith(q) ? 0 : 1;
+      if (aStarts !== bStarts) return aStarts - bStarts;
+      return an.length - bn.length;
+    })
+    .slice(0, 6);
+  if (!matches.length) { box.style.display = 'none'; return; }
+  box.innerHTML = matches.map((p, i) => `<div onclick="applyListingModelSuggestion(${i})" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border2);font-size:13px" onmousedown="event.preventDefault()"><b>${escapeHtml(p.brand)}</b> ${escapeHtml(p.name)} <span style="color:var(--text3);font-size:11px">· ${escapeHtml(p.ram||'')} / ${escapeHtml(p.storage||'')}</span></div>`).join('');
+  box._matches = matches;
+  box.style.display = 'block';
+}
+function hideListingModelSuggestions() {
+  const box = document.getElementById('l-model-suggest');
+  if (box) box.style.display = 'none';
+}
+function applyListingModelSuggestion(i) {
+  const box = document.getElementById('l-model-suggest');
+  const p = box?._matches?.[i];
+  if (!p) return;
+  document.getElementById('l-category').value = 'telefon';
+  onListingCategoryChange();
+  setListingBrandValue(p.brand);
+  document.getElementById('l-model').value = p.name;
+  if (p.ram) document.getElementById('l-ram').value = p.ram;
+  if (p.storage) document.getElementById('l-storage').value = p.storage;
+  if (p.chip) document.getElementById('l-chip').value = p.chip;
+  const hint = document.getElementById('l-model-catalog-hint');
+  if (hint) hint.style.display = 'block';
+  hideListingModelSuggestions();
+  listingFormOnChange();
+}
+
+// ---- ADIM 5: açıklama başlıkları — YALNIZCA imleç konumuna bir başlık metni ekler, kullanıcı
+// adına HİÇBİR İÇERİK üretmez/tahmin etmez (görev talimatı: "kullanıcı adına sahte bilgi üretme"). ----
+const LISTING_DESC_PROMPTS = ['Cihazın durumu', 'Kullanım geçmişi', 'Kozmetik durum', 'Teknik durum', 'Kutusu/faturası', 'Garanti', 'Yanında verilenler'];
+function renderListingDescChips() {
+  const wrap = document.getElementById('wiz-desc-chips');
+  if (!wrap) return;
+  wrap.innerHTML = LISTING_DESC_PROMPTS.map(p => `<span class="wiz-chip" onclick="insertListingDescPrompt('${escapeJsAttr(p)}')">+ ${escapeHtml(p)}</span>`).join('');
+}
+function insertListingDescPrompt(label) {
+  const ta = document.getElementById('l-desc');
+  if (!ta) return;
+  const sep = ta.value.trim().length ? '\n' : '';
+  ta.value = ta.value + sep + label + ': ';
+  ta.focus();
+  ta.setSelectionRange(ta.value.length, ta.value.length);
+  listingFormOnChange();
+}
+
+// ---- ADIM 6: piyasa bağlamı — mevcut renderPriceAnalysis() BİREBİR yeniden kullanılıyor (aynı
+// medyan/karşılaştırma mantığı, sahte/AI üretimi fiyat YOK, bkz. o fonksiyonun kendi yorum bloğu). ----
+function onListingPriceStepChange() {
+  const brand = getListingBrandValue();
+  const model = document.getElementById('l-model')?.value.trim();
+  const price = document.getElementById('l-price')?.value.trim();
+  const el = document.getElementById('wiz-price-analysis');
+  if (!el) return;
+  if (!brand || !model || !price) { el.innerHTML = ''; return; }
+  renderPriceAnalysis({ id: pendingNewListingPhotoId || '__preview__', brand, model: brand + ' ' + model, price, category: document.getElementById('l-category')?.value || 'telefon' }, 'wiz-price-analysis');
+}
+
+// ---- ADIM 8: boost seçeneklerinin ÖNİZLEMESİ — henüz ilan YOK, bu yüzden gerçek uygulama/talep
+// burada YAPILAMAZ (mevcut openBoostRequestForm bir listingId gerektiriyor). Yalnızca hangi
+// seçeneklerin var olduğunu + VIP ise GERÇEK kalan hak sayısını (mevcut vipStoreUsageThisMonth
+// mekanizmasıyla, yeni bir sayaç İCAT EDİLMEDEN) gösterir. Gerçek uygulama, YAYINLADIKTAN hemen
+// sonra otomatik açılan aynı openBoostRequestForm() penceresinde olur (bkz. submitListing()'e
+// eklenen tek satırlık opt-in kanca).
+async function renderListingWizardBoostPreview() {
+  const el = document.getElementById('wiz-boost-preview');
+  if (!el) return;
+  const vip = isVipActive(myProfileData);
+  if (vip) { el.innerHTML = `<div class="load" style="padding:14px 0"><div class="spin"></div></div>`; await loadVipStoreUsageIfNeeded(); }
+  el.innerHTML = Object.keys(BOOST_TYPE_LABELS).map(type => {
+    const meta = BOOST_TYPE_LABELS[type];
+    let statusHtml = '<span style="font-size:10.5px;color:var(--text3)">İlan yayınlandıktan sonra kullanılabilir</span>';
+    if (vip) {
+      const isRefresh = type === 'extend';
+      const usageField = isRefresh ? 'refreshesUsed' : (type === 'featured' ? 'featuredUsed' : type === 'showcase' ? 'showcaseUsed' : 'urgentUsed');
+      const limit = isRefresh ? VIP_STORE_LIMITS.refreshes : VIP_STORE_LIMITS[type];
+      const used = vipStoreUsageThisMonth ? (vipStoreUsageThisMonth[usageField] || 0) : 0;
+      statusHtml = `<span style="font-size:10.5px;color:#FFD700;font-weight:700">👑 ${used}/${limit} kaldı</span>`;
+    }
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border2)">
+      <div style="font-size:20px;flex-shrink:0">${meta.ic}</div>
+      <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13px">${meta.label}</div><div style="font-size:11px;color:var(--text3)">${meta.desc}</div></div>
+      ${statusHtml}
+    </div>`;
+  }).join('') + `<label class="fg" style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-top:14px"><input type="checkbox" id="wiz-boost-interest" style="width:18px;height:18px;accent-color:var(--cyan);flex-shrink:0"><span style="font-size:12.5px;color:var(--text2)">İlanım yayınlanınca bu seçenekleri hemen görmek istiyorum</span></label>`;
+}
+
+// ---- ADIM 9: gerçek Pazar kartına (mcardHTML) BİREBİR aynı önizleme — ayrı bir "preview render"
+// mantığı İCAT EDİLMEDİ, tam olarak Pazar'da göreceği aynı fonksiyon, sahte bir veri objesiyle. ----
+function renderListingWizardPreview() {
+  const el = document.getElementById('wiz-preview-card');
+  if (!el) return;
+  const brand = getListingBrandValue();
+  const model = document.getElementById('l-model')?.value.trim();
+  const preview = {
+    id: pendingNewListingPhotoId || '__preview__',
+    model: (brand + ' ' + (model || '')).trim(),
+    brand, price: document.getElementById('l-price')?.value.trim(),
+    condition: document.getElementById('l-cond')?.value,
+    photo1: photos[0] || null, photo1Thumb: photosThumb[0] || photos[0] || null,
+    poolSystem: document.getElementById('l-pool-system')?.checked || false,
+    approved: false, sold: false, uid: user?.uid,
+    createdAt: { toDate: () => new Date() },
+  };
+  el.innerHTML = `<div style="pointer-events:none">${mcardHTML(preview)}</div>
+    <div style="font-size:11px;color:var(--text3);margin-top:8px;text-align:center">⏳ Yayınlandıktan sonra incelemeye düşer, onaylanınca gerçek Pazar'da bu haliyle görünür.</div>`;
+}
+
+// ---- Taslak — yalnızca localStorage, hassas hiçbir şey (fotoğraf ikili verisi/URL'leri hariç
+// tutulmuyor çünkü zaten Storage'da genel-okunur gerçek URL'ler, kişisel/finansal veri YOK). ----
+function saveListingWizardDraft() {
+  if (editingListingId) return; // düzenleme modunda taslak YOK — mevcut ilanın kendisi zaten "taslak"
+  // Henüz hiçbir şey girilmemiş boş bir taslağı yazmak, loadListingWizardDraftIfAny'nin "geçerli
+  // taslak" tanımıyla (model VEYA fotoğraf var) tutarsız kalırdı — clearListingWizardDraft() sonrası
+  // hemen çağrılan bu fonksiyon, temizlenen anahtarı anlamsız bir boş nesneyle geri doldurmasın diye.
+  if (!document.getElementById('l-model')?.value.trim() && !photos.some(Boolean)) { return; }
+  try {
+    const ids = ['l-category','l-accessory-type','l-model','l-brand-other','l-price','l-cond','l-origin','l-color','l-warranty','l-box','l-desc','l-phone','l-il','l-ilce','l-mahalle','l-ram','l-storage','l-chip','l-battery'];
+    const fields = {}; ids.forEach(id => { const elx = document.getElementById(id); if (elx) fields[id] = elx.value; });
+    fields.brand = getListingBrandValue();
+    fields.step = listingWizardStep;
+    fields.photos = photos; fields.photosThumb = photosThumb;
+    fields.poolSystem = document.getElementById('l-pool-system')?.checked;
+    fields.negotiable = document.getElementById('l-negotiable')?.checked;
+    localStorage.setItem(LISTING_DRAFT_KEY, JSON.stringify(fields));
+  } catch (e) {}
+}
+function clearListingWizardDraft() { try { localStorage.removeItem(LISTING_DRAFT_KEY); } catch (e) {} }
+function loadListingWizardDraftIfAny() {
+  try {
+    const raw = localStorage.getItem(LISTING_DRAFT_KEY);
+    if (!raw) return false;
+    const d = JSON.parse(raw);
+    if (!d || (!d['l-model'] && !(d.photos || []).some(Boolean))) return false;
+    return d;
+  } catch (e) { return false; }
+}
+function applyListingWizardDraft(d) {
+  document.getElementById('l-category').value = d['l-category'] || 'telefon';
+  onListingCategoryChange();
+  if (d['l-accessory-type']) { document.getElementById('l-accessory-type').value = d['l-accessory-type']; onAccessoryTypeChange(); }
+  if (d.brand) setListingBrandValue(d.brand);
+  ['l-model','l-brand-other','l-price','l-color','l-warranty','l-box','l-desc','l-phone','l-mahalle','l-ram','l-storage','l-chip','l-battery'].forEach(id => { if (d[id] !== undefined) { const elx = document.getElementById(id); if (elx) elx.value = d[id]; } });
+  if (d['l-cond']) document.getElementById('l-cond').value = d['l-cond'];
+  if (d['l-origin']) document.getElementById('l-origin').value = d['l-origin'];
+  syncPickerTriggerLabel('l-cond'); syncPickerTriggerLabel('l-origin');
+  if (d['l-il']) { document.getElementById('l-il').value = d['l-il']; onListingIlChanged(d['l-il']); if (d['l-ilce']) document.getElementById('l-ilce').value = d['l-ilce']; syncPickerTriggerLabel('l-ilce'); }
+  document.getElementById('l-pool-system').checked = !!d.poolSystem;
+  document.getElementById('l-negotiable').checked = !!d.negotiable;
+  if (Array.isArray(d.photos)) { d.photos.forEach((p, i) => { photos[i] = p || null; }); }
+  if (Array.isArray(d.photosThumb)) { d.photosThumb.forEach((p, i) => { photosThumb[i] = p || null; }); }
+  photos.forEach((_, i) => { const slot = document.getElementById('ps' + i); if (slot) slot.innerHTML = renderPhotoSlotHTML(i); });
+  listingFormOnChange();
+  showListingWizardStep(Math.min(Math.max(parseInt(d.step, 10) || 1, 1), LISTING_WIZARD_STEP_COUNT));
+}
+
 function newListing() {
   if (!user) { gt('profile'); return; }
   editingListingId = null;
@@ -10550,7 +10918,7 @@ function newListing() {
   document.querySelector('.csel[data-for="l-il"] .csel-label').textContent = 'İl Seçin';
   document.querySelector('.csel[data-for="l-ilce"] .csel-label').textContent = 'Önce il seçin';
   document.querySelector('#listing-mo .mtit').textContent = 'İlan Ver';
-  document.querySelector('#listing-mo .sbtn2').textContent = 'İlanı Yayınla';
+  document.getElementById('l-submit-btn').textContent = 'İlanı Yayınla';
   document.getElementById('l-agree-wrap').style.display = '';
   document.getElementById('l-agree').checked = false;
   document.getElementById('l-pool-system').checked = false;
@@ -10560,7 +10928,20 @@ function newListing() {
   photos.forEach((_, i) => { const slot = document.getElementById('ps' + i); if (slot) slot.innerHTML = renderPhotoSlotHTML(i); });
   listingVideoUrl = null;
   renderListingVideoSlot();
+  document.getElementById('listing-mo').classList.add('wizard-mode');
   document.getElementById('listing-mo').classList.add('on');
+  loadExtraPhones();
+  const draft = loadListingWizardDraftIfAny();
+  if (draft) {
+    if (confirm('Yarım kalmış bir ilan taslağın var. Kaldığın yerden devam etmek ister misin? (İptal edersen taslak silinir ve sıfırdan başlarsın.)')) {
+      applyListingWizardDraft(draft);
+      listingFormOnChange();
+      return;
+    }
+    clearListingWizardDraft();
+  }
+  listingWizardStep = 1;
+  showListingWizardStep(1);
   listingFormOnChange();
 }
 
@@ -10672,6 +11053,7 @@ async function submitListing() {
       negotiable: document.getElementById('l-negotiable').checked,
     };
 
+    let createdListingIdForBoostHook = null;
     if (editingListingId) {
       // KANITLANMIŞ KÖK NEDEN DÜZELTMESİ ("fiyat düşünce favoriye alana bildirim gitmiyor"):
       // getListingById() önce YEREL ÖNBELLEĞİ (marketMineListings/marketAllListings vb. — tek
@@ -10776,6 +11158,12 @@ async function submitListing() {
       // mağazası olmayan kullanıcıda worker sessizce no-op döner — istemci yanıtı hiç işlemiyor.
       notifyStoreFollowersNewListing(newListingRef.id);
       showToast('⏳', 'rgba(255,149,0,.15)', 'İlanınız Gönderildi', 'İncelendikten sonra Pazar\'da yayınlanacaktır.');
+      // SİHİRBAZ 1.0 — ADIM 8 KANCASI: kullanıcı Adım 8'de "yayınlanınca hemen görmek istiyorum"
+      // kutusunu işaretlediyse, YENİ bir talep/onay mekanizması İCAT EDİLMEDEN, ilan gerçekten
+      // oluştuktan HEMEN sonra zaten var olan openBoostRequestForm(id) doğrudan açılır — o fonksiyon
+      // zaten bir listingId'nin var olmasını gerektiriyordu, bu yüzden Adım 8'de değil burada tetiklenir.
+      if (!editingListingId && document.getElementById('wiz-boost-interest')?.checked) createdListingIdForBoostHook = newListingRef.id;
+      clearListingWizardDraft();
     }
 
     closemo('listing-mo');
@@ -10785,8 +11173,9 @@ async function submitListing() {
     listingVideoUrl = null;
     renderListingVideoSlot();
     editingListingId = null;
+    document.getElementById('listing-mo').classList.remove('wizard-mode');
     document.querySelector('#listing-mo .mtit').textContent = 'İlan Ver';
-    document.querySelector('#listing-mo .sbtn2').textContent = 'İlanı Yayınla';
+    document.getElementById('l-submit-btn').textContent = 'İlanı Yayınla';
     document.getElementById('l-agree-wrap').style.display = '';
     document.getElementById('l-category').value = 'telefon';
     onListingCategoryChange();
@@ -10807,6 +11196,7 @@ async function submitListing() {
     // "İlanlarım" sekmesi artık ayrı yüklendiği için, bir sonraki girişte güncel veriyi çeksin diye işaretlenir.
     marketMineLoaded = false;
     if (mktab === 'mine') loadMarketMine();
+    if (createdListingIdForBoostHook) setTimeout(() => openBoostRequestForm(createdListingIdForBoostHook), 350);
   } catch(e) { logPermissionDenialDiagnostic('listing', e); showErrorToast(e); } finally { releaseSubmit('listing'); }
 }
 
@@ -10819,7 +11209,7 @@ async function editListing(id) {
   ensureListingIlOptionsPopulated();
   ensureListingBrandOptionsPopulated();
   document.querySelector('#listing-mo .mtit').textContent = l.uid === user.uid ? 'İlanı Düzenle' : `İlanı Düzenle (Admin — ${l.ownerName||'başka kullanıcı'})`;
-  document.querySelector('#listing-mo .sbtn2').textContent = 'Değişiklikleri Kaydet';
+  document.getElementById('l-submit-btn').textContent = 'Değişiklikleri Kaydet';
   // category alanı yoksa (eski ilan) 'telefon' varsayılır — onListingCategoryChange önce çağrılır ki
   // marka alanının picker/serbest-metin görünürlüğü doğru kurulsun, ASIL değeri hemen ardından
   // setListingBrandValue ile (aşağıda) doldurulur. Eski "Şarj Cihazı" ilanları (category:'sarj',
@@ -10883,6 +11273,7 @@ async function editListing(id) {
   listingVideoUrl = l.videoUrl || null;
   renderListingVideoSlot();
   exitDetailPage(false);
+  document.getElementById('listing-mo').classList.remove('wizard-mode');
   document.getElementById('listing-mo').classList.add('on');
   listingFormOnChange();
 }
