@@ -17401,7 +17401,7 @@ function homeArenaHubHtml(attempt, leagueData) {
     lastRank = m.rank;
     const isMe = m.uid === user?.uid;
     return gap + `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 8px;border-radius:8px;${isMe ? 'background:rgba(255,255,255,.08)' : ''}">
-      <span style="font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${isMe ? 'font-weight:700' : ''}"><span style="display:inline-block;width:20px;flex-shrink:0">${rankIcon(m.rank)}</span>${escapeHtml((m.displayName || 'Kullanıcı').slice(0, 16))}${m.vip ? ' 👑' : ''}${m.trustedSeller ? ' 🤝' : ''}${isMe ? ' (Sen)' : ''}</span>
+      <span style="font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${isMe ? 'font-weight:700' : ''}"><span style="display:inline-block;width:20px;flex-shrink:0">${rankIcon(m.rank)}</span>${escapeHtml((m.displayName || 'Kullanıcı').slice(0, 16))}${m.vip ? ' 👑' : ''}${m.trustedSeller ? ' 🤝' : ''}${sysAccDotHTML(m.isSystemAccount)}${isMe ? ' (Sen)' : ''}</span>
       <span style="font-size:12px;font-weight:700;color:${tierTheme.text === '#FFFFFF' ? 'var(--cyan)' : tierTheme.text};flex-shrink:0">${m.leagueScore || 0}</span>
     </div>`;
   }).join('') : '';
@@ -17774,7 +17774,7 @@ function renderArenaHomeLeagueCardHtml(data) {
     lastRank = m.rank;
     const isMe = m.uid === user?.uid;
     return gap + `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;${isMe?'background:var(--cdim)':''}">
-      <span style="font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${isMe?'font-weight:700':''}"><span style="display:inline-block;width:22px;flex-shrink:0">${rankIcon(m.rank)}</span>${escapeHtml(m.displayName||'Kullanıcı')}${m.vip?' 👑':''}${m.trustedSeller?' 🤝':''}${isMe?' (Sen)':''}</span>
+      <span style="font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${isMe?'font-weight:700':''}"><span style="display:inline-block;width:22px;flex-shrink:0">${rankIcon(m.rank)}</span>${escapeHtml(m.displayName||'Kullanıcı')}${m.vip?' 👑':''}${m.trustedSeller?' 🤝':''}${sysAccDotHTML(m.isSystemAccount)}${isMe?' (Sen)':''}</span>
       <span style="font-size:12px;font-weight:700;color:var(--cyan);flex-shrink:0">${m.leagueScore||0}</span>
     </div>`;
   }).join('');
@@ -18606,7 +18606,7 @@ function renderArenaLeagueScreen() {
       <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer" onclick="openPublicProfile('${m.uid}','${escapeJsAttr(name)}')">
         ${m.photoURL?`<img src="${escapeHtml(m.photoURL)}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;flex-shrink:0" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${escapeJsAttr(avatarUrl(null, name, 60))}'">`:`<div style="width:30px;height:30px;border-radius:50%;background:var(--surf3,var(--surf2));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${escapeHtml(name.charAt(0).toUpperCase())}</div>`}
         <div style="flex:1;min-width:0">
-          <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(name)}${m.vip?' 👑':''}${m.trustedSeller?' 🤝':''}${isMe?' (Sen)':''}</div>
+          <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(name)}${m.vip?' 👑':''}${m.trustedSeller?' 🤝':''}${sysAccDotHTML(m.isSystemAccount)}${isMe?' (Sen)':''}</div>
           <div style="height:4px;border-radius:2px;background:var(--surf3,rgba(255,255,255,.08));overflow:hidden;margin-top:4px;max-width:140px">
             <div style="height:100%;width:${barPct}%;background:${isPromoZone?'#30D158':isRelegateZone?'#FF453A':'var(--cyan)'};border-radius:2px"></div>
           </div>
