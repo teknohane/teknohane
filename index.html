@@ -2687,6 +2687,19 @@ body.tk-maintenance #maintenance-gate{
   </div>
 </div>
 
+<!-- FİYAT UYARILARI 1.0 — mevcut basit modal deseninin (boost-request-mo) AYNISI -->
+<div class="mo" id="price-alert-mo" onclick="closemo('price-alert-mo')">
+  <div class="ms" onclick="event.stopPropagation()">
+    <div class="mh"></div>
+    <div class="mtit">🔔 Fiyat Uyarısı</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:16px">Bu fiyat veya altına düştüğünde sana bildireceğiz.</div>
+    <div class="fg"><label class="fl">Mevcut Fiyat</label><div style="font-size:18px;font-weight:800;color:var(--text)" id="pa-current-price"></div></div>
+    <div class="fg"><label class="fl">Hedef Fiyat (₺)</label><input class="fi" type="number" id="pa-target-price" placeholder="Örn: 40000"></div>
+    <div class="wiz-err" id="pa-err"></div>
+    <button class="sbtn2" onclick="submitPriceAlert()">Uyarı Oluştur</button>
+  </div>
+</div>
+
 <!-- VIP AVANTAJLARI: hem VIP hem VIP olmayan kullanıcı açabilir (bkz. openVipBenefits/renderVipBenefitsHTML)
      — VIP MAĞAZA 2.0 ürün deneyimi görünürlüğü. Satın alma/ödeme akışı YOK, yalnızca bilgilendirme. -->
 <div class="mo" id="vip-benefits-mo" onclick="closemo('vip-benefits-mo')">
@@ -6013,7 +6026,7 @@ function releaseSubmit(key) { _submitGuards.delete(key); }
 const NOTIF_TYPE_CATEGORY = {
   new_follower: 'followers',
   new_referrer: 'referrals',
-  price_drop: 'market', listing_favorited: 'market', seller_review: 'market', listing_expired: 'market',
+  price_drop: 'market', listing_favorited: 'market', seller_review: 'market', listing_expired: 'market', price_alert_triggered: 'market',
   listing_sold_favorited: 'market', listing_deleted_favorited: 'market',
   listing_approved: 'market', listing_rejected: 'market', saved_search_match: 'market',
   listing_question: 'market', listing_question_answered: 'market', followed_new_listing: 'followers',
@@ -7278,6 +7291,7 @@ let unsubNotifBadge = null;
 // 💬 kullanıyordu, bu ikon artık new_message'a ait olduğu için 📝'ye çevrildi.
 const NOTIF_ICONS = {
   price_drop: { ic: '💰', bg: 'rgba(48,209,88,.15)' },
+  price_alert_triggered: { ic: '🔔', bg: 'rgba(48,209,88,.15)' },
   listing_favorited: { ic: '❤️', bg: 'rgba(255,69,58,.12)' },
   listing_sold_favorited: { ic: '🔴', bg: 'rgba(255,69,58,.12)' },
   listing_deleted_favorited: { ic: '🗑️', bg: 'rgba(142,142,147,.15)' },
@@ -11362,6 +11376,13 @@ async function submitListing() {
           notifyUser(uid, 'price_drop', msg, editingListingId, null, user.uid, myProfileData.displayName || user.displayName || null, myProfileData.photoURL);
         });
       }
+      // FİYAT UYARILARI 1.0 — istemci BURADA "hedefe ulaşıldı" diye bir bildirim ÜRETMİYOR (bkz. görev
+      // talimatı §25/§18) — yalnızca "bu ilanın fiyatı gerçekten değişti, kontrol et" diye Worker'ı
+      // fire-and-forget uyarıyor (notifyStoreFollowersNewListing'le AYNI desen). Worker kendi ayrı,
+      // privileged okumasıyla GERÇEK fiyatı/gerçek aktif alarmları/gerçek sahiplik doğrular — istemcinin
+      // hiçbir iddiasına güvenmez, bu yüzden satıcı kendi fiyatını değiştirerek başkasına sahte bir
+      // "hedefe ulaştı" bildirimi ürettiremez (yalnızca GERÇEKTEN hedefe ulaşan alarmlar tetiklenir).
+      if (newPrice < oldPrice) checkPriceAlertsForListing(editingListingId).catch(()=>{});
 
       showToast('✓', 'rgba(48,209,88,.15)', wasRejected ? 'Tekrar Onaya Gönderildi' : 'İlan Güncellendi', wasRejected ? `${model} güncellendi ve tekrar incelemeye gönderildi.` : `${model} güncellendi.`);
     } else {
@@ -11831,6 +11852,7 @@ function renderDetailPage(l) {
       </div>
     </div>
     <div id="det-price-analysis"></div>
+    <div id="det-price-alert"></div>
     ${(() => { const pd = !l.sold ? listingPriceDropInfo(l) : null; return pd ? `<div class="det-anim" style="background:rgba(48,209,88,.12);border:1px solid rgba(48,209,88,.3);border-radius:14px;padding:12px 14px;margin-bottom:12px"><div style="font-size:12px;font-weight:700;color:#30D158">${pd.within7d?'🔥 Son 7 günde fiyatı düştü':'⬇️ Fiyat düştü'}</div><div style="font-size:11px;color:var(--text3);margin-top:2px">₺${pd.drop.toLocaleString('tr-TR')} indirim (önceki fiyat: ₺${(parseInt(l.price||0)+pd.drop).toLocaleString('tr-TR')})</div></div>` : ''; })()}
     <div class="det-status-row det-anim" style="animation-delay:.08s">
       ${l.sold ? `<div class="det-status-badge st-sold"><span class="dot"></span>🔴 Satıldı</div>` : (l.condition==='Sıfır' ? `<div class="det-status-badge st-new"><span class="dot"></span>🟢 Sıfır</div>` : `<div class="det-status-badge st-used"><span class="dot"></span>🟠 ${escapeHtml(l.condition)||'İkinci El'}</div>`)}
@@ -11915,6 +11937,7 @@ function renderDetailPage(l) {
   if (l.uid) loadSellerCard(l.uid, l.ownerName, mine, 'det-seller-card');
   renderSimilarListings(l, 'det-similar');
   renderPriceAnalysis(l, 'det-price-analysis');
+  renderPriceAlertSection(l);
   loadListingQuestions(id, mine);
   // Görüntülenme sayısı — yalnızca YENİ bir açılışta, ilan sahibi kendi ilanına bakmıyorsa VE bu
   // cihazdan aynı ilan yakın zamanda (12 saat içinde) zaten sayılmadıysa artırılır (bkz.
@@ -17252,6 +17275,115 @@ function renderPriceAnalysis(l, containerId) {
       <div style="font-size:12px;font-weight:700;color:${color}">${badge}</div>
       <div style="font-size:11px;color:var(--text3);margin-top:2px">Aynı markadan benzer ${comparable.length} ilanın medyan fiyatı: ₺${median.toLocaleString('tr-TR')}</div>
     </div>`;
+}
+
+// ==== FİYAT UYARILARI 1.0 ====
+// Yeni/paralel bir bildirim sistemi DEĞİL: bell+push AYNI notifyUser()/teknohane_notifications/
+// teknohane_notify_queue akışından (Worker tarafında dispatchSimpleUserNotification'ın AYNI
+// deterministik-ID idempotent deseniyle) geçiyor. Yalnızca GERÇEK sinyal: teknohane_price_alerts
+// koleksiyonu (kullanıcı kendi hedef fiyatını kendi dokümanında tutuyor — favoritedByUids gibi bir
+// dizi alana sığdırmak, sorgu/güvenlik/yazma yetkisi açısından çok daha kırılgan olurdu, bkz. rapor).
+let currentListingPriceAlert = null;
+const PRICE_ALERT_CHECK_API = 'https://teknohane-api.yusuf-aykac.workers.dev/price-alert-check';
+
+async function renderPriceAlertSection(l) {
+  const el = document.getElementById('det-price-alert');
+  if (!el) return;
+  currentListingPriceAlert = null;
+  const mine = user && l.uid === user.uid;
+  const price = parseInt(l.price || 0);
+  // Kendi ilanına alarm YASAK (görev talimatı §26 — satıcı kendi fiyatını değiştirerek kendine
+  // sahte bildirim üretemez), fiyat bilgisi yoksa/geçersizse veya giriş yapılmamışsa hiç gösterme.
+  if (!user || mine || !price || l.sold || l.paused || isListingExpired(l)) { el.innerHTML = ''; return; }
+  try {
+    const snap = await db.collection('teknohane_price_alerts').doc(`${user.uid}_${l.id}`).get();
+    currentListingPriceAlert = snap.exists ? { id: snap.id, ...snap.data() } : null;
+  } catch (e) { el.innerHTML = ''; return; }
+  const a = currentListingPriceAlert;
+  if (!a || a.status === 'cancelled') {
+    el.innerHTML = `<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px;background:var(--surf2);color:var(--cyan);border:1px solid var(--border2)" onclick="openPriceAlertModal()">🔔 Fiyat Uyarısı Oluştur</button>`;
+  } else if (a.status === 'active') {
+    const diff = a.targetPrice - price;
+    el.innerHTML = `<div style="background:var(--surf);border:1px solid var(--border2);border-radius:14px;padding:14px;margin-top:4px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:16px">🔔</span><span style="font-size:13px;font-weight:700">Fiyat Uyarısı Aktif</span></div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.6">Hedef: <b style="color:var(--text)">₺${a.targetPrice.toLocaleString('tr-TR')}</b><br>Mevcut: ₺${price.toLocaleString('tr-TR')}
+      ${diff > 0 ? `<br>₺${diff.toLocaleString('tr-TR')} daha düşerse haber vereceğiz.` : ''}</div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="apbtn" style="flex:1;color:var(--cyan)" onclick="openPriceAlertModal()">Uyarıyı Düzenle</button>
+        <button class="apbtn" style="flex:1;color:var(--red)" onclick="cancelPriceAlert()">Uyarıyı Kapat</button>
+      </div>
+    </div>`;
+  } else if (a.status === 'triggered') {
+    el.innerHTML = `<div style="background:rgba(48,209,88,.1);border:1px solid rgba(48,209,88,.3);border-radius:14px;padding:14px;margin-top:4px">
+      <div style="font-size:13px;font-weight:700;color:#30D158">🎉 Fiyat hedefine ulaştı</div>
+      <div style="font-size:12px;color:var(--text2);margin-top:4px">Hedeflediğin ₺${a.targetPrice.toLocaleString('tr-TR')} fiyatına ulaşıldı. İstersen yeni bir uyarı kurabilirsin.</div>
+      <button class="apbtn" style="width:100%;margin-top:8px;color:var(--cyan)" onclick="openPriceAlertModal()">Yeni Uyarı Kur</button>
+    </div>`;
+  }
+}
+
+function openPriceAlertModal() {
+  const l = currentListing;
+  if (!l || !user) return;
+  const price = parseInt(l.price || 0);
+  document.getElementById('pa-current-price').textContent = `₺${price.toLocaleString('tr-TR')}`;
+  const input = document.getElementById('pa-target-price');
+  input.value = currentListingPriceAlert?.status === 'active' ? currentListingPriceAlert.targetPrice : '';
+  input.max = price - 1;
+  document.getElementById('pa-err').classList.remove('wiz-show');
+  document.getElementById('price-alert-mo').classList.add('on');
+}
+
+async function submitPriceAlert() {
+  const l = currentListing;
+  if (!l || !user) return;
+  const price = parseInt(l.price || 0);
+  const target = parseInt(document.getElementById('pa-target-price').value);
+  const errEl = document.getElementById('pa-err');
+  const showErr = (msg) => { errEl.textContent = '⚠️ ' + msg; errEl.classList.add('wiz-show'); };
+  // GERÇEK doğrulama — görev talimatı §4: 0/negatif/geçersiz/mevcut fiyatın üzerinde/anlamsız
+  // büyük bir değer kabul edilmez. Firestore Rules'ta da AYNI kural (targetPrice<priceAtCreation)
+  // sunucu tarafında tekrar zorlanıyor — istemci doğrulaması tek başına yeterli SAYILMIYOR.
+  if (!price) { showErr('Bu ilan için şu anda fiyat uyarısı oluşturulamıyor.'); return; }
+  if (!target || target <= 0) { showErr('Geçerli bir hedef fiyat gir.'); return; }
+  if (target >= price) { showErr('Hedef fiyat, mevcut fiyatın altında olmalı.'); return; }
+  if (!guardSubmit('priceAlert')) return;
+  try {
+    const ref = db.collection('teknohane_price_alerts').doc(`${user.uid}_${l.id}`);
+    const isUpdate = currentListingPriceAlert && currentListingPriceAlert.status === 'active';
+    if (isUpdate) {
+      await ref.update({ targetPrice: target, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    } else {
+      await ref.set({
+        uid: user.uid, listingId: l.id, listingModel: l.model || '', targetPrice: target, priceAtCreation: price,
+        status: 'active', triggeredAt: null,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(), updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+    }
+    closemo('price-alert-mo');
+    showToast('✓', 'rgba(48,209,88,.15)', 'Fiyat Uyarısı Kuruldu', `₺${target.toLocaleString('tr-TR')} fiyatına ulaşınca haber vereceğiz.`);
+    renderPriceAlertSection(l);
+  } catch (e) { showErrorToast(e); } finally { releaseSubmit('priceAlert'); }
+}
+
+async function cancelPriceAlert() {
+  const l = currentListing;
+  if (!l || !user || !currentListingPriceAlert) return;
+  try {
+    await db.collection('teknohane_price_alerts').doc(`${user.uid}_${l.id}`).update({ status: 'cancelled', updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    showToast('✓', 'rgba(48,209,88,.15)', 'Fiyat Uyarısı Kapatıldı', 'Artık bu ilan için bildirim almayacaksın.');
+    renderPriceAlertSection(l);
+  } catch (e) { showErrorToast(e); }
+}
+
+// notifyStoreFollowersNewListing()'in AYNI fire-and-forget deseni — istemci yalnızca "bu ilanın
+// fiyatı değişti, kontrol et" diye Worker'ı uyarır; GERÇEK fiyatı okumak/gerçek aktif alarmları
+// bulmak/bildirimi ÜRETMEK tamamen Worker'ın kendi privileged (rules'a tabi olmayan) tarafında olur.
+async function checkPriceAlertsForListing(listingId) {
+  try {
+    const idToken = await user.getIdToken();
+    await arenaApiCall(PRICE_ALERT_CHECK_API, { idToken, listingId });
+  } catch (e) { /* sessiz — best-effort tetikleyici, bkz. yukarıdaki not */ }
 }
 
 // REKABET ANALİZİ EKLENTİSİ (Sahibinden karşılaştırması — IMEI kontrolü): telefona özgü, Sahibinden'de
