@@ -2687,6 +2687,14 @@ body.tk-maintenance #maintenance-gate{
   </div>
 </div>
 
+<!-- ARENA BAŞARIMLAR & ROZETLER 1.0 — mevcut basit modal deseninin (boost-request-mo) AYNISI -->
+<div class="mo" id="arena-badge-detail-mo" onclick="closemo('arena-badge-detail-mo')">
+  <div class="ms" onclick="event.stopPropagation()">
+    <div class="mh"></div>
+    <div id="arena-badge-detail-body"></div>
+  </div>
+</div>
+
 <!-- FİYAT UYARILARI 1.0 — mevcut basit modal deseninin (boost-request-mo) AYNISI -->
 <div class="mo" id="price-alert-mo" onclick="closemo('price-alert-mo')">
   <div class="ms" onclick="event.stopPropagation()">
@@ -19186,11 +19194,30 @@ async function rArenaBadges() {
   // sayısı/toplam Lig Puanı) tamamen istemcide bu veriden türetiliyor. Ağ hatasında bölüm SESSİZCE
   // atlanıyor (rozetler ekranının ANA işlevini bozmasın diye) — yalnızca BAŞARILI ama boş sonuçta
   // ("hiç Lig oynamamış") bilgilendirici bir boş-durum mesajı gösteriliyor.
+  // BAŞARIMLAR & ROZETLER 1.0 — YENİ bir worker ucu/koleksiyon İCAT EDİLMEDİ: zaten var olan
+  // arena-league-history + arena-reward-history TEK SEFERDE (Promise.allSettled, paralel) çekilip TEK
+  // bir hesaplama katmanından (computeArenaLeagueAchievements) hem mevcut kariyer-özeti stat kutuları
+  // (renderArenaLeagueAchievementsHtml, DEĞİŞMEDİ) hem YENİ kazanıldı/kilitli rozet listesi üretiliyor —
+  // aynı veri iki kez sorgulanmıyor. Ağ hatasında bölüm SESSİZCE atlanır (Rozetlerim'in ANA işlevi —
+  // quiz rozetleri — asla bloke olmaz).
   let leagueAchievementsHtml = '';
+  let leagueBadgesHtml = '';
+  arenaLeagueBadgesData = [];
   try {
     const idToken = await user.getIdToken();
-    const historyData = await arenaApiCall(ARENA_LEAGUE_HISTORY_API, { idToken });
-    if (historyData && historyData.ok !== false) leagueAchievementsHtml = renderArenaLeagueAchievementsHtml(historyData.seasons || []);
+    const [historyRes, rewardRes] = await Promise.allSettled([
+      arenaApiCall(ARENA_LEAGUE_HISTORY_API, { idToken }),
+      arenaApiCall(ARENA_REWARD_HISTORY_API, { idToken }),
+    ]);
+    const historyData = historyRes.status === 'fulfilled' ? historyRes.value : null;
+    if (historyData && historyData.ok !== false) {
+      const seasons = historyData.seasons || [];
+      const rewardData = rewardRes.status === 'fulfilled' ? rewardRes.value : null;
+      const rewards = (rewardData && rewardData.ok !== false) ? (rewardData.rewards || []) : [];
+      leagueAchievementsHtml = renderArenaLeagueAchievementsHtml(seasons);
+      arenaLeagueBadgesData = computeArenaLeagueAchievements(seasons, rewards);
+      leagueBadgesHtml = renderArenaLeagueBadgesHtml(arenaLeagueBadgesData);
+    }
   } catch (e) {}
   body.innerHTML = `
     <div class="feat" style="padding:20px 18px">
@@ -19212,9 +19239,114 @@ async function rArenaBadges() {
           </div>`;
         }).join('')}
       </div>
+      ${leagueBadgesHtml}
       ${leagueAchievementsHtml}
       <button class="apbtn" style="margin-top:18px" onclick="rArenaHome()">Arena'ya Dön</button>
     </div>`;
+}
+
+// ==== ARENA BAŞARIMLAR & ROZETLER 1.0 ====
+// Yeni bir Firestore koleksiyonu/field/endpoint YOK. Her rozet, arena-league-history/arena-reward-
+// history'nin ZATEN döndürdüğü gerçek finalRank/tier/leagueScore/reward alanlarından, istemcide
+// deterministik olarak hesaplanır (aynı girdi HER ZAMAN aynı sonucu verir — kalıcı bir "kazanıldı"
+// kaydı tutulmuyor, bu yüzden "tekrar hesaplanınca değişir mi" riski yapısal olarak yok). Maç bazlı
+// başarımlar (X galibiyet/üst üste doğru cevap/en hızlı cevap/başarı oranı) BİLİNÇLİ OLARAK v1.0'A
+// ALINMADI — bkz. final rapor "V1.0'a Alınmayanlar": bu veriler hiçbir yerde sezon başına toplanmış
+// halde tutulmuyor, hesaplamak gösterilen HER sezon için ayrı bir maç sorgusu (N+1) gerektirirdi.
+const ARENA_LEAGUE_BADGE_DEFS = [
+  { id: 'league_champion', icon: '🏆', name: 'Sezon Şampiyonu', description: 'Bir Arena sezonunu final sıralamasında 1. tamamla.' },
+  { id: 'league_runner_up', icon: '🥈', name: 'Sezon İkincisi', description: 'Bir Arena sezonunu final sıralamasında 2. tamamla.' },
+  { id: 'league_third', icon: '🥉', name: 'Sezon Üçüncüsü', description: 'Bir Arena sezonunu final sıralamasında 3. tamamla.' },
+  { id: 'first_champion', icon: '🏅', name: 'İlk Şampiyonluk', description: 'Arena kariyerinde ilk kez final sıralamasında 1. ol.' },
+  { id: 'tier_silver', icon: '🥈', name: 'Gümüşe Ulaştın', description: 'Gümüş Lig\'e yüksel.' },
+  { id: 'tier_gold', icon: '🥇', name: 'Altına Ulaştın', description: 'Altın Lig\'e yüksel.' },
+  { id: 'tier_platinum', icon: '💎', name: 'Platine Ulaştın', description: 'Platin Lig\'e yüksel.' },
+  { id: 'tier_diamond', icon: '👑', name: 'Elmasa Ulaştın', description: 'Elmas Lig\'e yüksel.' },
+  { id: 'season_veteran', icon: '📅', name: 'Sezon Gazisi', description: `En az ${3} tamamlanmış Arena sezonun olsun.` },
+  { id: 'reward_hunter', icon: '🎁', name: 'Ödül Avcısı', description: 'Bir Arena sezon ödülü kazan.' },
+];
+const ARENA_SEASON_VETERAN_THRESHOLD = 3;
+let arenaLeagueBadgesData = [];
+
+function computeArenaLeagueAchievements(seasons, rewards) {
+  seasons = seasons || []; rewards = rewards || [];
+  // Aktif sezon "tamamlanmış" sayılmaz (görev talimatı — Sezon Geçmişi 1.0 ile AYNI karşılaştırma).
+  const activeSeasonId = arenaLeagueData?.seasonId || null;
+  const pastSeasons = seasons.filter(s => s.seasonId !== activeSeasonId);
+  const rankedPast = pastSeasons.filter(s => s.finalRank != null);
+  const chronological = [...rankedPast].sort((a, b) => (Date.parse(a.startsAt || 0) || 0) - (Date.parse(b.startsAt || 0) || 0));
+
+  // İlgili sezonun ÖDÜLÜ varsa (görev talimatı §7 — "Kazanıldı ✓ / 2026 Sezonu / Final Sıra: #1"
+  // örneğinin doğal devamı), podyum rozetlerinin detayında da GERÇEK reward verisi gösterilsin diye
+  // eşleştiriliyor — reward_hunter'ınkinden AYRI bir sorgu/veri YOK, aynı zaten çekilmiş rewards[] dizisi.
+  const rewardForSeason = (season) => season ? (rewards.find(r => r.seasonId === season.seasonId) || null) : null;
+
+  const state = {};
+  const champSeasons = rankedPast.filter(s => s.finalRank === 1);
+  state.league_champion = { unlocked: champSeasons.length > 0, detail: champSeasons.length ? `${champSeasons.length} kez` : null, season: champSeasons[0] || null, reward: rewardForSeason(champSeasons[0]) };
+  const runnerUpSeasons = rankedPast.filter(s => s.finalRank === 2);
+  state.league_runner_up = { unlocked: runnerUpSeasons.length > 0, detail: runnerUpSeasons.length ? `${runnerUpSeasons.length} kez` : null, season: runnerUpSeasons[0] || null, reward: rewardForSeason(runnerUpSeasons[0]) };
+  const thirdSeasons = rankedPast.filter(s => s.finalRank === 3);
+  state.league_third = { unlocked: thirdSeasons.length > 0, detail: thirdSeasons.length ? `${thirdSeasons.length} kez` : null, season: thirdSeasons[0] || null, reward: rewardForSeason(thirdSeasons[0]) };
+  const firstChampion = chronological.find(s => s.finalRank === 1) || null;
+  state.first_champion = { unlocked: !!firstChampion, detail: null, season: firstChampion, reward: rewardForSeason(firstChampion) };
+
+  // "En yüksek lig" — renderArenaLeagueAchievementsHtml'deki AYNI hesaplama (aktif sezon DAHİL, bu bir
+  // yaşam-boyu istatistiği — ayrı bir lig hesaplama sistemi İCAT EDİLMEDİ).
+  const highestTier = seasons.length ? Math.max(...seasons.map(s => s.tier || 0)) : 0;
+  state.tier_silver = { unlocked: highestTier >= 1, detail: null, season: null };
+  state.tier_gold = { unlocked: highestTier >= 2, detail: null, season: null };
+  state.tier_platinum = { unlocked: highestTier >= 3, detail: null, season: null };
+  state.tier_diamond = { unlocked: highestTier >= 4, detail: null, season: null };
+
+  // İlerleme (görev talimatı §5/§20 — yalnızca GERÇEKTEN hesaplanabilen bir sayı, sahte yüzde YOK).
+  state.season_veteran = { unlocked: pastSeasons.length >= ARENA_SEASON_VETERAN_THRESHOLD, detail: `${Math.min(pastSeasons.length, ARENA_SEASON_VETERAN_THRESHOLD)} / ${ARENA_SEASON_VETERAN_THRESHOLD} sezon`, season: null };
+
+  // arena-reward-history ucu ZATEN yalnızca status==='granted' kayıtları döndürüyor (bkz. o ucun kendi
+  // kod yorumu) — burada tekrar filtrelemeye gerek yok, ama başka bir statü sızarsa diye savunmacı bir
+  // ikinci kontrol yine de var (pending/cancelled/failed ASLA başarı sayılmaz, görev talimatı §10).
+  const grantedRewards = rewards.filter(r => !r.status || r.status === 'granted');
+  state.reward_hunter = { unlocked: grantedRewards.length > 0, detail: grantedRewards.length > 1 ? `${grantedRewards.length} ödül` : null, season: null, reward: grantedRewards[0] || null };
+
+  return ARENA_LEAGUE_BADGE_DEFS.map(def => ({ ...def, ...state[def.id] }));
+}
+
+function renderArenaLeagueBadgesHtml(achievements) {
+  if (!achievements.length) return '';
+  const unlockedCount = achievements.filter(a => a.unlocked).length;
+  return `<div style="font-size:13px;font-weight:700;color:var(--text2);margin:22px 0 4px;padding-top:16px;border-top:1px solid var(--border2)">🏆 Arena Başarımları</div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:12px">Kazandığın başarımlar ve Arena kariyerindeki önemli kilometre taşları — ${unlockedCount} / ${achievements.length}</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      ${achievements.map(a => `<div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;background:var(--surf2);opacity:${a.unlocked ? 1 : 0.45};cursor:pointer" onclick="openArenaLeagueBadgeDetail('${a.id}')">
+        <div style="font-size:26px;flex-shrink:0">${a.unlocked ? a.icon : '🔒'}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:13px">${escapeHtml(a.name)}</div>
+          <div style="font-size:11px;color:var(--text2)">${a.unlocked && a.detail ? escapeHtml(a.detail) : escapeHtml(a.description)}</div>
+        </div>
+        ${a.unlocked ? `<div style="color:var(--green);font-size:16px;flex-shrink:0">✓</div>` : ''}
+      </div>`).join('')}
+    </div>`;
+}
+
+function openArenaLeagueBadgeDetail(id) {
+  const a = arenaLeagueBadgesData.find(x => x.id === id);
+  if (!a) return;
+  const extraParts = [];
+  if (a.season) {
+    extraParts.push(`<div style="font-size:12.5px;color:var(--text2)">${arenaFormatHistoryDate(a.season.startsAt)} sezonu</div>`);
+    extraParts.push(`<div style="font-size:12.5px;color:var(--text2)">Final Sıra: ${arenaFormatFinalRank(a.season.finalRank)}</div>`);
+  }
+  if (a.reward) {
+    extraParts.push(`<div style="font-size:12.5px;color:#FFD700;font-weight:600">${escapeHtml(a.reward.badgeLabel || 'Sezon Ödülü')}${a.reward.vipDays ? ` — ${a.reward.vipDays} gün VIP` : ''}</div>`);
+  }
+  document.getElementById('arena-badge-detail-body').innerHTML = `
+    <div style="text-align:center;font-size:52px;margin-bottom:10px">${a.unlocked ? a.icon : '🔒'}</div>
+    <div style="text-align:center;font-size:16px;font-weight:800;margin-bottom:6px">${escapeHtml(a.name)}</div>
+    <div style="text-align:center;font-size:12.5px;color:var(--text2);margin-bottom:14px">${escapeHtml(a.description)}</div>
+    <div style="text-align:center;font-size:13px;font-weight:700;color:${a.unlocked ? 'var(--green)' : 'var(--text3)'};margin-bottom:8px">${a.unlocked ? 'Kazanıldı ✓' : 'Henüz Kazanılmadı'}</div>
+    ${a.unlocked && a.detail ? `<div style="text-align:center;font-size:12.5px;color:var(--text2);margin-bottom:6px">${escapeHtml(a.detail)}</div>` : ''}
+    <div style="text-align:center;display:flex;flex-direction:column;gap:4px">${extraParts.join('')}</div>`;
+  document.getElementById('arena-badge-detail-mo').classList.add('on');
 }
 
 // arena-league-history'nin döndürdüğü {seasonId,tier,leagueScore,finalRank,totalMembers,status,...}
