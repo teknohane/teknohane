@@ -19743,6 +19743,75 @@ function closeArenaLeagueRulesModal() {
   document.getElementById('arena-league-rules-overlay')?.remove();
 }
 
+// ==== ARENA RIVAL SİSTEMİ 1.0 ====
+// Yeni bir Firestore koleksiyonu/field/endpoint YOK. arena-league-leaderboard ZATEN ligin TÜM
+// üyelerini (en fazla capacity=10) rank'e göre sıralı döndürüyor (bkz. renderArenaLeagueScreen'in
+// membersHtml'i, AYNI diziyi kullanıyor) — rakip, bu ZATEN BELLEKTEKİ diziden kullanıcının kendi
+// index'inin ±1/±2 komşularını alarak, YENİ bir sorgu açmadan hesaplanıyor. Sezon/lig değişince veya
+// Dashboard yenilenince bu veri de ZATEN yeniden çekildiği için rakipler otomatik güncel kalır — ayrı
+// bir cache/snapshot YOK.
+// "Geçmek için +1 puan" mantığının gerekçesi: sıralama leagueScore DESC, eşitlikte joinedAt ASC
+// (bkz. worker'ın computeLeagueRank'i) — EŞİT puanla bir rakibi GEÇMEK garanti değildir (o daha önce
+// katıldıysa önde kalır), ama rakibin puanını 1 dahi GEÇMEK katılım tarihinden BAĞIMSIZ her zaman
+// öne geçirir. Bu yüzden "fark+1" ifadesi HER ZAMAN doğru bir asgari hedef, "fark" tek başına DEĞİL.
+const ARENA_RIVAL_CLOSE_GAP_THRESHOLD = 20; // Worker'ın LEAGUE_MATCH_MAX_SCORE'undan (100, bkz. cloudflare-push-worker.js LEAGUE_MATCH_DIFFICULTY_PLAN) türetildi — rastgele değil: "tek bir günlük maçın olası baz puanının ~%20'si" kadar yakın bir farkı "riskli" say.
+
+function renderArenaRivalsHtml(data) {
+  const members = data.members || [];
+  const myIndex = members.findIndex(m => m.uid === user?.uid);
+  const header = `<div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:8px">⚔️ Rakiplerin</div>`;
+  if (myIndex === -1) return ''; // kullanıcı bu ligin leaderboard listesinde yok (nadir/geçici) — sahte rakip gösterilmez
+
+  const above = myIndex > 0 ? members[myIndex - 1] : null;
+  const above2 = myIndex > 1 ? members[myIndex - 2] : null;
+  const below = myIndex < members.length - 1 ? members[myIndex + 1] : null;
+  const below2 = myIndex < members.length - 2 ? members[myIndex + 2] : null;
+  const me = members[myIndex];
+
+  if (!above && !below) {
+    return `${header}<div class="no" style="padding:14px 0">Şu anda liginde senden başka aktif oyuncu bulunmuyor.</div>`;
+  }
+
+  function rivalCardHtml(m, isAbove) {
+    const name = m.displayName || 'Kullanıcı';
+    const diff = Math.abs((m.leagueScore || 0) - (me.leagueScore || 0));
+    let goalHtml = '';
+    if (isAbove) {
+      goalHtml = diff === 0
+        ? `<div style="font-size:11px;color:var(--text3);margin-top:4px">Puanlarınız eşit — önce katıldığı için önde.</div>`
+        : `<div style="font-size:11px;color:var(--cyan);margin-top:4px">🎯 Onu geçmek için en az ${diff + 1} puan daha kazanman gerekiyor.</div>`;
+    } else {
+      const close = diff > 0 && diff <= ARENA_RIVAL_CLOSE_GAP_THRESHOLD;
+      goalHtml = diff === 0
+        ? `<div style="font-size:11px;color:var(--text3);margin-top:4px">Puanlarınız eşit — önce katıldığın için öndesin.</div>`
+        : `<div style="font-size:11px;${close ? 'color:#FF9500;font-weight:700' : 'color:var(--text3)'};margin-top:4px">${close ? '⚠️ Sadece ' : '🛡️ '}${diff} puan ${close ? 'geride — dikkat!' : 'geride.'}</div>`;
+    }
+    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;background:var(--surf2);margin-bottom:6px;cursor:pointer" onclick="openPublicProfile('${m.uid}','${escapeJsAttr(name)}')">
+      <span style="font-size:15px;flex-shrink:0">${isAbove ? '⬆️' : '⬇️'}</span>
+      <span style="width:32px;text-align:center;font-weight:700;color:var(--text2);font-size:13px;flex-shrink:0">#${m.rank}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(name)}</div>
+        ${goalHtml}
+      </div>
+      <span style="font-weight:700;color:var(--cyan);flex-shrink:0;font-size:14px">${m.leagueScore || 0}</span>
+    </div>`;
+  }
+
+  const meCardHtml = `<div style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;background:var(--cdim);border:1px solid rgba(0,212,255,.3);margin:8px 0">
+    <span style="font-size:15px;flex-shrink:0">👤</span>
+    <span style="width:32px;text-align:center;font-weight:800;color:var(--cyan);font-size:13px;flex-shrink:0">#${me.rank}</span>
+    <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">SEN</div></div>
+    <span style="font-weight:800;color:var(--cyan);flex-shrink:0;font-size:14px">${me.leagueScore || 0}</span>
+  </div>`;
+
+  return `${header}
+    ${above2 ? rivalCardHtml(above2, true) : ''}
+    ${above ? rivalCardHtml(above, true) : `<div class="no" style="padding:8px 0;font-size:11.5px">Ligin zirvesindesin — üstünde kimse yok. 🏆</div>`}
+    ${meCardHtml}
+    ${below ? rivalCardHtml(below, false) : `<div class="no" style="padding:8px 0;font-size:11.5px">Liginin en altında kimse yok — sen sondasın.</div>`}
+    ${below2 ? rivalCardHtml(below2, false) : ''}`;
+}
+
 function renderArenaLeagueScreen() {
   const body = document.getElementById('arena-body');
   const data = arenaLeagueData;
@@ -19812,7 +19881,8 @@ function renderArenaLeagueScreen() {
       <div style="font-size:12px;color:var(--text2)">${data.userLeagueScore ?? 0} Lig Puanı</div>
     </div>
     ${renderArenaLeagueMatchCardHtml(data.todayMatch, data.memberCount, data.capacity)}
-    ${renderArenaPostponedMatchCardHtml(data.postponedMatch)}`}
+    ${renderArenaPostponedMatchCardHtml(data.postponedMatch)}
+    <div class="feat" style="padding:14px 16px;margin-bottom:14px">${renderArenaRivalsHtml(data)}</div>`}
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
       <div style="font-size:13px;font-weight:700;color:var(--text2)">📊 Puan Durumu</div>
       ${isFull?`<div style="font-size:10px;color:var(--text3)"><span style="color:#30D158">▲</span> Terfi · <span style="color:#FF453A">▼</span> Küme Düşer</div>`:''}
