@@ -1402,20 +1402,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .aerr.on{display:block;}
 .no{text-align:center;padding:24px;color:var(--text3);font-size:13px;}
 
-/* Tarayıcıdan erişim engeli: yalnızca body.tk-browser sınıfı varken devreye girer, native davranışı etkilemez */
-#browser-gate{display:none;}
-body.tk-browser #app{display:none;}
-body.tk-browser #browser-gate{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  height:100dvh;padding:32px;text-align:center;background:var(--bg);color:var(--text);
-  gap:16px;
-}
-.bg-logo{width:88px;height:88px;border-radius:20px;}
 .bg-title{font-size:22px;font-weight:700;}
 .bg-desc{font-size:14px;color:var(--text2);line-height:1.6;max-width:340px;}
 .bg-btn{margin-top:8px;padding:14px 28px;border-radius:14px;background:var(--cyan);color:#00040F;font-weight:700;font-size:15px;text-decoration:none;}
 
-/* Ban ekranı: yalnızca body.tk-banned sınıfı varken devreye girer, browser-gate ile aynı deseni kullanır */
+/* Ban ekranı: yalnızca body.tk-banned sınıfı varken devreye girer */
 #ban-gate{display:none;}
 body.tk-banned #app{display:none;}
 body.tk-banned #ban-gate{
@@ -1430,7 +1421,7 @@ body.tk-banned #ban-gate{
 .ban-lbl{color:var(--text2);flex-shrink:0;}
 .ban-val{font-weight:600;text-align:right;}
 
-/* Bakım modu ekranı: aynı kanıtlanmış desen (tk-browser / tk-banned ile aynı) — yalnızca
+/* Bakım modu ekranı: aynı kanıtlanmış desen (tk-banned ile aynı) — yalnızca
    body.tk-maintenance sınıfı varken (ve admin değilken) devreye girer. */
 #maintenance-gate{display:none;}
 body.tk-maintenance #app{display:none;}
@@ -1452,13 +1443,6 @@ body.tk-maintenance #maintenance-gate{
 </script>
 </head>
 <body>
-<script>if(!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform())){document.body.classList.add('tk-browser');}</script>
-<div id="browser-gate">
-  <img class="bg-logo" src="teknohane.png" alt="Teknohane">
-  <div class="bg-title">Teknohane Mobil Uygulaması</div>
-  <div class="bg-desc">Teknohane artık yalnızca mobil uygulama üzerinden kullanılmaktadır. Telefon karşılaştırmaları, ikinci el ilanlar, topluluk ve diğer tüm özellikler için lütfen mobil uygulamamızı kullanın.</div>
-  <a class="bg-btn" href="https://play.google.com/store/apps/details?id=io.github.teknohane.app">Google Play'den İndir</a>
-</div>
 <div id="ban-gate">
   <div class="ban-icon">⛔</div>
   <div class="bg-title">Hesabın Askıya Alındı</div>
@@ -4494,6 +4478,11 @@ function rprof() {
         <div class="pacc-row"><span class="pacc-lbl">Aktif Oturumlar</span><span class="pacc-val" id="pacc-sessions-count">Yükleniyor…</span></div>
         <button class="apbtn" style="margin-top:12px;background:rgba(255,69,58,.08);border-color:rgba(255,69,58,.25);color:var(--red)" onclick="auth.signOut()">Oturumu Kapat</button>
       </div>
+      <div class="pacc-card" id="pwa-install-card" style="display:none">
+        <div class="psec-title">📲 Uygulamayı Yükle</div>
+        <div style="font-size:12.5px;color:var(--text2);margin-bottom:10px">Teknohane'yi ana ekranına ekleyip bir uygulama gibi kullanabilirsin.</div>
+        <button class="apbtn" style="background:linear-gradient(135deg,var(--cyan),#0091FF);color:#00040F;font-weight:700;border:none" onclick="pwaInstallApp()">📲 Uygulama Olarak Yükle</button>
+      </div>
       <div class="pact-card">
         <div class="psec-title">Son Etkinlikler</div>
         ${topActivity.length?topActivity.map(a=>`
@@ -4541,6 +4530,7 @@ function rprof() {
     updateThemeToggleUI();
     animateProfileStats();
     loadProfileExtrasIfNeeded();
+    updatePwaInstallCardVisibility();
     // Satıcı güveni kartı — loadSellerReviews() ZATEN başka profillerde çağrılan aynı fonksiyon,
     // burada da kendi profilim için çağrılıp döndürdüğü {avg,count} ile kart yerinde güncelleniyor.
     // Ek bir Firestore koleksiyonu/sorgu deseni YOK, yalnızca zaten var olan sorgu yeniden kullanılıyor.
@@ -6884,6 +6874,71 @@ async function answerListingQuestion(listingId, qId) {
 // Uygulama şu an Capacitor native kabuğu (Android APK) içinde mi çalışıyor, yoksa normal tarayıcıda mı?
 function isNativeApp() {
   return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+}
+
+// ==== UYGULAMA OLARAK YÜKLE (PWA install) — kullanıcı talebi: Android'de tarayıcının kendi native
+// "Yükle" davranışına EK olarak, iOS Safari'de de eşdeğer bir yol sağlanması. Android/Chrome'da
+// tarayıcı `beforeinstallprompt` olayını GERÇEKTEN kendisi tetikler (bu event'i yakalayıp saklamak,
+// istemcinin KENDİ tarayıcı davranışını taklit etmesi DEĞİL — tarayıcının zaten sunacağı istemi bir
+// düğmeye bağlamak). iOS Safari bu API'yi HİÇ desteklemiyor (Apple'ın kendi kısıtı, sayfa tarafından
+// aşılamaz) — orada TEK yol Paylaş → Ana Ekrana Ekle'yi elle yapmak, bu yüzden oradaki "buton" gerçek
+// bir kurulum TETİKLEMİYOR, yalnızca doğru adımları gösteren bir talimat kartı açıyor.
+let pwaDeferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  pwaDeferredInstallPrompt = e;
+  updatePwaInstallCardVisibility();
+});
+window.addEventListener('appinstalled', () => {
+  pwaDeferredInstallPrompt = null;
+  updatePwaInstallCardVisibility();
+});
+function isIOSSafariWeb() {
+  const ua = navigator.userAgent || '';
+  const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  return isIOS && !isNativeApp() && !isPwaStandalone();
+}
+function isPwaStandalone() {
+  return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+}
+// Profil ekranı zaten render edilmişse kart görünürlüğünü GÜNCELLER — tam bir yeniden render
+// GEREKTİRMİYOR (beforeinstallprompt her zaman sayfa yüklendikten SONRA, asenkron olarak gelebiliyor).
+function updatePwaInstallCardVisibility() {
+  const card = document.getElementById('pwa-install-card');
+  if (!card) return;
+  const eligible = !isNativeApp() && !isPwaStandalone() && (!!pwaDeferredInstallPrompt || isIOSSafariWeb());
+  card.style.display = eligible ? '' : 'none';
+}
+async function pwaInstallApp() {
+  if (pwaDeferredInstallPrompt) {
+    pwaDeferredInstallPrompt.prompt();
+    try { await pwaDeferredInstallPrompt.userChoice; } catch (e) {}
+    pwaDeferredInstallPrompt = null;
+    updatePwaInstallCardVisibility();
+    return;
+  }
+  if (isIOSSafariWeb()) { openIosInstallModal(); return; }
+}
+// iOS Safari'de programatik bir kurulum isteği YOK — kullanıcıya GERÇEK adımları gösteren, diğer
+// bilgilendirme modallarıyla (bkz. openArenaLeagueRulesModal) AYNI overlay deseni.
+function openIosInstallModal() {
+  document.getElementById('ios-install-overlay')?.remove();
+  const div = document.createElement('div');
+  div.id = 'ios-install-overlay';
+  div.style.cssText = 'position:fixed;inset:0;z-index:2100;background:rgba(0,4,15,.8);display:flex;align-items:center;justify-content:center;padding:20px';
+  div.onclick = (e) => { if (e.target === div) div.remove(); };
+  div.innerHTML = `
+    <div style="background:var(--surf);border:1px solid var(--border2);border-radius:16px;max-width:340px;width:100%;padding:26px 22px;text-align:center" onclick="event.stopPropagation()">
+      <div style="font-size:34px;margin-bottom:10px">📲</div>
+      <div style="font-size:16px;font-weight:700;margin-bottom:14px">Ana Ekrana Ekle</div>
+      <div style="text-align:left;display:flex;flex-direction:column;gap:12px;margin-bottom:18px">
+        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px;flex-shrink:0">1️⃣</span><span style="font-size:13px;color:var(--text2)">Alt menüdeki <b>Paylaş</b> (kare içinden yukarı ok) simgesine dokun.</span></div>
+        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px;flex-shrink:0">2️⃣</span><span style="font-size:13px;color:var(--text2)">Açılan listede <b>"Ana Ekrana Ekle"</b> seçeneğini bul ve dokun.</span></div>
+        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px;flex-shrink:0">3️⃣</span><span style="font-size:13px;color:var(--text2)">Sağ üstteki <b>"Ekle"</b> ile onayla — Teknohane artık ana ekranında, uygulama gibi açılıyor.</span></div>
+      </div>
+      <button class="apbtn" style="background:linear-gradient(135deg,var(--cyan),#0091FF);color:#00040F;font-weight:700;border:none" onclick="document.getElementById('ios-install-overlay')?.remove()">Anladım</button>
+    </div>`;
+  document.body.appendChild(div);
 }
 
 // Kullanıcı "Bildirimleri Aç" butonuna bastığında çalışır: izin ister, FCM token alır, Firestore'a kaydeder.
