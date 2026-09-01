@@ -553,6 +553,17 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .pdgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
 @media (min-width:600px){.pdgrid{grid-template-columns:repeat(3,1fr);}}
 @media (min-width:900px){.pdgrid{grid-template-columns:repeat(4,1fr);}}
+/* MASAÜSTÜ/LAPTOP UYUMLULUĞU — geniş ekranlarda içerik ortalanır, kenardan kenara gerilmez */
+@media (min-width:900px){
+  .hi,.tbar,#announcements-wrap,.sc{max-width:1040px;margin-left:auto;margin-right:auto;}
+  .sc{padding-left:28px;padding-right:28px;}
+  .mo{align-items:center;justify-content:center;}
+  .ms,.det-sheet{max-width:640px;width:calc(100% - 48px);margin:0 auto;border-radius:20px;border:1px solid var(--border);}
+  #lgrid.lgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+}
+@media (min-width:1280px){
+  #lgrid.lgrid{grid-template-columns:repeat(3,1fr);}
+}
 .phone-card{background:var(--surf);border:1px solid var(--border2);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;cursor:pointer;}
 .phone-card:active{background:var(--surf2);}
 .phone-card-media{aspect-ratio:1/1;background:var(--surf2);display:flex;align-items:center;justify-content:center;padding:14px;}
