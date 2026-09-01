@@ -123,6 +123,17 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
    bitene kadar (.32s) görünmez tutulup öyle gösteriliyor; kullanıcı zaten bu kadar hızlı kaydıramaz. */
 @keyframes notifSwipeDelIn{to{opacity:1;}}
 .notif-swipe-wrap .notif-item{position:relative;background:var(--bg2);touch-action:pan-y;}
+/* AKILLI GÜNLÜK BİLDİRİM ÖZETİ 1.0 — diğer bildirim satırlarından görsel olarak kasıtlı ayrışan kart */
+.dsum-card{background:linear-gradient(135deg,rgba(0,212,255,.08),rgba(0,212,255,.02));border:1px solid rgba(0,212,255,.25);border-radius:14px;margin:8px 0;cursor:pointer;overflow:hidden;}
+.dsum-card.unread{border-color:rgba(0,212,255,.5);}
+.dsum-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;font-size:13.5px;font-weight:800;color:var(--cyan);}
+.dsum-section{padding:0 14px 10px;}
+.dsum-section-hdr{font-size:11.5px;font-weight:700;color:var(--text2);margin-bottom:4px;}
+.dsum-item{font-size:12.5px;color:var(--text);line-height:1.5;padding:3px 0 3px 2px;overflow-wrap:anywhere;}
+.dsum-item[onclick]{color:var(--cyan);text-decoration:underline;text-decoration-color:rgba(0,212,255,.35);}
+.dsum-empty{font-size:12.5px;color:var(--text2);padding:0 14px 10px;}
+.dsum-shortcuts{display:flex;flex-wrap:wrap;gap:8px;padding:0 14px 12px;}
+.dsum-shortcuts span{background:var(--surf2);border:1px solid var(--border2);border-radius:16px;padding:6px 12px;font-size:11.5px;font-weight:600;color:var(--cyan);cursor:pointer;}
 .msg-bubble{border-radius:14px;position:relative;background:var(--bg2);min-width:0;max-width:100%;}
 /* Sohbet ekranı: mesaj listesi tam bağımsız kayabilsin, alt input her zaman sabit kalsın */
 #chat-thread-mo{align-items:stretch;background:var(--bg);backdrop-filter:none;-webkit-backdrop-filter:none;}
@@ -4623,6 +4634,7 @@ function rprof() {
         <div class="pacc-row" style="align-items:center"><span class="pacc-lbl">🛒 Pazar (fiyat düşüşü, ilan durumu)</span><div class="ptoggle${myProfileData.notifyPazarEvents!==false?' on':''}" onclick="toggleNotifyPref('notifyPazarEvents','Pazar bildirimlerini tekrar alacaksın.')"></div></div>
         <div class="pacc-row" style="align-items:center"><span class="pacc-lbl">💬 Topluluk (yanıt, mention)</span><div class="ptoggle${myProfileData.notifyTopluluk!==false?' on':''}" onclick="toggleNotifyPref('notifyTopluluk','Topluluk bildirimlerini tekrar alacaksın.')"></div></div>
         <div class="pacc-row" style="align-items:center"><span class="pacc-lbl">👑 VIP (süre, ödül, avantaj)</span><div class="ptoggle${myProfileData.notifyVipEvents!==false?' on':''}" onclick="toggleNotifyPref('notifyVipEvents','VIP bildirimlerini tekrar alacaksın.')"></div></div>
+        <div class="pacc-row" style="align-items:center"><span class="pacc-lbl">📅 Günlük Özet (günde 1 kez kişisel özet)</span><div class="ptoggle${myProfileData.notifyDailySummary!==false?' on':''}" onclick="toggleNotifyPref('notifyDailySummary','Günlük özet bildirimini tekrar alacaksın.')"></div></div>
         <div class="pacc-row" style="align-items:center"><span class="pacc-lbl">🔐 Sistem (güvenlik, hesap)</span><span style="font-size:11px;color:var(--text3)">Her zaman açık</span></div>
         <div class="pacc-row" style="align-items:center"><span class="pacc-lbl">🌙 Sessiz Saatler (yalnızca push, bildirim zili etkilenmez)</span><div class="ptoggle${myProfileData.quietHoursEnabled===true?' on':''}" onclick="toggleQuietHours()"></div></div>
         ${myProfileData.quietHoursEnabled===true?`
@@ -7286,6 +7298,7 @@ const NOTIF_ICONS = {
   comment_hidden: { ic: '🚫', bg: 'rgba(255,69,58,.15)' },
   comment_edited_by_admin: { ic: '✏️', bg: 'rgba(0,212,255,.12)' },
   badge_earned: { ic: '🏅', bg: 'rgba(255,204,0,.15)' },
+  daily_summary: { ic: '📅', bg: 'rgba(0,212,255,.12)' },
 };
 
 function subscribeNotifBadge(uid) {
@@ -7374,7 +7387,60 @@ function notifDateBucket(date) {
   return 'Daha Eski';
 }
 
+// AKILLI GÜNLÜK BİLDİRİM ÖZETİ 1.0 — "daily_summary" tipi, genel gruplanabilir bildirim kartlarından
+// KASITLI olarak farklı render ediliyor: tek satırlık bir olay değil, kategorilere ayrılmış birden
+// fazla GERÇEK olayı bir arada gösteren özel bir kart. NOTIF_GROUPABLE_TYPES'a EKLENMEDİ (her gün
+// kendi tekil kartı olsun, başka bir bildirimle asla birleşmesin diye).
+function renderDailySummaryNotifCard(doc) {
+  const n = doc.data();
+  const sd = n.summaryData || {};
+  const cats = sd.categories || {};
+  const CAT_META = {
+    arena: { ic: '🏆', label: 'Arena' }, pazar: { ic: '🛒', label: 'Pazar' },
+    forum: { ic: '💬', label: 'Topluluk' }, vip: { ic: '👑', label: 'VIP' },
+  };
+  const order = ['arena', 'pazar', 'forum', 'vip'];
+  const sectionsHtml = order.filter(k => (cats[k]||[]).length).map(k => {
+    const meta = CAT_META[k];
+    const items = cats[k].map(it => `<div class="dsum-item" ${it.action ? `onclick="event.stopPropagation();handleDailySummaryAction('${it.action.type}','${escapeJsAttr(it.action.id||'')}')"` : ''} style="${it.action?'cursor:pointer':''}">${escapeHtml(it.text)}</div>`).join('');
+    return `<div class="dsum-section"><div class="dsum-section-hdr">${meta.ic} ${meta.label}</div>${items}</div>`;
+  }).join('');
+  const body = sd.empty || !sectionsHtml
+    ? `<div class="dsum-empty">Bugün senin için önemli bir gelişme yok.</div>
+       <div class="dsum-shortcuts">
+         <span onclick="event.stopPropagation();closemo('notif-mo');openArenaPage()">🏆 Arena'ya Katıl</span>
+         <span onclick="event.stopPropagation();closemo('notif-mo');gt('market')">🛒 Pazar'ı Keşfet</span>
+         <span onclick="event.stopPropagation();closemo('notif-mo');gt('compare')">📱 Telefon Keşfet</span>
+       </div>`
+    : sectionsHtml;
+  const time = n.createdAt?.toDate ? fd(n.createdAt.toDate().toISOString()) : '';
+  const dateParts = sd.date ? sd.date.split('-') : null;
+  const dateLabel = dateParts ? `${parseInt(dateParts[2],10)} ${DTP_MONTHS[parseInt(dateParts[1],10)-1]}` : '';
+  return `<div class="notif-swipe-wrap" data-ids="${doc.id}">
+    <div class="notif-swipe-del" role="button" aria-label="Bu bildirimi sil" onclick="event.stopPropagation();performNotifDelete(this.closest('.notif-swipe-wrap'))">🗑️</div>
+    <div class="dsum-card ${n.read?'':'unread'}" onclick="markNotifRead('${doc.id}')">
+      <div class="dsum-hdr"><span>📅 ${dateLabel ? dateLabel + ' — ' : ''}Bugünün Özeti</span>${!n.read?'<div class="unread-dot"></div>':''}</div>
+      ${body}
+      <div class="notif-time" style="padding:0 14px 10px">${time}</div>
+    </div>
+  </div>`;
+}
+function markNotifRead(id) {
+  db.collection('teknohane_notifications').doc(id).update({ read: true }).catch(()=>{});
+}
+// Günlük özetteki tek bir satıra tıklanınca, olayın GERÇEKTEN ait olduğu ekrana yönlendirir — Arena
+// olayı → Ligim, Pazar/favori → ilgili ilan, Topluluk → ilgili konu, VIP → Profil. Yeni bir navigasyon
+// mekanizması İCAT EDİLMEDİ, tamamı zaten var olan fonksiyonlar.
+function handleDailySummaryAction(type, id) {
+  closemo('notif-mo');
+  if (type === 'listing' && id) { gt('market'); setTimeout(() => openDetail(id), 100); }
+  else if (type === 'post' && id) { gt('community'); setTimeout(() => openPost(id), 100); }
+  else if (type === 'arena') { openArenaLeagueDirect(); }
+  else if (type === 'profile') { gt('profile'); }
+}
+
 function renderNotifGroupCard(g) {
+  if (g.type === 'daily_summary') return renderDailySummaryNotifCard(g.items[0]);
   const first = g.items[0].data();
   const meta = NOTIF_ICONS[g.type] || { ic: '🔔', bg: 'var(--cdim)' };
   const anyUnread = g.items.some(d => !d.data().read);
