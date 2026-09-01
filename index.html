@@ -310,6 +310,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .post-meta-author{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;color:var(--text3);}
 .author-badge-icons{display:inline-flex;gap:2px;margin-left:4px;vertical-align:middle;}
 .author-badge-icon{font-size:11px;line-height:1;}
+.sys-acc-dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--text3);opacity:.45;margin-left:5px;vertical-align:middle;}
 .post-meta-stat{display:flex;align-items:center;gap:2px;}
 /* Yükleniyor iskeleti — Pazar'da ilan detayı fotoğrafları için tanımlanan @keyframes detskel
    shimmer animasyonu paylaşılıyor (global bir CSS keyframe adı, herhangi bir modüle özel değil). */
@@ -3724,6 +3725,14 @@ function computeAuthorBadgeIcons() {
 function authorBadgesHTML(badges) {
   if (!badges || !badges.length) return '';
   return `<span class="author-badge-icons">${badges.map(b => `<span class="author-badge-icon">${escapeHtml(b)}</span>`).join('')}</span>`;
+}
+
+// KONTROLLÜ TOPLULUK AKTİVİTESİ 2.0 — kasıtlı olarak authorBadges (VIP/Güvenilir Satıcı gibi 11px
+// belirgin ikon) DEĞİL, ayrı ve BİLİNÇLİ olarak çok küçük/düşük kontrastlı bir işaret. "gizli değil
+// ama sırıtmıyor" dengesi — DOM'da gerçekten var, title ile açıklaması okunabilir, ama görsel ağırlığı
+// diğer rozetlerin çok altında. Yalnızca worker'ın yazdığı isSystemAccount:true alanına bakar.
+function sysAccDotHTML(isSystemAccount) {
+  return isSystemAccount ? '<span class="sys-acc-dot" title="Topluluk İçeriği"></span>' : '';
 }
 
 // VIP + Güvenilir Satıcı — TEK merkezi görsel kaynak (VIP 2.0, Pazar VIP Görünürlüğü 2.0'da gerçek
@@ -12133,7 +12142,7 @@ function forumPostCardHTML(p) {
         <div class="post-title">${escapeHtml(p.title)}</div>
         ${(p.tags&&p.tags.length)?`<div class="post-tags-row">${p.tags.slice(0,3).map(t=>`<span class="post-tag-chip" onclick="event.stopPropagation();filterForumByTag('${escapeJsAttr(t)}')">#${escapeHtml(t)}</span>`).join('')}</div>`:''}
         <div class="post-meta-row">
-          <span onclick="event.stopPropagation();openPublicProfile('${p.uid}','${authorJs}')" class="post-meta-author">${authorSafe}</span>${authorBadgesHTML(p.authorBadges)}
+          <span onclick="event.stopPropagation();openPublicProfile('${p.uid}','${authorJs}')" class="post-meta-author">${authorSafe}</span>${authorBadgesHTML(p.authorBadges)}${sysAccDotHTML(p.isSystemAccount)}
           <span>· ${ts}</span>
           <span class="post-meta-stat">❤ ${likeCount}</span>
           <span class="post-meta-stat">💬 ${p.answerCount||0}</span>
@@ -12620,7 +12629,7 @@ function renderPostDetail() {
       </div>
       <div style="font-size:18px;font-weight:700;margin-bottom:8px;line-height:1.3">${escapeHtml(p.title)}</div>
       <div style="font-size:12px;color:var(--text3);margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <span><span onclick="openPublicProfile('${p.uid}','${authorJs}')" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;color:var(--text3)">${authorSafe}</span>${authorBadgesHTML(p.authorBadges)} · ${ts}</span>
+        <span><span onclick="openPublicProfile('${p.uid}','${authorJs}')" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;color:var(--text3)">${authorSafe}</span>${authorBadgesHTML(p.authorBadges)}${sysAccDotHTML(p.isSystemAccount)} · ${ts}</span>
         <span>👁 ${p.viewCount||0}</span>
       </div>
     </div>
@@ -12767,7 +12776,7 @@ function renderComments() {
     const quotedAuthorSafe = c.quotedAuthorName ? escapeHtml(c.quotedAuthorName) : '';
     return `<div class="comment-item ${isBest?'best':''}" id="cmt-${c.id}">
       ${isBest?'<div class="best-badge">✓ En İyi Cevap</div>':''}
-      <div class="comment-author" onclick="openPublicProfile('${c.uid}','${authorJs}')" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;display:inline-block">${authorSafe}</div>${authorBadgesHTML(c.authorBadges)}
+      <div class="comment-author" onclick="openPublicProfile('${c.uid}','${authorJs}')" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;display:inline-block">${authorSafe}</div>${authorBadgesHTML(c.authorBadges)}${sysAccDotHTML(c.isSystemAccount)}
       ${c.quotedCommentId?`<div class="comment-quote-ref" onclick="document.getElementById('cmt-${c.quotedCommentId}')?.scrollIntoView({behavior:'smooth',block:'center'})"><b>${quotedAuthorSafe}</b>: ${quotedSafe}</div>`:''}
       <div class="comment-text">${formatForumText(c.body)}</div>
       ${c.signature ? `<div class="forum-signature">${escapeHtml(c.signature)}</div>` : ''}
@@ -13236,6 +13245,27 @@ async function openPublicProfile(uid, nameHint, storeMode) {
   if (!body) return;
   document.getElementById('pub-profile-mo').classList.add('on');
   body.innerHTML = `<div class="load" style="padding:60px 0"><div class="spin"></div></div>`;
+
+  // KONTROLLÜ TOPLULUK AKTİVİTESİ 2.0 — sistem hesapları teknohane_users'ta HİÇ yok (bkz.
+  // cloudflare-push-worker.js'teki kök mimari notu), bu yüzden gerçek kullanıcı profili akışına hiç
+  // girmeden ayrı, basit bir görünüm gösteriyoruz — normal profildeki puan/rozet/ilan/VIP gibi hiçbir
+  // gerçek istatistik alanı burada YOK (çünkü gerçekten yok, uydurulmuyor).
+  if (typeof uid === 'string' && uid.startsWith('sysacc_')) {
+    try {
+      const snap = await db.collection('teknohane_system_accounts').doc(uid).get();
+      const d = snap.exists ? snap.data() : {};
+      const name = escapeHtml(d.displayName || nameHint || 'Üye');
+      const bio = d.bio ? `<div style="font-size:13px;color:var(--text2);margin-top:10px;line-height:1.5">${escapeHtml(d.bio)}</div>` : '';
+      body.innerHTML = `<div style="text-align:center;padding:20px 16px">
+        <div style="width:76px;height:76px;border-radius:50%;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:var(--cyan);margin:0 auto 12px">${name.charAt(0).toUpperCase()}</div>
+        <div style="font-size:17px;font-weight:700">${name}<span class="sys-acc-dot" title="Topluluk İçeriği" style="margin-left:7px"></span></div>
+        ${bio}
+      </div>`;
+    } catch (e) {
+      body.innerHTML = `<div class="no" style="padding:40px 24px">Profil yüklenemedi.</div>`;
+    }
+    return;
+  }
 
   const isMe = user && user.uid === uid;
   const isViewerAdmin = isAdminNow();
