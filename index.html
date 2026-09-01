@@ -823,6 +823,17 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
    Tamamen yeni, "mcard-" önekli sınıflar kullanılıyor; eski .lcard/.lcnd/.chatbtn2 gibi sınıflar
    İlan Detayı ve Sohbet ekranlarıyla paylaşıldığı için (dokunulması yasak) hiç değiştirilmedi,
    yalnızca bu dosyada artık kullanılmıyorlar (zararsız, silinmeleri de gerekmiyor). */
+/* BANA UYGUN İLANLAR 1.0 — mcardHTML()'in KENDİSİ (ikinci bir kart sistemi değil) yatay bir şeride
+   sığacak sabit genişlikte bir sarmalayıcı içinde; .mcard'ın kendi CSS'i (ana Pazar listesindeki
+   dikey akış) HİÇ değişmedi. */
+#personalized-listings-wrap{margin-bottom:14px;}
+.pu-strip{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+.pu-strip::-webkit-scrollbar{display:none;}
+.pu-item{flex:0 0 auto;width:250px;}
+.pu-item .mcard{height:100%;}
+.pu-reason{font-size:10.5px;color:var(--cyan);margin-top:5px;padding:0 2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pu-onboard{background:var(--surf);border:1px solid var(--border2);border-radius:14px;padding:16px;text-align:center;}
+.pu-onboard-txt{font-size:12.5px;color:var(--text2);margin:6px 0 12px;line-height:1.5;}
 .mcard{background:var(--surf);border:1px solid var(--border2);border-radius:14px;overflow:hidden;cursor:pointer;position:relative;box-shadow:0 2px 10px rgba(0,0,0,.2),0 0 0 1px rgba(0,212,255,.04);transition:transform .15s ease;}
 .mcard:active{transform:scale(.99);}
 .mcard.sold{opacity:.55;}
@@ -1754,6 +1765,7 @@ body.tk-maintenance #maintenance-gate{
         <button class="mtab off" onclick="scat('aksesuar',this)">🎒 Aksesuar</button>
       </div>
       <div id="my-store-cta-row"></div>
+      <div id="personalized-listings-wrap"></div>
       <div id="vip-store-showcase"></div>
       <div id="lgrid" class="lgrid">
         <div class="load"><div class="spin"></div><span>Yükleniyor…</span></div>
@@ -10221,6 +10233,147 @@ function renderVipStoreShowcase() {
   </div>`;
 }
 
+// ==== BANA UYGUN İLANLAR 1.0 ====
+// Yeni bir öneri motoru/paralel Pazar sistemi DEĞİL — yalnızca ZATEN yüklenmiş marketAllListings
+// üzerinde (yeni bir "tüm ilanları getir" sorgusu YOK), kullanıcının GERÇEK favorilerinden çıkarılan
+// basit, açıklanabilir bir skorla yeniden sıralama. Yapay zekâ/tahmin YOK — her sinyal doğrudan
+// gerçek bir Firestore alanından (favoritedByUids/priceHistory/followingUids/createdAt) geliyor.
+let personalizedListingIds = [];
+let personalizedFavoriteCount = 0;
+
+// Bir markayı bulmak için TÜM Pazar'da zaten kullanılan AYNI ifade (bkz. renderPriceAnalysis) —
+// yeni bir alan/varsayım İCAT EDİLMEDİ.
+function listingBrandGuess(l) { return (l.brand || (l.model || '').split(' ')[0] || '').toLowerCase(); }
+
+async function renderPersonalizedListings() {
+  const wrap = document.getElementById('personalized-listings-wrap');
+  if (!wrap) return;
+  if (!user) { wrap.innerHTML = ''; personalizedListingIds = []; return; }
+
+  let favListings = [];
+  try {
+    const snap = await db.collection('teknohane_listings').where('favoritedByUids', 'array-contains', user.uid).limit(30).get();
+    favListings = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (e) { wrap.innerHTML = ''; personalizedListingIds = []; return; }
+  personalizedFavoriteCount = favListings.length;
+
+  // MİNİMUM VERİ EŞİĞİ (görev talimatı §11): 2'den az favori ile GÜÇLÜ bir profil çıkarılamaz —
+  // sahte kesinlik yerine dürüst bir onboarding kartı gösterilir (görev talimatı §21).
+  if (favListings.length < 2) {
+    personalizedListingIds = [];
+    wrap.innerHTML = `<div class="pu-onboard">
+      <div style="font-size:13px;font-weight:700">🎯 Bana Uygun İlanlar</div>
+      <div class="pu-onboard-txt">Henüz seni yeterince tanımıyoruz 👋<br>Favorilerine birkaç ilan ekledikçe sana daha uygun ilanlar gösterebiliriz.</div>
+    </div>`;
+    return;
+  }
+
+  // marketAllListings henüz yüklenmemiş olabilir (Pazar'a girişte loadMarketPage(true) ile AYNI anda
+  // tetiklenmiş olabilir) — YENİ bir sorgu AÇMADAN, zaten süren yüklemenin bitmesini kısa aralıklarla
+  // bekleriz (en fazla ~3sn, sonra sessizce vazgeçilir).
+  let waited = 0;
+  while (!marketAllLoadedOnce && waited < 3000) { await new Promise(r => setTimeout(r, 150)); waited += 150; }
+  if (!marketAllLoadedOnce) { wrap.innerHTML = ''; personalizedListingIds = []; return; }
+
+  // ---- GERÇEK sinyaller, yalnızca favorilerden ----
+  const brandCounts = {}, catCounts = {}, prices = [];
+  const favModelWordsByBrand = {};
+  favListings.forEach(l => {
+    const brand = listingBrandGuess(l);
+    if (brand) brandCounts[brand] = (brandCounts[brand] || 0) + 1;
+    const cat = listingEffectiveCategory(l);
+    if (cat) catCounts[cat] = (catCounts[cat] || 0) + 1;
+    const p = parseInt(l.price || 0);
+    if (p > 0) prices.push(p);
+    const words = (l.modelName || l.model || '').toLowerCase().split(/\s+/).filter(w => w.length >= 4);
+    if (brand) (favModelWordsByBrand[brand] = favModelWordsByBrand[brand] || new Set()), words.forEach(w => favModelWordsByBrand[brand]?.add(w));
+  });
+  const topBrand = Object.keys(brandCounts).sort((a, b) => brandCounts[b] - brandCounts[a])[0];
+  const topBrandCount = topBrand ? brandCounts[topBrand] : 0;
+  const topCat = Object.keys(catCounts).sort((a, b) => catCounts[b] - catCounts[a])[0];
+  const avgPrice = prices.length >= 2 ? prices.reduce((a, b) => a + b, 0) / prices.length : null;
+  const favoritedIds = new Set(favListings.map(l => l.id));
+  const followingUids = new Set(Array.isArray(myProfileData.followingUids) ? myProfileData.followingUids : []);
+  const sevenDaysAgoMs = Date.now() - 7 * 86400000;
+
+  // ---- Adaylar: zaten belleğe yüklü ilanlar, kendi ilanların/zaten favorilediklerin/geçersiz olanlar HARİÇ ----
+  const candidates = marketAllListings.filter(l =>
+    l.uid !== user.uid && !favoritedIds.has(l.id) && !l.sold && !l.paused && l.approved !== false && !isListingExpired(l));
+
+  const scored = candidates.map(l => {
+    let score = 0;
+    const reasons = []; // {priority, text}
+    const brand = listingBrandGuess(l);
+    // +30 GÜÇLÜ marka ilgisi — tek bir favoriden ASLA (topBrandCount>=2 şartı, görev talimatı §4D/§5)
+    if (topBrand && brand === topBrand && topBrandCount >= 2) {
+      score += 30;
+      reasons.push({ priority: 1, text: '🎯 Favorilerindeki modellere benziyor' });
+      // +20 model benzerliği — AYNI markanın favorilenen model adlarıyla ortak anlamlı kelime
+      const words = (l.modelName || l.model || '').toLowerCase().split(/\s+/).filter(w => w.length >= 4);
+      if (words.some(w => favModelWordsByBrand[brand]?.has(w))) {
+        score += 20;
+        reasons.push({ priority: 1, text: '🎯 Favorilerindeki modellere benziyor' });
+      }
+    }
+    // +15 fiyat aralığı uyumu — yalnızca ≥2 GERÇEK favori fiyatından ortalama çıkarılabiliyorsa
+    if (avgPrice) {
+      const p = parseInt(l.price || 0);
+      if (p > 0 && Math.abs(p - avgPrice) <= avgPrice * 0.3) {
+        score += 15;
+        reasons.push({ priority: 3, text: '💰 İlgilendiğin fiyat aralığında' });
+      }
+    }
+    // +15 takip edilen mağaza
+    if (followingUids.has(l.uid)) {
+      score += 15;
+      reasons.push({ priority: 2, text: '🏪 Takip ettiğin mağazadan' });
+    }
+    // +10 kategori uyumu
+    if (topCat && listingEffectiveCategory(l) === topCat) score += 10;
+    // +10 güncellik
+    const createdMs = l.createdAt?.toDate ? l.createdAt.toDate().getTime() : null;
+    if (createdMs && createdMs >= sevenDaysAgoMs) score += 10;
+    // +10 GERÇEK fiyat düşüşü (mevcut listingPriceDropInfo — sahte/tahmini YOK)
+    if (listingPriceDropInfo(l)) {
+      score += 10;
+      reasons.push({ priority: 1.5, text: '⬇️ Fiyatı gerçekten düştü' });
+    }
+    reasons.sort((a, b) => a.priority - b.priority);
+    return { l, score, reason: reasons[0]?.text || null };
+  }).filter(x => x.score > 0).sort((a, b) => b.score - a.score);
+
+  // ÇEŞİTLİLİK (görev talimatı §5/§6): aynı marka+temel model'den veya aynı satıcıdan en fazla 2 —
+  // liste tek bir modelin/satıcının kopyalarıyla dolmasın diye.
+  const modelCounts = {}, sellerCounts = {};
+  const final = [];
+  for (const x of scored) {
+    const modelKey = listingBrandGuess(x.l) + '|' + (x.l.modelName || x.l.model || '').toLowerCase().split(' ').slice(0, 2).join(' ');
+    if ((modelCounts[modelKey] || 0) >= 2) continue;
+    if ((sellerCounts[x.l.uid] || 0) >= 2) continue;
+    modelCounts[modelKey] = (modelCounts[modelKey] || 0) + 1;
+    sellerCounts[x.l.uid] = (sellerCounts[x.l.uid] || 0) + 1;
+    final.push(x);
+    if (final.length >= 5) break;
+  }
+
+  if (!final.length) { wrap.innerHTML = ''; personalizedListingIds = []; return; }
+  personalizedListingIds = final.map(x => x.l.id);
+  wrap.innerHTML = `<div style="margin-bottom:8px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px"><span>🎯</span><span>Bana Uygun İlanlar</span></div>
+    <div class="pu-strip">${final.map(x => `<div class="pu-item">${mcardHTML(x.l)}${x.reason ? `<div class="pu-reason">${x.reason}</div>` : ''}</div>`).join('')}</div>`;
+}
+
+// Filtre/arama/sekme değiştiğinde (rlistings() zaten HEP çağrıldığı için) TEK bir yerden — yeni
+// bir Firestore okuması YOK, yalnızca görünürlük. Görev talimatı §14/§15: kişiselleştirme mevcut
+// filtreleri/aramayı ASLA bypass etmemeli, yalnızca "Tümü" + filtresiz/aramasız keşif ekranında görünür.
+function syncPersonalizedSectionVisibility() {
+  const wrap = document.getElementById('personalized-listings-wrap');
+  if (!wrap) return;
+  const raw = (document.getElementById('msrch')?.value || '').trim();
+  const filtersActive = !!(filterMin || filterMax || filterBrand !== 'Tümü' || filterCondition !== 'Tümü' || filterSort !== 'yeni' || filterCategory !== 'tumu'
+    || filterSellerTrust.vip || filterSellerTrust.trustedSeller || filterSellerTrust.poolSystem);
+  wrap.style.display = (mktab === 'all' && !raw && !filtersActive) ? '' : 'none';
+}
+
 // Bir ilan kartının GÖRSEL imzası — Pazar sekmesine her dönüşte (veri değişmese bile) tüm
 // kartların/görsellerin DOM'da yeniden yaratılmasını önlemek için (bkz. rlistings sonundaki kontrol).
 function listingCardSignature(l) {
@@ -10278,6 +10431,7 @@ function renderMarketCard(entry) {
 function rlistings() {
   const grid = document.getElementById('lgrid');
   if (!grid) return;
+  syncPersonalizedSectionVisibility();
   const raw = (document.getElementById('msrch')?.value||'').trim();
   const q = raw.toLowerCase();
 
@@ -19787,6 +19941,7 @@ function gt(name) {
     else rlistings();
     loadVipStoreShowcaseIfNeeded();
     renderMyStoreCtaRow();
+    renderPersonalizedListings().catch(()=>{});
     document.getElementById('market-dot')?.classList.remove('on');
     showMarketBanner();
     // Doğrudan reklamlar yalnızca uygulama AÇILIRKEN bir kez çekiliyordu — admin yeni bir reklam
