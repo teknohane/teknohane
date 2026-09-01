@@ -1033,6 +1033,17 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .home-mkt-photo-empty{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:24px;}
 .home-mkt-price{font-size:14px;font-weight:800;margin-top:8px;}
 .home-mkt-title{font-size:11.5px;color:var(--text2);line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+/* TEKNOHANE'DE BUGÜN 1.0 — kişiselleştirilmiş özet satırı + kartlar. Trend/Pazar şeritleriyle AYNI
+   ince cyan-kenarlı gölge dili, ama dikey liste (yatay kaydırma değil — az sayıda, yüksek öncelikli
+   gerçek sinyal olduğu için kaydırmaya gerek yok). */
+.home-today-headline{font-size:13.5px;color:var(--text2);margin:-20px 0 20px;padding:0 2px;}
+.home-today-card{display:flex;gap:12px;align-items:center;background:var(--surf);border:1px solid var(--border2);border-radius:16px;padding:14px;margin-bottom:10px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.2),0 0 0 1px rgba(0,212,255,.04);transition:transform .15s ease;}
+.home-today-card:last-child{margin-bottom:0;}
+.home-today-card:active{transform:scale(.98);}
+.htc-ic{font-size:22px;flex-shrink:0;width:38px;height:38px;border-radius:50%;background:var(--cdim);display:flex;align-items:center;justify-content:center;}
+.htc-body{flex:1;min-width:0;}
+.htc-title{font-size:12px;font-weight:700;color:var(--text2);}
+.htc-txt{font-size:13px;color:var(--text);margin-top:2px;line-height:1.4;overflow-wrap:anywhere;}
 /* Ana sayfa — Mini istatistik şeridi (cam efekti/glassmorphism, Selamlama'nın hemen altında). */
 #home-mini-stats{display:flex;gap:10px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;scroll-snap-type:x proximity;}
 #home-mini-stats::-webkit-scrollbar{display:none;}
@@ -3479,6 +3490,9 @@ auth.onAuthStateChanged(u => {
     // GERÇEK user ile tazeler; yoksa (rhome() henüz hiç çalışmadıysa) sessizce no-op (rhome() zaten
     // ilk çalıştığında kendi çağrısını yapacak).
     renderHomeArenaHub().catch(()=>{});
+    // TEKNOHANE'DE BUGÜN 1.0 — renderHomeArenaHub()'la AYNI "soğuk başlatma" deseni: rhome() zaten
+    // çalıştıysa (container var) gerçek user ile tazelenir, yoksa sessizce no-op.
+    renderHomeTodayCards().catch(()=>{});
 
     // UI'ı hemen güncelle, Firestore işlemlerini bekleme — rlistings/checkMyExpiredListings artık
     // kendi hazır olma durumunu kendisi yönetiyor (bkz. marketAllLoadedOnce/marketMineLoaded),
@@ -3554,6 +3568,12 @@ async function syncUserProfile(u) {
     renderHeaderAvatar(); // eski Auth fotoğrafı değil, artık gerçek Firestore verisiyle
     refreshHomeGreetingName(); // Firestore'daki gerçek displayName ile ana ekran selamlamasını tamamla
     refreshHomeUnreadRow();
+    // TEKNOHANE'DE BUGÜN 1.0 — followingUids/VIP alanları ancak BURADA (gerçek profil dokümanı
+    // geldiğinde) güvenilir; onAuthStateChanged'deki ilk çağrı myProfileData henüz {} iken çalışmış
+    // olabilir (Mağaza/VIP kartları o an sessizce atlanmış olur) — profil gelince BİR KEZ daha
+    // tazelenir, yeni bir Firestore okuması olmayan renderHomeArenaHub() deseninin AKSİNE burada
+    // gerçekten YENİ veri (followingUids/vip) mevcut olduğu için bu ikinci çağrı gerekli.
+    renderHomeTodayCards().catch(()=>{});
     requestProfileRerender();
 
     // Ad-soyaddan otomatik kullanıcı adı ataması — hem yeni kayıt olan (existingData henüz {})
@@ -14688,6 +14708,15 @@ function renderVideoSection(vids) {
 // tek Firestore count() çifti — Promise.all ile paralel) + (varsa) okunmamış mesaj satırı. Hem
 // özet cümlesi hem mesaj satırı veri yoksa/0 ise HİÇ basılmıyor (mevcut "N=0 ise gösterme"
 // ilkesiyle birebir aynı) — kart hiçbir zaman sahte/boş bir istatistikle "vitrin" hissini bozmuyor.
+// TEKNOHANE'DE BUGÜN 1.0 — kullanıcının KENDİ cihaz saatine göre (sunucu/TR-sabit varsayımı YOK,
+// bu tamamen istemci tarafında çalışıyor, gerçek yerel saat zaten elde) gün-içi selamlama kelimesi.
+function homeGreetingWord() {
+  const h = new Date().getHours();
+  if (h < 6) return 'İyi geceler';
+  if (h < 12) return 'Günaydın';
+  if (h < 18) return 'İyi günler';
+  return 'İyi akşamlar';
+}
 async function loadHomeGreeting() {
   const el = document.getElementById('home-greeting');
   if (!el) return;
@@ -14707,7 +14736,7 @@ async function loadHomeGreeting() {
     if (text) summaryRow = `<div class="hg-summary">${text}</div>`;
   } catch(e) {}
   el.innerHTML = `<div class="home-greeting-card">
-    <div id="home-greeting-name" style="font-weight:800;font-size:19px;letter-spacing:-.3px">👋 Hoş Geldin${firstName ? ' ' + escapeHtml(firstName) : ''}</div>
+    <div id="home-greeting-name" style="font-weight:800;font-size:19px;letter-spacing:-.3px">👋 ${homeGreetingWord()}${firstName ? ' ' + escapeHtml(firstName) : ''}</div>
     ${summaryRow}
     <div id="home-unread-row"></div>
   </div>`;
@@ -14723,7 +14752,8 @@ function refreshHomeGreetingName() {
   const nameEl = document.getElementById('home-greeting-name');
   if (!nameEl) return;
   const firstName = (myProfileData?.displayName || user?.displayName || '').trim().split(' ')[0];
-  nameEl.textContent = firstName ? `👋 Hoş Geldin ${firstName}` : '👋 Hoş Geldin';
+  const word = homeGreetingWord();
+  nameEl.textContent = firstName ? `👋 ${word} ${firstName}` : `👋 ${word}`;
 }
 
 // Okunmamış mesaj satırı da (isim gibi) auth/chatListCache hazır olma zamanlamasına bağlı —
@@ -14734,6 +14764,126 @@ function refreshHomeUnreadRow() {
   if (!rowEl) return;
   const unread = getUnreadChatCount();
   rowEl.innerHTML = unread ? `<div class="hg-row" onclick="openChatList()"><span class="hg-row-ic">💬</span><span class="hg-row-txt">${unread} okunmamış mesaj</span></div>` : '';
+}
+
+// TEKNOHANE'DE BUGÜN 1.0 — kişiselleştirilmiş özet kartları (Pazar/Mağaza/Topluluk/VIP). Yeni bir
+// paralel sistem/koleksiyon İCAT EDİLMEDİ: Mağaza+Topluluk sinyalleri TEK bir paylaşılan sorguyla
+// (bugünün teknohane_notifications'ı — Akıllı Günlük Bildirim Özeti'nin AYNI index'ini kullanıyor),
+// Pazar fiyat düşüşü TEK bir favoriler sorgusuyla (favoritedByUids array-contains, index gerekmiyor,
+// dropAmount hesaplaması loadHomePage'in kendi sırlama yardımcısıyla AYNI mantık), VIP zaten bellekte
+// olan myProfileData'dan. Arena BİLEREK bu fonksiyona dahil edilmedi — renderHomeArenaHub() zaten
+// kendi kartını (lig/sıra/puan/bugünkü maç) tam olarak gösteriyor, ikinci bir Arena sorgusu/kartı
+// İCAT ETMEK N+1 olurdu. Hiçbir kart altında GERÇEK veri yoksa gösterilmez.
+async function renderHomeTodayCards() {
+  const headlineEl = document.getElementById('home-today-headline');
+  const cardsEl = document.getElementById('home-today-cards');
+  if (!cardsEl) return;
+  if (!user) {
+    const wrap = cardsEl.closest('.home-section');
+    if (wrap) wrap.style.display = 'none';
+    if (headlineEl) headlineEl.innerHTML = '';
+    return;
+  }
+
+  const cards = []; // {priority, html}
+
+  // ---- Bugünün bildirimleri — Mağaza + Topluluk sinyalleri için TEK paylaşılan sorgu ----
+  let todayNotifs = [];
+  try {
+    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+    const snap = await db.collection('teknohane_notifications')
+      .where('toUid', '==', user.uid)
+      .where('createdAt', '>=', todayStart)
+      .limit(100).get();
+    todayNotifs = snap.docs.map(d => d.data());
+  } catch (e) {}
+  const byType = {};
+  todayNotifs.forEach(n => { byType[n.type] = (byType[n.type] || 0) + 1; });
+  const firstOfType = (t) => todayNotifs.find(n => n.type === t);
+
+  // ---- MAĞAZA: takip ettiğin mağazalarda yeni ilan (görev kuralı §7: hiç takip yoksa bölüm HİÇ
+  // gösterilmez, boş kart oluşturulmaz) ----
+  if (Array.isArray(myProfileData.followingUids) && myProfileData.followingUids.length) {
+    const n = byType['followed_new_listing'] || 0;
+    if (n > 0) {
+      const first = firstOfType('followed_new_listing');
+      const clickTarget = first?.listingId ? `gt('market');setTimeout(()=>openDetail('${first.listingId}'),100)` : "gt('market')";
+      cards.push({ priority: 2, html: `<div class="home-today-card" onclick="${clickTarget}">
+        <div class="htc-ic">🏪</div>
+        <div class="htc-body"><div class="htc-title">Takip Ettiğin Mağazalar</div>
+        <div class="htc-txt">${n > 1 ? `Takip ettiğin mağazalarda ${n} yeni ilan var.` : escapeHtml(first?.message || 'Takip ettiğin bir mağaza yeni ilan ekledi.')}</div></div>
+      </div>` });
+    }
+  }
+
+  // ---- PAZAR: favorilerinde GERÇEK fiyat düşüşü (yalnızca priceHistory'den, tahmin YOK) ----
+  try {
+    const favSnap = await db.collection('teknohane_listings').where('favoritedByUids', 'array-contains', user.uid).limit(30).get();
+    const drops = favSnap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .filter(l => !l.sold && !l.paused && !isListingExpired(l))
+      .map(l => {
+        const h = Array.isArray(l.priceHistory) ? l.priceHistory : [];
+        if (!h.length) return null;
+        const firstPrice = h[0]?.price;
+        const cur = parseInt(l.price || 0);
+        const drop = (typeof firstPrice === 'number' && firstPrice > cur) ? (firstPrice - cur) : 0;
+        return drop > 0 ? { l, drop } : null;
+      }).filter(Boolean).sort((a, b) => b.drop - a.drop).slice(0, 3);
+    if (drops.length) {
+      const txt = drops.length > 1
+        ? `Favorilerinde ${drops.length} fiyat düşüşü var.`
+        : `"${escapeHtml(drops[0].l.model || '')}" ilanının fiyatı ₺${drops[0].drop.toLocaleString('tr-TR')} düştü.`;
+      cards.push({ priority: 1, html: `<div class="home-today-card" onclick="gt('market');setTimeout(()=>openDetail('${drops[0].l.id}'),100)">
+        <div class="htc-ic">🛒</div>
+        <div class="htc-body"><div class="htc-title">Sana Uygun İlanlar</div>
+        <div class="htc-txt">${txt}</div></div>
+      </div>` });
+    }
+  } catch (e) {}
+
+  // ---- TOPLULUK: mevcut bildirim türlerinden sayım, Forum verisine ayrı bir sorgu AÇILMADI ----
+  const communityCount = (byType['post_comment'] || 0) + (byType['comment_reply'] || 0) + (byType['comment_liked'] || 0) + (byType['post_liked'] || 0) + (byType['mention'] || 0) + (byType['best_answer'] || 0);
+  if (communityCount > 0) {
+    cards.push({ priority: 3, html: `<div class="home-today-card" onclick="gt('community')">
+      <div class="htc-ic">💬</div>
+      <div class="htc-body"><div class="htc-title">Toplulukta</div>
+      <div class="htc-txt">Bugün ${communityCount} yeni etkileşim aldın.</div></div>
+    </div>` });
+  }
+
+  // ---- VIP: yalnızca gerçekten VIP ise, mevcut vipStoreUsageThisMonth/VIP_STORE_LIMITS'ten ----
+  if (isVipActive(myProfileData)) {
+    if (vipStoreUsageThisMonth === null) { try { await loadVipStoreUsageIfNeeded(); } catch (e) {} }
+    const usage = vipStoreUsageThisMonth || {};
+    const remaining = [];
+    if ((VIP_STORE_LIMITS.featured - (usage.featuredUsed || 0)) > 0) remaining.push(`${VIP_STORE_LIMITS.featured - (usage.featuredUsed || 0)} Öne Çıkar`);
+    if ((VIP_STORE_LIMITS.showcase - (usage.showcaseUsed || 0)) > 0) remaining.push(`${VIP_STORE_LIMITS.showcase - (usage.showcaseUsed || 0)} Vitrin`);
+    if ((VIP_STORE_LIMITS.urgent - (usage.urgentUsed || 0)) > 0) remaining.push(`${VIP_STORE_LIMITS.urgent - (usage.urgentUsed || 0)} Acil`);
+    let vipText = remaining.length ? `Bu ay kalan hakların: ${remaining.join(', ')}.` : '';
+    const expDate = myProfileData.vipExpiresAt?.toDate ? myProfileData.vipExpiresAt.toDate() : null;
+    if (expDate) {
+      const daysLeft = Math.ceil((expDate.getTime() - Date.now()) / 86400000);
+      if (daysLeft >= 0 && daysLeft <= 7) vipText += `${vipText ? ' ' : ''}VIP üyeliğin ${daysLeft} gün sonra bitiyor.`;
+    }
+    if (vipText) {
+      cards.push({ priority: 4, html: `<div class="home-today-card" onclick="openVipBenefits()">
+        <div class="htc-ic">👑</div>
+        <div class="htc-body"><div class="htc-title">VIP Durumun</div>
+        <div class="htc-txt">${escapeHtml(vipText)}</div></div>
+      </div>` });
+    }
+  }
+
+  cards.sort((a, b) => a.priority - b.priority);
+  const wrap = cardsEl.closest('.home-section');
+  if (!cards.length) {
+    if (wrap) wrap.style.display = 'none';
+    if (headlineEl) headlineEl.innerHTML = '';
+    return;
+  }
+  if (wrap) wrap.style.display = '';
+  cardsEl.innerHTML = cards.map(c => c.html).join('');
+  if (headlineEl) headlineEl.innerHTML = `<div class="home-today-headline">Bugün Teknohane'de senin için ${cards.length} önemli gelişme var.</div>`;
 }
 
 // Trendler — GERÇEK bir kullanım-popülerliği verisi yok (bkz. trackCompareUsage, yalnızca kişisel
@@ -14935,11 +15085,18 @@ async function rhome() {
   const c=document.getElementById('home-c');
   c.innerHTML = `
       <div class="home-section" style="animation-delay:0ms"><div id="home-greeting"></div></div>
+      <div class="home-section" style="animation-delay:10ms"><div id="home-today-headline"></div></div>
       <div class="home-section" style="animation-delay:25ms"><div id="home-mini-stats"></div></div>
       <div class="home-section" style="animation-delay:35ms"><div id="home-arena-hub">${homeArenaHubSkeletonHtml()}</div></div>
+      <div class="home-section" style="animation-delay:42ms"><div id="home-today-cards"></div></div>
       <div class="home-section" style="animation-delay:50ms">
         <div class="sh"><span class="st"><span class="sh-ic">🔥</span>Trendler</span></div>
         <div id="trend-strip"></div>
+        <div class="home-today-card" style="margin-top:10px" onclick="gt('compare');setTimeout(()=>openPhoneFinder(),80)">
+          <div class="htc-ic">📱</div>
+          <div class="htc-body"><div class="htc-title">Yeni Telefon mu Arıyorsun?</div>
+          <div class="htc-txt">Sana uygun modelleri birlikte bulalım.</div></div>
+        </div>
       </div>
       <div class="home-section" style="animation-delay:75ms">
         <div class="sh"><span class="st"><span class="sh-ic">⭐</span>Öne Çıkan İlan</span></div>
@@ -14983,6 +15140,7 @@ async function rhome() {
   loadHomeGreeting().catch(()=>{});
   renderHomeMiniStats().catch(()=>{});
   renderHomeArenaHub().catch(()=>{});
+  renderHomeTodayCards().catch(()=>{});
   renderTrendingPhones().catch(()=>{});
   renderFeaturedListing().catch(()=>{});
   loadHomeMarketPreview().catch(()=>{});
