@@ -828,10 +828,20 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
    sığacak sabit genişlikte bir sarmalayıcı içinde; .mcard'ın kendi CSS'i (ana Pazar listesindeki
    dikey akış) HİÇ değişmedi. */
 #personalized-listings-wrap{margin-bottom:14px;}
-.pu-strip{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+/* KÖK NEDEN DÜZELTMESİ (kullanıcı raporu — "Bana Uygun İlanlar" açıklaması görünmüyor/sığmıyor,
+   kaydırınca görünüyor, 2026-09-03): .pu-strip flex satırının varsayılan align-items:stretch'i
+   TÜM .pu-item'ları en uzun kardeşin yüksekliğine eşitliyordu; .pu-item .mcard{height:100%} da bu
+   eşitlenmiş (gerçek içerikten daha büyük olabilen) yüksekliğin TAMAMINI dolduruyordu — geriye
+   .pu-reason açıklama satırına HİÇ yer kalmıyordu, metin .pu-item kutusunun ALTINA taşıp (overflow:
+   visible olduğu için kesilmiyor ama) sonraki bölümün İÇİNE/ALTINA sarkıyordu; yalnızca sayfa
+   kaydırılıp o bölge görünür hâle gelince fark ediliyordu. Düzeltme: align-items:flex-start ile
+   kartlar birbirine göre ARTIK eşitlenmiyor (yatay bir şeritte kartların üstten hizalı olması yeterli,
+   altların hizalı olması gerekmiyor) — bu sayede her .pu-item yalnızca KENDİ gerçek içeriği (mcard +
+   açıklama satırı) kadar yer kaplıyor, .mcard{height:100%} kuralı da artık gereksiz/zararlı olduğu
+   için kaldırıldı. */
+.pu-strip{display:flex;align-items:flex-start;gap:10px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
 .pu-strip::-webkit-scrollbar{display:none;}
 .pu-item{flex:0 0 auto;width:250px;}
-.pu-item .mcard{height:100%;}
 .pu-reason{font-size:10.5px;color:var(--cyan);margin-top:5px;padding:0 2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .pu-onboard{background:var(--surf);border:1px solid var(--border2);border-radius:14px;padding:16px;text-align:center;}
 .pu-onboard-txt{font-size:12.5px;color:var(--text2);margin:6px 0 12px;line-height:1.5;}
