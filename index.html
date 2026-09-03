@@ -4188,10 +4188,10 @@ function renderVipStoreDashboardHTML(profileData, myListings) {
   if (!hasEntitlement(profileData, 'vip_marketplace_store')) return renderVipStoreLockedCardHTML();
   const listings = myListings || [];
   const active = listings.filter(l => !l.sold && l.approved !== false);
-  const totalViews = listings.reduce((s,l) => s + (l.viewCount||0), 0);
-  const totalFavs = listings.reduce((s,l) => s + (l.favoritedByUids||[]).length, 0);
+  const totalViews = listings.reduce((s,l) => s + listingDisplayViewCount(l), 0);
+  const totalFavs = listings.reduce((s,l) => s + listingDisplayFavoriteCount(l), 0);
   const totalContacts = listings.reduce((s,l) => s + (l.contactCount||0), 0);
-  const top = active.length ? [...active].sort((a,b) => (b.viewCount||0) - (a.viewCount||0))[0] : null;
+  const top = active.length ? [...active].sort((a,b) => listingDisplayViewCount(b) - listingDisplayViewCount(a))[0] : null;
   // VIP HAKLARI 2.1 — dört hakkın DÖRDÜ de kendi bağımsız alanından okunuyor (featuredUsed/
   // showcaseUsed/urgentUsed/refreshesUsed) — artık hiçbiri diğerinin sayacını paylaşmıyor.
   const usage = vipStoreUsageThisMonth || {};
@@ -4216,7 +4216,7 @@ function renderVipStoreDashboardHTML(profileData, myListings) {
       <div class="pbadge-item"><div class="pbadge-ic" style="font-size:16px">💬</div><div class="pbadge-lbl">${totalContacts} mesaj</div></div>
       <div class="pbadge-item"><div class="pbadge-ic" style="font-size:16px">👥</div><div class="pbadge-lbl">${followerCount} takipçi</div></div>
     </div>
-    ${top ? `<div style="font-size:11.5px;color:var(--text2);margin-bottom:10px">🏆 En çok görüntülenen: <b>${escapeHtml(top.model||'İlan')}</b> (${top.viewCount||0} görüntülenme)</div>` : ''}`}
+    ${top ? `<div style="font-size:11.5px;color:var(--text2);margin-bottom:10px">🏆 En çok görüntülenen: <b>${escapeHtml(top.model||'İlan')}</b> (${listingDisplayViewCount(top)} görüntülenme)</div>` : ''}`}
     <div style="font-size:12px;font-weight:700;margin-bottom:6px">Bu Ay VIP Hakların</div>
     <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:12px">
       ${[
@@ -4251,7 +4251,7 @@ function renderVipStoreDashboardHTML(profileData, myListings) {
 // "gizleme" gerekmiyor, gerçek sınır zaten Rules'ta). En çok ilgi gören ilan en üstte.
 function renderStoreStatsHTML(myListings) {
   const listings = [...(myListings||[])].filter(l => l.approved !== false)
-    .sort((a,b) => ((b.viewCount||0)+(b.favoritedByUids||[]).length*3+(b.contactCount||0)*2) - ((a.viewCount||0)+(a.favoritedByUids||[]).length*3+(a.contactCount||0)*2));
+    .sort((a,b) => (listingDisplayViewCount(b)+listingDisplayFavoriteCount(b)*3+(b.contactCount||0)*2) - (listingDisplayViewCount(a)+listingDisplayFavoriteCount(a)*3+(a.contactCount||0)*2));
   if (!listings.length) return `<div class="ud-empty">Henüz ilanın yok. İlan verince performans verileri burada görünecek.</div>`;
   return listings.map(l => `
     <div style="padding:10px 0;border-bottom:1px solid var(--border)">
@@ -4260,8 +4260,8 @@ function renderStoreStatsHTML(myListings) {
         ${l.sold?'<span style="font-size:10.5px;color:var(--text3);flex-shrink:0">Satıldı</span>':''}
       </div>
       <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;color:var(--text2);margin-bottom:4px">
-        <span>👁️ ${l.viewCount||0}</span>
-        <span>❤️ ${(l.favoritedByUids||[]).length}</span>
+        <span>👁️ ${listingDisplayViewCount(l)}</span>
+        <span>❤️ ${listingDisplayFavoriteCount(l)}</span>
         <span>💬 ${l.contactCount||0}</span>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
@@ -9668,8 +9668,10 @@ let filterSellerTrust = { vip: false, trustedSeller: false, poolSystem: false };
 
 const MARKET_BRANDS = ['Tümü','Apple','Samsung','Xiaomi','Google','OnePlus','OPPO','vivo','Nothing','Sony','Motorola','realme','ASUS','Huawei','Honor'];
 const MARKET_CONDITIONS = ['Tümü','Sıfır','Az Kullanılmış','İkinci El'];
-// PAZAR 3.0 — "en çok favorilenen"/"en çok görüntülenen" GERÇEK sayaçlardan (favoritedByUids.length/
-// viewCount, ikisi de zaten var olan alanlar — VIP mağaza istatistiklerinde de kullanılıyor).
+// PAZAR 3.0 — "en çok favorilenen"/"en çok görüntülenen" listingDisplayFavoriteCount/
+// listingDisplayViewCount (bkz. tanımı) kullanır — gerçek favoritedByUids.length/viewCount ÜZERİNE
+// admin'in ayarladığı görünür-etkileşim tabanını (displayFavoriteBase/displayViewBase) ekler, VIP
+// mağaza istatistikleriyle AYNI yardımcılar (2026-09-02).
 // "Fiyatı düşenler" YALNIZCA gerçek priceHistory verisi olan ilanları öne alır (bkz. rlistings) —
 // geçmişi olmayan ilan için sahte bir "düştü" iddiası ASLA üretilmez.
 const MARKET_SORTS = [{v:'yeni',l:'En Yeni'},{v:'price_asc',l:'Fiyat: Artan'},{v:'price_desc',l:'Fiyat: Azalan'},{v:'most_favorited',l:'En Çok Favorilenen'},{v:'most_viewed',l:'En Çok Görüntülenen'},{v:'price_drop',l:'Fiyatı Düşenler'}];
@@ -10137,6 +10139,18 @@ function listingPriceDropInfo(l) {
   const within7d = !isNaN(atMs) && (Date.now() - atMs) < 7 * 86400000;
   return { drop, within7d };
 }
+
+// PAZAR — GÖRÜNÜR ETKİLEŞİM SAYISI (kullanıcı talebi — 2026-09-02): admin'in Yönetim panelinden
+// belirlediği bir aralıktan HER ilana BİR KEZ rastgele atanan bir taban (displayViewBase/
+// displayFavoriteBase — bkz. /internal/listing-boost-assign), GERÇEK viewCount/favoritedByUids'in
+// ÜZERİNE eklenerek gösterilir. GERÇEK alanların KENDİSİ hiç değişmez — sıralama/kişiselleştirme/
+// fiyat-uyarısı bildirimleri gibi tüm iç mantık HÂLÂ yalnızca gerçek veriyi okur (bkz. ilgili
+// fonksiyonlar); yalnızca bu iki yardımcıyı çağıran EKRAN gösterimleri (kart/detay/mağaza
+// istatistikleri/sıralama) taban+gerçek toplamını görür. Taban hiç atanmamışsa (0/undefined)
+// gösterilen sayı gerçek sayıyla birebir aynı kalır — geriye dönük tamamen uyumlu, mevcut ilanlar
+// admin bir aralık belirleyip toplu atama yapana kadar hiç etkilenmez.
+function listingDisplayViewCount(l) { return (l.viewCount || 0) + (l.displayViewBase || 0); }
+function listingDisplayFavoriteCount(l) { return (l.favoritedByUids || []).length + (l.displayFavoriteBase || 0); }
 function mcardHTML(l) {
   const mine = user && l.uid === user.uid;
   const fav = favs.has(l.id);
@@ -10517,8 +10531,8 @@ function rlistings() {
   // istatistiklerinde de kullanılıyor) — hiçbir sayı uydurulmuyor.
   if (filterSort === 'price_asc') items = [...items].sort((a,b) => (a.sold?1:0) - (b.sold?1:0) || parseInt(a.price||0) - parseInt(b.price||0));
   else if (filterSort === 'price_desc') items = [...items].sort((a,b) => (a.sold?1:0) - (b.sold?1:0) || parseInt(b.price||0) - parseInt(a.price||0));
-  else if (filterSort === 'most_favorited') items = [...items].sort((a,b) => (a.sold?1:0) - (b.sold?1:0) || (b.favoritedByUids||[]).length - (a.favoritedByUids||[]).length);
-  else if (filterSort === 'most_viewed') items = [...items].sort((a,b) => (a.sold?1:0) - (b.sold?1:0) || (b.viewCount||0) - (a.viewCount||0));
+  else if (filterSort === 'most_favorited') items = [...items].sort((a,b) => (a.sold?1:0) - (b.sold?1:0) || listingDisplayFavoriteCount(b) - listingDisplayFavoriteCount(a));
+  else if (filterSort === 'most_viewed') items = [...items].sort((a,b) => (a.sold?1:0) - (b.sold?1:0) || listingDisplayViewCount(b) - listingDisplayViewCount(a));
   else if (filterSort === 'price_drop') {
     // Yalnızca GERÇEK priceHistory'si olan (bkz. submitListing edit dalı) ilanlar öne alınır — geçmişi
     // olmayan bir ilan için "düştü" iddiası ASLA üretilmez, o ilanlar listenin geri kalanında (yeni→eski) kalır.
@@ -11426,6 +11440,7 @@ async function submitListing() {
       // gruplama/bildirimi) tamamen sunucu tarafında, ilanı yayınlama hızını ETKİLEMEZ. VIP olmayan/
       // mağazası olmayan kullanıcıda worker sessizce no-op döner — istemci yanıtı hiç işlemiyor.
       notifyStoreFollowersNewListing(newListingRef.id);
+      assignPazarBoostForNewListing(newListingRef.id);
       showToast('⏳', 'rgba(255,149,0,.15)', 'İlanınız Gönderildi', 'İncelendikten sonra Pazar\'da yayınlanacaktır.');
       // SİHİRBAZ 1.0 — ADIM 8 KANCASI: kullanıcı Adım 8'de "yayınlanınca hemen görmek istiyorum"
       // kutusunu işaretlediyse, YENİ bir talep/onay mekanizması İCAT EDİLMEDEN, ilan gerçekten
@@ -11786,10 +11801,12 @@ function openDetail(id) {
       const fresh = snap.data();
       currentListing.viewCount = fresh.viewCount || 0;
       currentListing.favoritedByUids = fresh.favoritedByUids || [];
+      currentListing.displayViewBase = fresh.displayViewBase || 0;
+      currentListing.displayFavoriteBase = fresh.displayFavoriteBase || 0;
       const vEl = document.querySelector('#detail-mo .det-hero-stats');
       if (vEl) {
         const viewSpan = Array.from(vEl.querySelectorAll('span')).find(s => s.textContent.includes('görüntülenme'));
-        if (viewSpan) viewSpan.textContent = `👁 ${currentListing.viewCount} görüntülenme`;
+        if (viewSpan) viewSpan.textContent = `👁 ${listingDisplayViewCount(currentListing)} görüntülenme`;
       }
       renderDetFavCount(currentListing);
     }).catch(()=>{});
@@ -11855,8 +11872,8 @@ function renderDetailPage(l) {
         : `<div class="det-hero-price" style="font-size:17px;color:var(--cyan);cursor:pointer" onclick="gt('profile')">🔒 Fiyatı görmek için giriş yap</div>`}
       <div class="det-hero-stats">
         ${dateStr?`<span>📅 ${dateStr}</span>`:''}
-        <span>👁 ${l.viewCount||0} görüntülenme</span>
-        <span id="det-fav-count">❤️ ${(l.favoritedByUids||[]).length} favori</span>
+        <span>👁 ${listingDisplayViewCount(l)} görüntülenme</span>
+        <span id="det-fav-count">❤️ ${listingDisplayFavoriteCount(l)} favori</span>
       </div>
     </div>
     <div id="det-price-analysis"></div>
@@ -12206,7 +12223,7 @@ async function toggleFav(id, btn) {
 function renderDetFavCount(l) {
   if (currentListing && currentListing.id === l.id) {
     const el = document.getElementById('det-fav-count');
-    if (el) el.textContent = `❤️ ${(l.favoritedByUids||[]).length} favori`;
+    if (el) el.textContent = `❤️ ${listingDisplayFavoriteCount(l)} favori`;
   }
 }
 async function notifyListingOwnerOnFav(l, adding) {
@@ -14149,10 +14166,10 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
       const newListings = [...shownListings].filter(l => !featuredIdSet.has(l.id))
         .sort((a,b) => (b.createdAt?.toMillis ? b.createdAt.toMillis() : 0) - (a.createdAt?.toMillis ? a.createdAt.toMillis() : 0)).slice(0, 3);
       const newIdSet = new Set(newListings.map(l => l.id));
-      const hasEngagementSignal = shownListings.some(l => (l.viewCount||0) > 0 || (l.favoritedByUids||[]).length > 0);
+      const hasEngagementSignal = shownListings.some(l => listingDisplayViewCount(l) > 0 || listingDisplayFavoriteCount(l) > 0);
       const popularListings = hasEngagementSignal
-        ? [...shownListings].filter(l => !featuredIdSet.has(l.id) && !newIdSet.has(l.id) && ((l.viewCount||0) > 0 || (l.favoritedByUids||[]).length > 0))
-            .sort((a,b) => ((b.viewCount||0) + (b.favoritedByUids||[]).length*3) - ((a.viewCount||0) + (a.favoritedByUids||[]).length*3)).slice(0, 3)
+        ? [...shownListings].filter(l => !featuredIdSet.has(l.id) && !newIdSet.has(l.id) && (listingDisplayViewCount(l) > 0 || listingDisplayFavoriteCount(l) > 0))
+            .sort((a,b) => (listingDisplayViewCount(b) + listingDisplayFavoriteCount(b)*3) - (listingDisplayViewCount(a) + listingDisplayFavoriteCount(a)*3)).slice(0, 3)
         : [];
       const shownCount = featuredListings.length + newListings.length + popularListings.length;
       const remaining = Math.max(0, activeCount - shownCount);
@@ -17636,6 +17653,17 @@ const VIP_STORE_ACTION_API = 'https://teknohane-api.yusuf-aykac.workers.dev/vip-
 // VIP Mağaza Takip 2.0 — yeni ilan olayını worker'a bildirir (gerçek VIP/sahiplik kontrolü VE takipçi
 // bildirimi gruplama/gönderme mantığı TAMAMEN sunucuda, bkz. cloudflare-push-worker.js).
 const VIP_STORE_NEW_LISTING_API = 'https://teknohane-api.yusuf-aykac.workers.dev/vip-store-new-listing';
+// PAZAR — GÖRÜNÜR ETKİLEŞİM SAYISI (2026-09-02): submitListing()'in create dalından AYNI fire-and-
+// forget desenle (notifyStoreFollowersNewListing gibi) tetiklenir — süper admin hiç bir aralık
+// belirlemediyse worker sessizce no-op döner (bkz. cloudflare-push-worker.js /internal/pazar-boost-
+// assign-new-listing), bu yüzden özellik varsayılan olarak KAPALI kalır.
+const PAZAR_BOOST_ASSIGN_NEW_LISTING_API = 'https://teknohane-api.yusuf-aykac.workers.dev/pazar-boost-assign-new-listing';
+async function assignPazarBoostForNewListing(listingId) {
+  try {
+    const idToken = await user.getIdToken();
+    await arenaApiCall(PAZAR_BOOST_ASSIGN_NEW_LISTING_API, { idToken, listingId });
+  } catch (e) { /* sessiz — best-effort, ilan yayınlama akışını asla etkilemez */ }
+}
 const ARENA_CATEGORY_LABELS = {
   phones: '📱 Akıllı Telefonlar', cpu: '⚙️ İşlemciler', display: '🖥️ Ekran Teknolojileri',
   camera: '📷 Kamera', battery: '🔋 Batarya ve Şarj', android: '🤖 Android', apple: '🍎 Apple',
