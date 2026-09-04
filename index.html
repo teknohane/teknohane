@@ -695,7 +695,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 :is(body.tk-text-focus, body:focus-within) .mcard-cnd,
 :is(body.tk-text-focus, body:focus-within) .mcard-fav,
 :is(body.tk-text-focus, body:focus-within) .mcard-status-overlay,
-:is(body.tk-text-focus, body:focus-within) .det-status-badge,
+:is(body.tk-text-focus, body:focus-within) .det-photo-counter,
+:is(body.tk-text-focus, body:focus-within) .det-photo-fav,
 :is(body.tk-text-focus, body:focus-within) .pbadge-ic,
 :is(body.tk-text-focus, body:focus-within) .pcover-edit,
 :is(body.tk-text-focus, body:focus-within) .pc,
@@ -730,17 +731,25 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .news-art-body h2,.news-art-body h3{color:var(--text);font-size:17px;margin:20px 0 10px;}
 .news-art-body a{color:var(--cyan);}
 .news-source-link{margin-top:20px;padding:14px;text-align:center;background:var(--surf);border-radius:12px;color:var(--cyan);font-size:13px;font-weight:600;cursor:pointer;}
-.det-photos{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;}
-.det-photo{width:100%;aspect-ratio:4/3;border-radius:12px;object-fit:cover;cursor:zoom-in;}
+.det-photos{position:relative;margin-bottom:16px;border-radius:14px;overflow:hidden;}
+.det-photos-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;}
+.det-photos-track::-webkit-scrollbar{display:none;}
+.det-photo{width:100%;aspect-ratio:4/3;border-radius:14px;object-fit:cover;cursor:zoom-in;display:block;}
+.det-photo-counter{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);color:#fff;font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;letter-spacing:.3px;pointer-events:none;z-index:2;}
+.det-photo-fav{position:absolute;top:10px;right:10px;z-index:2;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.45);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;cursor:pointer;border:none;padding:0;}
+.det-photo-fav svg{width:19px;height:19px;fill:none;stroke:#fff;stroke-width:2;}
+.det-photo-fav.on svg{fill:var(--red);stroke:var(--red);}
+.det-photo-fav:active{transform:scale(.9);}
 /* İlan ID */
 .listing-id-bar{display:flex;align-items:center;justify-content:space-between;background:var(--surf2);border-radius:10px;padding:8px 12px;margin-bottom:14px;}
 .listing-id-label{font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.4px;}
 .listing-id-val{font-size:12px;font-weight:700;color:var(--text2);letter-spacing:.3px;font-family:monospace;}
 .listing-id-copy{font-size:11px;color:var(--cyan);font-weight:700;cursor:pointer;padding:3px 8px;border-radius:6px;background:var(--cdim);}
 .act-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;}
-.abtn{padding:14px 10px;border-radius:14px;border:none;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px;}
+.abtn{padding:15px 10px;border-radius:16px;border:none;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:7px;transition:transform .12s ease;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.abtn:active{transform:scale(.96);}
 .abtn svg{width:22px;height:22px;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
-.abtn-lbl{font-size:12px;font-weight:600;}
+.abtn-lbl{font-size:12.5px;font-weight:700;}
 .act-ref{background:rgba(255,149,0,.12);color:#FF9500;border:1px solid rgba(255,149,0,.3);}
 .act-ref svg{stroke:#FF9500;}
 .act-fav2.on svg{fill:var(--red);}
@@ -969,8 +978,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .det-photo.loaded{opacity:1;}
 .det-photo-skel{aspect-ratio:4/3;border-radius:12px;background:linear-gradient(100deg,var(--surf2) 30%,var(--surf3) 50%,var(--surf2) 70%);background-size:200% 100%;animation:detskel 1.3s ease infinite;position:absolute;inset:0;}
 @keyframes detskel{0%{background-position:150% 0}100%{background-position:-50% 0}}
-.det-photo-wrap{position:relative;}
-.det-photo-empty{grid-column:1/-1;aspect-ratio:16/9;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:var(--surf2);border-radius:12px;}
+.det-photo-wrap{position:relative;flex:0 0 100%;scroll-snap-align:start;}
+.det-photo-empty{aspect-ratio:16/9;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:var(--surf2);border-radius:14px;}
 .det-photo-empty img{width:44px;height:44px;object-fit:contain;opacity:.28;filter:grayscale(1) brightness(1.6);}
 .det-photo-empty span{font-size:11.5px;color:var(--text3);font-weight:600;}
 .det-hero-title{font-size:17.5px;font-weight:600;color:var(--text2);margin-bottom:4px;}
@@ -978,29 +987,28 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .det-hero-price .cur{color:var(--cyan);font-size:21px;font-weight:700;}
 .det-hero-stats{display:flex;gap:14px;font-size:13px;color:var(--text3);margin-bottom:12px;flex-wrap:wrap;}
 .det-hero-stats span{display:flex;align-items:center;gap:4px;}
-.det-status-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
-.det-status-badge{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:20px;font-size:12.5px;font-weight:700;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid;}
-.det-status-badge .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
-.det-status-badge.st-new{background:rgba(0,212,255,.12);border-color:rgba(0,212,255,.3);color:var(--cyan);}
-.det-status-badge.st-new .dot{background:var(--cyan);box-shadow:0 0 6px var(--cyan);}
-.det-status-badge.st-used{background:rgba(255,149,0,.12);border-color:rgba(255,149,0,.3);color:#FF9500;}
-.det-status-badge.st-used .dot{background:#FF9500;box-shadow:0 0 6px #FF9500;}
-.det-status-badge.st-sold{background:rgba(255,69,58,.14);border-color:rgba(255,69,58,.35);color:var(--red);}
-.det-status-badge.st-sold .dot{background:var(--red);box-shadow:0 0 6px var(--red);}
-.det-status-badge.st-info{background:var(--surf2);border-color:var(--border2);color:var(--text2);}
-.det-contact-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:16px 0;}
-.det-contact-btn{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 4px;border-radius:14px;border:1px solid transparent;cursor:pointer;font-family:inherit;transition:transform .12s ease;background:none;position:relative;overflow:hidden;}
+.det-info-card{background:var(--surf2);border:1px solid var(--border2);border-radius:14px;overflow:hidden;margin-bottom:16px;}
+.det-info-row{display:flex;align-items:center;gap:10px;padding:12px 14px;font-size:13px;border-bottom:1px solid var(--border2);}
+.det-info-row:last-child{border-bottom:none;}
+.det-info-row .dir-ic{font-size:15px;flex-shrink:0;width:18px;text-align:center;}
+.det-info-row .dir-label{color:var(--text3);font-weight:600;flex-shrink:0;}
+.det-info-row .dir-val{color:var(--text2);font-weight:700;margin-left:auto;text-align:right;}
+.det-info-row .dir-val.v-new{color:var(--cyan);}
+.det-info-row .dir-val.v-used{color:#FF9500;}
+.det-info-row .dir-val.v-sold{color:var(--red);}
+.det-info-row.det-info-action{cursor:pointer;}
+.det-info-row.det-info-action .dir-label{color:var(--cyan);font-weight:700;}
+.det-info-row.det-info-action .dir-chevron{margin-left:auto;color:var(--cyan);font-size:18px;font-weight:700;line-height:1;}
+.det-info-row.det-info-action:active{background:var(--cdim);}
+.det-contact-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0;}
+.det-contact-btn{display:flex;flex-direction:column;align-items:center;gap:7px;padding:14px 6px;border-radius:16px;border:1px solid transparent;cursor:pointer;font-family:inherit;transition:transform .12s ease;background:none;position:relative;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06);}
 .ripple-dot{position:absolute;border-radius:50%;background:rgba(255,255,255,.28);transform:scale(0);animation:rippleAnim .45s ease-out;pointer-events:none;}
 @keyframes rippleAnim{to{transform:scale(2.4);opacity:0;}}
 .det-contact-btn:active{transform:scale(.92);}
-.det-contact-btn .det-contact-lbl{font-size:10.5px;font-weight:600;}
+.det-contact-btn .det-contact-lbl{font-size:11px;font-weight:700;}
 .det-contact-btn.dc-wa{background:rgba(37,211,102,.1);border-color:rgba(37,211,102,.25);color:#25D366;}
 .det-contact-btn.dc-msg{background:var(--cdim);border-color:rgba(0,212,255,.25);color:var(--cyan);}
 .det-contact-btn.dc-share{background:var(--surf2);border-color:var(--border2);color:var(--text2);}
-.det-contact-btn.dc-fav{background:var(--surf2);border-color:var(--border2);color:var(--text2);}
-.det-contact-btn.dc-fav.on{background:rgba(255,69,58,.1);border-color:rgba(255,69,58,.3);color:var(--red);}
-.det-contact-btn.dc-fav svg{fill:none;stroke:currentColor;stroke-width:1.8;}
-.det-contact-btn.dc-fav.on svg{fill:var(--red);stroke:var(--red);}
 /* Havuz Sistemi (escrow-benzeri güven önlemi, opsiyonel) — ilan detayında sadece ilan sahibi bunu
    işaretlediyse görünür. Ödeme/para tutma henüz entegre değil, bkz. requestPoolPurchase. */
 .pool-banner{background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.25);border-radius:14px;padding:12px 14px;margin-bottom:12px;}
@@ -1773,6 +1781,10 @@ body.tk-maintenance #maintenance-gate{
         <button class="mtab off" onclick="scat('telefon',this)">📱 Telefon</button>
         <button class="mtab off" onclick="scat('akillisaat',this)">⌚ Akıllı Saat</button>
         <button class="mtab off" onclick="scat('kulaklik',this)">🎧 Kulaklık</button>
+        <button class="mtab off" onclick="scat('bilgisayar',this)">🖥️ Bilgisayar</button>
+        <button class="mtab off" onclick="scat('laptop',this)">💻 Laptop</button>
+        <button class="mtab off" onclick="scat('tablet',this)">📱 Tablet</button>
+        <button class="mtab off" onclick="scat('oyunkonsolu',this)">🎮 Oyun Konsolu</button>
         <button class="mtab off" onclick="scat('aksesuar',this)">🎒 Aksesuar</button>
       </div>
       <div id="my-store-cta-row"></div>
@@ -2169,7 +2181,7 @@ body.tk-maintenance #maintenance-gate{
       <div class="wiz-step-desc">Önce ne sattığını söyle — kategori, marka ve modelini seç.</div>
       <div class="fg"><label class="fl">Kategori</label>
         <div class="csel" data-for="l-category" data-title="Kategori" onclick="openPicker(this)"><span class="csel-label">Telefon</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
-        <select id="l-category" style="display:none" onchange="onListingCategoryChange()"><option value="telefon">Telefon</option><option value="akillisaat">Akıllı Saat</option><option value="kulaklik">Kulaklık</option><option value="aksesuar">Aksesuar</option></select>
+        <select id="l-category" style="display:none" onchange="onListingCategoryChange()"><option value="telefon">Telefon</option><option value="akillisaat">Akıllı Saat</option><option value="kulaklik">Kulaklık</option><option value="bilgisayar">Bilgisayar</option><option value="laptop">Laptop</option><option value="tablet">Tablet</option><option value="oyunkonsolu">Oyun Konsolu</option><option value="aksesuar">Aksesuar</option></select>
       </div>
       <div class="fg" id="l-accessory-type-wrap" style="display:none">
         <label class="fl">Aksesuar Türü</label>
@@ -10233,7 +10245,7 @@ function mcardHTML(l) {
           ? `<div class="mcard-price"><span class="cur">₺</span>${parseInt(l.price||0).toLocaleString('tr-TR')}</div>`
           : `<div class="mcard-price-locked" onclick="event.stopPropagation();gt('profile')">🔒 Giriş yap</div>`}
         ${priceDrop ? `<div style="font-size:10.5px;font-weight:700;color:#30D158;margin-top:-2px;margin-bottom:2px">${priceDrop.within7d?'🔥 ':'⬇️ '}Fiyat ₺${priceDrop.drop.toLocaleString('tr-TR')} düştü</div>` : ''}
-        <div class="mcard-title">${l.category==='akillisaat'?'⌚ ':l.category==='kulaklik'?'🎧 ':listingEffectiveCategory(l)==='aksesuar'?(ACCESSORY_TYPE_ICON[listingEffectiveAccessoryType(l)]||'🎒')+' ':''}${escapeHtml(l.model)}</div>
+        <div class="mcard-title">${l.category==='akillisaat'?'⌚ ':l.category==='kulaklik'?'🎧 ':l.category==='bilgisayar'?'🖥️ ':l.category==='laptop'?'💻 ':l.category==='tablet'?'📱 ':l.category==='oyunkonsolu'?'🎮 ':listingEffectiveCategory(l)==='aksesuar'?(ACCESSORY_TYPE_ICON[listingEffectiveAccessoryType(l)]||'🎒')+' ':''}${escapeHtml(l.model)}</div>
         <div class="mcard-loc">📍 ${escapeHtml(l.location)||'Belirtilmedi'}${l.createdAt?.toDate?` · <span class="mcard-date">${timeAgo(l.createdAt.toDate())}</span>`:''}${remaining?` · <span class="mcard-date" style="color:${remaining.urgent?'var(--red)':'var(--text3)'}">${remaining.text}</span>`:''}</div>
         <div class="mcard-foot" onclick="event.stopPropagation()">
           ${l.ownerName?`<div class="mcard-seller" onclick="openPublicProfile('${l.uid}','${escapeJsAttr(l.ownerName)}')"><span class="mcard-seller-name">${escapeHtml(l.ownerName)}</span><span class="mcard-seller-badges">${sellerBadgesForListing(l)}</span>${mine?'<span class="mcard-seller-me">· Siz</span>':''}</div>`:'<span></span>'}
@@ -10761,6 +10773,15 @@ const PHONE_BRANDS = [
 // kullanır (bkz. getListingBrandValue/setListingBrandValue, ikisi de hiç değiştirilmedi), yalnızca
 // hangi listenin yüklendiği kategoriye göre değişir (bkz. populateListingBrandOptions).
 const ACCESSORY_BRANDS = ['Anker','Baseus','UGREEN','Spigen','ESR','Ringke','Nillkin','Remax','Hoco','Apple','Samsung','Xiaomi','Huawei','Diğer'];
+
+// Bilgisayar/Laptop/Tablet/Oyun Konsolu kategorileri eklendi — her biri PHONE_BRANDS/ACCESSORY_BRANDS
+// ile AYNI picker+"Diğer" mekanizmasını kullanır (bkz. populateListingBrandOptions/
+// getListingBrandValue/setListingBrandValue, hiçbiri değişmedi), yalnızca hangi listenin yüklendiği
+// kategoriye göre değişiyor (bkz. onListingCategoryChange).
+const COMPUTER_BRANDS = ['HP','Dell','Lenovo','ASUS','Acer','Apple','MSI','Casper','Monster','Excalibur','Hometech','Huawei','Samsung','Diğer'];
+const LAPTOP_BRANDS = ['Apple','ASUS','Lenovo','HP','Dell','Acer','MSI','Casper','Monster','Excalibur','Huawei','Samsung','Hometech','Toshiba','Razer','Diğer'];
+const TABLET_BRANDS = ['Apple','Samsung','Huawei','Lenovo','Xiaomi','Realme','Amazon','Microsoft','Diğer'];
+const CONSOLE_BRANDS = ['Sony (PlayStation)','Microsoft (Xbox)','Nintendo','Sega','Diğer'];
 // Kart görünümünde (mcardHTML) alt türe göre gösterilen ikon — kılıf varsayılan.
 const ACCESSORY_TYPE_ICON = { kilif: '🛡️', sarj: '🔌', kablo: '🔗', powerbank: '🔋', 'ekran-koruyucu': '🔲', 'hafiza-karti': '💾' };
 
@@ -10786,7 +10807,13 @@ function ensureListingBrandOptionsPopulated() {
 // (telefonda sabit picker, diğerlerinde serbest metin — bkz. getListingBrandValue/setListingBrandValue,
 // bu iki fonksiyona hiç dokunulmadı) ve teknik detay alan grupları (telefon/kulaklık/şarj) gösterilip
 // gizlenir. Ortak alanlar (Renk/Garanti/Kutu-Aksesuar) her kategoride aynen kalır.
-const LISTING_CATEGORY_MODEL_PLACEHOLDER = { telefon: 'Örn: Galaxy S24', akillisaat: 'Örn: Galaxy Watch 6', kulaklik: 'Örn: WF-1000XM5' };
+const LISTING_CATEGORY_MODEL_PLACEHOLDER = {
+  telefon: 'Örn: Galaxy S24', akillisaat: 'Örn: Galaxy Watch 6', kulaklik: 'Örn: WF-1000XM5',
+  bilgisayar: 'Örn: Pavilion Desktop TP01', laptop: 'Örn: MacBook Air M2', tablet: 'Örn: iPad Air 5', oyunkonsolu: 'Örn: PlayStation 5',
+};
+// Marka picker'ı olan kategoriler (telefon/aksesuar gibi) — hangi listenin yükleneceğini belirler.
+// Bunun DIŞINDA kalan kategoriler (akıllısaat/kulaklık) eskisi gibi serbest metin girişine düşer.
+const LISTING_CATEGORY_BRAND_LISTS = { telefon: PHONE_BRANDS, aksesuar: ACCESSORY_BRANDS, bilgisayar: COMPUTER_BRANDS, laptop: LAPTOP_BRANDS, tablet: TABLET_BRANDS, oyunkonsolu: CONSOLE_BRANDS };
 // Aksesuar, kılıf/şarj adaptörü gibi birkaç alt türü bir arada barındırdığı için model alanı
 // yer tutucusu kategoriye DEĞİL, alt türe (accessoryType) göre belirleniyor.
 const ACCESSORY_TYPE_MODEL_PLACEHOLDER = {
@@ -10799,14 +10826,16 @@ function onListingCategoryChange() {
   const cat = document.getElementById('l-category').value;
   const isPhone = cat === 'telefon';
   const isAksesuar = cat === 'aksesuar';
-  document.querySelector('.csel[data-for="l-brand"]').style.display = (isPhone || isAksesuar) ? '' : 'none';
+  const brandList = LISTING_CATEGORY_BRAND_LISTS[cat];
+  document.querySelector('.csel[data-for="l-brand"]').style.display = brandList ? '' : 'none';
   const brandOtherWrap = document.getElementById('l-brand-other-wrap');
   const brandOtherLabel = document.getElementById('l-brand-other-label');
-  if (isPhone || isAksesuar) {
-    // Aksesuar'da da telefon gibi hazır marka listesi + "Diğer" serbest yazım kullanılıyor (bkz.
-    // ACCESSORY_BRANDS) — yalnızca hangi listenin yüklendiği farklı, getListingBrandValue/
-    // setListingBrandValue tamamen ORTAK ve değişmeden çalışıyor.
-    populateListingBrandOptions(isPhone ? PHONE_BRANDS : ACCESSORY_BRANDS);
+  if (brandList) {
+    // Aksesuar/Bilgisayar/Laptop/Tablet/Oyun Konsolu'nda da telefon gibi hazır marka listesi +
+    // "Diğer" serbest yazım kullanılıyor (bkz. LISTING_CATEGORY_BRAND_LISTS) — yalnızca hangi
+    // listenin yüklendiği farklı, getListingBrandValue/setListingBrandValue tamamen ORTAK ve
+    // değişmeden çalışıyor.
+    populateListingBrandOptions(brandList);
     brandOtherLabel.textContent = 'Marka (elle yazın)';
     onListingBrandChange(); // eski davranışa (yalnızca picker'da "Diğer" seçiliyken görünür) döner
   } else {
@@ -11876,6 +11905,20 @@ function openDetail(id) {
   });
 }
 
+// Fotoğraf şeridi dokunmadan da kaydırılabilsin diye (sahibinden benzeri) — native scroll-snap zaten
+// kaydırmanın kendisini yapıyor, burada yalnızca alt-ortadaki "1/7" sayacını gerçek kaydırma konumuna
+// göre güncelliyoruz. Tıklanınca açılan tam ekran galeri (openListingGallery) zaten kendi kaydırma/
+// pinch-zoom motoruna sahip — buna hiç dokunulmadı.
+function initDetPhotoCarousel(count) {
+  const track = document.getElementById('det-photos-track');
+  const counter = document.getElementById('det-photo-counter');
+  if (!track || !counter) return;
+  track.addEventListener('scroll', () => {
+    const idx = Math.min(count - 1, Math.max(0, Math.round(track.scrollLeft / track.clientWidth)));
+    counter.textContent = (idx + 1) + '/' + count;
+  }, { passive: true });
+}
+
 function renderDetailPage(l) {
   currentListing = l;
   const id = l.id;
@@ -11913,7 +11956,10 @@ function renderDetailPage(l) {
   // Tarih
   const dateStr = l.createdAt?.toDate ? l.createdAt.toDate().toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric'}) : null;
   document.getElementById('det-body').innerHTML = `
-    ${ps.length ? `<div class="det-photos det-anim">${ps.map((p,i)=>`<div class="det-photo-wrap"><div class="det-photo-skel" id="det-skel-${i}"></div><img class="det-photo" src="${escapeHtml(p)}" onclick="openListingGallery(currentDetailPhotos, ${i})" onload="this.classList.add('loaded');const s=document.getElementById('det-skel-${i}');if(s)s.remove();"></div>`).join('')}</div>` : `<div class="det-photos det-anim"><div class="det-photo-empty"><img src="teknohane.png" alt="" onerror="this.style.display='none'"><span>Fotoğraf Eklenmedi</span></div></div>`}
+    <div class="det-photos det-anim">
+      ${ps.length ? `<div class="det-photos-track" id="det-photos-track">${ps.map((p,i)=>`<div class="det-photo-wrap"><div class="det-photo-skel" id="det-skel-${i}"></div><img class="det-photo" src="${escapeHtml(p)}" onclick="openListingGallery(currentDetailPhotos, ${i})" onload="this.classList.add('loaded');const s=document.getElementById('det-skel-${i}');if(s)s.remove();"></div>`).join('')}</div>${ps.length>1?`<div class="det-photo-counter" id="det-photo-counter">1/${ps.length}</div>`:''}` : `<div class="det-photo-empty"><img src="teknohane.png" alt="" onerror="this.style.display='none'"><span>Fotoğraf Eklenmedi</span></div>`}
+      ${user?`<button class="det-photo-fav ${fav?'on':''}" id="dfav" onpointerdown="spawnRipple(event,this)" onclick="detFav()"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>`:''}
+    </div>
     ${l.videoUrl ? `<div class="det-anim" style="animation-delay:.06s;margin-top:10px"><video src="${escapeHtml(l.videoUrl)}" controls playsinline style="width:100%;border-radius:14px;background:#000;max-height:320px"></video></div>` : ''}
     ${pending && mine && !isAdmin ? `<div style="background:rgba(255,149,0,.12);border:1px solid rgba(255,149,0,.3);color:#FF9500;font-size:13px;font-weight:700;padding:8px 14px;border-radius:10px;margin-bottom:12px;text-align:center">⏳ İlanınız inceleniyor, onaylandığında Pazar'da görünecek</div>` : ''}
     ${pending && isAdmin ? `<div style="background:rgba(255,149,0,.12);border:1px solid rgba(255,149,0,.3);color:#FF9500;font-size:13px;font-weight:700;padding:8px 14px;border-radius:10px;margin-bottom:12px;text-align:center">⏳ Onay bekliyor</div>` : ''}
@@ -11929,14 +11975,17 @@ function renderDetailPage(l) {
         <span id="det-fav-count">❤️ ${listingDisplayFavoriteCount(l)} favori</span>
       </div>
     </div>
-    <div id="det-price-analysis"></div>
     <div id="det-price-alert"></div>
     ${(() => { const pd = !l.sold ? listingPriceDropInfo(l) : null; return pd ? `<div class="det-anim" style="background:rgba(48,209,88,.12);border:1px solid rgba(48,209,88,.3);border-radius:14px;padding:12px 14px;margin-bottom:12px"><div style="font-size:12px;font-weight:700;color:#30D158">${pd.within7d?'🔥 Son 7 günde fiyatı düştü':'⬇️ Fiyat düştü'}</div><div style="font-size:11px;color:var(--text3);margin-top:2px">₺${pd.drop.toLocaleString('tr-TR')} indirim (önceki fiyat: ₺${(parseInt(l.price||0)+pd.drop).toLocaleString('tr-TR')})</div></div>` : ''; })()}
-    <div class="det-status-row det-anim" style="animation-delay:.08s">
-      ${l.sold ? `<div class="det-status-badge st-sold"><span class="dot"></span>🔴 Satıldı</div>` : (l.condition==='Sıfır' ? `<div class="det-status-badge st-new"><span class="dot"></span>🟢 Sıfır</div>` : `<div class="det-status-badge st-used"><span class="dot"></span>🟠 ${escapeHtml(l.condition)||'İkinci El'}</div>`)}
-      ${l.origin?`<div class="det-status-badge st-info">${escapeHtml(l.origin)}</div>`:''}
-      ${l.location?`<div class="det-status-badge st-info">📍 ${escapeHtml(l.neighborhood ? l.location + ' · ' + l.neighborhood : l.location)}</div>`:''}
-      ${(l.category||'telefon')==='telefon'?`<div class="det-status-badge st-info" style="cursor:pointer" onclick="openImeiInfo()">🔒 IMEI Kontrolü</div>`:''}
+    <div class="det-info-card det-anim" style="animation-delay:.08s">
+      <div class="det-info-row">
+        <span class="dir-ic">${l.sold?'🔴':(l.condition==='Sıfır'?'🟢':'🟠')}</span>
+        <span class="dir-label">Durum</span>
+        <span class="dir-val ${l.sold?'v-sold':(l.condition==='Sıfır'?'v-new':'v-used')}">${l.sold?'Satıldı':(l.condition==='Sıfır'?'Sıfır':(escapeHtml(l.condition)||'İkinci El'))}</span>
+      </div>
+      ${l.origin?`<div class="det-info-row"><span class="dir-ic">🌍</span><span class="dir-label">Menşei</span><span class="dir-val">${escapeHtml(l.origin)}</span></div>`:''}
+      ${l.location?`<div class="det-info-row"><span class="dir-ic">📍</span><span class="dir-label">Konum</span><span class="dir-val">${escapeHtml(l.neighborhood ? l.location + ' · ' + l.neighborhood : l.location)}</span></div>`:''}
+      ${(l.category||'telefon')==='telefon'?`<div class="det-info-row det-info-action" onclick="openImeiInfo()"><span class="dir-ic">🔒</span><span class="dir-label">IMEI Kontrolü</span><span class="dir-chevron">›</span></div>`:''}
     </div>
     ${l.poolSystem && !l.sold ? `<div id="det-pool-section" class="det-anim" style="animation-delay:.09s"></div>` : ''}
     ${l.negotiable && !mine && !l.sold ? `<div class="pool-banner det-anim" style="animation-delay:.095s">
@@ -11989,10 +12038,6 @@ function renderDetailPage(l) {
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51L8.59 10.49"/></svg>
         <span class="det-contact-lbl">Paylaş</span>
       </button>
-      <button class="det-contact-btn dc-fav ${fav?'on':''}" id="dfav" onpointerdown="spawnRipple(event,this)" onclick="detFav()">
-        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-        <span class="det-contact-lbl">${fav?'Favoride':'Favorile'}</span>
-      </button>
     </div>
     <div class="act-grid det-anim" style="animation-delay:.22s">
       <button class="abtn act-ref" id="dref-btn" onclick="toggleRef()" ${(!user||mine)?'style="opacity:.5;pointer-events:none"':''}>
@@ -12014,8 +12059,8 @@ function renderDetailPage(l) {
   document.getElementById('detail-mo').classList.add('on');
   if (l.uid) loadSellerCard(l.uid, l.ownerName, mine, 'det-seller-card');
   renderSimilarListings(l, 'det-similar');
-  renderPriceAnalysis(l, 'det-price-analysis');
   renderPriceAlertSection(l);
+  if (ps.length > 1) initDetPhotoCarousel(ps.length);
   loadListingQuestions(id, mine);
   // Görüntülenme sayısı — yalnızca YENİ bir açılışta, ilan sahibi kendi ilanına bakmıyorsa VE bu
   // cihazdan aynı ilan yakın zamanda (12 saat içinde) zaten sayılmadıysa artırılır (bkz.
@@ -17468,9 +17513,15 @@ async function checkPriceAlertsForListing(listingId) {
 // olmayan bir güven adımı. Dışarıya (gerçekliği/güncelliği elimizden doğrulanamayan) bir URL'e
 // yönlendirmek yerine, kullanıcıyı kendi *#06# + e-Devlet "IMEI Sorgulama" hizmeti üzerinden
 // doğrulamaya yönlendiren bilgilendirici bir metin — mevcut infoDialog() deseniyle (bkz. openPoolInfo).
-const IMEI_CHECK_INFO = 'Telefonun ayarlarından veya tuş takımına *#06# yazarak IMEI numarasını öğrenebilirsin.\n\nSatın almadan önce satıcıdan bu numarayı iste ve kutu/faturadaki IMEI ile eşleştiğini kontrol et.\n\nCihazın Türkiye\'de kayıtlı olup olmadığını e-Devlet üzerindeki "IMEI Sorgulama" hizmetinden teyit edebilirsin — kayıtsız/yurt dışı çıkışlı telefonlarda hat kısıtlaması olabileceğini unutma.\n\nBu bilgi doğrulama sürecine yardımcı olmak içindir; Teknohane bu kontrolü senin adına otomatik yapmaz.';
-function openImeiInfo() {
-  infoDialog(IMEI_CHECK_INFO, '🔒 IMEI Kontrolü Nasıl Yapılır?');
+const IMEI_CHECK_INFO = 'Telefonun ayarlarından veya tuş takımına *#06# yazarak IMEI numarasını öğrenebilirsin.\n\nSatın almadan önce satıcıdan bu numarayı iste ve kutu/faturadaki IMEI ile eşleştiğini kontrol et.\n\nCihazın Türkiye\'de kayıtlı olup olmadığını e-Devlet üzerindeki "IMEI Sorgulama" hizmetinden teyit edebilirsin — kayıtsız/yurt dışı çıkışlı telefonlarda hat kısıtlaması olabileceğini unutma.\n\n"Anladım"a bastığında seni doğrudan e-Devlet\'in IMEI Sorgulama sayfasına yönlendireceğiz. Bu bilgi doğrulama sürecine yardımcı olmak içindir; Teknohane bu kontrolü senin adına otomatik yapmaz.';
+// Gerçek zamanlı bir IMEI geçerlilik/çalıntı sorgusu yapan ücretsiz/genel bir API yok, e-Devlet
+// servisi de üçüncü taraf programatik erişime kapalı — bu yüzden uygulama içinde "gerçek" bir sorgu
+// KURULMUYOR (yanıltıcı sahte bir sonuç üretmektense hiç üretmemek tercih edildi). Bunun yerine
+// uyarı diyaloğundan sonra kullanıcı doğrudan resmi sayfaya yönlendiriliyor (ol() — WhatsApp linkiyle
+// AYNI Capacitor Browser/go.html deseni).
+async function openImeiInfo() {
+  await infoDialog(IMEI_CHECK_INFO, '🔒 IMEI Kontrolü Nasıl Yapılır?');
+  ol('https://www.turkiye.gov.tr/imei-sorgulama');
 }
 
 async function loadSellerRatingSummary(sellerUid, spanId) {
