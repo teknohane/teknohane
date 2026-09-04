@@ -7743,6 +7743,14 @@ async function openNotifications() {
 // önlenir: ilk birkaç piksellik harekette yön kilitlenir, dikey ağırlıklıysa yatay sürükleme iptal edilir.
 function attachSwipeDelete(wrap) {
   const item = wrap.querySelector('.notif-item');
+  // GÜVENİLİRLİK DÜZELTMESİ (2026-09-04, gerçek kullanıcı raporu — "bildirimler yüklenemedi"):
+  // Akıllı Günlük Bildirim Özeti kartı (renderDailySummaryNotifCard) .notif-item DEĞİL, kendi
+  // .dsum-card yapısını kullanıyor — bu yüzden querySelector burada null dönüyordu ve hemen
+  // altındaki item.addEventListener() TÜM renderNotifList()'i (dolayısıyla bütün bildirim listesini)
+  // çökertiyordu. Günlük özet kartının zaten görünür bir 🗑️ silme ikonu (.notif-swipe-del,
+  // performNotifDelete ile) var — sürükleyerek silme özelliği olmadan da silinebiliyor, bu yüzden
+  // burada sessizce çıkmak güvenli, YENİ bir davranış eklemeye gerek yok.
+  if (!item) return;
   let startX = 0, startY = 0, dx = 0, dragging = false, locked = null; // locked: 'x' | 'y' | null
   // Satır "açık" (kaydırılmış) durumdayken bir dokunuş, gruba gitmek yerine önce satırı kapatmalı —
   // aksi halde kullanıcı istemeden bildirime tıklamış gibi ekranın dışına atılır. Capture aşamasında
