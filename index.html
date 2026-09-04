@@ -127,6 +127,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .dsum-card{background:linear-gradient(135deg,rgba(0,212,255,.08),rgba(0,212,255,.02));border:1px solid rgba(0,212,255,.25);border-radius:14px;margin:8px 0;cursor:pointer;overflow:hidden;}
 .dsum-card.unread{border-color:rgba(0,212,255,.5);}
 .dsum-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;font-size:13.5px;font-weight:800;color:var(--cyan);}
+.dsum-del{font-size:15px;opacity:.55;cursor:pointer;padding:2px 4px;line-height:1;}
+.dsum-del:active{opacity:1;}
 .dsum-section{padding:0 14px 10px;}
 .dsum-section-hdr{font-size:11.5px;font-weight:700;color:var(--text2);margin-bottom:4px;}
 .dsum-item{font-size:12.5px;color:var(--text);line-height:1.5;padding:3px 0 3px 2px;overflow-wrap:anywhere;}
@@ -7527,10 +7529,21 @@ function renderDailySummaryNotifCard(doc) {
   const time = n.createdAt?.toDate ? fd(n.createdAt.toDate().toISOString()) : '';
   const dateParts = sd.date ? sd.date.split('-') : null;
   const dateLabel = dateParts ? `${parseInt(dateParts[2],10)} ${DTP_MONTHS[parseInt(dateParts[1],10)-1]}` : '';
+  // GÜVENİLİRLİK DÜZELTMESİ (2026-09-04, gerçek kullanıcı raporu — ekran görüntüsüyle): bu kart
+  // .notif-item DEĞİL .dsum-card kullandığı için attachSwipeDelete() bu kartı hiç ele almıyor (bkz.
+  // fonksiyonun başındaki `if (!item) return;` koruması) — paylaşılan .notif-swipe-del kaydırma
+  // ikonu bu kartta ASLA kaydırmayla gizlenmiyor, kalıcı/sabit kırmızı bir kutu olarak görünüyordu.
+  // Çözüm: bu kart için paylaşımlı kaydırma ikonu HİÇ render edilmiyor, yerine kendi başlığının
+  // içinde her zaman görünür, doğrudan performNotifDelete çağıran kendi silme ikonu var.
   return `<div class="notif-swipe-wrap" data-ids="${doc.id}">
-    <div class="notif-swipe-del" role="button" aria-label="Bu bildirimi sil" onclick="event.stopPropagation();performNotifDelete(this.closest('.notif-swipe-wrap'))">🗑️</div>
     <div class="dsum-card ${n.read?'':'unread'}" onclick="markNotifRead('${doc.id}')">
-      <div class="dsum-hdr"><span>📅 ${dateLabel ? dateLabel + ' — ' : ''}Bugünün Özeti</span>${!n.read?'<div class="unread-dot"></div>':''}</div>
+      <div class="dsum-hdr">
+        <span>📅 ${dateLabel ? dateLabel + ' — ' : ''}Bugünün Özeti</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          ${!n.read?'<div class="unread-dot"></div>':''}
+          <span class="dsum-del" role="button" aria-label="Bu bildirimi sil" onclick="event.stopPropagation();performNotifDelete(this.closest('.notif-swipe-wrap'))">🗑️</span>
+        </div>
+      </div>
       ${body}
       <div class="notif-time" style="padding:0 14px 10px">${time}</div>
     </div>
@@ -7822,7 +7835,12 @@ function performNotifDelete(wrap) {
   if (!wrap || wrap._deleting) return;
   wrap._deleting = true;
   const ids = wrap.dataset.ids.split(',');
-  const item = wrap.querySelector('.notif-item');
+  // GÜVENİLİRLİK DÜZELTMESİ (2026-09-04): Günlük Özet kartı (.dsum-card) .notif-item DEĞİL — burada
+  // sabit .notif-item aranırsa null döner ve hemen altındaki item.classList.remove() TÜM silme
+  // işlemini (dolayısıyla Firestore batch.commit()'e kadar hiçbir şeyi) çalıştırmadan çökertirdi.
+  // Hangi kart tipi olursa olsun, gerçekte görünen satırı (animasyonla kaydırılacak elementi) bulur.
+  const item = wrap.querySelector('.notif-item') || wrap.querySelector('.dsum-card');
+  if (!item) { wrap.remove(); return; }
   // KÖK NEDEN (adb logcat ile doğrulandı): satır render edilirken giriş efekti için eklenen
   // "msg-in" class'ı (.22s cubic-bezier animasyonu, fill-mode:both) BİTTİKTEN SONRA BİLE bitiş
   // durumunu (opacity:1, transform:none) CSS animasyon katmanında kilitli tutuyor — bu katman
