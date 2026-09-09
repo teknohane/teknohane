@@ -19,12 +19,12 @@
 <meta property="og:site_name" content="Teknohane">
 <meta property="og:title" content="Teknohane — İkinci El Telefon Pazarı ve Forum">
 <meta property="og:description" content="İkinci el telefon al-sat, fiyat karşılaştır, forumda tartış. Türkiye'nin telefon pazarı Teknohane'de.">
-<meta property="og:image" content="https://teknohane.github.io/teknohane/teknohane.png">
-<meta property="og:url" content="https://teknohane.github.io/teknohane/">
+<meta property="og:image" content="https://www.teknohane.net/teknohane.png">
+<meta property="og:url" content="https://www.teknohane.net/">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Teknohane — İkinci El Telefon Pazarı ve Forum">
 <meta name="twitter:description" content="İkinci el telefon al-sat, fiyat karşılaştır, forumda tartış. Türkiye'nin telefon pazarı Teknohane'de.">
-<meta name="twitter:image" content="https://teknohane.github.io/teknohane/teknohane.png">
+<meta name="twitter:image" content="https://www.teknohane.net/teknohane.png">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-152.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
@@ -1852,7 +1852,7 @@ body.tk-maintenance #maintenance-gate{
           <div><div class="mlbl">TikTok</div><div class="msub">@teknohaane</div></div>
         </div><span class="marr">›</span>
       </div>
-      <div class="mi" onclick="ol('https://teknohane.github.io/teknohane/sartlar.html')">
+      <div class="mi" onclick="ol('https://www.teknohane.net/sartlar.html')">
         <div class="mil">
           <div class="mico" style="background:rgba(0,212,255,.1)"><svg viewBox="0 0 24 24" stroke="var(--cyan)" width="18" height="18"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
           <div><div class="mlbl">Kullanım Şartları</div><div class="msub">Gizlilik politikası & yasal bilgiler</div></div>
@@ -2409,7 +2409,7 @@ body.tk-maintenance #maintenance-gate{
       <div id="wiz-preview-card" style="margin-bottom:16px"></div>
       <label id="l-agree-wrap" style="display:flex;align-items:flex-start;gap:10px;margin-bottom:16px;cursor:pointer">
         <input type="checkbox" id="l-agree" style="width:18px;height:18px;margin-top:1px;accent-color:var(--cyan);flex-shrink:0" onchange="listingFormOnChange()">
-        <span style="font-size:12px;color:var(--text2);line-height:1.5">Bu ürünün bana ait olduğunu, bilgilerin doğru olduğunu beyan ederim ve <a href="javascript:void(0)" onclick="ol('https://teknohane.github.io/teknohane/sartlar.html')" style="color:var(--cyan)">Kullanım Şartları</a>'nı kabul ediyorum.</span>
+        <span style="font-size:12px;color:var(--text2);line-height:1.5">Bu ürünün bana ait olduğunu, bilgilerin doğru olduğunu beyan ederim ve <a href="javascript:void(0)" onclick="ol('https://www.teknohane.net/sartlar.html')" style="color:var(--cyan)">Kullanım Şartları</a>'nı kabul ediyorum.</span>
       </label>
       <div class="wiz-nav"><button class="wiz-back-btn" onclick="listingWizardBack()">← Geri</button><button class="sbtn2" id="l-submit-btn" onclick="submitListing()" disabled style="opacity:.4;cursor:not-allowed">İlanı Yayınla</button></div>
     </div>
@@ -6327,7 +6327,7 @@ function navigateFromNotificationUrl(url, attempt) {
   attempt = attempt || 0;
   if (!url) return;
   try {
-    const u = new URL(url, 'https://teknohane.github.io/teknohane/');
+    const u = new URL(url, 'https://www.teknohane.net/');
     // KÖK NEDEN DÜZELTMESİ (kullanıcı raporu: e-posta doğrulama/şifre sıfırlama mailindeki linke
     // dokununca uygulama açılıyor ama işlem başarısız oluyordu): AndroidManifest.xml'deki App Links
     // intent-filter'ı pathPrefix="/teknohane/" ile TÜM alt yolları (auth-action.html DAHİL) tarayıcı
@@ -12150,7 +12150,7 @@ async function shareListing(id) {
   // Sabit köken kullanılıyor (location.origin DEĞİL) — native uygulamada artık yerel pakete
   // (https://localhost) göre çalışıyoruz, paylaşılan linkin uygulaması olmayan biri için de
   // AÇILABİLİR olması gerekiyor (bkz. profil paylaşımındaki aynı sabit desen).
-  const url = 'https://teknohane.github.io/teknohane/?listing=' + id;
+  const url = 'https://www.teknohane.net/?listing=' + id;
   const text = `${l.model} - ₺${parseInt(l.price||0).toLocaleString('tr-TR')}\nTeknohane'de incele:`;
   openShareMenu(l.model, text, url);
 }
@@ -13754,7 +13754,7 @@ async function shareForumPost(id) {
   if (!p) return;
   // Sabit köken (bkz. shareListing'deki aynı gerekçe) — location.origin native uygulamada
   // artık https://localhost, paylaşılan link herkes için açılabilir olmalı.
-  const url = 'https://teknohane.github.io/teknohane/?post=' + id;
+  const url = 'https://www.teknohane.net/?post=' + id;
   const text = `${p.title}\nTeknohane Forum'da incele:`;
   openShareMenu(p.title, text, url);
 }
@@ -14181,7 +14181,7 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
   const lastSeenStr = data.lastSeen?.toDate ? timeAgo(data.lastSeen.toDate()) : null;
   const isFollowingUser = (myProfileData.followingUids||[]).includes(uid);
   const isOnlineNow = isPresenceOnline(presenceData);
-  const shareUrl = `https://teknohane.github.io/teknohane/?profile=${uid}`;
+  const shareUrl = `https://www.teknohane.net/?profile=${uid}`;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&bgcolor=00040F&color=00D4FF&data=${encodeURIComponent(shareUrl)}`;
 
   // REKABET/PARİTE DÜZELTMESİ: kendi profilimizdeki "Son Etkinlikler" listesinin aynısı — ek bir
@@ -14464,7 +14464,7 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
 }
 
 function shareProfile(uid, name) {
-  const url = `https://teknohane.github.io/teknohane/?profile=${uid}`;
+  const url = `https://www.teknohane.net/?profile=${uid}`;
   const text = `${name} adlı kullanıcının Teknohane profiline göz at.`;
   openShareMenu(`Teknohane — ${name}`, text, url);
 }
@@ -16286,7 +16286,7 @@ function exitPhoneDetail() {
 function sharePhoneDetail() {
   const p = phoneDetailReviewTarget;
   if (!p) return;
-  const url = 'https://teknohane.github.io/teknohane/?phone=' + p.id;
+  const url = 'https://www.teknohane.net/?phone=' + p.id;
   openShareMenu(p.name, `${p.brand} ${p.name} — Teknohane'de incele:`, url);
 }
 // Hızlı özet çipleri — SADECE gerçek veriden, hiçbir alan uydurulmuyor/tahmin edilmiyor.
@@ -16878,7 +16878,7 @@ async function shareComparison() {
   // Alt bilgi
   ctx.fillStyle = '#4A5568';
   ctx.font = '500 22px DM Sans, sans-serif';
-  ctx.fillText('teknohane.github.io', W/2, H - 50);
+  ctx.fillText('teknohane.net', W/2, H - 50);
 
   canvas.toBlob(async (blob) => {
     const title = 'Teknohane Karşılaştırma';
@@ -21068,7 +21068,7 @@ function tkScheduleContentSwitch(plainDirPath) {
 // indirip her yeni yuvaya da kopyalar.
 async function tkStageBinaryAssetToSlot(relPath, slot) {
   try {
-    const res = await fetch(`https://teknohane.github.io/teknohane/${relPath}`, { cache: 'no-store' });
+    const res = await fetch(`https://www.teknohane.net/${relPath}`, { cache: 'no-store' });
     if (!res.ok) return;
     const blob = await res.blob();
     const b64 = await new Promise((resolve, reject) => {
@@ -21093,7 +21093,7 @@ async function tkCheckForContentUpdate() {
     // O AN aktif olan yerel köküne (ilk kurulumda gömülü assets, sonraki kurulumlarda önceki yuva)
     // sorulur; böylece kullanıcının bunu ayrıca GitHub Pages'e yayınlamasına hiç gerek kalmaz.
     const [r1, r2] = await Promise.all([
-      fetch('https://teknohane.github.io/teknohane/index.html', { cache: 'no-store' }),
+      fetch('https://www.teknohane.net/index.html', { cache: 'no-store' }),
       fetch('offline.html', { cache: 'no-store' })
     ]);
     if (!r1.ok) return;
@@ -21317,7 +21317,7 @@ if (isNativeApp()) {
       if (state.isActive) handleAppForeground();
       else { appBackgroundedAt = Date.now(); arenaHandleBackground(); }
     });
-    // ANDROİD APP LINKS: paylaşılan bir ilan/konu/profil linkine (https://teknohane.github.io/teknohane/...)
+    // ANDROİD APP LINKS: paylaşılan bir ilan/konu/profil linkine (https://www.teknohane.net/...)
     // dokunulduğunda artık tarayıcı yerine doğrudan uygulama açılıyor (bkz. AndroidManifest.xml'deki
     // autoVerify intent-filter). İki senaryo var: uygulama SOĞUK başlatıldıysa (kapalıyken linke
     // dokunuldu) launch URL'i getLaunchUrl() ile; uygulama zaten AÇIKKEN (singleTask) yeni bir link
