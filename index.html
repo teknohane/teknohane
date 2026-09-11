@@ -514,7 +514,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .cmp-hero-yr{font-size:11px;color:var(--text3);}
 .cmp-hero-price{font-size:14px;font-weight:800;color:var(--cyan);}
 .cmp-hero-intl-price{margin-top:2px;font-size:9.5px;color:var(--text3);}
-.cmp-hero-score{margin-top:9px;font-size:9.5px;color:var(--text3);background:var(--surf2);padding:3px 9px;border-radius:20px;white-space:nowrap;}
+.cmp-hero-score{margin-top:9px;font-size:11px;font-weight:700;color:var(--text2);background:var(--surf2);padding:4px 10px;border-radius:20px;white-space:nowrap;}
+.cmp-hero-score:empty,.phone-detail-rating:empty{display:none;padding:0;margin:0;}
+.phone-detail-rating{display:inline-block;margin-top:6px;font-size:12px;font-weight:700;color:var(--text2);background:var(--surf2);padding:4px 10px;border-radius:20px;}
+.prb-count{color:var(--text3);font-weight:400;}
 .cmp-vs{flex-shrink:0;width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),#0080ff);color:#000;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-top:17px;box-shadow:0 4px 14px -3px var(--cglow);}
 /* Kategori accordion — hafif, JS'siz max-height geçişi. İlk kategori varsayılan açık (bkz.
    cmpCategoryAccordionHTML), diğerleri kapalı — "tek seferde yüzlerce satır" görülmesin diye.
@@ -15894,7 +15897,7 @@ function cmpHeroPhoneHTML(p, side) {
       <span class="cmp-hero-price">${priceCell(p, side)}</span>
     </div>
     ${p.intlPrice ? `<div class="cmp-hero-intl-price">🌍 ${escapeHtml(p.intlPrice)}</div>` : ''}
-    <div class="cmp-hero-score">⭐ Puan: Yakında</div>
+    <div class="cmp-hero-score" id="phone-rating-badge-${side}"></div>
   </div>`;
 }
 
@@ -16348,6 +16351,7 @@ async function openPhoneDetail(id) {
       ${gallery}
       <div class="phone-detail-name">${escapeHtml(p.name||'')}</div>
       <div class="phone-detail-brand">${escapeHtml(brandDisplay(p.brand))}${p.yr?' · '+p.yr:''}</div>
+      <div class="phone-detail-rating" id="phone-rating-badge-detail"></div>
       <div style="margin-top:10px">${priceCell(p, 'detail')}</div>
       ${p.intlPrice ? `<div class="cmp-hero-intl-price">🌍 ${escapeHtml(p.intlPrice)}</div>` : ''}
       ${phoneQuickSpecsHTML(p)}
@@ -17245,12 +17249,18 @@ function invalidatePhoneCommentsCache(phoneId) {
   delete phoneCommentsCache[phoneId];
 }
 
+// FAZ 3 — puanlama: sahte/hesaplanmış bir DXOMark-tarzı skor İCAT ETMEK yerine, zaten var olan GERÇEK
+// kullanıcı yorumu ortalaması (aşağıdaki avg/count) küçük bir rozet olarak karşılaştırma hero'suna ve
+// telefon detay sayfasının üstüne taşındı (bkz. cmpHeroPhoneHTML/openPhoneDetail'deki
+// phone-rating-badge-{side} elementleri) — YENİ bir sorgu yok, bu fonksiyon zaten her hero render'ında
+// çağrılıyordu, veri sadece daha görünür bir yere de yazılıyor artık.
 async function loadPhoneReviews(phoneId, containerId) {
   const el = document.getElementById(containerId);
+  const badgeEl = document.getElementById(containerId.replace('pr-list-', 'phone-rating-badge-'));
   if (!el) return;
   try {
     const rawDocs = await fetchPhoneComments(phoneId);
-    if (!rawDocs.length) { el.innerHTML = `<div class="no" style="padding:10px 0">Henüz yorum yok, ilk yorumu sen yaz!</div>`; return; }
+    if (!rawDocs.length) { el.innerHTML = `<div class="no" style="padding:10px 0">Henüz yorum yok, ilk yorumu sen yaz!</div>`; if (badgeEl) badgeEl.innerHTML = ''; return; }
     let totalStars = 0, count = 0;
     const docs = [...rawDocs].sort((x, y) => {
       const tx = x.data().createdAt?.toMillis ? x.data().createdAt.toMillis() : 0;
@@ -17276,7 +17286,9 @@ async function loadPhoneReviews(phoneId, containerId) {
     const avg = count ? (totalStars / count) : 0;
     const avgHtml = count ? `<div class="pr-avg"><span class="pr-stars">${'★'.repeat(Math.round(avg))}${'☆'.repeat(5 - Math.round(avg))}</span><span>${avg.toFixed(1)} / 5 (${count} oy)</span></div>` : '';
     el.innerHTML = avgHtml + items;
+    if (badgeEl) badgeEl.innerHTML = count ? `⭐ ${avg.toFixed(1)} <span class="prb-count">(${count} oy)</span>` : '';
   } catch(e) {
+    if (badgeEl) badgeEl.innerHTML = '';
     el.innerHTML = `<div class="no" style="padding:10px 0">Yorumlar yüklenemedi<br><span style="font-size:11px;color:var(--text3)">${e.message}</span></div>`;
     console.error('Yorum yükleme hatası:', e);
   }
