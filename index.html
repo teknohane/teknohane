@@ -14851,6 +14851,7 @@ let extraPhonesLoaded = false;
 async function loadExtraPhones() {
   if (extraPhonesLoaded) return;
   extraPhonesLoaded = true;
+  await loadCuratedPhones(); // PHONES'daki 111 kaydı Firestore'daki (admin tarafından düzenlenebilir) kanonik haliyle güncelle — worker'ın legacy/enrichment birleştirmesi bundan SONRA, güncel existingKeys üzerinden çalışsın diye.
   try {
     const data = await tkGetJson(PHONES_API);
     const existingKeys = new Set(PHONES.map(p => (p.brand + p.name).toLowerCase()));
@@ -14858,10 +14859,53 @@ async function loadExtraPhones() {
       const key = (p.brand + p.name).toLowerCase();
       if (existingKeys.has(key)) return; // zaten elle eklenmiş bir kayıt varsa (Cimri linkli) onu koru
       existingKeys.add(key);
-      p.id = (p.brand + '-' + p.name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      p.id = (p.brand + '-' + p.name).toLowerCase().replace(/\+/g, 'plus').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
       PHONES.push(p);
     });
   } catch(e) { console.error('Telefon kataloğu yüklenemedi:', e); }
+}
+
+// TELEFON VERİ MİMARİSİ BİRLEŞTİRME (2026-09-11, Faz 1): elle girilmiş 111 kayıt artık index.html'e
+// gömülü DEĞİL — kendi Firestore koleksiyonunda (teknohane_phones, herkes okuyabilir, yalnızca
+// 'phones.edit' yetkili admin yazabilir). Bu, admin panelinden bir özelliği ARTIK deploy gerekmeden
+// düzeltebilmenin ön koşulu. Yukarıdaki hardcoded PHONES dizisi BİLİNÇLİ OLARAK SİLİNMEDİ — Firestore
+// çekilemezse (offline/ilk açılış anı) hâlâ anında kullanılabilir bir "son bilinen iyi durum" olarak
+// kalıyor; bu fonksiyon başarılı olduğunda Firestore'daki (potansiyel olarak admin tarafından
+// güncellenmiş) sürüm o telefonun hardcoded halinin ÜZERİNE yazıyor (aksine, loadExtraPhones()
+// hardcoded/elle-eklenmiş olanı KORUYUP yalnızca eksikleri ekliyor — kasıtlı fark: o iki kaynak asla
+// çakışmıyordu, burada ise Firestore artık "doğru" kaynak).
+let curatedPhonesLoaded = false;
+function decodeFirestoreValue(v) {
+  if (!v || v.nullValue !== undefined) return null;
+  if (v.stringValue !== undefined) return v.stringValue;
+  if (v.integerValue !== undefined) return parseInt(v.integerValue, 10);
+  if (v.doubleValue !== undefined) return v.doubleValue;
+  if (v.booleanValue !== undefined) return v.booleanValue;
+  if (v.mapValue !== undefined) return decodeFirestoreFields(v.mapValue.fields || {});
+  if (v.arrayValue !== undefined) return (v.arrayValue.values || []).map(decodeFirestoreValue);
+  return null;
+}
+function decodeFirestoreFields(fields) {
+  const out = {};
+  for (const k in fields) out[k] = decodeFirestoreValue(fields[k]);
+  return out;
+}
+async function loadCuratedPhones() {
+  if (curatedPhonesLoaded) return;
+  curatedPhonesLoaded = true;
+  try {
+    const url = `https://firestore.googleapis.com/v1/projects/teknohane-app/databases/(default)/documents/teknohane_phones?pageSize=300`;
+    const data = await tkGetJson(url);
+    const byKey = new Map(PHONES.map((p, i) => [(p.brand + p.name).toLowerCase(), i]));
+    (data.documents || []).forEach(doc => {
+      const p = decodeFirestoreFields(doc.fields || {});
+      p.id = doc.name.split('/').pop();
+      const key = (p.brand + p.name).toLowerCase();
+      const existingIdx = byKey.get(key);
+      if (existingIdx != null) PHONES[existingIdx] = p; // Firestore sürümü kanonik — üzerine yaz
+      else { byKey.set(key, PHONES.length); PHONES.push(p); }
+    });
+  } catch(e) { console.error('Telefon veritabanı (teknohane_phones) yüklenemedi:', e); }
 }
 let newsArticleCache = {};
 
@@ -15638,7 +15682,13 @@ const PHONES=[
   {brand:'ZTE',name:'Nubia Z70 Ultra',price:'₺54.999',ram:'16GB',storage:'512GB',chip:'SD 8 Elite',cam:'50+50+64MP',bat:'6150mAh',scr:'6.85" 144Hz',wt:'228g',os:'Android 15',yr:2024},
   {brand:'Huawei',name:'Nova 13',price:'₺29.999',ram:'12GB',storage:'256GB',chip:'Snapdragon 6 Gen 1',cam:'50+8MP',bat:'5000mAh',scr:'6.71" 120Hz',wt:'195g',os:'HarmonyOS 4.2',yr:2024},
 ];
-PHONES.forEach(p => { p.id = (p.brand + '-' + p.name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); });
+// BULUNAN HATA (2026-09-11, teknohane_phones göçü sırasında ampirik olarak yakalandı): '+' karakteri
+// genel alfasayısal-olmayan temizlemede tamamen siliniyordu, bu yüzden "Galaxy S25+" ile "Galaxy S25"
+// (ve S24+/S24, Redmi Note 14 Pro+/Pro) AYNI id'yi üretiyordu — ikisi de teknohane_comments'te aynı
+// targetId'ye yazıyor, paylaşılan/derin linkler yanlış telefona düşebiliyordu. '+' artık genel
+// temizlemeden ÖNCE 'plus' kelimesine çevriliyor. AYNI fonksiyon phones-worker/worker.js ve
+// phone-cache-sync.mjs'de de birebir tekrarlanıyor — üçü de senkron güncellendi.
+PHONES.forEach(p => { p.id = (p.brand + '-' + p.name).toLowerCase().replace(/\+/g, 'plus').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); });
 
 let pslot=null,pA=null,pB=null,fp=[...PHONES],abrand='Tümü';
 

@@ -34,8 +34,10 @@ async function fsCall(body) {
   return data;
 }
 
+// BULUNAN HATA (2026-09-11): '+' tamamen siliniyordu, "Galaxy S25+"="Galaxy S25" gibi çakışan id'ler
+// üretiyordu — index.html/phones-worker/worker.js'deki AYNI düzeltmeyle senkron.
 function slugFor(brand, name) {
-  return `${brand || ''}-${name || ''}`.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  return `${brand || ''}-${name || ''}`.toLowerCase().replace(/\+/g, 'plus').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 }
 
 function currentMonthKey() {
