@@ -596,6 +596,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .phone-detail-hero{text-align:center;padding:26px 18px 20px;}
 .phone-detail-hero-img{width:150px;height:150px;object-fit:contain;margin:0 auto 10px;display:block;filter:drop-shadow(0 10px 22px rgba(0,0,0,.35));}
 .phone-detail-hero .cmp-hero-badge{width:110px;height:110px;font-size:38px;margin:0 auto 10px;}
+.phone-detail-gallery{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:0 auto 14px;}
+.phone-detail-thumb{width:44px;height:44px;object-fit:contain;border-radius:10px;background:var(--cdim);padding:4px;cursor:pointer;box-shadow:0 0 0 1px var(--border2);transition:box-shadow .15s;}
+.phone-detail-thumb.active,.phone-detail-thumb:hover{box-shadow:0 0 0 2px var(--cyan);}
 .phone-detail-name{font-size:19px;font-weight:800;line-height:1.25;}
 .phone-detail-brand{font-size:11.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-top:2px;}
 .phone-quickspecs{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:16px;}
@@ -15741,10 +15744,20 @@ function onPhonePickerSearchInput(q) {
   phonePickerSearchDebounceTimer = setTimeout(() => fphn(q), 300);
 }
 
+// TELEFON KARŞILAŞTIRMA — PROFESYONEL GÖRSEL (Faz 2, 2026-09-11): admin panelinden yüklenen çoklu
+// açı/renk görselleri artık p.images (dizi, [{url,label}], en öndeki birincil görsel) içinde —
+// eski tekli p.imageUrl (yalnızca MobileAPI.dev zenginleştirmesinden gelir) hâlâ FALLBACK olarak
+// çalışıyor, hiçbir yerde kaldırılmadı. Görsel gösterilen HER yer bu tek fonksiyondan geçmeli.
+function phoneImageUrl(p) {
+  if (p.images && p.images.length && p.images[0]?.url) return p.images[0].url;
+  return p.imageUrl || null;
+}
+
 function pitemAvatarHTML(p) {
   const initial=(p.brand||'?')[0].toUpperCase();
-  return p.imageUrl
-    ? `<img src="${escapeJsAttr(p.imageUrl)}" alt="" loading="lazy" onerror="this.parentElement.textContent='${initial}'">`
+  const img = phoneImageUrl(p);
+  return img
+    ? `<img src="${escapeJsAttr(img)}" alt="" loading="lazy" onerror="this.parentElement.textContent='${initial}'">`
     : initial;
 }
 
@@ -15852,14 +15865,15 @@ function cmpCellHTML(key, raw, phone, side) {
   return `<div class="ccell val" id="spec-${key.replace(/\./g,'-')}-${side}">${body}</div>`;
 }
 
-// MobileAPI.dev'den zenginleştirilmiş telefonlarda gerçek bir ürün fotoğrafı (p.imageUrl) var —
-// bu durumda gösterilir. Henüz zenginleştirilmemiş (eski GSMArena listesi/elle girilmiş) telefonlarda
-// hâlâ görsel YOK, bu yüzden SAHTE/yanıltıcı bir görsel kullanılmaz — markanın baş harfini taşıyan
-// nötr "temsili" rozete düşülür (uygulamanın başka yerlerindeki aynı ilke, bkz. Sohbet/Bildirimler).
+// Admin panelinden yüklenmiş profesyonel bir görsel (p.images) ya da MobileAPI.dev'den zenginleşmiş
+// bir ürün fotoğrafı (p.imageUrl) varsa gösterilir — bkz. phoneImageUrl(). Hiçbiri yoksa SAHTE/yanıltıcı
+// bir görsel kullanılmaz, markanın baş harfini taşıyan nötr "temsili" rozete düşülür (uygulamanın
+// başka yerlerindeki aynı ilke, bkz. Sohbet/Bildirimler).
 function cmpHeroPhoneHTML(p, side) {
   const initial = (p.brand || '?')[0].toUpperCase();
-  const media = p.imageUrl
-    ? `<img class="cmp-hero-img" src="${escapeJsAttr(p.imageUrl)}" alt="${escapeJsAttr(p.name)}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'cmp-hero-badge',textContent:'${initial}'}))">`
+  const img = phoneImageUrl(p);
+  const media = img
+    ? `<img class="cmp-hero-img" src="${escapeJsAttr(img)}" alt="${escapeJsAttr(p.name)}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'cmp-hero-badge',textContent:'${initial}'}))">`
     : `<div class="cmp-hero-badge">${initial}</div>`;
   return `<div class="cmp-hero-phone">
     ${media}
@@ -16256,8 +16270,9 @@ function phoneMatchesAdvancedFilters(p) {
 }
 function phoneCardHTML(p) {
   const initial = (p.brand||'?')[0].toUpperCase();
-  const media = p.imageUrl
-    ? `<img src="${escapeJsAttr(p.imageUrl)}" alt="${escapeJsAttr(p.name)}" loading="lazy" decoding="async" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'cmp-hero-badge',textContent:'${initial}'}))">`
+  const img = phoneImageUrl(p);
+  const media = img
+    ? `<img src="${escapeJsAttr(img)}" alt="${escapeJsAttr(p.name)}" loading="lazy" decoding="async" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'cmp-hero-badge',textContent:'${initial}'}))">`
     : `<div class="cmp-hero-badge">${initial}</div>`;
   const specBits = [p.ram, p.storage, p.bat].filter(Boolean).join(' · ');
   return `<div class="phone-card" onclick="openPhoneDetail('${p.id}')">
@@ -16293,6 +16308,12 @@ function comparePhoneFromDetail(id) {
 
 // ==== TELEFON DETAY / İNCELEME SAYFASI ====
 let phoneDetailReviewTarget = null; // submitPhoneReview'un 'detail' side'ı için — pA/pB'ye dokunmadan
+function switchPhoneDetailImage(url, thumbEl) {
+  const hero = document.getElementById('phone-detail-hero-img');
+  if (hero) hero.src = url;
+  thumbEl.parentElement.querySelectorAll('.phone-detail-thumb').forEach(t => t.classList.remove('active'));
+  thumbEl.classList.add('active');
+}
 async function openPhoneDetail(id) {
   await loadExtraPhones();
   const p = PHONES.find(x => x.id === id);
@@ -16301,12 +16322,20 @@ async function openPhoneDetail(id) {
   if (!p) { body.innerHTML = '<div class="no">Telefon bulunamadı.</div>'; return; }
   phoneDetailReviewTarget = p;
   const initial = (p.brand||'?')[0].toUpperCase();
-  const media = p.imageUrl
-    ? `<img class="phone-detail-hero-img" src="${escapeJsAttr(p.imageUrl)}" alt="${escapeJsAttr(p.name)}" loading="lazy" decoding="async" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'cmp-hero-badge',textContent:'${initial}'}))">`
+  const heroImg = phoneImageUrl(p);
+  const media = heroImg
+    ? `<img class="phone-detail-hero-img" id="phone-detail-hero-img" src="${escapeJsAttr(heroImg)}" alt="${escapeJsAttr(p.name)}" loading="lazy" decoding="async" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'cmp-hero-badge',textContent:'${initial}'}))">`
     : `<div class="cmp-hero-badge">${initial}</div>`;
+  // Admin panelinden birden fazla açı/renk görseli yüklenmişse (Faz 2), küçük bir küçük-resim şeridi —
+  // dokununca ana görsel değişir. Tek görsel/hiç görsel yoksa şerit hiç render edilmez.
+  const gallery = (p.images && p.images.length > 1) ? `
+    <div class="phone-detail-gallery">
+      ${p.images.map((img, i) => `<img src="${escapeJsAttr(img.url)}" alt="${escapeJsAttr(img.label||'')}" loading="lazy" class="phone-detail-thumb${i===0?' active':''}" onclick="switchPhoneDetailImage('${escapeJsAttr(img.url)}', this)">`).join('')}
+    </div>` : '';
   body.innerHTML = `
     <div class="phone-detail-hero msg-in">
       ${media}
+      ${gallery}
       <div class="phone-detail-name">${escapeHtml(p.name||'')}</div>
       <div class="phone-detail-brand">${escapeHtml(brandDisplay(p.brand))}${p.yr?' · '+p.yr:''}</div>
       <div style="margin-top:10px">${priceCell(p, 'detail')}</div>
