@@ -612,6 +612,16 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .pcl-ic{font-size:20px;flex-shrink:0;}
 .pcl-txt{font-size:12px;font-weight:600;line-height:1.3;}
 .pcl-sub{font-size:10.5px;color:var(--text3);margin-top:1px;}
+/* FAZ 3 — Teknohane'ye özgü ikinci el fiyat kutusu (bkz. phoneSecondhandPriceHTML) */
+.phone-secondhand-box{background:var(--cdim);border:1px solid var(--border2);border-radius:14px;padding:14px;margin:14px 0;text-align:left;}
+.phone-secondhand-tit{font-size:13px;font-weight:700;color:var(--cyan);margin-bottom:10px;}
+.phone-secondhand-row{display:flex;gap:8px;margin-bottom:12px;}
+.pss-stat{flex:1;text-align:center;background:var(--surf);border-radius:10px;padding:8px 4px;}
+.pss-stat.main{background:var(--surf2);box-shadow:0 0 0 1px var(--cyan) inset;}
+.pss-lbl{font-size:10px;color:var(--text3);margin-bottom:2px;}
+.pss-val{font-size:14px;font-weight:800;font-variant-numeric:tabular-nums;}
+.phone-secondhand-btn{width:100%;padding:10px;border-radius:10px;border:1px solid var(--border2);background:var(--surf);color:var(--cyan);font-size:12.5px;font-weight:700;cursor:pointer;}
+.phone-secondhand-btn:active{background:var(--surf2);}
 .phone-summary-card{background:var(--surf);border:1px solid var(--border2);border-radius:14px;padding:14px 16px;margin:16px 0;}
 .ps-row{font-size:12.5px;line-height:1.5;padding:3px 0;}
 .ps-pos{color:var(--text);}
@@ -16342,6 +16352,7 @@ async function openPhoneDetail(id) {
       ${p.intlPrice ? `<div class="cmp-hero-intl-price">🌍 ${escapeHtml(p.intlPrice)}</div>` : ''}
       ${phoneQuickSpecsHTML(p)}
     </div>
+    ${phoneSecondhandPriceHTML(p)}
     ${phoneSuitedForHTML(p)}
     ${phoneSummaryHTML(p)}
     ${phoneProsConsHTML(p)}
@@ -16824,6 +16835,51 @@ function pfEditAnswers() { pfStep = 1; renderPhoneFinderStep(); }
 // sayılar çıkma riskini önlemek için, bkz. görev talimatı §27): mevcut arama kutularını AYNEN
 // kullanan bir ön-doldurulmuş arama bağlantısı sunuyor — "tek doğruluk kaynağı" Pazar/Forum'un
 // KENDİ arama sonucudur.
+// FAZ 3 — Teknohane'ye ÖZGÜ ikinci el fiyat verisi: yol haritasının "gerçek differentiator"ı, çünkü
+// GSMArena/Kimovil/DXOMark'ta bu YOK — onlarda gerçek alım-satım işlem verisi bulunmuyor. Yeni bir
+// Firestore okuması YAPMAZ: Pazar ana ekranı için zaten yüklenmiş marketAllListings üzerinden, aynı
+// marka + modelin TÜM anlamlı kelimelerinin (renderSimilarListings/Bana Uygun İlanlar'daki AYNI
+// teknik) eşleştiği aktif ilanlar süzülür. En az 2 karşılaştırılabilir ilan yoksa hiç gösterilmez —
+// az veriyle yanıltıcı bir "piyasa fiyatı" iddiası göstermektense hiç göstermemek tercih edildi
+// (renderPriceAnalysis'teki AYNI eşik mantığı). Kullanıcı bu oturumda Pazar'ı hiç gezmediyse
+// (marketAllListings boşsa) bölüm sessizce boş kalır — yeni bir yükleme TETİKLENMEZ.
+const PHONE_VARIANT_MARKERS = new Set(['pro','max','plus','ultra','mini','lite','se','fe','note','edge','air','neo','core']);
+function phoneSecondhandPriceHTML(p) {
+  if (!marketAllListings.length) return '';
+  const brand = (p.brand || '').toLowerCase();
+  const modelWords = (p.name || '').toLowerCase().split(/\s+/).filter(w => w.length >= 3);
+  if (!brand || !modelWords.length) return '';
+  // "iPhone 15 Pro" kelime kümesi "iPhone 15 Pro Max"ın bir ALT kümesi olduğundan salt "every kelime
+  // içeriyor mu" kontrolü Pro'yu Pro Max ilanlarıyla yanlışlıkla eşleştirirdi — varyant belirteci
+  // kelimelerinin (pro/max/plus/ultra vb.) TAM eşit küme olmasını da şart koşarak bu düzeltildi.
+  const modelVariants = new Set(modelWords.filter(w => PHONE_VARIANT_MARKERS.has(w)));
+  const matches = marketAllListings.filter(x => {
+    if (listingEffectiveCategory(x) !== 'telefon') return false;
+    if (x.sold || x.paused || x.approved === false || isListingExpired(x)) return false;
+    if (listingBrandGuess(x) !== brand) return false;
+    const words = (x.modelName || x.model || '').toLowerCase().split(/\s+/).filter(w => w.length >= 3);
+    if (!modelWords.every(w => words.includes(w))) return false;
+    const xVariants = new Set(words.filter(w => PHONE_VARIANT_MARKERS.has(w)));
+    if (xVariants.size !== modelVariants.size) return false;
+    for (const v of xVariants) if (!modelVariants.has(v)) return false;
+    return true;
+  });
+  const prices = matches.map(x => parseInt(x.price || 0)).filter(n => n > 0);
+  if (prices.length < 2) return '';
+  const sorted = [...prices].sort((a, b) => a - b);
+  const min = sorted[0], max = sorted[sorted.length - 1];
+  const mid = Math.floor(sorted.length / 2);
+  const median = sorted.length % 2 ? sorted[mid] : Math.round((sorted[mid - 1] + sorted[mid]) / 2);
+  return `<div class="phone-secondhand-box">
+    <div class="phone-secondhand-tit">💰 Teknohane'de İkinci El — ${prices.length} aktif ilan</div>
+    <div class="phone-secondhand-row">
+      <div class="pss-stat"><div class="pss-lbl">En Düşük</div><div class="pss-val">₺${min.toLocaleString('tr-TR')}</div></div>
+      <div class="pss-stat main"><div class="pss-lbl">Medyan</div><div class="pss-val">₺${median.toLocaleString('tr-TR')}</div></div>
+      <div class="pss-stat"><div class="pss-lbl">En Yüksek</div><div class="pss-val">₺${max.toLocaleString('tr-TR')}</div></div>
+    </div>
+    <button class="phone-secondhand-btn" onclick="goToMarketSearchFor('${escapeJsAttr(p.brand + ' ' + p.name)}')">📦 ${prices.length} İlanı Pazar'da Gör</button>
+  </div>`;
+}
 function phoneCrossLinksHTML(p) {
   const q = `${p.brand} ${p.name}`;
   return `<div class="phone-cross-links">
