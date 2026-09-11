@@ -220,6 +220,64 @@ const SEED_LIST = [
   { brand: 'Realme', name: '12 Pro' }, { brand: 'Honor', name: 'Magic 6 Pro' },
 ];
 
+// FAZ 6 — otomatik yeni-çıkış keşfi (2026-09-11, kullanıcı onaylı TEMKİNLİ yaklaşım). SEED_LIST'in
+// aksine elle güncellenmeyi GEREKTİRMEZ: MobileAPI.dev'in /devices/by-year/ ucuyla bu yılın gerçekten
+// yeni telefonlarını haftada YALNIZCA BİR kez (kuyruk VE tohum listesi tükendiğinde, en düşük öncelik
+// olarak) kontrol eder. Sıralama MobileAPI.dev belgelerinde GARANTİ EDİLMEMİŞ — bu yüzden yalnızca
+// 1. sayfa (50 cihaz) çekiliyor, tam kapsama İDDİA EDİLMİYOR; haftalık tekrarlarla zamanla organik
+// bir kapsama oluşur. by-year ucu telefon DIŞI cihazları da (tablet/laptop/wearable) döner ve bir
+// "device_type" alanı YOK — bu yüzden hem TAKİP EDİLEN marka listesine (SEED_LIST'teki markalar) hem
+// de basit isim-tabanlı bir dışlama listesine göre süzülüyor. En fazla 3 yeni aday kuyruğa eklenir
+// (organik kullanıcı taleplerini "boğmamak" için bilinçli bir üst sınır — kuyruk zaten en eski istek
+// önce işleniyor, bu yüzden gerçek bir kullanıcı talebi her zaman önce işlenir).
+const TRACKED_BRANDS = new Set(SEED_LIST.map(p => p.brand.toLowerCase()));
+const NON_PHONE_NAME_HINTS = ['pad', 'macbook', 'imac', 'watch', 'tablet', 'buds', 'book', 'airpods', 'pencil', 'chromebook', 'monitor'];
+function looksLikePhone(name) {
+  const n = (name || '').toLowerCase();
+  return !NON_PHONE_NAME_HINTS.some(h => n.includes(h));
+}
+
+async function runYearlyDiscovery(quota) {
+  const stateRes = await fsCall({ op: 'get', path: 'teknohane_settings/phoneDiscoveryState' });
+  const lastRunAt = stateRes.doc?.lastRunAt ? new Date(stateRes.doc.lastRunAt).getTime() : 0;
+  if (Date.now() - lastRunAt < 7 * 24 * 60 * 60 * 1000) {
+    console.log('Yeni-çıkış keşfi bu hafta zaten çalıştı, atlanıyor.');
+    return;
+  }
+  await fsCall({
+    op: 'patch', path: 'teknohane_settings/phoneDiscoveryState',
+    fields: { lastRunAt: new Date().toISOString() }, fieldPaths: ['lastRunAt']
+  });
+
+  const year = new Date().getUTCFullYear();
+  const res = await fetch(`https://api.mobileapi.dev/devices/by-year/?year=${year}&page=1&key=${MOBILEAPI_KEY}`);
+  if (res.status === 429) { console.log('Keşif sırasında rate limit, sonraki haftaya bırakıldı.'); return; }
+  const data = await res.json();
+  if (!res.ok) { console.error('by-year hatası:', JSON.stringify(data)); return; }
+  await bumpQuota(quota, 1);
+
+  const candidates = (data.devices || [])
+    .filter(d => TRACKED_BRANDS.has((d.manufacturer?.name || '').toLowerCase()) && looksLikePhone(d.name));
+
+  let queued = 0;
+  for (const d of candidates) {
+    if (queued >= 3) break;
+    const brand = d.manufacturer?.name;
+    const id = slugFor(brand, d.name);
+    // Zaten biliniyor mu (daha önce SEED_LIST'ten ya da başka bir keşiften önbelleklenmiş)? — atla.
+    const cachedRes = await fsCall({ op: 'get', path: `teknohane_phone_specs/${id}` });
+    if (cachedRes.doc) continue;
+    console.log(`Yeni tespit (otomatik keşif): ${brand} ${d.name}`);
+    await fsCall({
+      op: 'patch', path: `teknohane_phone_lookup_requests/${id}`,
+      fields: { brand, phoneName: d.name, requestedAt: new Date().toISOString(), discoveredVia: 'yearly_scan' },
+      fieldPaths: ['brand', 'phoneName', 'requestedAt', 'discoveredVia']
+    });
+    queued++;
+  }
+  console.log(`Otomatik keşif: ${candidates.length} aday tarandı, ${queued} yeni telefon kuyruğa eklendi.`);
+}
+
 async function main() {
   const quota = await getQuota();
   if (quota.used + 2 > MONTHLY_SAFE_LIMIT) {
@@ -262,7 +320,12 @@ async function main() {
     return;
   }
 
-  console.log('Kuyruk boş ve tüm tohum telefonlar zaten önbellekte.');
+  console.log('Kuyruk boş ve tüm tohum telefonlar zaten önbellekte — otomatik keşif kontrol ediliyor.');
+  try {
+    await runYearlyDiscovery(quota);
+  } catch (e) {
+    console.error('Otomatik keşif hatası:', e.message);
+  }
 }
 
 main().catch(e => { console.error(e); process.exit(1); });
