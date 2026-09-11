@@ -14703,7 +14703,7 @@ const COMPLAINT_REASONS = [
   { code: 'telif', label: 'Telif' },
   { code: 'diger', label: 'Diğer' },
 ];
-const COMPLAINT_TYPE_LABELS = { user: 'Kullanıcı', listing: 'İlan', forum_post: 'Forum Gönderisi', comment: 'Yorum', message: 'Mesaj', pool_request: 'Havuz İşlemi' };
+const COMPLAINT_TYPE_LABELS = { user: 'Kullanıcı', listing: 'İlan', forum_post: 'Forum Gönderisi', comment: 'Yorum', message: 'Mesaj', pool_request: 'Havuz İşlemi', phone_spec: 'Telefon Bilgisi' };
 
 let reportContext = null; // { type, targetId, targetLabel, targetOwnerUid }
 
@@ -16359,6 +16359,7 @@ async function openPhoneDetail(id) {
     ${phoneCrossLinksHTML(p)}
     <div class="ctbl">${cmpCategoryAccordionHTML(p, null)}</div>
     <div class="cmp-price-note">🔄 simgesi olan fiyatlar Cimri.com'dan canlı kontrol edilebilir</div>
+    ${user ? `<div style="text-align:center;margin-top:10px"><span onclick="openReportModal('phone_spec','${escapeJsAttr(p.id)}','${escapeJsAttr(p.brand + ' ' + p.name)}',null)" style="font-size:12px;color:var(--text3);cursor:pointer;text-decoration:underline">🚩 Bu Bilgilerde Hata Var</span></div>` : ''}
     <button class="apbtn" style="width:100%;margin:14px 0 4px;background:var(--surf2);color:var(--text)" onclick="comparePhoneFromDetail('${p.id}')">📊 Rakipleriyle Karşılaştır</button>
     ${similarPhonesHTML(p)}
     <div class="phone-reviews">
