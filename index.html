@@ -4660,9 +4660,9 @@ function rprof() {
         <div class="pqa-item" onclick="document.getElementById('phone-collection')?.scrollIntoView({behavior:'smooth'})">
           <div class="pqa-ic">📱</div><div class="pqa-lbl">Telefonlarım</div>
         </div>
-        <div class="pqa-item" onclick="openArenaPage()">
+        ${ARENA_MODULU_AKTIF ? `<div class="pqa-item" onclick="openArenaPage()">
           <div class="pqa-ic">🎮</div><div class="pqa-lbl">Arena</div>
-        </div>
+        </div>` : ''}
       </div>
       <div class="pcol-card" id="phone-collection">
         <div class="psec-title" style="display:flex;align-items:center;justify-content:space-between">
@@ -4693,9 +4693,9 @@ function rprof() {
             </div>`).join('')}
         </div>
       </div>
-      <div class="pbadge-card" id="profile-arena-card"><div class="load"><div class="spin"></div></div></div>
+      ${ARENA_MODULU_AKTIF ? `<div class="pbadge-card" id="profile-arena-card"><div class="load"><div class="spin"></div></div></div>
       <div class="pbadge-card" id="profile-arena-category-card" style="display:none"></div>
-      <div class="pbadge-card" id="profile-arena-advanced-card" style="display:none"></div>
+      <div class="pbadge-card" id="profile-arena-advanced-card" style="display:none"></div>` : ''}
       <div class="psec-title" style="margin-top:4px">📂 İçeriklerim</div>
       <div class="profile-tabs">
         <div class="ptab${profileTab==='mine'?' on':''}" onclick="switchProfileTab('mine',this)">İlanlarım</div>
@@ -4753,7 +4753,7 @@ function rprof() {
         <div class="psec-title">🔔 Bildirim Tercihleri</div>
         <div class="pacc-row" style="align-items:center"><span class="pacc-lbl">Takip Ettiklerimin Yeni İlanları</span><div class="ptoggle${myProfileData.notifyFollowedListings?' on':''}" onclick="toggleNotifyFollowedListings()"></div></div>
         <div class="pacc-row" style="align-items:center"><span class="pacc-lbl">🏪 Takip Ettiğim Mağazalardan Yeni İlanlar</span><div class="ptoggle${myProfileData.notifyStoreFollows!==false?' on':''}" onclick="toggleNotifyStoreFollows()"></div></div>
-        <div class="pacc-row" style="align-items:center"><span class="pacc-lbl">🏆 Arena (lig, terfi/düşme, sezon sonucu)</span><div class="ptoggle${myProfileData.notifyArenaEvents!==false?' on':''}" onclick="toggleNotifyPref('notifyArenaEvents','Arena bildirimlerini tekrar alacaksın.')"></div></div>
+        ${ARENA_MODULU_AKTIF ? `<div class="pacc-row" style="align-items:center"><span class="pacc-lbl">🏆 Arena (lig, terfi/düşme, sezon sonucu)</span><div class="ptoggle${myProfileData.notifyArenaEvents!==false?' on':''}" onclick="toggleNotifyPref('notifyArenaEvents','Arena bildirimlerini tekrar alacaksın.')"></div></div>` : ''}
         <div class="pacc-row" style="align-items:center"><span class="pacc-lbl">🛒 Pazar (fiyat düşüşü, ilan durumu)</span><div class="ptoggle${myProfileData.notifyPazarEvents!==false?' on':''}" onclick="toggleNotifyPref('notifyPazarEvents','Pazar bildirimlerini tekrar alacaksın.')"></div></div>
         <div class="pacc-row" style="align-items:center"><span class="pacc-lbl">💬 Topluluk (yanıt, mention)</span><div class="ptoggle${myProfileData.notifyTopluluk!==false?' on':''}" onclick="toggleNotifyPref('notifyTopluluk','Topluluk bildirimlerini tekrar alacaksın.')"></div></div>
         <div class="pacc-row" style="align-items:center"><span class="pacc-lbl">👑 VIP (süre, ödül, avantaj)</span><div class="ptoggle${myProfileData.notifyVipEvents!==false?' on':''}" onclick="toggleNotifyPref('notifyVipEvents','VIP bildirimlerini tekrar alacaksın.')"></div></div>
@@ -4792,7 +4792,7 @@ function rprof() {
       if (el) el.innerHTML = renderTrustCardHTML(avg, count, { trustedSeller: myProfileData.trustedSeller, verified: user.emailVerified||myProfileData.adminVerified, joinedYear, uid: user.uid, displayName: myProfileData.displayName||user.displayName||'Ben' });
     }).catch(()=>{});
     ensureProfileTabDataLoaded();
-    loadProfileArenaStats();
+    if (ARENA_MODULU_AKTIF) loadProfileArenaStats();
     } catch(e) {
       console.error('Profil render hatası:', e);
       c.innerHTML = `<div class="load" style="padding:60px 24px"><div style="font-size:36px">📡</div><div>Profil yüklenirken bir sorun oluştu.</div><button class="sbtn2" style="margin-top:16px;max-width:200px" onclick="rprof()">Tekrar Dene</button></div>`;
@@ -6380,12 +6380,16 @@ function navigateFromNotificationUrl(url, attempt) {
       // GENİŞLETME (Arena Lig Otomatik Bildirim Sistemi): rArenaLeague() TEK ekranda hem güncel ligi
       // hem sezon geçmişi/sonucunu gösteriyor (kendi içinde arenaLeagueFetchHistory() çağırıyor) — lig
       // başladı VE sezon sonucu bildirimleri AYNI hedefe yönlendirilir, ayrı bir ekran gerekmiyor.
+      // Arena/Lig askıya alınırken (bkz. ARENA_MODULU_AKTIF) eski bir bildirim/bağlantı bu dala
+      // düşerse boş bir Arena ekranı açmak yerine sessizce ana sayfaya yönlendiriliyor.
+      if (!ARENA_MODULU_AKTIF) { gt('home'); return; }
       if (!user && attempt < 10) { setTimeout(() => navigateFromNotificationUrl(url, attempt+1), 400); return; }
       openArenaPage(); rArenaLeague();
     } else if (screenTarget) {
       // GENİŞLETME (Bildirim Merkezi — Aşama 10): admin panelinden seçilebilen genel ekran hedefleri
       // (Ana Sayfa/Arena/Forum/Pazar/Profil) — mevcut alt-sekme (gt) ve Arena açma (openArenaPage)
       // fonksiyonları AYNEN kullanılıyor, yeni bir navigasyon mekanizması YOK.
+      if (screenTarget === 'arena' && !ARENA_MODULU_AKTIF) { gt('home'); return; }
       if (!user && attempt < 10 && screenTarget !== 'home') { setTimeout(() => navigateFromNotificationUrl(url, attempt+1), 400); return; }
       if (screenTarget === 'arena') openArenaPage();
       else if (['home', 'community', 'market', 'profile'].includes(screenTarget)) gt(screenTarget);
@@ -7528,7 +7532,7 @@ function renderDailySummaryNotifCard(doc) {
     arena: { ic: '🏆', label: 'Arena' }, pazar: { ic: '🛒', label: 'Pazar' },
     forum: { ic: '💬', label: 'Topluluk' }, vip: { ic: '👑', label: 'VIP' },
   };
-  const order = ['arena', 'pazar', 'forum', 'vip'];
+  const order = (ARENA_MODULU_AKTIF ? ['arena', 'pazar', 'forum', 'vip'] : ['pazar', 'forum', 'vip']);
   const sectionsHtml = order.filter(k => (cats[k]||[]).length).map(k => {
     const meta = CAT_META[k];
     const items = cats[k].map(it => `<div class="dsum-item" ${it.action ? `onclick="event.stopPropagation();handleDailySummaryAction('${it.action.type}','${escapeJsAttr(it.action.id||'')}')"` : ''} style="${it.action?'cursor:pointer':''}">${escapeHtml(it.text)}</div>`).join('');
@@ -7537,7 +7541,7 @@ function renderDailySummaryNotifCard(doc) {
   const body = sd.empty || !sectionsHtml
     ? `<div class="dsum-empty">Bugün senin için önemli bir gelişme yok.</div>
        <div class="dsum-shortcuts">
-         <span onclick="event.stopPropagation();closemo('notif-mo');openArenaPage()">🏆 Arena'ya Katıl</span>
+         ${ARENA_MODULU_AKTIF ? `<span onclick="event.stopPropagation();closemo('notif-mo');openArenaPage()">🏆 Arena'ya Katıl</span>` : ''}
          <span onclick="event.stopPropagation();closemo('notif-mo');gt('market')">🛒 Pazar'ı Keşfet</span>
          <span onclick="event.stopPropagation();closemo('notif-mo');gt('compare')">📱 Telefon Keşfet</span>
        </div>`
@@ -15465,7 +15469,7 @@ async function rhome() {
       <div class="home-section" style="animation-delay:0ms"><div id="home-greeting"></div></div>
       <div class="home-section" style="animation-delay:10ms"><div id="home-today-headline"></div></div>
       <div class="home-section" style="animation-delay:25ms"><div id="home-mini-stats"></div></div>
-      <div class="home-section" style="animation-delay:35ms"><div id="home-arena-hub">${homeArenaHubSkeletonHtml()}</div></div>
+      <div class="home-section" style="animation-delay:35ms"><div id="home-arena-hub" style="${ARENA_MODULU_AKTIF ? '' : 'display:none'}">${ARENA_MODULU_AKTIF ? homeArenaHubSkeletonHtml() : ''}</div></div>
       <div class="home-section" style="animation-delay:42ms"><div id="home-today-cards"></div></div>
       <div class="home-section" style="animation-delay:50ms">
         <div class="sh"><span class="st"><span class="sh-ic">🔥</span>Trendler</span></div>
@@ -17880,6 +17884,20 @@ function closeSettingsPage() {
   document.getElementById('s-settings').classList.remove('on');
 }
 
+// ═══════════════════════════════════════════════
+// ARENA/LİG — ANA AÇMA/KAPAMA ANAHTARI (2026-09-14)
+// Kullanıcı isteğiyle: Arena/Lig bölümü uygulamadan TAMAMEN görünmez hale getirildi (nav/ana sayfa
+// kartı/profil butonu/profil istatistik kartları/bildirim özeti kısayolu/derin bağlantılar) —
+// AMA hiçbir veri/fonksiyon SİLİNMEDİ, tamamen tersine çevrilebilir. TEKRAR AKTİF ETMEK İÇİN:
+// bu satırı `true` yap, sonra index.html'i teknohane-pages + teknohane-app/www'e senkronize edip
+// yeniden deploy et (bkz. PROJECT_GUIDE.md'deki standart deploy adımları). Sunucu tarafında da AYRI
+// bir güvenlik freni var: teknohane_settings/arena.arenaEnabled=false (admin panelinden veya
+// doğrudan Firestore'dan true yapılabilir) — bu, olası eski/önbelleğe alınmış bir istemcinin
+// arena-start/arena-league-join/arena-league-match-start/arena-league-postponed-start uçlarına
+// hâlâ istek atmasını da engelliyor (bkz. cloudflare-push-worker.js). İKİSİ DE true olmalı ki
+// özellik gerçekten tam olarak eski haline dönsün.
+const ARENA_MODULU_AKTIF = false;
+
 // TEKNOHANE ARENA — Destek sayfasıyla BİREBİR aynı tam-ekran-sayfa deseni (openSupportPage/
 // closeSupportPage/supportPageOpen).
 let arenaPageOpen = false;
@@ -17888,6 +17906,7 @@ let arenaPageOpen = false;
 let arenaBackgroundCount = 0;
 let arenaLeagueMatchBackgroundCount = 0;
 function openArenaPage() {
+  if (!ARENA_MODULU_AKTIF) return;
   arenaPageOpen = true;
   document.getElementById('s-arena').classList.add('on');
   history.pushState({ arenaPage: true }, '', location.pathname);
@@ -17900,6 +17919,7 @@ function openArenaPage() {
 // durumu). Bu fonksiyon openArenaPage()'in GÖRÜNÜRLÜK adımlarını AYNEN tekrarlar ama rArenaHome()
 // YERİNE doğrudan rArenaLeague()'i çağırır — tek bir render zinciri, yarış durumu yok.
 function openArenaLeagueDirect() {
+  if (!ARENA_MODULU_AKTIF) return;
   arenaPageOpen = true;
   document.getElementById('s-arena').classList.add('on');
   history.pushState({ arenaPage: true }, '', location.pathname);
@@ -18497,6 +18517,7 @@ function homeArenaHubSkeletonHtml() {
 async function renderHomeArenaHub() {
   const el = document.getElementById('home-arena-hub');
   if (!el) return;
+  if (!ARENA_MODULU_AKTIF) { el.innerHTML = ''; el.style.display = 'none'; return; }
   if (!user) {
     el.innerHTML = `<div class="feat" style="padding:20px 18px;text-align:center;cursor:pointer" onclick="openArenaPage()">
       <div style="font-size:30px;margin-bottom:6px">🎮</div>
