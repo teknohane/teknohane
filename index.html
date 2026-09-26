@@ -1540,6 +1540,35 @@ body.tk-maintenance #maintenance-gate{
   height:100dvh;padding:32px 24px;text-align:center;background:var(--bg);color:var(--text);
   gap:14px;position:fixed;inset:0;z-index:9999;
 }
+
+/* UYGULAMA KİLİDİ 1.0 (2026-09-26, kullanıcı isteği: "girişte 6 haneli şifre... parmak izi/yüz
+   okuma... opsiyonel, Ayarlar > Güvenlik'te") — AYNI kanıtlanmış tk-banned/tk-maintenance gate
+   deseni: yalnızca body.tk-locked sınıfı varken devreye girer, #app'i TAMAMEN gizler (z-index
+   yarışı yok). PIN TAMAMEN CİHAZ YERELİNDE (localStorage'da SHA-256 hash'i) tutulur, sunucuya HİÇ
+   gönderilmez — bu Firebase Auth'un YERİNE GEÇMEZ, yalnızca "telefonu eline alan biri uygulamayı
+   doğrudan açamasın" ek bir katmandır. */
+#applock-gate{display:none;}
+body.tk-locked #app{display:none;}
+body.tk-locked #applock-gate{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:100dvh;padding:32px 24px;text-align:center;background:var(--bg);color:var(--text);
+  gap:6px;position:fixed;inset:0;z-index:9999;
+}
+.alk-icon{width:64px;height:64px;border-radius:50%;background:var(--cdim);display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:8px;}
+.alk-title{font-size:18px;font-weight:700;margin-bottom:4px;}
+.alk-sub{font-size:12.5px;color:var(--text2);margin-bottom:18px;min-height:16px;}
+.alk-sub.alk-err{color:var(--red);}
+.alk-dots{display:flex;gap:14px;margin-bottom:26px;}
+.alk-dot{width:14px;height:14px;border-radius:50%;background:var(--surf3);border:1px solid var(--border2);transition:background .15s ease,border-color .15s ease,transform .1s ease;}
+.alk-dot.filled{background:var(--cyan);border-color:var(--cyan);transform:scale(1.1);}
+.alk-dots.alk-shake{animation:alkShake .4s ease;}
+@keyframes alkShake{10%,90%{transform:translateX(-2px)}20%,80%{transform:translateX(4px)}30%,50%,70%{transform:translateX(-8px)}40%,60%{transform:translateX(8px)}}
+.alk-pad{display:grid;grid-template-columns:repeat(3,72px);gap:14px;margin-bottom:8px;}
+.alk-key{width:72px;height:72px;border-radius:50%;background:var(--surf);border:1px solid var(--border2);color:var(--text);font-size:24px;font-weight:600;display:flex;align-items:center;justify-content:center;cursor:pointer;font-family:inherit;user-select:none;}
+.alk-key:active{background:var(--surf2);}
+.alk-key.alk-empty{background:transparent;border:none;cursor:default;}
+.alk-key.alk-bio{background:var(--cdim);border-color:rgba(0,212,255,.3);color:var(--cyan);font-size:26px;}
+.alk-forgot{margin-top:20px;font-size:12.5px;color:var(--text3);text-decoration:underline;cursor:pointer;}
 </style>
 <script>
 // Sayfa render olmadan ÖNCE temayı uygula - "flash of wrong theme" önlenir
@@ -1570,6 +1599,18 @@ body.tk-maintenance #maintenance-gate{
   <div class="bg-title">Bakım Çalışması</div>
   <div class="bg-desc">Teknohane şu anda kısa süreli bir bakım çalışması nedeniyle geçici olarak kullanılamıyor. Kısa süre sonra tekrar deneyin.</div>
 </div>
+<!-- UYGULAMA KİLİDİ 1.0 — bkz. #applock-gate CSS notundaki dürüstlük açıklaması. -->
+<div id="applock-gate">
+  <div class="alk-icon">🔒</div>
+  <div class="alk-title">Uygulama Kilitli</div>
+  <div class="alk-sub" id="alk-sub">Devam etmek için PIN'ini gir</div>
+  <div class="alk-dots" id="alk-dots">
+    <div class="alk-dot"></div><div class="alk-dot"></div><div class="alk-dot"></div>
+    <div class="alk-dot"></div><div class="alk-dot"></div><div class="alk-dot"></div>
+  </div>
+  <div class="alk-pad" id="alk-gate-pad"></div>
+  <div class="alk-forgot" onclick="applockForgotPin()">PIN'ini mi unuttun?</div>
+</div>
 <div id="app">
 <div id="offline-bar">📡 İnternet bağlantısı yok — bazı içerikler güncellenemiyor</div>
 <div id="toast-wrap"></div>
@@ -1597,6 +1638,22 @@ body.tk-maintenance #maintenance-gate{
   </div>
   <div class="wel-foot">
     <button class="wel-btn" onclick="closeWelcome()">Hadi Başlayalım</button>
+  </div>
+</div>
+
+<!-- UYGULAMA KİLİDİ 1.0 — PIN oluşturma/değiştirme akışı, Ayarlar > Güvenlik'ten (openApplockSetup())
+     açılır. Kilit ekranıyla (#applock-gate) AYNI tuş takımı bileşenini (applockKeypadHTML) paylaşır. -->
+<div class="mo" id="applock-setup-mo">
+  <div class="ms" style="text-align:center">
+    <div class="mh"></div>
+    <div class="alk-title" id="alk-setup-title">PIN Oluştur</div>
+    <div class="alk-sub" id="alk-setup-sub">6 haneli bir PIN belirle</div>
+    <div class="alk-dots" id="alk-setup-dots" style="justify-content:center">
+      <div class="alk-dot"></div><div class="alk-dot"></div><div class="alk-dot"></div>
+      <div class="alk-dot"></div><div class="alk-dot"></div><div class="alk-dot"></div>
+    </div>
+    <div class="alk-pad" id="alk-setup-pad" style="margin:0 auto 8px"></div>
+    <button class="apbtn" style="margin-top:10px" onclick="closeApplockSetup()">Vazgeç</button>
   </div>
 </div>
 
@@ -3367,6 +3424,9 @@ function stopPresenceHeartbeat() {
 let appBackgroundedAt = null;
 function handleAppForeground() {
   if (!user) { appBackgroundedAt = null; return; }
+  // UYGULAMA KİLİDİ 1.0 — her arka plandan öne gelişte (60sn eşiğinden BAĞIMSIZ, o eşik yalnızca
+  // veri tazeleme için) kilit etkinse yeniden gösterilir; banking-app beklentisiyle tutarlı.
+  checkApplockOnEntry();
   writePresenceHeartbeat(user.uid);
   // KÖK NEDEN DÜZELTMESİ (kullanıcı raporu: e-postasını doğrulamış kullanıcılar uygulamada hâlâ
   // "doğrulanmadı" görüyordu): doğrulama linki HER ZAMAN ayrı bir sekmede/tarayıcıda açılıyor (bkz.
@@ -3554,6 +3614,10 @@ function applyMaintenanceGate() {
 auth.onAuthStateChanged(u => {
   user = u;
   if (u) {
+    // UYGULAMA KİLİDİ 1.0 — soğuk başlatmada (uygulama tamamen kapatılıp yeniden açıldığında) da
+    // kilit etkinse en erken noktada gösterilir; #app arkada normal şekilde yüklenmeye devam eder,
+    // yalnızca body.tk-locked onu görsel/etkileşimsel olarak gizler (bkz. checkBanStatus'un AYNI deseni).
+    checkApplockOnEntry();
     // KÖK NEDEN DÜZELTMESİ (SOĞUK BAŞLATMA senaryosu — kullanıcı e-postasını doğruladıktan sonra
     // uygulamayı TAMAMEN kapatıp yeniden açarsa): onAuthStateChanged, Firebase'in YERELDE (IndexedDB/
     // localStorage) SAKLANMIŞ son bilinen oturumunu geri yükler — bu, kullanıcının en son ne zaman
@@ -3614,6 +3678,10 @@ auth.onAuthStateChanged(u => {
     if (!pushAutoSyncDone) { pushAutoSyncDone = true; setTimeout(() => setupPush(true), 800); }
     // Favoriler dinleyicisi, favs Set'i syncUserProfile'dan gelince (aşağıda) kurulacak.
   } else {
+    // UYGULAMA KİLİDİ 1.0 — güvenlik ağı: hangi yoldan olursa olsun çıkış yapıldığında kilit ekranı
+    // kalıcı olarak asılı kalmasın (normal "Oturumu Kapat" zaten yalnızca kilit AÇIKKEN erişilebilir,
+    // ama bu bir savunma hattı daha).
+    hideApplockGate();
     document.getElementById('hav').style.display = 'none';
     document.getElementById('hlogin').style.display = 'flex';
     document.getElementById('hbell').style.display = 'none';
@@ -4380,6 +4448,219 @@ function checkBanStatus() {
   }
 }
 
+// ═══════════════════════════════════════════════
+// UYGULAMA KİLİDİ 1.0 (2026-09-26, kullanıcı isteği: "girişte 6 haneli şifre oluşturma... parmak
+// izi/yüz okuma ile giriş... opsiyonel, kullanıcı tercihi, Ayarlar > Güvenlik'te"). AYNI kanıtlanmış
+// tk-banned/tk-maintenance gate deseni (bkz. checkBanStatus yukarısı): body.tk-locked sınıfı
+// #app'i TAMAMEN gizler, z-index yarışı yok. PIN TAMAMEN CİHAZ YERELİNDE tutulur (localStorage'da
+// yalnızca SHA-256 hash'i, ham PIN hiçbir yere yazılmaz) — bu Firebase Auth'un YERİNE GEÇMEZ,
+// yalnızca "telefonu eline alan biri uygulamayı doğrudan açamasın" ek bir katmandır. Tuzsuz hash
+// BİLİNÇLİ bir tercih: tehdit modeli rastgele bir kişinin kilitli/açık telefonu eline alması —
+// dosya sistemine erişimi olan gerçek bir saldırgan zaten localStorage'ın kendisini okuyabilir,
+// bu senaryoda tuz hiçbir ek koruma sağlamaz.
+//
+// Biyometrik doğrulama, cihaz destekliyorsa capacitor-biometric-authentication paketiyle (Android'de
+// yerel BiometricPrompt) — paketin kendi dürüstlük notu: "Local unlock only, the assertion does not
+// reach your server" — TAM olarak istediğimiz şey, sonucu yalnızca bu YEREL kilidi açıyor.
+// ═══════════════════════════════════════════════
+function applockStorageKey(uid) { return 'tk_applock_' + uid; }
+function getApplockConfig() {
+  if (!user) return null;
+  try { const raw = localStorage.getItem(applockStorageKey(user.uid)); return raw ? JSON.parse(raw) : null; }
+  catch (e) { return null; }
+}
+function setApplockConfig(cfg) {
+  if (!user) return;
+  try { localStorage.setItem(applockStorageKey(user.uid), JSON.stringify(cfg)); } catch (e) {}
+}
+function clearApplockConfig() {
+  if (!user) return;
+  try { localStorage.removeItem(applockStorageKey(user.uid)); } catch (e) {}
+}
+function isApplockEnabled() { return !!getApplockConfig()?.pinHash; }
+async function applockSha256(text) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// ---- Biyometrik destek (yalnızca native app + eklenti gerçekten mevcutsa) ----
+function applockBiometricPlugin() { return window.Capacitor?.Plugins?.BiometricAuth || null; }
+async function applockBiometricAvailable() {
+  const plugin = applockBiometricPlugin();
+  if (!plugin || !isNativeApp()) return false;
+  try { return !!(await plugin.isAvailable()); } catch (e) { return false; }
+}
+async function applockTryBiometric(onSuccess) {
+  const plugin = applockBiometricPlugin();
+  if (!plugin) return;
+  try {
+    const result = await plugin.authenticate({ reason: "Teknohane'ye devam etmek için kimliğini doğrula", title: 'Uygulama Kilidi' });
+    if (result?.success) onSuccess();
+  } catch (e) { /* sessiz — kullanıcı PIN ile devam edebilir, biyometrik yalnızca bir kısayol */ }
+}
+
+// ---- Ayarlar > Güvenlik'teki biyometrik satırı — cihaz desteği ASENKRON kontrol edildiği için
+// rprof()'un senkron şablonunun DIŞINDA, render'dan hemen sonra (bkz. rprof() çağrı noktası) doldurulur.
+async function applockRenderBiometricRow() {
+  const el = document.getElementById('applock-bio-row');
+  if (!el) return;
+  const avail = await applockBiometricAvailable();
+  if (!avail) { el.innerHTML = ''; return; }
+  const cfg = getApplockConfig();
+  el.innerHTML = `<div class="pacc-row" style="align-items:center"><span class="pacc-lbl">👆 Parmak İzi / Yüz Tanıma</span><div class="ptoggle${cfg?.biometricEnabled?' on':''}" onclick="toggleApplockBiometric()"></div></div>`;
+}
+async function toggleApplockBiometric() {
+  const cfg = getApplockConfig();
+  if (!cfg?.pinHash) return; // güvenlik ağı: PIN yoksa biyometrik seçeneği zaten gösterilmiyor
+  if (cfg.biometricEnabled) { setApplockConfig({ ...cfg, biometricEnabled: false }); requestProfileRerender(); return; }
+  const avail = await applockBiometricAvailable();
+  if (!avail) { showToast('⚠️','rgba(255,149,0,.15)','Bu cihaz desteklemiyor','Parmak izi/yüz tanıma bulunamadı veya cihazına hiç kayıtlı değil.'); return; }
+  const result = await applockBiometricPlugin().authenticate({ reason: 'Biyometrik girişi etkinleştirmek için kimliğini doğrula', title: 'Biyometrik Kilit' });
+  if (!result?.success) return;
+  setApplockConfig({ ...cfg, biometricEnabled: true });
+  requestProfileRerender();
+}
+
+// ---- Ortak numara tuş takımı — hem kilit ekranı (#applock-gate) hem PIN oluşturma modalı
+// (#applock-setup-mo) TARAFINDAN paylaşılır, padId ('gate'|'setup') hangi buffer'a yazılacağını ayırt eder.
+function applockKeypadHTML(padId, showBiometric) {
+  const keys = ['1','2','3','4','5','6','7','8','9', showBiometric ? 'bio' : '', '0', 'back'];
+  return keys.map(k => {
+    if (k === '') return '<div class="alk-key alk-empty"></div>';
+    if (k === 'back') return `<div class="alk-key" onclick="applockHandleKey('${padId}','back')">⌫</div>`;
+    if (k === 'bio') return `<div class="alk-key alk-bio" onclick="applockHandleKey('${padId}','bio')">🔓</div>`;
+    return `<div class="alk-key" onclick="applockHandleKey('${padId}','${k}')">${k}</div>`;
+  }).join('');
+}
+function applockRenderDots(containerId, count) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.querySelectorAll('.alk-dot').forEach((d, i) => d.classList.toggle('filled', i < count));
+}
+function applockHandleKey(padId, key) {
+  if (padId === 'gate') return applockGateKey(key);
+  return applockSetupKey(key);
+}
+
+// ---- Kilit ekranı (soğuk başlatma + arka plandan öne gelme, bkz. onAuthStateChanged/
+// handleAppForeground çağrı noktaları) ----
+let applockGateBuffer = '';
+function showApplockGate() {
+  if (!isApplockEnabled()) return;
+  applockGateBuffer = '';
+  const subEl = document.getElementById('alk-sub');
+  if (subEl) { subEl.textContent = "Devam etmek için PIN'ini gir"; subEl.classList.remove('alk-err'); }
+  applockRenderDots('alk-dots', 0);
+  document.body.classList.add('tk-locked');
+  applockBiometricAvailable().then(avail => {
+    const cfg = getApplockConfig();
+    const showBio = avail && cfg?.biometricEnabled;
+    const pad = document.getElementById('alk-gate-pad');
+    if (pad) pad.innerHTML = applockKeypadHTML('gate', showBio);
+    if (showBio) applockTryBiometric(() => hideApplockGate());
+  });
+}
+function hideApplockGate() {
+  document.body.classList.remove('tk-locked');
+  applockGateBuffer = '';
+}
+// Soğuk başlatmada (onAuthStateChanged) VE her arka plandan öne gelişte (handleAppForeground)
+// çağrılır — kullanıcı kilidi açtıysa (isApplockEnabled()===false) sessizce no-op.
+function checkApplockOnEntry() {
+  if (user && isApplockEnabled()) showApplockGate();
+}
+function applockGateKey(key) {
+  if (key === 'bio') { applockTryBiometric(() => hideApplockGate()); return; }
+  if (key === 'back') { applockGateBuffer = applockGateBuffer.slice(0, -1); applockRenderDots('alk-dots', applockGateBuffer.length); return; }
+  if (applockGateBuffer.length >= 6) return;
+  applockGateBuffer += key;
+  applockRenderDots('alk-dots', applockGateBuffer.length);
+  if (applockGateBuffer.length === 6) applockVerifyGatePin();
+}
+async function applockVerifyGatePin() {
+  const cfg = getApplockConfig();
+  const hash = await applockSha256(applockGateBuffer);
+  if (cfg && hash === cfg.pinHash) { hideApplockGate(); return; }
+  const subEl = document.getElementById('alk-sub');
+  if (subEl) { subEl.textContent = 'Yanlış PIN, tekrar dene'; subEl.classList.add('alk-err'); }
+  const dotsEl = document.getElementById('alk-dots');
+  dotsEl?.classList.add('alk-shake');
+  setTimeout(() => dotsEl?.classList.remove('alk-shake'), 400);
+  applockGateBuffer = '';
+  applockRenderDots('alk-dots', 0);
+}
+// PIN kurtarma akışı YOK (yerel-yalnızca tasarım gereği) — tek dürüst çözüm, hesabı yeniden
+// doğrulamaya zorlamak. Oturum kapatma applockGateBuffer'ı sıfırlamaz ama tk-locked kalır; bir sonraki
+// girişte onAuthStateChanged zaten user=null dalına gidip kilidi hiç göstermeyecek.
+function applockForgotPin() {
+  if (!confirm("PIN'ini sıfırlamak için oturumunu kapatman gerekiyor. Devam edilsin mi?")) return;
+  clearApplockConfig();
+  hideApplockGate();
+  auth.signOut();
+}
+
+// ---- PIN oluşturma/değiştirme akışı (Ayarlar > Güvenlik'ten açılır) ----
+let applockSetupMode = null; // null | 'create' | 'confirm'
+let applockSetupBuffer = '';
+let applockSetupFirstPin = '';
+function openApplockSetup() {
+  applockSetupMode = 'create';
+  applockSetupBuffer = '';
+  applockSetupFirstPin = '';
+  document.getElementById('alk-setup-title').textContent = 'PIN Oluştur';
+  const subEl = document.getElementById('alk-setup-sub');
+  subEl.textContent = '6 haneli bir PIN belirle';
+  subEl.classList.remove('alk-err');
+  applockRenderDots('alk-setup-dots', 0);
+  document.getElementById('alk-setup-pad').innerHTML = applockKeypadHTML('setup', false);
+  document.getElementById('applock-setup-mo').classList.add('on');
+}
+function closeApplockSetup() {
+  document.getElementById('applock-setup-mo').classList.remove('on');
+  applockSetupMode = null;
+}
+function applockSetupKey(key) {
+  if (key === 'back') { applockSetupBuffer = applockSetupBuffer.slice(0, -1); applockRenderDots('alk-setup-dots', applockSetupBuffer.length); return; }
+  if (applockSetupBuffer.length >= 6) return;
+  applockSetupBuffer += key;
+  applockRenderDots('alk-setup-dots', applockSetupBuffer.length);
+  if (applockSetupBuffer.length === 6) applockAdvanceSetup();
+}
+async function applockAdvanceSetup() {
+  if (applockSetupMode === 'create') {
+    applockSetupFirstPin = applockSetupBuffer;
+    applockSetupBuffer = '';
+    applockSetupMode = 'confirm';
+    document.getElementById('alk-setup-title').textContent = "PIN'i Onayla";
+    const subEl = document.getElementById('alk-setup-sub');
+    subEl.textContent = "Aynı PIN'i tekrar gir";
+    subEl.classList.remove('alk-err');
+    applockRenderDots('alk-setup-dots', 0);
+    return;
+  }
+  if (applockSetupBuffer !== applockSetupFirstPin) {
+    const subEl = document.getElementById('alk-setup-sub');
+    subEl.textContent = "PIN'ler eşleşmedi, baştan dene";
+    subEl.classList.add('alk-err');
+    applockSetupMode = 'create';
+    applockSetupBuffer = ''; applockSetupFirstPin = '';
+    applockRenderDots('alk-setup-dots', 0);
+    document.getElementById('alk-setup-title').textContent = 'PIN Oluştur';
+    return;
+  }
+  const hash = await applockSha256(applockSetupBuffer);
+  const existing = getApplockConfig() || {};
+  setApplockConfig({ pinHash: hash, biometricEnabled: existing.biometricEnabled || false });
+  closeApplockSetup();
+  showToast('✅', 'rgba(61,220,151,.15)', 'Uygulama kilidi etkinleştirildi', '');
+  requestProfileRerender();
+}
+function disableApplock() {
+  if (!confirm('Uygulama kilidini kapatmak istediğine emin misin?')) return;
+  clearApplockConfig();
+  requestProfileRerender();
+}
+
 function animateProfileStats() {
   document.querySelectorAll('#profile-c .pstat-num').forEach(el => {
     // PERFORMANS DÜZELTMESİ: rprof() kısa sürede art arda birden fazla kez çağrılırsa (örn. hızlı
@@ -4736,6 +5017,12 @@ function rprof() {
         <div class="pacc-row"><span class="pacc-lbl">Son Giriş</span><span class="pacc-val">${lastSignIn?timeAgo(lastSignIn):'Henüz veri bulunmuyor'}</span></div>
         <div class="pacc-row"><span class="pacc-lbl">Kullanılan Cihaz</span><span class="pacc-val">${myProfileData.lastLoginDevice || detectDeviceLabel()}</span></div>
         <div class="pacc-row"><span class="pacc-lbl">Aktif Oturumlar</span><span class="pacc-val" id="pacc-sessions-count">Yükleniyor…</span></div>
+        <!-- UYGULAMA KİLİDİ 1.0 (2026-09-26, kullanıcı isteği) — PIN sunucuya HİÇ gönderilmez,
+             tamamen cihaz yerelinde (bkz. #applock-gate CSS'indeki dürüstlük notu). -->
+        <div class="pacc-row" style="align-items:center"><span class="pacc-lbl">🔢 Uygulama Kilidi (PIN)</span><div class="ptoggle${isApplockEnabled()?' on':''}" onclick="${isApplockEnabled()?'disableApplock()':'openApplockSetup()'}"></div></div>
+        ${isApplockEnabled() ? `
+        <div class="pacc-row"><span class="pacc-lbl">PIN</span><span class="pacc-val" style="cursor:pointer;color:var(--cyan)" onclick="openApplockSetup()">Değiştir</span></div>
+        <div id="applock-bio-row"></div>` : ''}
         <button class="apbtn" style="margin-top:12px;background:rgba(255,69,58,.08);border-color:rgba(255,69,58,.25);color:var(--red)" onclick="auth.signOut()">Oturumu Kapat</button>
       </div>
       <div class="pacc-card">
@@ -4781,6 +5068,7 @@ function rprof() {
         </div><span class="marr">›</span>
       </div>`;
     updateThemeToggleUI();
+    if (isApplockEnabled()) applockRenderBiometricRow();
     animateProfileStats();
     loadProfileExtrasIfNeeded();
     updatePwaInstallCardVisibility();
