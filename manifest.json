@@ -63,21 +63,5 @@
       "label": "Teknohane Ana Sayfa"
     }
   ],
-  "categories": ["entertainment", "news", "technology"],
-  "shortcuts": [
-    {
-      "name": "Son Videolar",
-      "short_name": "Videolar",
-      "description": "Teknohane son videolarını izle",
-      "url": "/teknohane/?tab=home",
-      "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96" }]
-    },
-    {
-      "name": "Topluluk",
-      "short_name": "Topluluk",
-      "description": "WhatsApp grupları ve sosyal medya",
-      "url": "/teknohane/?tab=community",
-      "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96" }]
-    }
-  ]
+  "categories": ["entertainment", "news", "technology"]
 }
