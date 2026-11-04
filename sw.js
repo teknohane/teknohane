@@ -4,12 +4,13 @@
 // Not: Cloudflare Worker (telefon/fiyat/haber/push API) ve Firebase istekleri KESİNLİKLE
 // önbelleğe alınmıyor — bunlar her zaman canlı veri olarak ağdan çekilir.
 
-const CACHE_NAME = 'teknohane-shell-v3';
+const CACHE_NAME = 'teknohane-shell-v4';   // C11: kök dizin desteği (eski önbellekler activate'te silinir)
+const BASE = new URL(self.registration.scope).pathname;   // '/' (www.teknohane.net) veya '/teknohane/' (eski alt yol)
 const APP_SHELL = [
-  '/teknohane/',
-  '/teknohane/index.html',
-  '/teknohane/manifest.json',
-  '/teknohane/teknohane.png'
+  BASE,
+  BASE + 'index.html',
+  BASE + 'manifest.json',
+  BASE + 'teknohane.png'
 ];
 
 self.addEventListener('install', (event) => {
@@ -37,6 +38,9 @@ self.addEventListener('fetch', (event) => {
 
   const url = req.url;
 
+  // C11: yalnızca AYNI KÖKEN istekleri (kendi dosyalarımız). Üçüncü taraf görseller/API'ler (üretici CDN'leri, Firebase, Cloudflare) hiç önbelleğe alınmaz — opak yanıtlar depolama kotasını şişirir.
+  if (new URL(url).origin !== self.location.origin) return;
+
   // Cloudflare Worker / Firebase / Google API istekleri: her zaman ağdan çek, hiç dokunma
   if (
     url.includes('workers.dev') ||
@@ -56,19 +60,19 @@ self.addEventListener('fetch', (event) => {
   // güncellenmemesine (kalıcı olarak eski sürümde kalmasına) neden oluyordu.
   const isAppShellRequest = req.mode === 'navigate'
     || url === self.registration.scope
-    || url.endsWith('/teknohane/')
-    || url.endsWith('/teknohane/index.html');
+    || url.endsWith(BASE)
+    || url.endsWith(BASE + 'index.html');
 
   if (isAppShellRequest) {
     event.respondWith(
       fetch(req)
         .then((res) => {
           const resClone = res.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put('/teknohane/index.html', resClone));
+          caches.open(CACHE_NAME).then((cache) => cache.put(BASE + 'index.html', resClone));
           return res;
         })
         .catch(() =>
-          caches.match('/teknohane/index.html').then((cached) => cached || caches.match(req))
+          caches.match(BASE + 'index.html').then((cached) => cached || caches.match(req))
         )
     );
     return;

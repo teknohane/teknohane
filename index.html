@@ -4060,6 +4060,7 @@ const PUSH_API = 'https://teknohane-push.yusuf-aykac.workers.dev/';
 // uç bu yüzden adında "push" geçmeyen teknohane-phones Worker'ına taşındı (bkz. phones-worker/worker.js).
 const EMAIL_VERIFY_API = 'https://teknohane-api.yusuf-aykac.workers.dev/send-verification-email';
 const VAPID_KEY = 'BPt5vY5P3Dr9DG2zHOQwhQKnH6V5UruqGisQRTlGWxkNaAYtYKAEG9xiTHn78yGq1DlrsnWFSazOquL_9krdtjY';
+const SW_BASE = location.pathname.indexOf('/teknohane/') === 0 ? '/teknohane/' : '/';   // C11: service worker / FCM kayıt tabanı (özel alan adında kök dizin)
 // KÖK NEDEN DÜZELTMESİ: client SDK'sının sendEmailVerification()'ı Firebase'in paylaşımlı gönderim
 // altyapısını kullanıyordu (sık sık spam'e düşüyordu). Artık idToken bu Worker'a gönderiliyor, Worker
 // admin yetkiyle link üretip Brevo ile marka+Türkçe e-posta gönderiyor (bkz. cloudflare-push-worker.js).
@@ -8720,7 +8721,7 @@ async function setupPushWeb(silent) {
       return;
     }
     const swReg = await withTimeout(
-      navigator.serviceWorker.register('/teknohane/firebase-messaging-sw.js', { scope: '/teknohane/firebase-cloud-messaging-push-scope' }),
+      navigator.serviceWorker.register(SW_BASE + 'firebase-messaging-sw.js', { scope: SW_BASE + 'firebase-cloud-messaging-push-scope' }),
       15000, 'Service worker kaydı'
     );
     const messaging = firebase.messaging();
@@ -25559,12 +25560,13 @@ if (isNativeApp()) {
   }
 }
 
+// C11 DÜZELTME: alan adı www.teknohane.net köküne taşındığında (2026-09-09) '/teknohane/...' yolları 404 veriyordu → web push (FCM) ve PWA kabuğu kaydı hiç çalışmıyordu. Kök dizin (özel alan adı) ve eski alt yol (github.io/teknohane/) birlikte desteklenir.
 // Service worker yalnızca web/PWA sürümü için anlamlıdır — Capacitor native Android kabuğunda
 // (isNativeApp()) bu kayıt işlevsiz bir no-op'tur, gereksiz kod yolu/ağ isteğinden kaçınmak için
 // native ortamda hiç çalıştırılmıyor (bkz. görev raporu, W1).
 if(!isNativeApp() && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/teknohane/sw.js', { scope: '/teknohane/' })
+    navigator.serviceWorker.register(SW_BASE + 'sw.js', { scope: SW_BASE })
       .catch(() => {});
   });
 }

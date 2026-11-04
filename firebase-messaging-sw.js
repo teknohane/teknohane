@@ -21,18 +21,18 @@ const messaging = firebase.messaging();
 // (ör. bazı tarayıcı/OS kombinasyonlarında otomatik gösterim atlanabiliyor).
 messaging.onBackgroundMessage((payload) => {
   const n = payload.notification || {};
-  const link = payload.fcmOptions?.link || payload.data?.link || '/teknohane/';
+  const link = payload.fcmOptions?.link || payload.data?.link || '/';
   self.registration.showNotification(n.title || 'Teknohane', {
     body: n.body || '',
-    icon: n.image || '/teknohane/icons/icon-192.png',
-    badge: '/teknohane/icons/icon-96.png',
+    icon: n.image || '/icons/icon-192.png',
+    badge: '/icons/icon-96.png',
     data: { link }
   });
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const link = event.notification.data?.link || '/teknohane/';
+  const link = event.notification.data?.link || '/';
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
       for (const client of windowClients) {
