@@ -19,9 +19,18 @@ const messaging = firebase.messaging();
 // Sekme arka plandayken/kapalıyken gelen bildirimler için yedek gösterim — tarayıcı FCM'in
 // webpush.notification alanından genelde zaten otomatik gösteriyor, bu yalnızca ek güvence
 // (ör. bazı tarayıcı/OS kombinasyonlarında otomatik gösterim atlanabiliyor).
+// FAZ 17: bağlantı yalnızca kendi alan adlarımıza (https) gidebilir; Worker data.url gönderir (eski data.link da desteklenir); geçersizse ana sayfa.
+const IZINLI_HOSTLAR = ['www.teknohane.net', 'teknohane.net', 'teknohane.github.io'];
+function guvenliLink(u) {
+  try {
+    const p = new URL(String(u || '/'), self.location.origin);
+    return (p.protocol === 'https:' && IZINLI_HOSTLAR.includes(p.hostname)) ? p.href : self.location.origin + '/';
+  } catch (e) { return self.location.origin + '/'; }
+}
+
 messaging.onBackgroundMessage((payload) => {
   const n = payload.notification || {};
-  const link = payload.fcmOptions?.link || payload.data?.link || '/';
+  const link = guvenliLink(payload.fcmOptions?.link || payload.data?.url || payload.data?.link || '/');
   self.registration.showNotification(n.title || 'Teknohane', {
     body: n.body || '',
     icon: n.image || '/icons/icon-192.png',
@@ -32,7 +41,7 @@ messaging.onBackgroundMessage((payload) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const link = event.notification.data?.link || '/';
+  const link = guvenliLink(event.notification.data?.link || '/');
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
       for (const client of windowClients) {

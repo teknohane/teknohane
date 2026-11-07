@@ -3,10 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width">
+<meta name="referrer" content="no-referrer">
 <title>Yönlendiriliyor…</title>
 <script>
-  const url = new URLSearchParams(location.search).get('url');
-  if (url) location.replace(decodeURIComponent(url));
+  // FAZ 17: açık yönlendirme / javascript: şeması kapatıldı — yalnızca kendi alan adlarımıza (https) veya site içi yola gidilir; geçersizse ana sayfa.
+  (function () {
+    var HOSTS = ['www.teknohane.net', 'teknohane.net', 'teknohane.github.io'];
+    var hedef = 'https://www.teknohane.net/';
+    try {
+      var ham = new URLSearchParams(location.search).get('url');   // URLSearchParams zaten bir kez çözer; ikinci decode YOK
+      if (ham && ham.length <= 2048) {
+        if (ham.charAt(0) === '/' && ham.charAt(1) !== '/' && ham.charAt(1) !== '\\') hedef = 'https://www.teknohane.net' + ham;
+        else {
+          var u = new URL(ham);
+          if (u.protocol === 'https:' && HOSTS.indexOf(u.hostname) !== -1 && !u.username && !u.password) hedef = u.href;
+        }
+      }
+    } catch (e) { /* geçersiz → ana sayfa */ }
+    location.replace(hedef);
+  })();
 </script>
 </head>
 <body></body>
