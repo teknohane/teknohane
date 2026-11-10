@@ -2340,6 +2340,23 @@ textarea.fi{min-height:96px;}
 .tcr-qr #tcr-url{font-size:var(--fs-sm);word-break:break-all;}
 @media (max-width:380px){.tcr-thumb{width:68px;height:68px;}.tcr-slot{padding:var(--space-2);}}
 
+/* Faz 25: TeknoCheck pencereleri ilan detayının (#detail-mo, z-index 301) ÜSTÜNDE açılmalı; rapor sayfası tam ekran ayrı sayfa */
+#tc-mo{z-index:1110;}
+#tc-rp-mo{z-index:1100;align-items:stretch;background:var(--bg);backdrop-filter:none;-webkit-backdrop-filter:none;}
+#tc-rp-mo .det-sheet{height:100dvh;max-height:100dvh;border-radius:0;border-top:none;animation:none;}
+.tcrp{max-width:720px;margin-left:auto;margin-right:auto;width:100%;}
+.tcrp-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-2);}
+.tcrp-tile{border:var(--bw) solid var(--border2);border-top-width:3px;border-radius:var(--radius-md);background:var(--surf);text-align:center;padding:var(--space-2) var(--space-1);min-width:0;}
+.tcrp-tile b{display:block;font-size:var(--fs-xl);font-weight:var(--fw-bold);line-height:1.2;}
+.tcrp-tile span{display:block;font-size:10px;color:var(--text2);overflow-wrap:normal;word-break:keep-all;white-space:nowrap;}
+.tcrp-tile--ok{border-top-color:var(--color-success);}.tcrp-tile--ok b{color:var(--color-success);}
+.tcrp-tile--bad{border-top-color:var(--color-danger);}.tcrp-tile--bad b{color:var(--color-danger);}
+.tcrp-tile--warn{border-top-color:var(--color-warning, var(--border));}.tcrp-tile--warn b{color:var(--color-warning, var(--text));}
+.tcrp-tile--zero{border-top-color:var(--text3);}.tcrp-tile--zero b{color:var(--text2);}
+.tcrp-kv{display:grid;grid-template-columns:minmax(96px,34%) minmax(0,1fr);gap:var(--space-2) var(--space-3);margin:0;padding:var(--space-3) var(--space-4);border:var(--bw) solid var(--border2);border-radius:var(--radius-lg);background:var(--surf);}
+.tcrp-kv dt{color:var(--text2);font-size:var(--fs-sm);}
+.tcrp-kv dd{margin:0;overflow-wrap:anywhere;font-size:var(--fs-md);}
+
 /* ============================================================================
    FAZ 9 — İŞLETME YÖNETİMİ (C1 belirteçleri; gereksiz grafik/animasyon YOK). Kaynak: teknocheck/isletme.css
    ============================================================================ */
@@ -19795,7 +19812,7 @@ async function tcLoadListingSlot(l) {
 }
 async function tcSlotAction(a, l, r) {
   if (a === 'verify') return tcOpenVerify();
-  if (a === 'detail') { const m = tcEnsureModal(); m.classList.add('on'); if (!TCK) TCK = { platform: tcPlatform(), device: null, tests: {}, busy: false }; tcSetTitle('TeknoCheck raporu'); tcBody().innerHTML = `<div class="tcx"><div class="tcx-verdict tcx-verdict--${r.summary.overall}"><div class="tcx-verdict-t">${TC_OVERALL_LABEL[r.summary.overall]}</div></div>${tcSummaryHTML(r.summary)}<h3 class="pd-sec-t">Sınırlamalar</h3><p class="tcx-limits">${escapeHtml(TC_LIMITS)}</p><button type="button" class="tk-btn tk-btn--outline tk-btn--block" id="tc-detail-verify">Başka bir raporu kodla doğrula</button></div>`; tcBody().querySelector('#tc-detail-verify').addEventListener('click', () => tcOpenVerify()); return; }
+  if (a === 'detail') return tcOpenReportPage(l, r);   // Faz 25: ilanın ÜSTÜNDE tam ekran ayrı rapor sayfası (istemci8.js)
   if (a === 'link') return tcLinkPicker(null, l);
   if (a === 'unlink') { const ok = await confirmDialog('Rapor bu ilandan kaldırılsın mı? Rapor iptal edilmez; başka bir ilana bağlanabilir.', { title: 'Bağlantıyı kaldır', confirmText: 'Kaldır', cancelText: 'Vazgeç' }); if (!ok) return; const idToken = await tcIdToken(); const u = await tcCall('unlink', { idToken, listingId: l.id }); showToast(u.success ? '✅' : '⚠️', 'var(--surf2)', u.success ? 'Bağlantı kaldırıldı' : 'Kaldırılamadı', u.success ? '' : (u._network ? 'Sunucuya ulaşılamadı.' : (TC_ERR[u.error] || ''))); tcLoadListingSlot(l); }
 }
@@ -21295,6 +21312,58 @@ function tcpLegacyDoc(doc) {
   const d = JSON.parse(JSON.stringify(doc));
   (d.sections || []).forEach((s) => { if (s.rows) s.rows = s.rows.map((r) => { let st = r[1] || '', det = r[2] || ''; if (!st && !det) return r; const mm = /^(.*?) \((.+)\)$/.exec(st); if (mm) { st = mm[1]; det = mm[2] + (det ? ' · ' + det : ''); } if (kisa[st]) st = kisa[st]; if (st.length > 17) { det = st + (det ? ' · ' + det : ''); st = ''; } return [r[0], st, det]; }); });
   return d;
+}
+
+// ==== TeknoCheck RAPOR SAYFASI (Faz 25) — Pazar ilanından "Ayrıntıları gör" ====
+// NEDEN: Rapor eskiden alttan açılan tc-mo penceresinde açılıyordu; ilan detayı (#detail-mo, z-index 301) bu pencerenin (300) ÜSTÜNDE kaldığı için rapor ilanın ARKASINDA açılıyor,
+// kullanıcı ilanı kapatıp "geri gidince" görebiliyordu. Artık ilanın üstünde (z-index 1100), tam ekran, kendi başlığı ve geri düğmesi olan AYRI bir sayfa açılır; geri (veya sistem geri tuşu) ilana döner.
+// İÇERİK: yalnızca sunucunun herkese açık özeti (tcPublicSummary) gösterilir; ölçüm değerleri/RAM/depolama gizlilik için özette YOKTUR ve burada uydurulmaz.
+function tcRpEnsure() {
+  let m = document.getElementById('tc-rp-mo');
+  if (m) return m;
+  m = document.createElement('div'); m.className = 'mo'; m.id = 'tc-rp-mo';
+  m.innerHTML = `<div class="det-sheet" role="dialog" aria-modal="true" aria-labelledby="tc-rp-title"><div class="det-sticky"><div class="det-close" role="button" tabindex="0" aria-label="İlana dön" id="tc-rp-close" style="order:-1"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></div><div id="tc-rp-title" style="font-size:15px;font-weight:700;color:var(--text2)">TeknoCheck raporu</div><div style="width:34px"></div></div><div class="det-body" id="tc-rp-body"></div></div>`;
+  document.body.appendChild(m);
+  const kapat = () => closemo('tc-rp-mo');
+  m.querySelector('#tc-rp-close').addEventListener('click', kapat);
+  m.querySelector('#tc-rp-close').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); kapat(); } });
+  return m;
+}
+const TC_RP_ANALYSIS = [['measured', 'Ölçüldü'], ['reported', 'Sistem tarafından bildirildi'], ['unsupported', 'Desteklenmiyor'], ['permission_required', 'Erişim izni gerekli'], ['failed', 'Ölçüm başarısız']];
+function tcRpHTML(l, r) {
+  const s = r.summary || {}, c = s.counts || tcCountsOf(s.tests || []), E = escapeHtml, dev = s.device || {};
+  const kv = (rows) => `<dl class="tcrp-kv">${rows.filter((x) => x && x[1] !== '' && x[1] != null).map((x) => `<dt>${E(x[0])}</dt><dd>${E(String(x[1]))}</dd>`).join('')}</dl>`;
+  const tile = (n, label, cls) => `<div class="tcrp-tile tcrp-tile--${Number(n) === 0 ? 'zero' : cls}"><b>${E(String(n))}</b><span>${E(label)}</span></div>`;
+  const tests = (s.tests || []).map((t) => `<li class="tcx-row" data-test="${E(t.id)}" data-status="${E(t.status)}"><div class="tcx-row-main"><div class="tcx-row-t">${E(tcDefOf(t.id).title)}</div><div class="tcx-row-d">${t.kind === 'auto' ? 'Otomatik ölçüm' : t.userConfirmed ? 'Kullanıcı onayıyla' : 'Kullanıcı onayı yok'}</div></div><div class="tcx-row-side">${tcBadge(t.status)}</div></li>`).join('');
+  let ek = '';
+  if (s.schemaVersion === 2) {
+    const sc = s.scope;
+    if (sc && Array.isArray(sc.signed)) { const olc = sc.signed.filter((k) => !(sc.userDeclared || []).includes(k)); ek += `<h3 class="pd-sec-t">İmza kapsamı</h3><div class="tc-status" role="note"><b>Sunucu imzalı:</b> ${E(tcxNames(olc))}.${(sc.userDeclared || []).length ? ` <b>Kullanıcı beyanı:</b> ${E(tcxNames(sc.userDeclared))} (ölçüm değildir). ` : ' '}Fotoğraflar hiçbir raporda imzalanmaz ve sunucuya gönderilmez.</div>`; }
+    if (s.analysis && s.analysis.counts) { const a = s.analysis.counts, satir = TC_RP_ANALYSIS.filter(([k]) => a[k] > 0).map(([k, ad]) => `<li class="tcx-row"><div class="tcx-row-main"><div class="tcx-row-t">${E(ad)}</div></div><div class="tcx-row-side"><b>${E(String(a[k]))}</b> değer</div></li>`).join(''); ek += `<h3 class="pd-sec-t">Gelişmiş cihaz analizi <span class="tk-badge tk-badge--success">İmzalı</span></h3><ul class="tcx-list">${satir || '<li class="tcx-row"><div class="tcx-row-main"><div class="tcx-row-t">Değer yok</div></div></li>'}</ul><p class="tca-intro">Tek tek değerler gizlilik için herkese açık gösterilmez; durum özeti görünür. Desteklenmeyen değerler tahmin edilmemiştir.</p>`; }
+    if (s.hwTests && s.hwTests.length) ek += `<h3 class="pd-sec-t">Ek donanım testleri <span class="tk-badge tk-badge--success">İmzalı</span></h3>${tcxRowsHTML(tcxHwRowsFrom(s.hwTests))}<p class="tca-intro">Fiziksel kontroller yalnızca kullanıcı onayıyla başarılı sayılır; "kullanıcı onayı" otomatik ölçüm değildir.</p>`;
+    if (s.cosmetic) { const dk = Array.isArray(s.cosmetic.defects) ? s.cosmetic.defects : [], defs = TCR_DEFECTS.filter(([k]) => dk.includes(k)).map((d) => d[1]); ek += `<h3 class="pd-sec-t">Kozmetik durum <span class="tk-badge tk-badge--warning">Kullanıcı beyanı</span></h3>${tcxRowsHTML([['Genel durum', s.cosmetic.grade ? TCX_GRADE_TXT(s.cosmetic.grade) : 'İşaretlenmedi', ''], ['İşaretlenen kusurlar', defs.length ? defs.join(', ') : 'İşaretlenmedi', ''], ['Not', s.cosmetic.note || '—', '']])}<p class="tca-intro">Bu bölüm satıcının kendi değerlendirmesidir; otomatik ölçüm değildir.</p>`; }
+  } else ek += `<h3 class="pd-sec-t">İmza kapsamı</h3><div class="tc-status" role="note">Bu rapor yalnızca temel 11 testi kapsar. Gelişmiş analiz, ek donanım testleri ve kozmetik beyan bu raporun imzasında yer almaz.</div>`;
+  return `<div class="tcx tcrp">
+    <div class="tcx-verdict tcx-verdict--${E(s.overall)}"><div class="tcx-verdict-t">${E(TC_OVERALL_LABEL[s.overall] || '')}</div><div class="tcx-verdict-s"><span class="tk-badge tk-badge--success">Sunucu kaydıyla doğrulandı</span></div></div>
+    <div class="tcrp-grid">${tile(c.passed, 'Başarılı', 'ok')}${tile(c.failed, 'Başarısız', 'bad')}${tile(c.skipped + c.untested, 'Tamamlanamadı', 'warn')}${tile(c.unsupported, 'Desteklenmiyor', 'zero')}</div>
+    <h3 class="pd-sec-t">Cihaz ve rapor</h3>
+    ${kv([['Cihaz', ((dev.manufacturer || '') + ' ' + (dev.model || '')).trim()], ['Android', dev.androidRelease], ['Test tarihi', tcFmtDate(s.createdAt)], ['TeknoCheck sürümü', s.appVersion], ['Platform', s.platform === 'android' ? 'Android uygulaması' : 'Web'], ['Rapor no', r.reportId], ['İlana bağlanma', r.linkedAt ? tcFmtDate(r.linkedAt) : ''], ['Model eşleşmesi', r.modelMatch === 'declared' ? 'Satıcı beyanına dayanır (cihaz kodu ilan modeliyle otomatik eşleşmedi)' : r.modelMatch === 'auto' ? 'Otomatik eşleşti' : '']])}
+    <h3 class="pd-sec-t">Test sonuçları <span class="tk-badge tk-badge--success">İmzalı</span></h3>
+    <ul class="tcx-list">${tests}</ul>
+    ${ek}
+    <div class="tc-status" role="note">Ölçüm değerlerinin ayrıntısı (ör. bellek, depolama, sensör değerleri) herkese açık gösterilmez. Satıcıdan raporun PDF çıktısını isteyebilir, rapor no ve doğrulama koduyla "Kodla doğrula" bölümünden kontrol edebilirsin.</div>
+    <h3 class="pd-sec-t">Sınırlamalar</h3><p class="tcx-limits">${E(TC_LIMITS)}</p>
+    <button type="button" class="tk-btn tk-btn--outline tk-btn--block" id="tc-rp-verify">Kodla doğrula</button>
+    <button type="button" class="tk-btn tk-btn--primary tk-btn--block" id="tc-rp-back">İlana dön</button>
+  </div>`;
+}
+function tcOpenReportPage(l, r) {
+  if (!r || !r.summary) return;
+  const m = tcRpEnsure(), body = m.querySelector('#tc-rp-body');
+  body.innerHTML = tcRpHTML(l, r); body.scrollTop = 0; const sheet = m.querySelector('.det-sheet'); if (sheet) sheet.scrollTop = 0;
+  body.querySelector('#tc-rp-back').addEventListener('click', () => closemo('tc-rp-mo'));
+  body.querySelector('#tc-rp-verify').addEventListener('click', () => tcOpenVerify());
+  m.classList.add('on');
 }
 
 // ==================================================================== FAZ 9 — TEKNOCHECK İŞLETME YÖNETİMİ: SAF MANTIK (kaynak: teknocheck/isletme.js; uygula.mjs gömer)
@@ -28886,6 +28955,9 @@ window.addEventListener('popstate', () => {
     history.pushState(null, '', location.href);
     return;
   }
+  // Faz 25: TeknoCheck pencereleri (rapor sayfası / doğrulama / bağlama) ilanın ÜSTÜNDE açılır → geri tuşu önce onları kapatır, ilan açık kalır
+  const tcUst = ['tc-mo', 'tc-rp-mo'].map((id) => document.getElementById(id)).find((m) => m && m.classList.contains('on'));
+  if (tcUst) { closemo(tcUst.id); history.pushState(null, '', location.href); return; }
   // İlan detay "sayfası" açıksa: kapat ve Pazar'a dön
   if (openListingId) {
     exitDetailPage(true);
@@ -28937,7 +29009,9 @@ window.addEventListener('popstate', () => {
     return;
   }
   // Açık modal var mı kontrol et
-  const openModal = document.querySelector('.mo.on');
+  // Faz 25: birden fazla modal açıksa EN ÜSTTEKİ (en yüksek z-index; eşitse DOM'da sonraki) kapatılır — eskiden DOM'daki İLK açık modal kapanıyordu
+  // ve ilanın üstünde açılan TeknoCheck rapor sayfası yerine ilan kapanırdı.
+  const openModal = Array.from(document.querySelectorAll('.mo.on')).reduce((en, el) => (!en || (parseInt(getComputedStyle(el).zIndex, 10) || 0) >= (parseInt(getComputedStyle(en).zIndex, 10) || 0) ? el : en), null);
   if (openModal) {
     closemo(openModal.id); // doğrudan classList.remove yerine — #admin-tab gibi sekme vurgusunu geri yükleyen mantığı da çalıştırır
     history.pushState(null, '', location.href);
