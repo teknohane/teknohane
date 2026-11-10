@@ -4161,33 +4161,64 @@ textarea.fi{min-height:96px;}
   </div>
 </div>
 
-<!-- ŞİKAYET ET MODAL -->
+<!-- BİLDİRİM / ŞİKAYET MODAL (FAZ 24: kullanıcı, ilan, özel mesaj, güvenlik ve teknik sorun bildirimleri; sonunda kayıt numarası gösterilir) -->
 <div class="mo" id="report-mo" onclick="closemo('report-mo')">
-  <div class="ms" onclick="event.stopPropagation()">
+  <div class="ms" onclick="event.stopPropagation()" style="max-height:92vh;overflow-y:auto">
     <div class="mh"></div>
-    <div class="mtit">Şikayet Et</div>
-    <div id="report-target-label" style="font-size:12px;color:var(--text2);margin-bottom:14px"></div>
-    <div class="fg"><label class="fl">Sebep</label>
-      <div class="csel" data-for="report-reason-select" data-title="Şikayet Sebebi" onclick="openPicker(this)"><span class="csel-label">Seç</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
-      <select id="report-reason-select" style="display:none" onchange="document.getElementById('report-other-wrap').style.display=this.value==='diger'?'block':'none'"></select>
-    </div>
-    <div class="fg" id="report-other-wrap" style="display:none">
-      <label class="fl">Açıklama (Diğer)</label>
-      <textarea class="fi" id="report-other-text" rows="2" style="resize:none;font-family:inherit"></textarea>
-    </div>
-    <div class="fg"><label class="fl">Ek Açıklama (isteğe bağlı)</label>
-      <textarea class="fi" id="report-description" rows="3" style="resize:none;font-family:inherit" placeholder="Şikayetinle ilgili detay verebilirsin..."></textarea>
-    </div>
-    <div class="fg">
-      <label class="fl">Ekran Görüntüsü / Kanıt (isteğe bağlı)</label>
-      <div class="pslot" id="report-photo-slot" onclick="document.getElementById('report-photo-input').click()" style="width:88px;height:88px">
-        <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-        <span>Ekle</span>
-        <input type="file" id="report-photo-input" accept="image/*" style="display:none" onchange="onReportPhotoSelected(this)">
+    <div class="mtit" id="report-title">Şikayet Et</div>
+    <div id="report-form">
+      <div id="report-target-label" style="font-size:12px;color:var(--text2);margin-bottom:14px"></div>
+      <div class="fg"><label class="fl">Sebep</label>
+        <div class="csel" data-for="report-reason-select" data-title="Bildirim Sebebi" onclick="openPicker(this)"><span class="csel-label">Seç</span><svg class="csel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+        <select id="report-reason-select" style="display:none" onchange="onReportReasonChange()"></select>
       </div>
+      <div class="fg" id="report-other-wrap" style="display:none">
+        <label class="fl">Açıklama (Diğer)</label>
+        <textarea class="fi" id="report-other-text" rows="2" maxlength="280" style="resize:none;font-family:inherit"></textarea>
+      </div>
+      <div id="report-child-note" style="display:none;margin-bottom:12px;padding:10px 12px;border-radius:12px;border:1px solid rgba(var(--danger-rgb),.35);background:rgba(var(--danger-rgb),.08);font-size:12px;line-height:1.55;color:var(--text)">
+        ⚠️ <b>Bir çocuk acil tehlikedeyse önce 112'yi ara.</b> Bu kategorideki bildirimler öncelikli (kritik) olarak incelenir. <a href="javascript:void(0)" onclick="ol(CHILD_SAFETY_URL)" style="color:var(--cyan)">Çocuk Güvenliği Standartları</a>
+      </div>
+      <div class="fg"><label class="fl" id="report-desc-label">Ek Açıklama (isteğe bağlı)</label>
+        <textarea class="fi" id="report-description" rows="3" maxlength="1500" style="resize:none;font-family:inherit" placeholder="Bildirimle ilgili detay verebilirsin..."></textarea>
+      </div>
+      <div class="fg">
+        <label class="fl">Ekran Görüntüsü / Kanıt (isteğe bağlı)</label>
+        <div class="pslot" id="report-photo-slot" onclick="document.getElementById('report-photo-input').click()" style="width:88px;height:88px">
+          <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <span>Ekle</span>
+          <input type="file" id="report-photo-input" accept="image/*" style="display:none" onchange="onReportPhotoSelected(this)">
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);line-height:1.5;margin-bottom:10px">Bildirimini yalnızca yetkili Teknohane ekibi görür; kimliğin bildirdiğin kişiyle paylaşılmaz. Şifre, kart numarası gibi gereksiz kişisel bilgi yazma.</div>
+      <div class="aerr" id="report-err"></div>
+      <button class="sbtn2" id="report-submit-btn" onclick="submitReport()">Bildirimi Gönder</button>
     </div>
-    <div class="aerr" id="report-err"></div>
-    <button class="sbtn2" onclick="submitReport()">Şikayeti Gönder</button>
+    <div id="report-done" style="display:none;text-align:center;padding:6px 4px 4px">
+      <div style="font-size:42px">✅</div>
+      <div style="font-size:17px;font-weight:800;margin:6px 0">Bildirimin alındı</div>
+      <div style="font-size:12px;color:var(--text2)">Kayıt numaran</div>
+      <div id="report-refno" style="font-size:24px;font-weight:800;letter-spacing:.06em;color:var(--cyan);margin:4px 0 10px;user-select:all">TK-XXXXXXXX</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.55">Ekibimiz bildirimi inceleyecek. Bu numarayı destekle yazışırken kullanabilirsin.</div>
+      <div id="report-done-child" style="display:none;margin-top:10px;padding:10px 12px;border-radius:12px;border:1px solid rgba(var(--danger-rgb),.35);background:rgba(var(--danger-rgb),.08);font-size:12px;line-height:1.55;text-align:left">Bu bildirim <b>kritik</b> olarak işaretlendi ve öncelikli incelenir. Acil bir tehlike varsa lütfen <b>112</b>'yi ara.</div>
+      <button class="sbtn2" style="margin-top:14px" onclick="closemo('report-mo')">Tamam</button>
+    </div>
+  </div>
+</div>
+
+<!-- FAZ 24: YARDIM VE GÜVENLİK merkezi + ENGELLENEN KULLANICILAR -->
+<div class="mo" id="safety-mo" onclick="closemo('safety-mo')">
+  <div class="ms" onclick="event.stopPropagation()" style="max-height:90vh;overflow-y:auto">
+    <div class="mh"></div>
+    <div class="mtit">Yardım ve Güvenlik</div>
+    <div id="safety-hub-body"></div>
+  </div>
+</div>
+<div class="mo" id="blocked-mo" onclick="closemo('blocked-mo')">
+  <div class="ms" onclick="event.stopPropagation()" style="max-height:80vh;overflow-y:auto">
+    <div class="mh"></div>
+    <div class="mtit">Engellenen Kullanıcılar</div>
+    <div id="blocked-body"></div>
   </div>
 </div>
 
@@ -5187,6 +5218,7 @@ async function syncUserProfile(u) {
     myProfileData = existingData;
     writePresenceHeartbeat(u.uid);          // FAZ 22: gizlilik bayrağı artık biliniyor
     loadMyPhoneContact(u.uid, existingData);  // FAZ 22: doğrulanmış telefon özel alt belgede
+    loadMyBlocks(true).catch(() => {});       // FAZ 24: engel listesi (profilde "Engelle/Engeli Kaldır" etiketi için)
     // KÖK NEDEN DÜZELTMESİ ("yetkin yok" yanlış alarmı — forum/yorum/sohbet gönderirken): istemci
     // rate-limit sayaçları (lastForumActionAtLocal/lastCommunityActionAtLocal) yalnızca BU OTURUMDA
     // başarılı bir gönderiden sonra güncelleniyordu, her uygulama açılışında/yeniden yüklemede (ör.
@@ -6608,6 +6640,8 @@ function rprof() {
         <button type="button" class="pquick-item" id="pq-notifs" onclick="openNotifications()"><span>🔔</span><b>Bildirimler</b></button>
         <button type="button" class="pquick-item" id="pqa-teknocheck" onclick="tcOpenMyReports()"><span>🛡️</span><b>TeknoCheck</b></button>
         ${ARENA_MODULU_AKTIF ? `<button type="button" class="pquick-item" onclick="openArenaPage()"><span>🎮</span><b>Arena</b></button>` : ''}
+        <button type="button" class="pquick-item" id="pq-safety" onclick="openSafetyHub()"><span>🛟</span><b>Güvenlik</b></button>
+        <button type="button" class="pquick-item" id="pq-blocked" onclick="openBlockedUsers()"><span>🚫</span><b>Engellenenler</b></button>
         <button type="button" class="pquick-item" id="pq-settings" onclick="openSettingsPage()"><span>⚙️</span><b>Ayarlar</b></button>
       </div>
       <div id="profile-vip-row">${profileVipRowHTML()}</div>
@@ -6754,9 +6788,11 @@ function rprof() {
         ${contentUpdatePanelHTML()}
       </div>
       <div class="sgroup" id="sg-help">
-        <div class="sgroup-title">Yardım ve Yasal</div>
+        <div class="sgroup-title">Yardım, Güvenlik ve Yasal</div>
         <div class="pacc-card">
+          ${sRow('🛡️', 'Yardım ve Güvenlik', 'Kullanıcı/ilan/mesaj bildir, engelle, destek al', 'closeSettingsPage();openSafetyHub()')}
           ${sRow('💬', 'Destek', 'WhatsApp, e-posta, sosyal medya', 'closeSettingsPage();openSupportPage()')}
+          ${sRow('🧒', 'Çocuk Güvenliği Standartları', 'Çocukların cinsel istismarına karşı sıfır tolerans', "ol('https://www.teknohane.net/cocuk-guvenligi')")}
           ${sRow('📄', 'Kullanım Şartları', 'Gizlilik politikası ve yasal bilgiler', "ol('https://www.teknohane.net/sartlar.html')")}
         </div>
       </div>
@@ -10326,8 +10362,18 @@ async function openChatWith(otherUid, otherName, listingCtx) {
   if (!otherUid || otherUid === user.uid) return;
   let ref;
   try {
+    const bl = await loadMyBlocks().catch(() => null);   // FAZ 24: engellediğim kullanıcıyla sohbet açmadan önce sor
+    if (bl && bl.has(otherUid)) {
+      const go = await confirmDialog('Bu kullanıcıyı engelledin. Engeli kaldırıp mesajlaşmak ister misin?', { title: 'Engellenen Kullanıcı', okLabel: 'Engeli Kaldır', cancelLabel: 'Vazgeç' });
+      if (!go) return;
+      await unblockUserGlobal(otherUid);
+    }
     ref = await ensureChatDoc(otherUid, otherName);
-  } catch(e) { showErrorToast(e); return; }
+  } catch(e) {
+    if (e && e.code === 'permission-denied') showToast('🚫', 'rgba(var(--danger-rgb),.15)', 'Mesaj Gönderilemiyor', 'Bu kullanıcıya şu anda mesaj gönderilemiyor.');
+    else showErrorToast(e);
+    return;
+  }
   let name = otherName;
   if (!name) { try { const s = await ref.get(); name = s.data()?.names?.[otherUid] || ''; } catch(e) {} }
   const ctx = (listingCtx && typeof listingCtx === 'object' && listingCtx.id) ? listingCtx : null;
@@ -10681,8 +10727,7 @@ function openChatMenu() {
   const rows = [];
   if (currentChatContext?.id) rows.push(`<div class="mi" onclick="closemo('msg-ctx-mo');openListingFromChat('${escapeJsAttr(currentChatContext.id)}')"><div class="mil"><div class="mico" style="background:rgba(var(--accent-rgb),.1)">📌</div><div class="mlbl">İlana Git</div></div></div>`);
   rows.push(`<div class="mi" onclick="closemo('msg-ctx-mo');toggleChatBlock()"><div class="mil"><div class="mico" style="background:rgba(var(--danger-rgb),.1)">🚫</div><div class="mlbl">${bs.iBlocked ? 'Engeli Kaldır' : 'Kullanıcıyı Engelle'}</div></div></div>`);
-  rows.push(`<div class="mi" onclick="closemo('msg-ctx-mo');reportChatUser()"><div class="mil"><div class="mico" style="background:rgba(var(--danger-rgb),.1)">⚠️</div><div class="mlbl">Kullanıcıyı Şikâyet Et</div></div></div>`);
-  rows.push(`<div class="mi" onclick="closemo('msg-ctx-mo');reportChatConversation()"><div class="mil"><div class="mico" style="background:rgba(var(--danger-rgb),.1)">🚩</div><div class="mlbl">Sohbeti Şikâyet Et</div></div></div>`);
+  rows.push(`<div class="mi" onclick="closemo('msg-ctx-mo');reportChatUser()"><div class="mil"><div class="mico" style="background:rgba(var(--danger-rgb),.1)">⚠️</div><div class="mlbl">Kullanıcıyı Bildir</div></div></div>`);
   document.getElementById('msg-ctx-body').innerHTML = rows.join('');
   document.getElementById('msg-ctx-mo').classList.add('on');
 }
@@ -10690,11 +10735,11 @@ async function toggleChatBlock() {
   if (!user || !currentChatOtherUid || !currentChatRef) return;
   const bs = chatBlockState(currentChatData, user.uid, currentChatOtherUid);
   const name = document.getElementById('chat-thread-name')?.textContent || 'Bu kullanıcı';
-  const ok = await confirmDialog(bs.iBlocked ? `${name} kullanıcısının engelini kaldırmak istiyor musun?` : `${name} kullanıcısını engellemek istiyor musun? Sana mesaj gönderemez; mevcut mesajların silinmez.`, { title: bs.iBlocked ? 'Engeli Kaldır' : 'Kullanıcıyı Engelle', okLabel: bs.iBlocked ? 'Kaldır' : 'Engelle', cancelLabel: 'Vazgeç' });
+  const ok = await confirmDialog(bs.iBlocked ? `${name} kullanıcısının engelini kaldırmak istiyor musun?` : `${name} kullanıcısını engellemek istiyor musun? Sana mesaj gönderemez; mevcut mesajlar silinmez. Engeli istediğin zaman Yardım ve Güvenlik bölümünden kaldırabilirsin.`, { title: bs.iBlocked ? 'Engeli Kaldır' : 'Kullanıcıyı Engelle', okLabel: bs.iBlocked ? 'Engeli Kaldır' : 'Engelle', cancelLabel: 'Vazgeç' });
   if (!ok) return;
   try {
-    await currentChatRef.update({ blockedBy: bs.iBlocked ? firebase.firestore.FieldValue.arrayRemove(user.uid) : firebase.firestore.FieldValue.arrayUnion(user.uid) });
-    showToast(bs.iBlocked ? '✓' : '🚫', 'rgba(var(--success-rgb),.15)', bs.iBlocked ? 'Engel Kaldırıldı' : 'Kullanıcı Engellendi', bs.iBlocked ? 'Yeniden mesajlaşabilirsiniz.' : 'Geçmiş mesajlar korunuyor.');
+    if (bs.iBlocked) await unblockUserGlobal(currentChatOtherUid); else await blockUserGlobal(currentChatOtherUid, name);
+    showToast(bs.iBlocked ? '✓' : '🚫', 'rgba(var(--success-rgb),.15)', bs.iBlocked ? 'Engel Kaldırıldı' : 'Kullanıcı Engellendi', bs.iBlocked ? 'Yeniden mesajlaşabilirsiniz.' : 'Bu kullanıcı sana mesaj gönderemez.');
   } catch (e) { showErrorToast(e); }
 }
 function reportChatUser() {
@@ -11368,6 +11413,7 @@ function openMsgContextMenu(msgId) {
   const rows = [];
   if (isText) rows.push(`<div class="mi" onclick="copyMsgText('${msgId}')"><div class="mil"><div class="mico" style="background:rgba(var(--accent-rgb),.1)">📋</div><div class="mlbl">Kopyala</div></div></div>`);
   rows.push(`<div class="mi" onclick="openForwardChatPicker('${msgId}')"><div class="mil"><div class="mico" style="background:rgba(var(--accent-rgb),.1)">↪️</div><div class="mlbl">İlet</div></div></div>`);
+  if (m.senderUid && m.senderUid !== user.uid) rows.push(`<div class="mi" onclick="reportChatMessage('${msgId}')"><div class="mil"><div class="mico" style="background:rgba(var(--danger-rgb),.1)">⚠️</div><div class="mlbl">Mesajı Bildir</div></div></div>`);
   rows.push(`<div class="mi" onclick="deleteChatMessage('${msgId}')"><div class="mil"><div class="mico" style="background:rgba(var(--danger-rgb),.1)">🗑️</div><div class="mlbl" style="color:var(--red)">Sil</div></div></div>`);
   document.getElementById('msg-ctx-body').innerHTML = rows.join('');
   document.getElementById('msg-ctx-mo').classList.add('on');
@@ -15298,7 +15344,7 @@ function renderDetailPage(l) {
         <span class="abtn-lbl">Sil</span>
       </button>`:'<div></div>'}
     </div>
-    ${!mine && user ? `<div style="text-align:center;margin-top:10px"><span onclick="openReportModal('listing','${l.id}','${escapeJsAttr(l.model||'İlan')}','${l.uid||''}')" style="font-size:12px;color:var(--text3);cursor:pointer;text-decoration:underline">🚩 İlanı Şikayet Et</span></div>` : ''}
+    ${!mine ? `<div style="margin-top:12px"><button type="button" onclick="openReportModal('listing','${l.id}','${escapeJsAttr(l.model||'İlan')}','${l.uid||''}')" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:11px;border-radius:12px;border:1px solid rgba(var(--danger-rgb),.35);background:rgba(var(--danger-rgb),.07);color:var(--red);font:inherit;font-weight:700;font-size:13px;cursor:pointer">🚩 İlanı Bildir</button></div>` : ''}
     ${pending && isAdmin ? `<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px" onclick="approveListing('${l.id}')">✓ İlanı Onayla ve Yayınla</button>`:''}
     ${mine && isListingExpired(l) ? `<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px;background:rgba(var(--accent-rgb),.12);color:var(--cyan);border:1px solid rgba(var(--accent-rgb),.3)" onclick="renewListing('${l.id}')">🔄 İlanı Yeniden Yayınla (30 Gün)</button>`:''}
     ${/* PAKET 5.1B: yönetici "İlanı Düzenle (Admin)" düğmesi KAPATILDI — Firestore kuralları yöneticinin ilan İÇERİĞİNİ yazmasına izin vermiyor (yalnızca onay/ret/duraklat/arşiv/vitrin/süre), bu yüzden düğme her seferinde "yetki yok" hatasıyla bitiyordu. Yönetici moderasyonu (onay/ret/duraklat/sil) aynen duruyor; ayrı bir yönetici içerik düzenleme yetkisi kurulursa yeniden açılır. */''}
@@ -17550,7 +17596,7 @@ function renderPublicProfileBody(uid, data, nameHint, isMe, privacy, presenceDat
         <button class="sbtn2" id="pub-follow-btn" style="padding:9px 16px;width:auto;background:var(--surf2);color:${isFollowingUser?'var(--cyan)':'var(--text)'}" onclick="toggleFollow('${uid}')">${isFollowingUser?'✓ Takip Ediliyor':'➕ Takip Et'}</button>
         <button class="sbtn2" style="padding:9px 16px;width:auto;background:var(--surf2);color:var(--text)" onclick="shareProfile('${uid}','${escapeJsAttr(displayName)}')">🔗 Paylaş</button>
       </div>
-      <div style="text-align:center;margin-top:8px"><span onclick="openReportModal('user','${uid}','${escapeJsAttr(displayName)}','${uid}')" style="font-size:12px;color:var(--text3);cursor:pointer;text-decoration:underline">🚩 Kullanıcıyı Şikayet Et</span></div>` : `
+      <div style="text-align:center;margin-top:8px;display:flex;justify-content:center;gap:18px;flex-wrap:wrap"><span id="pub-block-btn" onclick="profileToggleBlock('${uid}','${escapeJsAttr(displayName)}')" style="font-size:12px;color:var(--text3);cursor:pointer;text-decoration:underline">${(myBlocksCache && myBlocksUid === (user && user.uid) && myBlocksCache.has(uid)) ? '✅ Engeli Kaldır' : '🚫 Kullanıcıyı Engelle'}</span><span onclick="openReportModal('user','${uid}','${escapeJsAttr(displayName)}','${uid}')" style="font-size:12px;color:var(--text3);cursor:pointer;text-decoration:underline">🚩 Kullanıcıyı Bildir</span></div>` : `
       <div style="display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap">
         <button class="sbtn2" style="width:auto;padding:9px 16px" onclick="shareProfile('${uid}','${escapeJsAttr(displayName)}')">🔗 Profilimi Paylaş</button>
         <button class="sbtn2" style="width:auto;padding:9px 16px;background:var(--surf2);color:var(--text)" onclick="document.getElementById('pub-qr-wrap').style.display=document.getElementById('pub-qr-wrap').style.display==='none'?'block':'none'">📱 QR Kod</button>
@@ -17909,10 +17955,11 @@ async function handleFollowListToggle(btn, targetUid, listUid, listType) {
 }
 
 // KULLANICI ARAMA
-function openUserSearch() {
+function openUserSearch(reportMode) {
+  userSearchReportMode = !!reportMode;
   document.getElementById('user-search-mo').classList.add('on');
   document.getElementById('user-srch-inp').value = '';
-  document.getElementById('user-srch-results').innerHTML = '<div class="no">Aramak için yazın…</div>';
+  document.getElementById('user-srch-results').innerHTML = '<div class="no">' + (reportMode ? 'Bildirmek istediğin kullanıcıyı ara…' : 'Aramak için yazın…') + '</div>';
   setTimeout(() => document.getElementById('user-srch-inp')?.focus(), 300);
 }
 
@@ -17968,7 +18015,7 @@ async function runUserSearch(query) {
     if (!results.length) { res.innerHTML = '<div class="no">Kullanıcı bulunamadı</div>'; return; }
     res.innerHTML = results.map(u => {
       const name = u.name;
-      return `<div class="adm-user-row" onclick="closemo('user-search-mo');openPublicProfile('${u.uid}','${escapeJsAttr(name)}')">
+      return `<div class="adm-user-row" onclick="userSearchPick('${u.uid}','${escapeJsAttr(name)}')">
         <div class="adm-user-av">${u.photoURL?`<img src="${u.photoURL}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%" loading="lazy" decoding="async">`:name[0].toUpperCase()}</div>
         <div class="adm-user-info">
           <div class="adm-user-name">${escapeHtml(name)}</div>
@@ -18005,7 +18052,22 @@ const COMPLAINT_REASONS = [
   { code: 'telif', label: 'Telif' },
   { code: 'diger', label: 'Diğer' },
 ];
-const COMPLAINT_TYPE_LABELS = { user: 'Kullanıcı', listing: 'İlan', forum_post: 'Forum Gönderisi', comment: 'Yorum', message: 'Mesaj', pool_request: 'Havuz İşlemi', phone_spec: 'Telefon Bilgisi' };
+const COMPLAINT_TYPE_LABELS = { user: 'Kullanıcı', listing: 'İlan', forum_post: 'Forum Gönderisi', comment: 'Yorum', message: 'Mesaj', dm_message: 'Özel Mesaj', pool_request: 'Havuz İşlemi', phone_spec: 'Telefon Bilgisi', safety: 'Güvenlik Sorunu', tech: 'Teknik Sorun' };
+// FAZ 24 (Google Play kullanıcı güvenliği): tür başına bildirim kategorileri. Çocuk güvenliği kategorileri (SAFETY_CHILD_CODES) sunucu kuralıyla (firestore.rules → cmpCritical) her zaman priority=critical olur.
+const SAFETY_CHILD_CODES = ['cocuk_guvenligi', 'cinsel_istismar'];
+const SAFETY_REASON_SETS = (() => {
+  const mk = (a) => a.map(([code, label]) => ({ code, label }));
+  const person = [['uygunsuz_davranis', 'Uygunsuz davranış'], ['taciz_tehdit', 'Taciz veya tehdit'], ['dolandiricilik', 'Dolandırıcılık şüphesi'], ['sahte_hesap', 'Sahte hesap'], ['cocuk_guvenligi', 'Çocuk güvenliğini tehdit eden içerik'], ['cinsel_istismar', 'Cinsel istismar veya sömürü içeriği'], ['spam', 'Spam'], ['diger', 'Diğer']];
+  return {
+    user: mk(person),
+    dm_message: mk(person.filter((r) => r[0] !== 'sahte_hesap')),
+    listing: mk([['yaniltici', 'Yanıltıcı ilan'], ['sahte_calinti', 'Sahte veya çalıntı cihaz şüphesi'], ['uygunsuz_gorsel', 'Uygunsuz görsel'], ['dolandiricilik', 'Dolandırıcılık'], ['cocuk_guvenligi', 'Çocuk güvenliğini tehdit eden içerik'], ['spam', 'Spam'], ['diger', 'Diğer']]),
+    safety: mk([['cocuk_guvenligi', 'Çocuk güvenliğini tehdit eden içerik'], ['cinsel_istismar', 'Cinsel istismar veya sömürü içeriği'], ['dolandiricilik', 'Dolandırıcılık veya hesap güvenliği'], ['guvenlik_acigi', 'Güvenlik açığı'], ['diger', 'Diğer']]),
+    tech: mk([['cokme', 'Uygulama çöküyor veya donuyor'], ['ozellik', 'Bir özellik çalışmıyor'], ['yavaslik', 'Yavaşlık veya yükleme sorunu'], ['bildirim', 'Bildirim sorunu'], ['diger', 'Diğer']])
+  };
+})();
+const SAFETY_REPORT_TITLES = { user: 'Kullanıcıyı Bildir', listing: 'İlanı Bildir', dm_message: 'Mesajı Bildir', safety: 'Güvenlik Sorunu Bildir', tech: 'Teknik Sorun Bildir' };
+const CHILD_SAFETY_URL = 'https://www.teknohane.net/cocuk-guvenligi';
 
 let reportContext = null; // { type, targetId, targetLabel, targetOwnerUid }
 
@@ -18017,21 +18079,36 @@ let reportContext = null; // { type, targetId, targetLabel, targetOwnerUid }
 let pendingReportId = null;
 let reportPhotoUrl = null;
 
-function openReportModal(type, targetId, targetLabel, targetOwnerUid, parentPostId) {
+function openReportModal(type, targetId, targetLabel, targetOwnerUid, parentPostId, extra) {
   if (!user) { gt('profile'); return; }
-  reportContext = { type, targetId, targetLabel, targetOwnerUid, parentPostId };
+  reportContext = { type, targetId, targetLabel, targetOwnerUid, parentPostId, chatId: (extra && extra.chatId) || null };
   pendingReportId = type === 'listing' ? 'lst_' + targetId + '_' + user.uid : db.collection('teknohane_complaints').doc().id;   // Faz 12: aynı kişi aynı ilanı bir kez şikâyet eder (ikinci yazım Rules'ta reddedilir)
   reportPhotoUrl = null;
-  document.getElementById('report-target-label').textContent = `${COMPLAINT_TYPE_LABELS[type]||type}: ${targetLabel}`;
+  const general = (type === 'safety' || type === 'tech');
+  document.getElementById('report-title').textContent = SAFETY_REPORT_TITLES[type] || 'Şikayet Et';
+  document.getElementById('report-target-label').textContent = general ? '' : `${COMPLAINT_TYPE_LABELS[type]||type}: ${targetLabel}`;
+  document.getElementById('report-target-label').style.display = general ? 'none' : '';
   const sel = document.getElementById('report-reason-select');
-  sel.innerHTML = COMPLAINT_REASONS.map(r => `<option value="${r.code}">${r.label}</option>`).join('');
+  sel.innerHTML = (SAFETY_REASON_SETS[type] || COMPLAINT_REASONS).map(r => `<option value="${r.code}">${r.label}</option>`).join('');
   syncPickerTriggerLabel('report-reason-select');
   document.getElementById('report-other-wrap').style.display = 'none';
   document.getElementById('report-other-text').value = '';
   document.getElementById('report-description').value = '';
+  document.getElementById('report-desc-label').textContent = general ? 'Açıklama (zorunlu, en az 10 karakter)' : 'Ek Açıklama (isteğe bağlı)';
+  document.getElementById('report-child-note').style.display = 'none';
+  document.getElementById('report-form').style.display = '';
+  document.getElementById('report-done').style.display = 'none';
   renderReportPhotoSlot();
   const err = document.getElementById('report-err'); err.textContent = ''; err.classList.remove('on');
+  onReportReasonChange();
   document.getElementById('report-mo').classList.add('on');
+}
+
+// Sebep değişince: "Diğer" açıklama alanı ve çocuk güvenliği uyarısı (acil durumda 112) görünürlüğü.
+function onReportReasonChange() {
+  const v = document.getElementById('report-reason-select').value;
+  document.getElementById('report-other-wrap').style.display = v === 'diger' ? 'block' : 'none';
+  document.getElementById('report-child-note').style.display = SAFETY_CHILD_CODES.includes(v) ? 'block' : 'none';
 }
 
 function renderReportPhotoSlot() {
@@ -18060,44 +18137,198 @@ async function onReportPhotoSelected(input) {
   }
 }
 
+// FAZ 24: kayıt numarası (kullanıcıya gösterilir; yönetim panelinde aranabilir). Rules: ^TK-[A-Z0-9]{8}$
+function reportRefNo() {
+  const a = new Uint32Array(3); crypto.getRandomValues(a);
+  const s = Array.from(a).map(n => n.toString(36)).join('').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  return 'TK-' + (s + '00000000').slice(0, 8);
+}
+let reportSubmitting = false;
+let lastReportAt = 0;
+
+// Bildirim sonucu: kayıt numarası gösterilir. Çocuk güvenliği kategorisinde acil durum notu (112) ve öncelikli inceleme bilgisi eklenir.
+function showReportDone(refNo, critical) {
+  document.getElementById('report-form').style.display = 'none';
+  document.getElementById('report-refno').textContent = refNo;
+  document.getElementById('report-done-child').style.display = critical ? 'block' : 'none';
+  document.getElementById('report-done').style.display = 'block';
+}
+
 async function submitReport() {
-  if (!user || !reportContext) return;
+  if (!user || !reportContext || reportSubmitting) return;
   const err = document.getElementById('report-err'); err.textContent = ''; err.classList.remove('on');
+  const fail = (m) => { err.textContent = m; err.classList.add('on'); };
+  const type = reportContext.type;
+  const reasons = SAFETY_REASON_SETS[type] || COMPLAINT_REASONS;
   const reasonCode = document.getElementById('report-reason-select').value;
-  const reasonObj = COMPLAINT_REASONS.find(r => r.code === reasonCode);
+  const reasonObj = reasons.find(r => r.code === reasonCode);
   let reasonLabel = reasonObj?.label || 'Diğer';
   if (reasonCode === 'diger') {
     const otherText = document.getElementById('report-other-text').value.trim();
-    if (!otherText) { err.textContent = 'Diğer seçildiyse açıklama yazılmalı'; err.classList.add('on'); return; }
-    reasonLabel = otherText;
+    if (!otherText) return fail('Diğer seçildiyse açıklama yazılmalı');
+    reasonLabel = otherText.slice(0, 280);
   }
   const description = document.getElementById('report-description').value.trim();
+  if ((type === 'safety' || type === 'tech') && description.length < 10) return fail('Lütfen sorunu en az 10 karakterle açıkla.');
+  if (Date.now() - lastReportAt < 20000) return fail('Çok sık bildirim gönderiyorsun. Lütfen birkaç saniye bekle.');
+  reportSubmitting = true;
+  const btn = document.getElementById('report-submit-btn'); if (btn) btn.disabled = true;
   try {
-    await db.collection('teknohane_complaints').doc(pendingReportId).set({
-      type: reportContext.type,
-      targetId: reportContext.targetId,
-      targetLabel: reportContext.targetLabel,
+    // HIZ SINIRI (sunucuda zorunlu, bkz. firestore.rules cmpRateOk): bildirim ile sayaç AYNI toplu yazımda yazılır; 20 sn aralık, günde en çok 20 bildirim.
+    const nowD = new Date(), today = nowD.getUTCFullYear() * 10000 + (nowD.getUTCMonth() + 1) * 100 + nowD.getUTCDate();
+    const rateRef = db.collection('teknohane_users').doc(user.uid).collection('safety').doc('rate');
+    const rs = await rateRef.get().catch(() => null);
+    const prev = rs && rs.exists ? rs.data() : null;
+    const count = ((prev && prev.day === today) ? (prev.count || 0) : 0) + 1;
+    if (count > 20) return fail('Bugün en fazla 20 bildirim gönderebilirsin. Acil bir durum varsa 112\'yi ara.');
+    const refNo = reportRefNo();
+    const critical = SAFETY_CHILD_CODES.includes(reasonCode);
+    const myName = myProfileData.displayName || user.displayName || user.email;
+    const general = (type === 'safety' || type === 'tech');
+    const batch = db.batch();
+    batch.set(db.collection('teknohane_complaints').doc(pendingReportId), {
+      type,
+      targetId: general ? 'genel' : reportContext.targetId,
+      targetLabel: general ? (type === 'tech' ? 'Teknik sorun' : 'Güvenlik sorunu') : reportContext.targetLabel,
       targetOwnerUid: reportContext.targetOwnerUid || null,
-      // ADMIN PANELİ EKSİĞİ DÜZELTMESİ (denetim raporu): yorum şikayetlerinde hangi KONUYA ait
-      // olduğu hiç saklanmıyordu — admin panelinde şikayet edilen yorumu görüntülemek için tıklanabilir
-      // bir bağlantı hiç kurulamıyordu (postId olmadan derin bağlantı imkansız). Yalnızca 'comment'
-      // türünde doludur.
-      parentPostId: reportContext.type === 'comment' ? (reportContext.parentPostId || null) : null,
+      // Yorum şikayetlerinde hangi KONUYA ait olduğu (admin panelinde derin bağlantı için).
+      parentPostId: type === 'comment' ? (reportContext.parentPostId || null) : null,
+      // Özel mesaj bildirimi: yalnızca sohbet + mesaj KİMLİĞİ saklanır; mesaj metni kopyalanmaz (yönetici, yetkili ve denetim kayıtlı sunucu ucundan doğrular).
+      chatId: type === 'dm_message' ? (reportContext.chatId || null) : null,
       reporterUid: user.uid,
-      reporterName: myProfileData.displayName || user.displayName || user.email,
+      reporterName: myName,
       reasonCode, reasonLabel, description,
+      refNo,
       evidenceUrl: reportPhotoUrl || null,
       status: 'pending',
-      priority: 'normal',
+      priority: critical ? 'critical' : 'normal',
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      history: [{ at: new Date(), by: user.uid, byName: myProfileData.displayName||user.displayName||user.email, action: 'created', detail: 'Şikayet oluşturuldu' }]
+      history: [{ at: new Date(), by: user.uid, byName: myName, action: 'created', detail: 'Bildirim oluşturuldu (' + refNo + ')' }]
     });
-    notifyAdminsOfEvent('manageComplaints', '🟢 Yeni şikayet oluşturuldu', `${COMPLAINT_TYPE_LABELS[reportContext.type]||reportContext.type}: ${reportContext.targetLabel}\nSebep: ${reasonLabel}`, pendingReportId);
-    closemo('report-mo');
-    showToast('✓', 'rgba(var(--success-rgb),.15)', 'Şikayet Alındı', 'Bildirimin için teşekkürler, ekibimiz inceleyecek.');
+    batch.set(rateRef, { lastAt: firebase.firestore.FieldValue.serverTimestamp(), day: today, count });
+    await batch.commit();
+    lastReportAt = Date.now();
+    notifyAdminsOfEvent('manageComplaints', (critical ? '🔴 KRİTİK bildirim: ' : '🟢 Yeni bildirim: ') + (COMPLAINT_TYPE_LABELS[type] || type), `${refNo} · ${general ? '' : (reportContext.targetLabel + '\n')}Sebep: ${reasonLabel}`, pendingReportId);
+    showReportDone(refNo, critical);
   } catch(e) {
-    err.textContent = (reportContext.type === 'listing' && e && e.code === 'permission-denied') ? 'Bu ilanı daha önce şikâyet ettin; ekibimiz inceliyor.' : (firebaseErrorToTurkish(e) || 'Gönderilemedi, tekrar dene.'); err.classList.add('on');
+    fail(e && e.code === 'permission-denied'
+      ? (type === 'listing' ? 'Bu ilanı daha önce bildirdin veya kısa sürede çok bildirim gönderdin; ekibimiz inceliyor.' : 'Bildirim gönderilemedi. Kısa süre önce bildirim gönderdiysen biraz bekleyip tekrar dene.')
+      : (firebaseErrorToTurkish(e) || 'Gönderilemedi, tekrar dene.'));
+  } finally {
+    reportSubmitting = false; if (btn) btn.disabled = false;
   }
+}
+
+// ==== FAZ 24 — YARDIM VE GÜVENLİK: engel listesi, mesaj bildirme, güvenlik merkezi ====
+// Engel listesi: teknohane_users/{uid}/blocks/{engellenenUid} (yalnızca sahibi okur/yazar). Karşı taraf engellendiğini bu belgeden göremez; sunucu kuralları engelin varlığını denetler
+// (yeni sohbet + mesaj gönderimi: firestore.rules). Var olan sohbet belgesinde de blockedBy işaretlenir (mevcut engel afişi/davranışı aynen çalışır).
+let myBlocksCache = null, myBlocksUid = null;
+async function loadMyBlocks(force) {
+  if (!user) return new Map();
+  if (myBlocksCache && myBlocksUid === user.uid && !force) return myBlocksCache;
+  const snap = await db.collection('teknohane_users').doc(user.uid).collection('blocks').limit(500).get();
+  myBlocksCache = new Map(snap.docs.map(d => [d.id, { name: d.data().name || 'Kullanıcı' }]));
+  myBlocksUid = user.uid;
+  return myBlocksCache;
+}
+async function blockUserGlobal(otherUid, name) {
+  if (!user || !otherUid || otherUid === user.uid) return false;
+  const batch = db.batch();
+  batch.set(db.collection('teknohane_users').doc(user.uid).collection('blocks').doc(otherUid), { blockedUid: otherUid, name: String(name || 'Kullanıcı').slice(0, 80), createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+  const chatRef = db.collection('teknohane_chats').doc(chatIdFor(user.uid, otherUid));
+  const cs = await chatRef.get().catch(() => null);
+  if (cs && cs.exists) batch.update(chatRef, { blockedBy: firebase.firestore.FieldValue.arrayUnion(user.uid) });
+  await batch.commit();
+  if (!myBlocksCache || myBlocksUid !== user.uid) { myBlocksCache = new Map(); myBlocksUid = user.uid; }
+  myBlocksCache.set(otherUid, { name: name || 'Kullanıcı' });
+  return true;
+}
+async function unblockUserGlobal(otherUid) {
+  if (!user || !otherUid) return false;
+  const batch = db.batch();
+  batch.delete(db.collection('teknohane_users').doc(user.uid).collection('blocks').doc(otherUid));
+  const chatRef = db.collection('teknohane_chats').doc(chatIdFor(user.uid, otherUid));
+  const cs = await chatRef.get().catch(() => null);
+  if (cs && cs.exists && (cs.data().blockedBy || []).includes(user.uid)) batch.update(chatRef, { blockedBy: firebase.firestore.FieldValue.arrayRemove(user.uid) });
+  await batch.commit();
+  if (myBlocksCache) myBlocksCache.delete(otherUid);
+  return true;
+}
+
+// Herkese açık profilden engelle / engeli kaldır.
+async function profileToggleBlock(uid, name) {
+  if (!user) { gt('profile'); return; }
+  let has = false;
+  try { has = (await loadMyBlocks()).has(uid); } catch(e) { showErrorToast(e); return; }
+  const nm = name || 'Bu kullanıcı';
+  const ok = await confirmDialog(has ? `${nm} kullanıcısının engelini kaldırmak istiyor musun?` : `${nm} kullanıcısını engellemek istiyor musun? Sana mesaj gönderemez ve yeni sohbet başlatamaz. Engeli istediğin zaman Yardım ve Güvenlik bölümünden kaldırabilirsin.`, { title: has ? 'Engeli Kaldır' : 'Kullanıcıyı Engelle', okLabel: has ? 'Engeli Kaldır' : 'Engelle', cancelLabel: 'Vazgeç' });
+  if (!ok) return;
+  try {
+    if (has) await unblockUserGlobal(uid); else await blockUserGlobal(uid, nm);
+    const el = document.getElementById('pub-block-btn'); if (el) el.textContent = has ? '🚫 Kullanıcıyı Engelle' : '✅ Engeli Kaldır';
+    showToast(has ? '✓' : '🚫', 'rgba(var(--success-rgb),.15)', has ? 'Engel Kaldırıldı' : 'Kullanıcı Engellendi', has ? 'Yeniden mesajlaşabilirsiniz.' : 'Bu kullanıcı sana mesaj gönderemez.');
+  } catch(e) { showErrorToast(e); }
+}
+
+// Engellenen kullanıcıları yönet.
+async function openBlockedUsers() {
+  if (!user) { gt('profile'); return; }
+  const body = document.getElementById('blocked-body');
+  body.innerHTML = '<div class="load"><div class="spin"></div></div>';
+  document.getElementById('blocked-mo').classList.add('on');
+  try {
+    const m = await loadMyBlocks(true);
+    renderBlockedUsers(m);
+  } catch(e) { body.innerHTML = '<div class="no">Liste yüklenemedi. Daha sonra tekrar dene.</div>'; }
+}
+function renderBlockedUsers(m) {
+  const body = document.getElementById('blocked-body');
+  if (!m.size) { body.innerHTML = '<div class="no" style="padding:22px 8px">Engellediğin kullanıcı yok.</div>'; return; }
+  body.innerHTML = [...m.entries()].map(([uid, v]) => `<div class="mi"><div class="mil"><div class="mico" style="background:rgba(var(--danger-rgb),.1)">🚫</div><div class="mlbl">${escapeHtml(v.name || 'Kullanıcı')}</div></div><button type="button" class="sbtn2" style="width:auto;padding:8px 14px;margin:0" onclick="unblockFromList('${uid}')">Engeli Kaldır</button></div>`).join('');
+}
+async function unblockFromList(uid) {
+  try { await unblockUserGlobal(uid); renderBlockedUsers(await loadMyBlocks()); showToast('✓', 'rgba(var(--success-rgb),.15)', 'Engel Kaldırıldı', 'Yeniden mesajlaşabilirsiniz.'); }
+  catch(e) { showErrorToast(e); }
+}
+
+// Özel mesajı bildir (mesaja uzun basma menüsünden). Yalnızca karşı tarafın mesajları bildirilebilir.
+function reportChatMessage(msgId) {
+  closemo('msg-ctx-mo');
+  if (!user || !currentChatOtherUid) return;
+  const nm = document.getElementById('chat-thread-name')?.textContent || 'Kullanıcı';
+  openReportModal('dm_message', msgId, `Mesaj — ${nm}`, currentChatOtherUid, null, { chatId: chatIdFor(user.uid, currentChatOtherUid) });
+}
+
+// Kullanıcı aramasından seçim: normal modda profil açılır; "bildir" modunda doğrudan bildirim formu.
+let userSearchReportMode = false;
+function userSearchPick(uid, name) {
+  closemo('user-search-mo');
+  if (userSearchReportMode) { userSearchReportMode = false; openReportModal('user', uid, name, uid); }
+  else openPublicProfile(uid, name);
+}
+
+// YARDIM VE GÜVENLİK MERKEZİ
+function safetyGuide(kind) {
+  if (kind === 'listing') { gt('market'); showToast('🚩', 'rgba(var(--accent-rgb),.12)', 'İlanı Bildir', 'Bildirmek istediğin ilanı aç ve en alttaki "İlanı Bildir" düğmesine dokun.'); }
+  else { openMessagesTab(); showToast('⚠️', 'rgba(var(--accent-rgb),.12)', 'Mesajı Bildir', 'Sohbeti aç, bildirmek istediğin mesaja uzun bas ve "Mesajı Bildir"i seç.'); }
+}
+function openSafetyHub() {
+  const row = (ic, bg, t, sub, act) => `<div class="mi" onclick="${act}"><div class="mil"><div class="mico" style="background:${bg}">${ic}</div><div class="mlbl">${t}<div style="font-size:11px;font-weight:500;color:var(--text3);margin-top:2px;line-height:1.35">${sub}</div></div></div></div>`;
+  const dg = 'rgba(var(--danger-rgb),.1)', ac = 'rgba(var(--accent-rgb),.1)';
+  const body = [
+    `<div style="font-size:12px;color:var(--text2);line-height:1.55;margin:0 4px 10px">Bir sorunla karşılaştıysan buradan bildirebilirsin. Bildirimlerini yalnızca yetkili Teknohane ekibi görür. <b>Acil bir tehlike varsa önce 112'yi ara.</b></div>`,
+    row('🚨', dg, 'Güvenlik sorunu bildir', 'Çocuk güvenliği, dolandırıcılık, hesap güvenliği', "closemo('safety-mo');openReportModal('safety','genel','Genel',null)"),
+    row('👤', dg, 'Kullanıcı bildir', 'Bir kullanıcıyı ara ve bildir', "closemo('safety-mo');userSearchReportMode=true;openUserSearch(true)"),
+    row('📌', dg, 'İlan bildir', 'İlanı aç, "İlanı Bildir"e dokun', "closemo('safety-mo');safetyGuide('listing')"),
+    row('💬', dg, 'Mesaj bildir', 'Mesaja uzun bas, "Mesajı Bildir"i seç', "closemo('safety-mo');safetyGuide('message')"),
+    row('🛠️', ac, 'Teknik sorun bildir', 'Çökme, çalışmayan özellik, yavaşlık', "closemo('safety-mo');openReportModal('tech','genel','Genel',null)"),
+    row('🎧', ac, 'Destek talebi oluştur', 'WhatsApp, e-posta, sosyal medya', "closemo('safety-mo');openSupportPage()"),
+    row('🚫', dg, 'Engellenen kullanıcılar', 'Engelleri görüntüle ve yönet', "closemo('safety-mo');openBlockedUsers()"),
+    row('🧒', ac, 'Çocuk güvenliği standartları', 'Çocukların cinsel istismarına (CSAE) sıfır tolerans', "closemo('safety-mo');ol('" + CHILD_SAFETY_URL + "')"),
+    row('📄', ac, 'Kullanım şartları', 'Gizlilik politikası ve yasal bilgiler', "closemo('safety-mo');ol('https://www.teknohane.net/sartlar.html')")
+  ].join('');
+  document.getElementById('safety-hub-body').innerHTML = body;
+  document.getElementById('safety-mo').classList.add('on');
 }
 
 // YOUTUBE
@@ -27804,7 +28035,7 @@ function ol(url) {
   if (isNativeApp() && window.Capacitor?.Plugins?.Browser) {
     Capacitor.Plugins.Browser.open({ url }).catch(() => { location.href = url; });
   } else {
-    location.href = '/teknohane/go.html?url=' + encodeURIComponent(url);
+    location.href = '/go.html?url=' + encodeURIComponent(url);
   }
 }
 
@@ -28479,9 +28710,11 @@ if (isNativeApp()) {
     // dokunuldu) launch URL'i getLaunchUrl() ile; uygulama zaten AÇIKKEN (singleTask) yeni bir link
     // gelirse appUrlOpen olayıyla alınır. navigateFromNotificationUrl zaten listing/post/profile/chat
     // hepsini destekliyor (bkz. push bildirimi yönlendirmesi) — burada da aynen kullanılıyor.
-    Capacitor.Plugins.App.getLaunchUrl().then(res => { if (res?.url) navigateFromNotificationUrl(res.url); }).catch(()=>{});
+    // FAZ 24: sartlar / cocuk-guvenligi gibi STATİK yasal sayfalar uygulama içinde işlenemez → Capacitor Browser ile açılır (App Links tüm alan adını yakalar).
+    const tkStaticLegal = (url) => { try { const p = new URL(url).pathname; if (/^\/(cocuk-guvenligi|sartlar)(\.html)?\/?$/.test(p)) { ol(url); return true; } } catch(e) { /* geçersiz URL */ } return false; };
+    Capacitor.Plugins.App.getLaunchUrl().then(res => { if (res?.url && !tkStaticLegal(res.url)) navigateFromNotificationUrl(res.url); }).catch(()=>{});
     Capacitor.Plugins.App.addListener('appUrlOpen', (data) => {
-      try { navigateFromNotificationUrl(data.url); } catch(e) { console.error('Deep link yönlendirme hatası:', e); }
+      try { if (!tkStaticLegal(data.url)) navigateFromNotificationUrl(data.url); } catch(e) { console.error('Deep link yönlendirme hatası:', e); }
     });
   } else {
     console.warn('Capacitor App plugin bulunamadı, donanım geri tuşu köprülenemedi.');
