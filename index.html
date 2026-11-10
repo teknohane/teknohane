@@ -20753,8 +20753,27 @@ async function tcrExport(rep) {
     const ok = await confirmDialog('PDF\'de ' + ext.photos.length + ' fotoğraf var. PDF\'yi paylaşırsan fotoğraflar da paylaşılmış olur. Fotoğraflar sunucuya yüklenmez; yalnızca sen seçtiğin uygulamaya gönderilir.', { title: 'Fotoğraflı PDF', confirmText: 'PDF oluştur', cancelText: 'Vazgeç' });
     if (!ok) return;
   }
+  // Faz 25: PDF artık JS'te üretilir (istemci7.js) → web ve canlı içerik güncellemesiyle tüm kurulu sürümlerde aynı tasarım; APK sürümüne bağlı değildir.
+  let built = null;
+  try { built = await tcpBuildPdf(doc); const bad = tcpAudit(built.layout); if (bad.length) { try { console.warn('TeknoCheck PDF öz-denetim:', bad.slice(0, 5)); } catch (e) { /* günlük yok */ } } } catch (e) { built = null; }
+  const name = 'TeknoCheck-' + String(doc.fileId || 'rapor').replace(/[^A-Za-z0-9._-]/g, '_') + '.pdf';
+  if (built) {
+    const P = (window.Capacitor && window.Capacitor.Plugins) || {};
+    if (n && P.Filesystem && P.Share) {
+      try {
+        const w = await P.Filesystem.writeFile({ path: 'teknocheck/' + name, data: tcpB64(built.bytes), directory: 'CACHE', recursive: true });
+        await P.Share.share({ title: 'TeknoCheck raporu', dialogTitle: 'TeknoCheck raporu', files: [w.uri] });
+        return;
+      } catch (e) { if (e && /cancel|dismiss/i.test(String(e.message || e))) return; /* paylaşım penceresi kapatıldı: hata değil */ }
+    }
+    if (!n) {
+      try { const blob = new Blob([built.bytes], { type: 'application/pdf' }), url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { try { a.remove(); URL.revokeObjectURL(url); } catch (e) { /* zaten temiz */ } }, 30000); return; }
+      catch (e) { /* indirme olmadı: yazdırmaya düş */ }
+    }
+  }
   if (!n) { return tcrPrint(doc); }
-  try { const out = await n.exportPdf({ document: doc }); await n.sharePdf({ fileName: out.fileName, title: 'TeknoCheck raporu' }); }
+  // Yedek yol (eklentiler yoksa): eski yerel çizici; durum sütunu kısa tutulmuş belge verilir (üst üste binme olmaz)
+  try { const out = await n.exportPdf({ document: tcpLegacyDoc(doc) }); await n.sharePdf({ fileName: out.fileName, title: 'TeknoCheck raporu' }); }
   catch (e) { showToast('⚠️', 'rgba(var(--danger-rgb),.15)', 'PDF oluşturulamadı', 'Cihazda PDF üretimi başarısız oldu. Fotoğraf sayısını azaltıp tekrar dene.'); }
 }
 function tcrPrint(doc) {
@@ -21054,6 +21073,228 @@ function tcxVerifyScopeHTML(s) {
   if (s.hwTests) h += `<h4 class="tc-info-t">İmzalı ek donanım testleri</h4>${tcxRowsHTML(tcxHwRowsFrom(s.hwTests))}`;
   if (s.cosmetic) h += `<h4 class="tc-info-t">Kullanıcı beyanı: kozmetik durum</h4>${tcxRowsHTML(tcxCosmeticRowsFrom({ grade: s.cosmetic.grade, defects: Object.fromEntries((s.cosmetic.defects || []).map((k) => [k, true])), note: s.cosmetic.note }))}`;
   return h;
+}
+
+// ==== TeknoCheck PDF — JS MOTORU (Faz 25) ====
+// NEDEN: Android PDF'i eskiden yalnızca APK içindeki Kotlin çiziciyle üretiliyordu; düzeltmeler ancak yeni APK kurulunca geliyordu ve eski çizicide durum sütunu
+// sarılmadığı için yazılar üst üste biniyordu. Artık PDF tamamen burada (JS) üretilir → web ve canlı içerik güncellemesiyle (OTA) TÜM kurulu sürümlere aynı anda gelir.
+// NASIL: (1) tcpLayout: saf yerleşim (sabit sütunlar, her metin kendi sütununda sarılır, satır sayfa bölmez, uzun/boşluksuz kelime bölünür) → çizim işlemleri;
+// (2) tcpRender: her sayfa tuvale (canvas) çizilir (cihazın kendi yazı tipi; Türkçe karakter sorunu olmaz); (3) tcpPdf: sayfa görüntülerinden A4 PDF dosyası.
+// Android: dosya Filesystem (önbellek) ile yazılır, Share ile paylaşılır; bu eklentiler yoksa eski köprüye (sütun-güvenli belgeyle) düşer. Web: PDF doğrudan indirilir.
+const TCP = { W: 595, H: 842, MX: 36, TOP1: 86, TOPN: 52, BOTTOM: 788, FONT: 'Roboto, "Segoe UI", "Helvetica Neue", Arial, sans-serif', VER: 'r2' };
+const TCP_C = { navy: '#081630', teal: '#109694', tealD: '#005460', ink: '#1c1e22', muted: '#666c74', rule: '#d6dade', zebra: '#f7fafa', bar: '#e4f0f0', group: '#eef4f4', soft: '#f5f6f7', white: '#ffffff' };
+const TCP_TONE = { ok: ['#17713a', '#dff2e5'], bad: ['#b0241c', '#fae2e0'], warn: ['#855400', '#fceed0'], info: ['#1c5c9c', '#deecfa'], muted: ['#54585e', '#eaecee'] };
+let tcpMeasureCtx = null;
+function tcpMeasurer() {
+  if (!tcpMeasureCtx) tcpMeasureCtx = document.createElement('canvas').getContext('2d');
+  const cache = new Map();
+  return (text, size, bold) => { const k = (bold ? 'b' : 'n') + size + '|' + text; let w = cache.get(k); if (w === undefined) { tcpMeasureCtx.font = `${bold ? 700 : 400} ${size}px ${TCP.FONT}`; w = tcpMeasureCtx.measureText(text).width; cache.set(k, w); } return w; };
+}
+// Sarma: kelime sınırında; tek başına sığmayan kelime karakter sınırında bölünür (taşma olmaz)
+function tcpWrap(text, maxW, m) {
+  const out = [];
+  for (const para of String(text == null ? '' : text).split('\n')) {
+    let cur = '';
+    for (const word of para.split(' ')) {
+      let w = word;
+      while (w.length && m(w) > maxW) { if (cur) { out.push(cur); cur = ''; } let k = w.length - 1; while (k > 1 && m(w.slice(0, k)) > maxW) k--; out.push(w.slice(0, k)); w = w.slice(k); }
+      const t = cur ? cur + ' ' + w : w;
+      if (!cur || m(t) <= maxW) cur = t; else { out.push(cur); cur = w; }
+    }
+    out.push(cur);
+  }
+  return out;
+}
+function tcpLayout(doc, measure) {
+  const M = measure || tcpMeasurer(), { W, H, MX, BOTTOM } = TCP, BW = W - 2 * MX, C = TCP_C, ops = [];
+  let page = 0, y = 0, rowSeq = 0;
+  const lead = (s) => s * 1.34;
+  const lines = (t, size, bold, maxW) => (!t || !String(t).trim() ? [] : tcpWrap(String(t).trim(), maxW, (x) => M(x, size, bold)));
+  const fit = (t, size, bold, maxW) => { let s = String(t || ''); if (M(s, size, bold) <= maxW) return s; while (s.length > 1 && M(s + '…', size, bold) > maxW) s = s.slice(0, -1); return s + '…'; };
+  const text = (x, top, s, size, bold, color, align, tag) => ops.push({ k: 't', p: page, x, b: top + size * 0.88, s, z: size, bold: !!bold, c: color, a: align || 0, tag: tag || '' });
+  const textLines = (x, top, ls, size, bold, color, align, tag) => { let t = top; for (const l of ls) { text(x, t, l, size, bold, color, align, tag); t += lead(size); } return t - top; };
+  const rect = (x, yy, w, h, fill, stroke, r, tag) => ops.push({ k: 'r', p: page, x, y: yy, w, h, f: fill || null, st: stroke || null, r: r || 0, tag: tag || '' });
+  const hline = (x1, yy, x2, color, w) => ops.push({ k: 'l', p: page, x1, y1: yy, x2, y2: yy, c: color || C.rule, w: w || 0.6 });
+  const newPage = () => {
+    page++;
+    if (page === 1) {
+      rect(0, 0, W, 64, C.navy); rect(0, 64, W, 4, C.teal);
+      text(MX, 16, 'TeknoCheck', 22, true, C.white); text(MX, 43, doc.brand || 'TeknoCheck · Teknohane', 9, false, '#aadcdc');
+      text(W - MX, 14, 'RAPOR NO', 7.5, true, '#96c8cd', 1); text(W - MX, 26, doc.fileId || '', 12.5, true, C.white, 1); text(W - MX, 43, 'Cihaz Durum Raporu', 9, false, '#aadcdc', 1);
+      y = TCP.TOP1;
+    } else { text(MX, 20, 'TeknoCheck · Cihaz Durum Raporu', 8.5, true, C.tealD); text(W - MX, 20, doc.fileId || '', 8.5, false, C.muted, 1); hline(MX, 36, W - MX, C.teal, 1); y = TCP.TOPN; }
+  };
+  const ensure = (h) => { if (page === 0) newPage(); if (y + h > BOTTOM) newPage(); };
+  const tone = (r) => (r[3] && r[3] !== 'group' ? r[3] : tcrTone(r[1] || ''));
+  const callout = (label, body, soft) => {
+    const ls = lines(body, 9, false, BW - 28), h = 12 + 10 + ls.length * lead(9) + 8;
+    ensure(h + 8); rect(MX, y, BW, h, soft ? C.soft : C.bar, null, 5, 'callout'); rect(MX, y, 4, h, soft ? C.muted : C.tealD, null, 2);
+    text(MX + 14, y + 7, label, 7.4, true, soft ? C.muted : C.tealD); textLines(MX + 14, y + 18, ls, 9, false, C.ink); y += h + 10;
+  };
+  newPage();
+  // ---- başlık + kimlik kartı (sol: cihaz bilgileri, sağ: QR)
+  for (const l of lines(doc.title, 17, true, BW)) { text(MX, y, l, 17, true, C.navy); y += lead(17); }
+  y += 6;
+  {
+    const meta = (doc.meta || []).filter((m) => m[0] !== 'Genel değerlendirme'), qrRows = doc.qr && doc.qr.rows ? doc.qr.rows : null;
+    const pad = 10, labelW = 88, qrCol = qrRows ? 112 : 0, valX = MX + pad + labelW + 6, valW = BW - pad - labelW - 6 - pad - (qrCol ? qrCol + 8 : 0);
+    const rl = meta.map((m) => { const l = lines(m[1], 9.6, false, valW); return l.length ? l : ['—']; });
+    let left = 0; rl.forEach((l) => { left += l.length * lead(9.6) + 4; });
+    const qrSize = 86, cap = qrRows ? lines((doc.qr && doc.qr.caption) || '', 7.8, false, qrCol - 8) : [];
+    const right = qrRows ? qrSize + 6 + cap.length * lead(7.8) : 0, boxH = Math.max(left, right) + 2 * pad;
+    ensure(boxH + 12); rect(MX, y, BW, boxH, C.white, C.rule, 6, 'card');
+    let ry = y + pad;
+    meta.forEach((m, i) => { text(MX + pad, ry + 1, fit(m[0], 8.2, false, labelW), 8.2, false, C.muted); textLines(valX, ry, rl[i], 9.6, false, C.ink); ry += rl[i].length * lead(9.6) + 4; });
+    if (qrRows) { const colX = MX + BW - pad - qrCol; ops.push({ k: 'l', p: page, x1: colX - 8, y1: y + pad, x2: colX - 8, y2: y + boxH - pad, c: C.rule, w: 0.6 }); ops.push({ k: 'q', p: page, x: colX + (qrCol - qrSize) / 2, y: y + pad, z: qrSize, rows: qrRows }); textLines(colX + qrCol / 2, y + pad + qrSize + 6, cap, 7.8, false, C.muted, 2); }
+    y += boxH + 12;
+  }
+  // ---- genel sonuç şeridi + sayaç kutuları
+  const sm = doc.summary;
+  if (sm) {
+    const tc = TCP_TONE[sm.tone] || TCP_TONE.muted, vl = lines(sm.verdict, 12.5, true, BW - 28), bh = vl.length * lead(12.5) + 16;
+    ensure(bh + 66); rect(MX, y, BW, bh, tc[1], null, 5, 'verdict'); rect(MX, y, 5, bh, tc[0], null, 2); textLines(MX + 16, y + 8, vl, 12.5, true, tc[0]); y += bh + 8;
+    const cs = sm.counts || [];
+    if (cs.length) { const n = cs.length, gap = 8, w = (BW - (n - 1) * gap) / n, h = 50; cs.forEach((c, i) => { const x = MX + i * (w + gap), sc = Number(c[1]) === 0 ? TCP_TONE.muted : (TCP_TONE[c[2]] || TCP_TONE.muted); rect(x, y, w, h, C.white, C.rule, 5, 'stat'); rect(x, y, w, 3, sc[0], null, 1.5); text(x + w / 2, y + 9, String(c[1]), 20, true, sc[0], 2); text(x + w / 2, y + 34, fit(c[0], 8.2, false, w - 8), 8.2, false, C.muted, 2); }); y += h + 12; }
+  } else if (doc.subtitle) { for (const l of lines(doc.subtitle, 9.5, false, BW)) { text(MX, y, l, 9.5, false, C.muted); y += lead(9.5); } y += 6; }
+  // ---- TEST ÖZETİ: ekspertiz çizelgesi — her test bir kutu (simge + ad + sonuç); ayrıntılar aşağıdaki tabloda
+  const first = (doc.sections || [])[0];
+  if (first && first.rows && first.rows.length) {
+    const cols = 3, gap = 8, tw = (BW - (cols - 1) * gap) / cols, th = 34, n = first.rows.length, rowsN = Math.ceil(n / cols);
+    ensure(16 + rowsN * (th + 6) + 6);
+    text(MX, y, 'TEST ÖZETİ', 7.6, true, C.tealD); text(W - MX, y, 'ayrıntılar: Bölüm 1', 7.6, false, C.muted, 1); y += 13;
+    first.rows.forEach((r, i) => {
+      const x = MX + (i % cols) * (tw + gap), yy = y + Math.floor(i / cols) * (th + 6), tn = tone(r), tc = TCP_TONE[tn] || TCP_TONE.muted, mm = /^(.*?) \((.+)\)$/.exec(r[1] || '');
+      rect(x, yy, tw, th, C.white, C.rule, 5, 'tile'); rect(x, yy, 3.5, th, tc[0], null, 1.5);
+      ops.push({ k: 'ic', p: page, x: x + 20, y: yy + th / 2, z: 8, kind: tn === 'ok' ? 'ok' : tn === 'bad' ? 'bad' : tn === 'warn' ? 'warn' : 'muted', c: tc[0] });
+      text(x + 35, yy + 6, fit(r[0], 8.8, true, tw - 41), 8.8, true, C.ink); text(x + 35, yy + 19.5, fit(mm ? mm[1] : (r[1] || ''), 7.8, true, tw - 41), 7.8, true, tc[0]);
+    });
+    y += rowsN * (th + 6) + 6;
+  }
+  const gen = (doc.meta || []).find((m) => m[0] === 'Genel değerlendirme'); if (gen) callout('GENEL DEĞERLENDİRME', gen[1]);
+  // ---- bölümler: 3 sütunlu tablo (KONTROL | SONUÇ | AÇIKLAMA)
+  const nameW = 150, statusW = 116, colGap = 8, statusX = MX + nameW + colGap, detailX = statusX + statusW + colGap, detailW = BW - (detailX - MX);
+  const sectionBar = (title, badge, cont) => {
+    const bw = badge ? M(badge, 7.4, true) + 14 : 0, tl = lines(cont ? title + ' (devam)' : title, 11.2, true, BW - 22 - (bw ? bw + 10 : 0)), bh = tl.length * lead(11.2) + 10;
+    rect(MX, y, BW, bh, C.bar, null, 4, 'bar'); rect(MX, y, 3.5, bh, C.teal, null, 1.5); textLines(MX + 12, y + 5, tl, 11.2, true, C.tealD);
+    if (badge) { const col = /^İMZALI/.test(badge) ? C.teal : /^KULLANICI/.test(badge) ? '#7054b8' : '#be7812', px = W - MX - 8 - bw, py = y + (bh - 15) / 2; rect(px, py, bw, 15, col, null, 7.5, 'badge'); text(px + bw / 2, py + 3.2, badge, 7.4, true, C.white, 2, 'badge'); }
+    y += bh + 6;
+  };
+  const tableHead = (last) => { text(MX + 4, y, 'KONTROL', 7.2, true, C.muted); text(statusX, y, 'SONUÇ', 7.2, true, C.muted); if (last) text(detailX, y, last, 7.2, true, C.muted); y += 11; hline(MX, y, W - MX, C.muted, 0.8); y += 2; };
+  const prep = (r) => {
+    if (!(r[1] || '').trim() && !(r[2] || '').trim()) { const nl = lines(r[0], 9.4, true, BW - 14); return { group: true, nameL: nl, h: nl.length * lead(9.4) + 8 }; }
+    const tn = tone(r), tc = TCP_TONE[tn], chip = !!tc, mm = /^(.*?) \((.+)\)$/.exec(r[1] || ''), mainSt = mm ? mm[1] : (r[1] || ''), subL = lines(mm ? mm[2] : '', 7.8, false, statusW - 2);
+    const nameL = lines(r[0], 9.3, false, nameW - 4), wide = !chip && !(r[2] || '').trim();
+    const stL = chip ? lines(mainSt, 8.2, true, statusW - 16) : lines(mainSt, 9, true, (wide ? detailX + detailW - statusX : statusW) - 2);
+    const chipW = chip ? Math.max(0, ...stL.map((l) => M(l, 8.2, true))) + 14 : 0, stMain = chip ? stL.length * lead(8.2) + 5 : stL.length * lead(9);
+    const stH = stMain + (subL.length ? 2 + subL.length * lead(7.8) : 0), detL = lines(r[2], 8.8, false, detailW);
+    return { group: false, nameL, stL, chip, chipW, tc, subL, stMain, detL, h: Math.max(nameL.length * lead(9.3), stH, detL.length * lead(8.8)) + 9 };
+  };
+  const drawRow = (p) => {
+    if (p.group) { rect(MX, y, BW, p.h, C.group, null, 3, 'group'); textLines(MX + 7, y + 4, p.nameL, 9.4, true, C.tealD); y += p.h + 1; rowSeq = 0; return; }
+    if (rowSeq % 2 === 1) rect(MX, y, BW, p.h, C.zebra, null, 0, 'zebra');
+    textLines(MX + 4, y + 4.5, p.nameL, 9.3, false, C.ink);
+    if (p.chip) { const tag = 'chip' + page + '-' + y; rect(statusX, y + 3, p.chipW, p.stMain, p.tc[1], null, 4, tag); p.stL.forEach((l, i) => text(statusX + 7, y + 5.5 + i * lead(8.2), l, 8.2, true, p.tc[0], 0, tag)); }
+    else textLines(statusX, y + 4.5, p.stL, 9, true, C.ink);
+    if (p.subL.length) textLines(statusX + (p.chip ? 1 : 0), y + 4.5 + p.stMain + (p.chip ? -0.5 : 1), p.subL, 7.8, false, C.muted);
+    textLines(detailX, y + 4.5, p.detL, 8.8, false, '#3e4248'); y += p.h; hline(MX, y, W - MX, C.rule, 0.4); rowSeq++;
+  };
+  const imgList = [];
+  for (const s of (doc.sections || [])) {
+    const rows = s.rows || [], detCol = rows.some((r) => (r[2] || '').trim()) ? 'AÇIKLAMA' : '';
+    y += 4;
+    if (rows.length) {
+      const ps = rows.map(prep);
+      ensure(34 + 14 + ps[0].h + (ps[0].group && ps[1] ? ps[1].h : 0)); sectionBar(s.title || '', s.badge || '', false); tableHead(detCol); rowSeq = 0;
+      ps.forEach((p, i) => { const need = p.h + (p.group && ps[i + 1] ? ps[i + 1].h : 0); if (y + need > BOTTOM) { newPage(); sectionBar(s.title || '', s.badge || '', true); tableHead(detCol); rowSeq = 0; } drawRow(p); });
+      y += 6;
+    } else { ensure(64); sectionBar(s.title || '', s.badge || '', false); }
+    const notes = () => { for (const n of (s.notes || [])) { const ls = lines(n, 8.9, false, BW - 24), h = ls.length * lead(8.9) + 3; ensure(h); text(MX + 8, y, '•', 8.9, true, C.tealD); textLines(MX + 20, y, ls, 8.9, false, '#34383e'); y += h; } };
+    if (!(s.images && s.images.length)) notes();
+    else {
+      const colW = (BW - 12) / 2, maxH = 180;
+      for (let k = 0; k < s.images.length; k += 2) {
+        const items = s.images.slice(k, k + 2), sizes = items.map((im) => { const iw = Math.max(1, im.w || 640), ih = Math.max(1, im.h || 480), sc = Math.min(colW / iw, maxH / ih); return [iw * sc, ih * sc]; });
+        const caps = items.map((im) => lines(im.caption, 8, false, colW)), boxH = Math.max(...sizes.map((z) => z[1])), rowH = boxH + 6 + Math.max(...caps.map((c) => c.length)) * lead(8) + 10;
+        ensure(rowH);
+        items.forEach((im, idx) => { const x = MX + idx * (colW + 12), [iw, ih] = sizes[idx]; rect(x, y, colW, boxH, '#f4f5f6', C.rule, 3, 'imgbox'); imgList.push(im.data); ops.push({ k: 'i', p: page, x: x + (colW - iw) / 2, y: y + (boxH - ih) / 2, w: iw, h: ih, idx: imgList.length - 1 }); textLines(x, y + boxH + 5, caps[idx], 8, false, C.muted); });
+        y += rowH;
+      }
+      notes();
+    }
+    y += 8;
+  }
+  if (doc.footer) { y += 4; callout('ÖNEMLİ NOT', doc.footer, true); }
+  const total = page;
+  for (let p = 1; p <= total; p++) { ops.push({ k: 'l', p, x1: MX, y1: H - 42, x2: W - MX, y2: H - 42, c: C.rule, w: 0.6, tag: 'footer' }); ops.push({ k: 't', p, x: MX, b: H - 24, s: 'teknohane.net · TeknoCheck', z: 8, bold: false, c: C.muted, a: 0, tag: 'footer' }); ops.push({ k: 't', p, x: W / 2, b: H - 24, s: doc.fileId || '', z: 8, bold: false, c: C.muted, a: 2, tag: 'footer' }); ops.push({ k: 't', p, x: W - MX, b: H - 24, s: `Sayfa ${p}/${total}`, z: 8, bold: true, c: C.muted, a: 1, tag: 'footer' }); }
+  return { pages: total, ops, images: imgList };
+}
+// Çakışma/taşma denetimi (testler ve üretim öncesi öz-denetim): boş dizi = kusursuz
+function tcpAudit(layout, measure) {
+  const M = measure || tcpMeasurer(), out = [], { W, MX, BOTTOM } = TCP;
+  for (let p = 1; p <= layout.pages; p++) {
+    const ts = layout.ops.filter((o) => o.k === 't' && o.p === p).map((o) => { const w = M(o.s, o.z, o.bold), x0 = o.a === 1 ? o.x - w : o.a === 2 ? o.x - w / 2 : o.x; return { o, r: [x0, o.b - o.z * 0.8, x0 + w, o.b + o.z * 0.22] }; });
+    for (const { o, r } of ts) { if (r[0] < MX - 0.6 || r[2] > W - MX + 0.6) out.push(`s${p} yatay taşma: ${o.s.slice(0, 30)}`); if (o.tag !== 'footer' && r[3] > BOTTOM + 6) out.push(`s${p} alt bilgi bölgesi: ${o.s.slice(0, 30)}`); }
+    for (let i = 0; i < ts.length; i++) for (let j = i + 1; j < ts.length; j++) { const a = ts[i].r, b = ts[j].r, t = 0.6; if (a[0] < b[2] - t && b[0] < a[2] - t && a[1] < b[3] - t && b[1] < a[3] - t) out.push(`s${p} ÇAKIŞMA: ${ts[i].o.s.slice(0, 26)} ↔ ${ts[j].o.s.slice(0, 26)}`); }
+    for (const c of layout.ops.filter((o) => o.k === 'r' && o.p === p && /^chip/.test(o.tag))) for (const { o, r } of ts) if (o.tag === c.tag && (r[0] < c.x - 0.6 || r[2] > c.x + c.w + 0.6 || r[1] < c.y - 0.6 || r[3] > c.y + c.h + 0.6)) out.push(`s${p} rozet taşması: ${o.s}`);
+  }
+  return out;
+}
+function tcpRoundRect(g, x, y, w, h, r) { const k = Math.min(r, w / 2, h / 2); g.beginPath(); g.moveTo(x + k, y); g.arcTo(x + w, y, x + w, y + h, k); g.arcTo(x + w, y + h, x, y + h, k); g.arcTo(x, y + h, x, y, k); g.arcTo(x, y, x + w, y, k); g.closePath(); }
+function tcpLoadImage(b64) { return new Promise((res) => { if (!b64) return res(null); const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = 'data:image/jpeg;base64,' + b64; }); }
+// Sayfaları tuvale çizer → [{ bytes: Uint8Array(JPEG), w, h }]
+async function tcpRender(layout, scale) {
+  const sc = scale || 2.6, pw = Math.round(TCP.W * sc), ph = Math.round(TCP.H * sc), out = [];
+  const imgs = await Promise.all((layout.images || []).map(tcpLoadImage));
+  for (let p = 1; p <= layout.pages; p++) {
+    const cv = document.createElement('canvas'); cv.width = pw; cv.height = ph; const g = cv.getContext('2d');
+    g.fillStyle = '#ffffff'; g.fillRect(0, 0, pw, ph); g.setTransform(pw / TCP.W, 0, 0, ph / TCP.H, 0, 0); g.textBaseline = 'alphabetic';
+    for (const o of layout.ops) {
+      if (o.p !== p) continue;
+      if (o.k === 'r') { if (o.r > 0) tcpRoundRect(g, o.x, o.y, o.w, o.h, o.r); else { g.beginPath(); g.rect(o.x, o.y, o.w, o.h); } if (o.f) { g.fillStyle = o.f; g.fill(); } if (o.st) { g.strokeStyle = o.st; g.lineWidth = 0.7; g.stroke(); } }
+      else if (o.k === 'l') { g.beginPath(); g.moveTo(o.x1, o.y1); g.lineTo(o.x2, o.y2); g.strokeStyle = o.c; g.lineWidth = o.w; g.stroke(); }
+      else if (o.k === 't') { g.font = `${o.bold ? 700 : 400} ${o.z}px ${TCP.FONT}`; g.fillStyle = o.c; g.textAlign = o.a === 1 ? 'right' : o.a === 2 ? 'center' : 'left'; g.fillText(o.s, o.x, o.b); }
+      else if (o.k === 'q') { const n = o.rows.length, q = 4, cell = o.z / (n + 2 * q); g.fillStyle = '#fff'; g.fillRect(o.x, o.y, o.z, o.z); g.strokeStyle = TCP_C.rule; g.lineWidth = 0.6; g.strokeRect(o.x, o.y, o.z, o.z); g.fillStyle = '#000'; for (let r = 0; r < n; r++) { const row = o.rows[r]; for (let k = 0; k < Math.min(n, row.length); k++) if (row[k] === '1') g.fillRect(o.x + (k + q) * cell, o.y + (r + q) * cell, cell + 0.03, cell + 0.03); } }
+      else if (o.k === 'i') { const im = imgs[o.idx]; if (im) g.drawImage(im, o.x, o.y, o.w, o.h); else { g.fillStyle = '#e6e8ea'; g.fillRect(o.x, o.y, o.w, o.h); g.font = `400 8.5px ${TCP.FONT}`; g.fillStyle = TCP_C.muted; g.textAlign = 'center'; g.fillText('Fotoğraf açılamadı', o.x + o.w / 2, o.y + o.h / 2); } }
+      else if (o.k === 'ic') { g.beginPath(); g.arc(o.x, o.y, o.z, 0, Math.PI * 2); g.fillStyle = o.c; g.fill(); g.strokeStyle = '#fff'; g.lineWidth = 1.7; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath(); const z = o.z;
+        if (o.kind === 'ok') { g.moveTo(o.x - z * 0.45, o.y + z * 0.02); g.lineTo(o.x - z * 0.12, o.y + z * 0.36); g.lineTo(o.x + z * 0.48, o.y - z * 0.32); }
+        else if (o.kind === 'bad') { g.moveTo(o.x - z * 0.36, o.y - z * 0.36); g.lineTo(o.x + z * 0.36, o.y + z * 0.36); g.moveTo(o.x + z * 0.36, o.y - z * 0.36); g.lineTo(o.x - z * 0.36, o.y + z * 0.36); }
+        else if (o.kind === 'warn') { g.moveTo(o.x, o.y - z * 0.48); g.lineTo(o.x, o.y + z * 0.1); g.moveTo(o.x, o.y + z * 0.44); g.lineTo(o.x, o.y + z * 0.45); }
+        else { g.moveTo(o.x - z * 0.4, o.y); g.lineTo(o.x + z * 0.4, o.y); }
+        g.stroke(); g.lineCap = 'butt'; }
+    }
+    const bin = atob(cv.toDataURL('image/jpeg', 0.9).split(',')[1]), u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    out.push({ bytes: u8, w: pw, h: ph }); cv.width = cv.height = 1;   // belleği hemen bırak
+  }
+  return out;
+}
+// Sayfa görüntülerinden A4 PDF (her sayfa tam sayfa JPEG; harici kütüphane yok)
+function tcpPdf(pages, title) {
+  const enc = new TextEncoder(), parts = [], offs = []; let pos = 0;
+  const put = (x) => { const b = typeof x === 'string' ? enc.encode(x) : x; parts.push(b); pos += b.length; };
+  const obj = (n, body) => { offs[n] = pos; put(`${n} 0 obj\n`); body(); put('\nendobj\n'); };
+  const N = pages.length, kids = pages.map((_, i) => `${3 + i * 3} 0 R`).join(' '), safe = String(title || 'TeknoCheck').replace(/[^A-Za-z0-9 ._-]/g, '');
+  put('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n'.replace(/[\x80-\xFF]/g, '?'));
+  obj(1, () => put('<< /Type /Catalog /Pages 2 0 R >>'));
+  obj(2, () => put(`<< /Type /Pages /Count ${N} /Kids [${kids}] >>`));
+  pages.forEach((pg, i) => {
+    const a = 3 + i * 3, content = `q ${TCP.W} 0 0 ${TCP.H} 0 0 cm /Im0 Do Q`;
+    obj(a, () => put(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${TCP.W} ${TCP.H}] /Resources << /XObject << /Im0 ${a + 2} 0 R >> >> /Contents ${a + 1} 0 R >>`));
+    obj(a + 1, () => put(`<< /Length ${content.length} >>\nstream\n${content}\nendstream`));
+    obj(a + 2, () => { put(`<< /Type /XObject /Subtype /Image /Width ${pg.w} /Height ${pg.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${pg.bytes.length} >>\nstream\n`); put(pg.bytes); put('\nendstream'); });
+  });
+  const info = 3 + N * 3; obj(info, () => put(`<< /Title (${safe}) /Producer (TeknoCheck ${TCP.VER}) >>`));
+  const xref = pos, count = info + 1; let x = `xref\n0 ${count}\n0000000000 65535 f \n`; for (let n = 1; n < count; n++) x += String(offs[n]).padStart(10, '0') + ' 00000 n \n';
+  put(x + `trailer\n<< /Size ${count} /Root 1 0 R /Info ${info} 0 R >>\nstartxref\n${xref}\n%%EOF\n`);
+  const out = new Uint8Array(pos); let o = 0; for (const b of parts) { out.set(b, o); o += b.length; } return out;
+}
+async function tcpBuildPdf(doc) { const lay = tcpLayout(doc); const pages = await tcpRender(lay); return { bytes: tcpPdf(pages, 'TeknoCheck ' + (doc.fileId || '')), pages: lay.pages, layout: lay }; }
+function tcpB64(u8) { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); }
+// ESKİ Kotlin çizici için sütun-güvenli belge (yalnızca yedek yol): durum sütunu kısa tutulur, uzun kısım açıklamaya taşınır → eski sürümde de üst üste binme olmaz
+function tcpLegacyDoc(doc) {
+  const kisa = { 'Sistem tarafından bildirildi': 'Sistem bildirdi', 'Sistem API’si bildirdi': 'Sistem API', 'Erişim izni gerekli': 'İzin gerekli', 'Kullanıcı onayı bekliyor': 'Onay bekliyor' };
+  const d = JSON.parse(JSON.stringify(doc));
+  (d.sections || []).forEach((s) => { if (s.rows) s.rows = s.rows.map((r) => { let st = r[1] || '', det = r[2] || ''; if (!st && !det) return r; const mm = /^(.*?) \((.+)\)$/.exec(st); if (mm) { st = mm[1]; det = mm[2] + (det ? ' · ' + det : ''); } if (kisa[st]) st = kisa[st]; if (st.length > 17) { det = st + (det ? ' · ' + det : ''); st = ''; } return [r[0], st, det]; }); });
+  return d;
 }
 
 // ==================================================================== FAZ 9 — TEKNOCHECK İŞLETME YÖNETİMİ: SAF MANTIK (kaynak: teknocheck/isletme.js; uygula.mjs gömer)
