@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#060B14">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Teknohane">
 <title>Teknohane</title>
@@ -26,7 +27,29 @@
 <meta name="twitter:description" content="İkinci el telefon al-sat, telefonları karşılaştır, sana uygun modeli bul. Türkiye'nin telefon pazarı Teknohane'de.">
 <meta name="twitter:image" content="https://www.teknohane.net/teknohane.png">
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icons/icon-152.png">
+<!-- ANA EKRAN (iOS/Android PWA): iOS'un kullandığı simge TAM KAN (kare, opak) apple-touch-icon'dur — iOS köşeleri kendisi yuvarlar. Eski tek simge 152 px ŞEFFAF yuvarlak köşeliydi: iOS siyah köşe/çift yuvarlama + bulanıklık gösteriyordu. -->
+<link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon-180.png">
+<link rel="apple-touch-icon" sizes="167x167" href="icons/apple-touch-icon-167.png">
+<link rel="apple-touch-icon" sizes="152x152" href="icons/apple-touch-icon-152.png">
+<link rel="apple-touch-icon" sizes="120x120" href="icons/apple-touch-icon-120.png">
+<link rel="apple-touch-startup-image" href="icons/splash/1290x2796.png" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/1179x2556.png" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/1284x2778.png" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/1170x2532.png" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/1125x2436.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/828x1792.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/750x1334.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/2048x2732.png" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/1668x2388.png" media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/1640x2360.png" media="(device-width: 820px) and (device-height: 1180px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/1668x2224.png" media="(device-width: 834px) and (device-height: 1112px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/1620x2160.png" media="(device-width: 810px) and (device-height: 1080px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/1536x2048.png" media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+<script>
+/* Ana ekrandan (standalone) açıldıysa HEMEN işaretle: CSS ilk boyamadan önce uygulama gibi davranır; tarayıcıya özgü arayüz gizlenir. */
+(function(){try{if(window.navigator.standalone===true||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)){document.documentElement.classList.add('is-standalone');}}catch(e){}})();
+</script>
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1840,6 +1863,23 @@ body.tk-update-force #update-gate{
 #update-bar .ub-txt{flex:1;min-width:0;line-height:1.35;}
 #update-bar .ub-btn{min-height:36px;padding:0 14px;font-size:13px;}
 #update-bar .ub-x{background:transparent;border:0;color:var(--text2);font-size:13px;min-height:36px;padding:0 6px;cursor:pointer;}
+/* ===== PWA / ANA EKRAN ===== */
+html.is-standalone body{overscroll-behavior-y:none;}                       /* ana ekran uygulamasında lastik gibi çekme/yenileme zıplaması yok */
+html.is-standalone #pwa-install-card,html.is-standalone #pwa-nudge{display:none!important;}   /* zaten yüklü: yükleme önerisi HİÇ gösterilmez */
+#pwa-nudge{position:fixed;left:12px;right:12px;bottom:calc(var(--tab,64px) + var(--sb,0px) + 10px);z-index:2000;max-width:520px;margin:0 auto;display:flex;align-items:center;gap:10px;padding:10px 10px 10px 12px;border-radius:14px;background:var(--surf2);border:1px solid var(--border2);color:var(--text);box-shadow:0 8px 24px rgba(0,0,0,.28);font-size:13px;line-height:1.35;}
+#pwa-nudge img{width:36px;height:36px;border-radius:9px;flex-shrink:0;}
+#pwa-nudge .pn-t{flex:1;min-width:0;}
+#pwa-nudge .pn-go{min-height:36px;padding:0 14px;border:0;border-radius:10px;background:var(--cyan);color:var(--bg);font-weight:700;font-size:13px;cursor:pointer;flex-shrink:0;}
+#pwa-nudge .pn-x{min-height:36px;min-width:32px;border:0;background:transparent;color:var(--text2);font-size:15px;cursor:pointer;flex-shrink:0;}
+#tk-offline-bar{position:fixed;left:0;right:0;top:calc(max(var(--st),18px) + 0px);z-index:1900;display:none;padding:6px 14px;text-align:center;font-size:12.5px;background:var(--surf3);color:var(--text);border-bottom:1px solid var(--border2);}
+#tk-offline-bar.on{display:block;}
+#tk-boot-help{position:fixed;inset:0;z-index:2600;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(var(--bg-rgb),.94);}
+#tk-boot-help.on{display:flex;}
+#tk-boot-help .bh-card{max-width:340px;width:100%;background:var(--surf);border:1px solid var(--border2);border-radius:16px;padding:22px 20px;text-align:center;}
+#tk-boot-help .bh-card b{display:block;font-size:16px;margin-bottom:8px;}
+#tk-boot-help .bh-card p{margin:0 0 14px;font-size:13px;color:var(--text2);line-height:1.5;}
+#tk-boot-help button{display:block;width:100%;min-height:44px;margin-top:8px;border-radius:12px;border:1px solid var(--border2);background:var(--surf2);color:var(--text);font-weight:600;font-size:14px;cursor:pointer;}
+#tk-boot-help button.bh-go{background:var(--cyan);color:var(--bg);border:0;font-weight:700;}
 /* ============================================================================
    TASARIM SİSTEMİ 1.0 — ORTAK BİLEŞENLER (Paket 1, 2026-11-03)
    Kural: bileşen renk/ölçüsü yalnızca belirteçlerden (--color-*, --space-*, --radius-*, --btn-h …) gelir.
@@ -2356,6 +2396,33 @@ textarea.fi{min-height:96px;}
 .tcrp-kv{display:grid;grid-template-columns:minmax(96px,34%) minmax(0,1fr);gap:var(--space-2) var(--space-3);margin:0;padding:var(--space-3) var(--space-4);border:var(--bw) solid var(--border2);border-radius:var(--radius-lg);background:var(--surf);}
 .tcrp-kv dt{color:var(--text2);font-size:var(--fs-sm);}
 .tcrp-kv dd{margin:0;overflow-wrap:anywhere;font-size:var(--fs-md);}
+/* Faz 25: Pil analizi — mevcut tcx/tk bileşenleri + küçük ek sınıflar (ağır grafik/animasyon yok) */
+.tcpil{display:flex;flex-direction:column;gap:var(--space-4);}
+.tcpil-main{border:var(--bw) solid var(--border);border-radius:var(--radius-lg);background:var(--surf);padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-2);}
+.tcpil-top{display:flex;justify-content:space-between;align-items:flex-start;gap:var(--space-2);flex-wrap:wrap;}
+.tcpil-h{font-size:var(--fs-md);font-weight:var(--fw-semibold);color:var(--text2);}
+.tcpil-chips{display:flex;gap:var(--space-1);flex-wrap:wrap;justify-content:flex-end;}
+.tcpil-big{font-size:44px;line-height:1.1;font-weight:var(--fw-bold);letter-spacing:-.5px;}
+.tcpil-big--range{font-size:32px;}.tcpil-big--range small{font-size:var(--fs-sm);font-weight:var(--fw-regular);color:var(--text2);}
+.tcpil-big--na{font-size:var(--fs-xl);color:var(--text2);}
+.tcpil-status{font-size:var(--fs-lg);font-weight:var(--fw-semibold);}
+.tcpil-explain{margin:0;color:var(--text2);font-size:var(--fs-md);}
+.tcpil-note{margin:var(--space-2) 0 0;color:var(--text2);font-size:var(--fs-sm);overflow-wrap:anywhere;}
+.tcpil-sec{display:flex;flex-direction:column;gap:var(--space-1);}
+.tcpil-row{display:grid;grid-template-columns:minmax(110px,40%) minmax(0,1fr);gap:2px var(--space-3);padding:var(--space-2) 0;border-bottom:var(--bw) solid var(--border2);align-items:baseline;}
+.tcpil-row span{color:var(--text2);font-size:var(--fs-sm);}
+.tcpil-row b{font-weight:var(--fw-semibold);overflow-wrap:anywhere;text-align:right;}
+.tcpil-row small{grid-column:1 / -1;color:var(--text2);font-size:var(--fs-2xs);overflow-wrap:anywhere;text-align:right;}
+.tcpil-na{font-style:normal;color:var(--text3);}
+.tcpil-declare{display:flex;flex-direction:column;gap:var(--space-1);padding:var(--space-3);border:var(--bw) dashed var(--border);border-radius:var(--radius-md);margin-top:var(--space-2);}
+.tcpil-declare label{font-size:var(--fs-sm);color:var(--text2);}
+.tcpil-declare-r{display:flex;gap:var(--space-2);}
+.tcpil-declare-r input{flex:1;min-width:0;}
+.tcpil-declare small{color:var(--text2);font-size:var(--fs-2xs);}
+.tcpil-actions{display:flex;flex-direction:column;gap:var(--space-2);margin-top:var(--space-2);}
+.tcpil-h4{margin:var(--space-3) 0 var(--space-1);font-size:var(--fs-md);}
+.tcpil-h5{margin:var(--space-3) 0 var(--space-1);font-size:var(--fs-sm);color:var(--text-muted);text-transform:none;font-weight:600;}
+.tc-status--warn{border-color:var(--color-warning, var(--border));}
 
 /* ============================================================================
    FAZ 9 — İŞLETME YÖNETİMİ (C1 belirteçleri; gereksiz grafik/animasyon YOK). Kaynak: teknocheck/isletme.css
@@ -9278,24 +9345,32 @@ async function pwaInstallApp() {
 }
 // iOS Safari'de programatik bir kurulum isteği YOK — kullanıcıya GERÇEK adımları gösteren, diğer
 // bilgilendirme modallarıyla (bkz. openArenaLeagueRulesModal) AYNI overlay deseni.
-function openIosInstallModal() {
+function openIosInstallModal(kind) {
   document.getElementById('ios-install-overlay')?.remove();
   const div = document.createElement('div');
   div.id = 'ios-install-overlay';
+  div.setAttribute('role', 'dialog'); div.setAttribute('aria-modal', 'true'); div.setAttribute('aria-label', 'Ana ekrana ekle');
   div.style.cssText = 'position:fixed;inset:0;z-index:2100;background:rgba(0,4,15,.8);display:flex;align-items:center;justify-content:center;padding:20px';
   div.onclick = (e) => { if (e.target === div) div.remove(); };
+  const inApp = kind === 'ios-inapp';
+  const adim = (n, t) => '<div style="display:flex;gap:10px;align-items:flex-start"><span style="width:22px;height:22px;border-radius:50%;background:var(--cdim);color:var(--cyan);font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0">' + n + '</span><span style="font-size:13px;color:var(--text2);line-height:1.45">' + t + '</span></div>';
   div.innerHTML = `
-    <div style="background:var(--surf);border:1px solid var(--border2);border-radius:16px;max-width:340px;width:100%;padding:26px 22px;text-align:center" onclick="event.stopPropagation()">
-      <div style="font-size:34px;margin-bottom:10px">📲</div>
-      <div style="font-size:16px;font-weight:700;margin-bottom:14px">Ana Ekrana Ekle</div>
-      <div style="text-align:left;display:flex;flex-direction:column;gap:12px;margin-bottom:18px">
-        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px;flex-shrink:0">1️⃣</span><span style="font-size:13px;color:var(--text2)">Alt menüdeki <b>Paylaş</b> (kare içinden yukarı ok) simgesine dokun.</span></div>
-        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px;flex-shrink:0">2️⃣</span><span style="font-size:13px;color:var(--text2)">Açılan listede <b>"Ana Ekrana Ekle"</b> seçeneğini bul ve dokun.</span></div>
-        <div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px;flex-shrink:0">3️⃣</span><span style="font-size:13px;color:var(--text2)">Sağ üstteki <b>"Ekle"</b> ile onayla — Teknohane artık ana ekranında, uygulama gibi açılıyor.</span></div>
+    <div style="background:var(--surf);border:1px solid var(--border2);border-radius:16px;max-width:340px;width:100%;padding:24px 22px;text-align:center" onclick="event.stopPropagation()">
+      <img src="icons/icon-96.png" alt="" width="48" height="48" style="border-radius:12px;margin-bottom:10px">
+      <div style="font-size:16px;font-weight:700;margin-bottom:6px">Ana Ekrana Ekle</div>
+      <div style="font-size:12.5px;color:var(--text2);margin-bottom:14px">Teknohane'yi uygulama gibi, tek dokunuşla aç.</div>
+      <div style="text-align:left;display:flex;flex-direction:column;gap:12px;margin-bottom:14px">
+        ${inApp
+          ? adim(1, 'Bu sayfa başka bir uygulamanın içinde açık; oradan ana ekrana eklenemez. Sağ üstteki menüden <b>"Safari\'de aç"</b> seçeneğini kullan.') + adim(2, 'Safari\'de <b>Paylaş</b> simgesine dokun.') + adim(3, '<b>"Ana Ekrana Ekle"</b> → <b>"Ekle"</b>.')
+          : adim(1, '<b>Paylaş</b> simgesine (kare içinden yukarı ok) dokun. iPhone\'da ekranın altında, iPad\'de üstte.') + adim(2, 'Listeyi kaydırıp <b>"Ana Ekrana Ekle"</b> seçeneğine dokun.') + adim(3, 'Sağ üstteki <b>"Ekle"</b> ile onayla.')}
       </div>
-      <button class="apbtn" style="background:var(--accent-grad);color:var(--color-on-accent);font-weight:700;border:none" onclick="document.getElementById('ios-install-overlay')?.remove()">Anladım</button>
+      <div style="font-size:11.5px;color:var(--text3);line-height:1.45;margin-bottom:14px">Ana ekrandaki uygulama tarayıcıdan ayrı saklama kullanır; ilk açılışta bir kez giriş yapman gerekebilir.</div>
+      <button class="apbtn" id="ios-install-done" style="background:var(--accent-grad);color:var(--color-on-accent);font-weight:700;border:none">Ekledim</button>
+      <button class="apbtn" id="ios-install-close" style="background:transparent;color:var(--text2);border:none;margin-top:6px">Kapat</button>
     </div>`;
   document.body.appendChild(div);
+  div.querySelector('#ios-install-done').onclick = () => { tkPwaSetState({ installed: true }); div.remove(); document.getElementById('pwa-nudge')?.remove(); };
+  div.querySelector('#ios-install-close').onclick = () => div.remove();
 }
 
 // Kullanıcı "Bildirimleri Aç" butonuna bastığında çalışır: izin ister, FCM token alır, Firestore'a kaydeder.
@@ -19427,6 +19502,7 @@ async function tcAction(a) {
   if (a === 'finish') return tcFinish();
   if (a === 'tests') { const e = document.getElementById('tcs-tests'); if (e) e.scrollIntoView({ behavior: tcsReduce() ? 'auto' : 'smooth', block: 'start' }); return; }   // Faz 6: bölüm kartı → test listesi
   if (a === 'cosm') return tcrOpenEditor({});   // Faz 7: kozmetik durum ve fotoğraflar
+  if (a === 'pil') return tcPilOpen();   // Faz 25: gelişmiş pil sağlığı ve şarj döngüsü
   if (a === 'adv') return tcaOpen(true);   // Faz 4: gelişmiş analiz (rapordan bağımsız, yalnızca cihazda gösterilir)
   if (a === 'my-reports') return tcOpenMyReports();
   if (a === 'verify') return tcOpenVerify();
@@ -19670,11 +19746,21 @@ async function tcSubmit(report) {
   const idToken = await tcIdToken();
   if (!idToken) { tcRender(); showToast('🔒', 'var(--surf2)', 'Oturum gerekli', 'Rapor oluşturmak için giriş yapmalısın.'); return; }
   let r = await tcCall('submit', { idToken, report });
-  // Faz 8 uyumluluk: sunucu v2'yi (henüz) kabul etmiyorsa rapor ENGELLENMEZ; yalnızca temel 11 testle (v1) yeniden denenir ve kapsam ekranda dürüstçe v1 olarak görünür.
-  if (!r._network && !r.success && r.error === 'invalid_report' && report.schemaVersion === 2) {
-    const v1 = tcxDowngrade(report); const r1 = await tcCall('submit', { idToken, report: v1 });
-    if (r1._network || r1.success) { r = r1; report = v1; }
+  // Geçiş zinciri: v3 (pil analizi imzalı) → v2 → v1. Rapor ENGELLENMEZ ama her düşüş AÇIKÇA kaydedilir ve kullanıcıya söylenir (pil analizi imzasızsa 'imzalı' görünmez).
+  // Şemayı bilmeyen eski Worker 'unsupported_schema' verir; geçerli şemada pil bölümü reddedilirse neden korunur.
+  const pilWas = report.schemaVersion === 3; let pilNote = ''; const pilOmit = typeof tcPilTakeOmit === 'function' ? tcPilTakeOmit() : '';
+  {
+    let cur = report;
+    while (!r._network && !r.success && r.error === 'invalid_report' && cur.schemaVersion >= 2) {
+      const detail = String(r.detail || ''), nx = cur.schemaVersion === 3 ? tcxDropBattery(cur) : tcxDowngrade(cur);
+      if (cur.schemaVersion === 3) pilNote = detail === 'unsupported_schema' ? 'Sunucu henüz pil analizi imzasını desteklemiyor (eski sürüm).' : 'Sunucu pil analizini kabul etmedi (' + (detail.replace(/^invalid_battery:/, '') || 'doğrulama') + ').';
+      const rn = await tcCall('submit', { idToken, report: nx });
+      if (rn._network || rn.success) { r = rn; report = nx; break; }
+      r = rn; cur = nx;
+    }
   }
+  if (pilWas && report.schemaVersion < 3 && !pilNote) pilNote = 'Pil analizi imzaya eklenemedi.';
+  if (!pilNote && pilOmit) pilNote = pilOmit;
   if (r._network) {
     tcPendingSet({ report, savedAt: new Date().toISOString() });
     b.innerHTML = `<div class="hm-state" id="tc-offline"><b>Sunucuya ulaşılamadı</b><span>Rapor bu cihazda bekletiliyor. <b>Sunucu onayı ve doğrulama kodu olmadığından DOĞRULANMIŞ SAYILMAZ</b> ve ilana bağlanamaz. İnternete bağlanınca tekrar gönder (rapor 24 saat içinde gönderilmelidir).</span><button type="button" class="tk-btn tk-btn--primary" id="tc-retry">Tekrar dene</button><button type="button" class="tk-btn tk-btn--outline" id="tc-back">Geri dön</button></div>`;
@@ -19688,9 +19774,12 @@ async function tcSubmit(report) {
     return;
   }
   tcPendingSet(null);
-  if (report.schemaVersion === 2) report = { ...report, scope: tcxScopeOf(report) };   // sunucu da aynı kapsamı kayda yazdı (Raporlarım'da sunucu kopyası gösterilir)
-  await tcrAttach(r.reportId);   // Faz 7: kozmetik/fotoğraf taslağı + cihaz içi ek bölümler YEREL olarak rapora bağlanır (imza/sunucu istekleri değişmez)
-  tcShowReport({ reportId: r.reportId, verifyCode: r.verifyCode, createdAt: r.createdAt, overall: r.overall, counts: r.counts, report: { ...report, privacy: { locationStored: false, mediaStored: false, persistentIdentifiers: false } }, status: 'active', platform: r.platform, linkedListingId: null }, { fresh: true });
+  if (report.schemaVersion >= 2) report = { ...report, scope: tcxScopeOf(report) };
+  if (report.batteryAnalysis && typeof tcPilCompleteSigned === 'function') report = { ...report, batteryAnalysis: tcPilCompleteSigned(report.batteryAnalysis) };   // sunucu kaydındaki trust/origin/sourceKind ile aynı görünüm   // sunucu da aynı kapsamı kayda yazdı (Raporlarım'da sunucu kopyası gösterilir)
+  const signedPil = report.schemaVersion === 3 && !!report.batteryAnalysis;
+  await tcrAttach(r.reportId, { signedPil, pilReason: pilNote });   // Faz 7: kozmetik/fotoğraf taslağı + cihaz içi ek bölümler YEREL olarak rapora bağlanır (imza/sunucu istekleri değişmez)
+  tcShowReport({ reportId: r.reportId, verifyCode: r.verifyCode, createdAt: r.createdAt, overall: r.overall, counts: r.counts, report: { ...report, privacy: { locationStored: false, mediaStored: false, persistentIdentifiers: false } }, status: 'active', platform: r.platform, linkedListingId: null }, { fresh: true, pilNote });
+  if (pilNote && typeof showToast === 'function') showToast('⚠️', 'rgba(var(--warning-rgb),.15)', 'Pil analizi imzaya eklenemedi', pilNote + ' Pil bölümü raporda "imzasız" olarak gösterilir.');
   if (typeof bizAfterReport === 'function') setTimeout(() => { try { bizAfterReport({ reportId: r.reportId, verifyCode: r.verifyCode, createdAt: r.createdAt, overall: r.overall, counts: r.counts }, report); } catch (e) { /* işletme bağlama rapor üretimini ASLA etkilemez */ } }, 300);   // Faz 9: test bir envanter cihazı için başlatıldıysa raporu bağlamayı öner
 }
 function tcReportRowsHTML(report) {
@@ -19710,6 +19799,7 @@ function tcShowReport(rep, opts) {
     <div class="tcx-code"><div><small>Rapor no</small><b id="tc-rid">${escapeHtml(rep.reportId)}</b></div><div><small>Doğrulama kodu</small><b id="tc-code">${escapeHtml(rep.verifyCode)}</b></div><button type="button" class="tk-btn tk-btn--outline tk-btn--sm" data-act="copy">Kopyala</button></div>
     <div class="tc-status" role="note">Sunucu kaydıyla imzalandı: rapor oluşturulduktan sonra değiştirilirse doğrulama başarısız olur. ${rep.platform === 'android' ? '' : 'Bu rapor Android uygulamasından değil; ilana bağlanamaz.'}</div>
     ${tcxScopeHTML(rep.report)}
+    ${opts.pilNote ? `<div class="tc-status tc-status--warn" role="note" id="tcpil-downgrade"><b>Pil analizi imzaya eklenemedi:</b> ${escapeHtml(opts.pilNote)} Pil bölümü bu raporda İMZASIZ yerel anlık görüntü olarak yer alır.</div>` : ''}
     ${rep.linkedListingId ? `<div class="tc-status" role="note">Bu rapor bir Pazar ilanına bağlı.</div>` : ''}
     <div class="tcx-actions"><button type="button" class="tk-btn tk-btn--primary" data-act="pdf">PDF olarak dışa aktar</button><button type="button" class="tk-btn tk-btn--outline" data-act="share">Özeti paylaş</button>${(!revoked && rep.platform === 'android') ? '<button type="button" class="tk-btn tk-btn--outline" data-act="link">İlana bağla</button>' : ''}${revoked ? '' : '<button type="button" class="tk-btn tk-btn--outline" data-act="revoke">Raporu iptal et</button>'}</div>
     ${tcReportRowsHTML(rep.report)}
@@ -19920,7 +20010,7 @@ const tcaOriginOfNote = (n) => { const m = /^(Sistem API’si bildirdi|Üretici 
 const TCA_MAPS = {
   charging: { charging: 'Şarj oluyor', discharging: 'Şarj olmuyor (pilden çalışıyor)', not_charging: 'Şarj olmuyor', full: 'Dolu', unknown: 'Bilinmiyor' },
   plug: { none: 'Takılı değil', ac: 'Duvar adaptörü', usb: 'USB', wireless: 'Kablosuz', dock: 'Dock' },
-  health: { good: 'İyi', overheat: 'Aşırı ısınmış', dead: 'Ömrü bitmiş', over_voltage: 'Aşırı voltaj', failure: 'Arıza', cold: 'Çok soğuk' },
+  health: { good: 'Sorun bildirilmedi', overheat: 'Aşırı ısınma bildirildi', dead: 'Bozuk bildirildi', over_voltage: 'Aşırı voltaj bildirildi', failure: 'Arıza bildirildi', cold: 'Aşırı soğuk bildirildi' },
   transport: { wifi: 'Wi-Fi', cellular: 'Mobil veri', ethernet: 'Ethernet', vpn: 'VPN', other: 'Diğer', none: 'Bağlantı yok' },
 };
 const tcaNum = (x, d, min) => (typeof x === 'number' && isFinite(x) ? x.toLocaleString('tr-TR', { maximumFractionDigits: d === undefined ? 1 : d, minimumFractionDigits: min || 0 }) : null);
@@ -19930,7 +20020,7 @@ const TCA_FMT = {
   mb: (v) => (typeof v === 'number' ? (v >= 1024 ? tcaNum(v / 1024, 1) + ' GB' : tcaNum(v, 0) + ' MB') : null),
   pct: (v) => (typeof v === 'number' ? '%' + tcaNum(v, 0) : null),
   celsius: (v) => (typeof v === 'number' ? tcaNum(v, 1, 1) + ' °C' : null),
-  volt: (v) => (typeof v === 'number' ? tcaNum(v, 2, 2) + ' V' : null),
+  volt: (v) => (typeof v === 'number' ? tcaNum(v, 3, 3) + ' V' : null),
   mah: (v) => (typeof v === 'number' ? tcaNum(v, 0) + ' mAh' : null),
   inch: (v) => (typeof v === 'number' ? tcaNum(v, 2, 2) + '"' : null),
   hz: (v) => (typeof v === 'number' ? tcaNum(v, 0) + ' Hz' : null),
@@ -19963,7 +20053,7 @@ const TCA_CATS = [
   { id: 'battery', title: 'Batarya', intro: 'Anlık durum. Pil sağlığı ve döngü sayısı yalnızca cihaz erişilebilir bir kaynaktan verirse gösterilir; her değerin kaynağı ve güvenilirliği etiketlidir, hiçbir zaman tahmin edilmez.', rows: [
     ['levelPercent', 'Seviye', 'Şu anki şarj yüzdesi.', 'pct'], ['charging', 'Şarj durumu', 'Telefon şu an şarj oluyor mu.', 'charging'], ['plug', 'Bağlantı tipi', 'Şarj kaynağı (adaptör, USB, kablosuz).', 'plug'],
     ['temperatureC', 'Sıcaklık', 'Pilin sıcaklığı; uzun süre 45 °C üstü pile zarar verir.', 'celsius'], ['voltageV', 'Voltaj', 'Pilin anlık voltajı.', 'volt'], ['technology', 'Pil teknolojisi', 'Pil kimyası (ör. Li-ion).', 'txt'],
-    ['healthCategory', 'Pil durumu (kaba)', 'Android\'in kaba sınıflaması; kapasite sağlığı DEĞİLDİR.', 'health'], ['stateOfHealthPercent', 'Pil sağlığı', 'Mevcut tam dolum kapasitesinin tasarım kapasitesine oranı. Android’in herkese açık bir pil sağlığı API’si yoktur; yalnızca cihaz iki kapasiteyi erişilebilir biçimde verirse hesaplanır, aksi hâlde yüzde GÖSTERİLMEZ.', 'pct'],
+    ['healthCategory', 'Android pil durumu (ısı/voltaj)', 'Android yalnızca ısı/voltaj gibi anlık sorunları bildirir; pilin yıpranmasını (kapasite sağlığını) GÖSTERMEZ.', 'health'], ['stateOfHealthPercent', 'Pil sağlığı', 'Mevcut tam dolum kapasitesinin tasarım kapasitesine oranı. Android’in herkese açık bir pil sağlığı API’si yoktur; yalnızca cihaz iki kapasiteyi erişilebilir biçimde verirse hesaplanır, aksi hâlde yüzde GÖSTERİLMEZ.', 'pct'],
     ['cycleCount', 'Şarj döngüsü', 'Pilin kaç tam şarj döngüsü geçirdiği (Android 14+ ve üretici desteği).', 'num'], ['chargeRemainingMah', 'Kalan şarj', 'Pilde kalan enerji (mAh); pil KAPASİTESİ değildir.', 'mah'],
     ['designCapacityMah', 'Tasarım kapasitesi (fabrika)', 'Pilin fabrikadaki kapasitesi; bugünkü kapasite DEĞİLDİR.', 'mah'], ['fullChargeCapacityMah', 'Mevcut tam dolum kapasitesi', 'Pilin şu an tam dolduğunda tuttuğu şarj; pil yıprandıkça azalır. Anlık “kalan şarj” ile karıştırılmamalı.', 'mah'] ] },
   { id: 'display', title: 'Ekran ve görüntü', intro: 'Ekran boyutu, keskinlik ve akıcılık.', rows: [
@@ -20485,6 +20575,7 @@ function tcsVerdict(m) {
 }
 const TCS_IC = {
   analiz: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg>',
+  pil: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="8" width="16" height="9" rx="2"/><path d="M21 11v3M7 11v3M11 11v3"/></svg>',
   test: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2.5"/><polyline points="9.5 12.5 11.5 14.5 15 10"/></svg>',
   rapor: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>',
 };
@@ -20500,7 +20591,7 @@ function tcsHeroHTML(m, native) {
 }
 function tcsNavHTML(native) {
   const item = (ic, t, s, btn) => `<div class="tcs-nav-i"><span class="tcs-ic">${ic}</span><div class="tcs-nav-t"><b>${t}</b><small>${s}</small></div>${btn}</div>`;
-  return `<nav class="tcs-nav" aria-label="Bölümler">${item(TCS_IC.analiz, 'Cihaz Analizi', 'Donanım ve sistem bilgileri; her değerin kaynağı etiketli', `<button type="button" class="tk-btn tk-btn--outline" data-act="adv" ${TCK.busy ? 'disabled' : ''}>${native ? 'Gelişmiş analiz' : 'Tarayıcı analizi'}</button>`)}${item(TCS_IC.test, 'Donanım Testleri', 'Ekran, kamera, ses, sensör, biyometri, bağlantı', '<button type="button" class="tk-btn tk-btn--outline" data-act="tests">Testlere git</button>')}${item(TCS_IC.rapor, 'Cihaz Raporu', 'Sunucu imzalı rapor; geçmiş raporların', '<button type="button" class="tk-btn tk-btn--outline" data-act="my-reports">Raporlarım</button>')}</nav>`;
+  return `<nav class="tcs-nav" aria-label="Bölümler">${item(TCS_IC.analiz, 'Cihaz Analizi', 'Donanım ve sistem bilgileri; her değerin kaynağı etiketli', `<button type="button" class="tk-btn tk-btn--outline" data-act="adv" ${TCK.busy ? 'disabled' : ''}>${native ? 'Gelişmiş analiz' : 'Tarayıcı analizi'}</button>`)}${item(TCS_IC.pil, 'Pil Analizi', native ? 'Pil sağlığı, kapasite ve şarj döngüsü; ölçülen ile tahmin ayrı' : 'Yalnızca Android uygulamasında çalışır', `<button type="button" class="tk-btn tk-btn--outline" data-act="pil" ${TCK.busy ? 'disabled' : ''}>${native ? 'Pil analizi' : 'Bilgi'}</button>`)}${item(TCS_IC.test, 'Donanım Testleri', 'Ekran, kamera, ses, sensör, biyometri, bağlantı', '<button type="button" class="tk-btn tk-btn--outline" data-act="tests">Testlere git</button>')}${item(TCS_IC.rapor, 'Cihaz Raporu', 'Sunucu imzalı rapor; geçmiş raporların', '<button type="button" class="tk-btn tk-btn--outline" data-act="my-reports">Raporlarım</button>')}</nav>`;
 }
 function tcsSummaryHTML(m) {
   const v = tcsVerdict(m), hwOk = m.h.passed;
@@ -20693,7 +20784,7 @@ const tcrTone = (st) => /^(Başarılı|Ölçüldü|Hesaplandı)/.test(st) ? 'ok'
 function tcrBuildDoc(rep, ext) {
   const base = tcPdfDocument(rep, rep.reportId, rep.verifyCode), x = ext || null, c = rep.counts || tcCountsOf(rep.report.tests);
   const url = tcqVerifyUrl(rep.reportId, rep.verifyCode); let qr = null; try { qr = tcqEncode(url); } catch (e) { qr = null; }
-  const R = rep.report || {}, v2 = R.schemaVersion === 2;   // Faz 8: v2 raporlarda analiz/donanım/kozmetik İMZALI KAYITTAN gelir; v1'de eski davranış (cihaz içi, imzasız)
+  const R = rep.report || {}, v2 = R.schemaVersion >= 2;   // Faz 8: v2 raporlarda analiz/donanım/kozmetik İMZALI KAYITTAN gelir; v1'de eski davranış (cihaz içi, imzasız)
   const signedCos = v2 && R.cosmetic ? R.cosmetic : null;
   const cos = signedCos ? tcxCosmeticRowsFrom(signedCos) : tcrCosmeticRows(x), photos = (x && x.photos) || [];
   const gen = [`${TC_OVERALL_LABEL[rep.overall] || ''}: ${c.passed} başarılı, ${c.failed} başarısız, ${c.skipped + c.untested} tamamlanamadı/atlandı, ${c.unsupported} desteklenmiyor (sunucu imzalı 11 test).`, 'Yapılmayan, atlanan veya desteklenmeyen testler başarılı sayılmaz.'];
@@ -20711,6 +20802,16 @@ function tcrBuildDoc(rep, ext) {
   else { ((x && x.adv) || []).forEach((cat) => { advRows.push([cat.title, '', '']); cat.rows.forEach((r) => advRows.push(r)); }); }
   const advBadge = v2 ? 'İMZALI · cihaz analizi' : 'İMZASIZ · cihaz içi';
   sections.push(advRows.length ? { title: 'Bölüm 2 · Gelişmiş cihaz analizi', badge: advBadge, rows: advRows, notes: ['Her değerin durumu belirtilmiştir: Ölçüldü / Sistem tarafından bildirildi / Desteklenmiyor / Erişim izni gerekli / Ölçüm başarısız. Desteklenmeyen değerler tahmin edilmemiştir.'] } : { title: 'Bölüm 2 · Gelişmiş cihaz analizi', badge: advBadge, notes: [v2 ? 'Bu rapora gelişmiş analiz eklenmemiş (imzalı kapsamda değil).' : 'Bu rapor için gelişmiş analiz kaydı yok.'] });
+  // Faz 26: imzalı raporda (v3) pil bölümü SUNUCU KAYDINDAN (imzalı) üretilir; yerel anlık görüntü kullanılmaz → PDF ile imza arasında fark olamaz. İmzasız raporda yerel anlık görüntü 'imzasız' etiketiyle (+ imzaya eklenememe nedeni) girer.
+  { let ps = null;
+    if (typeof tcPilSection === 'function') {
+      if (R.schemaVersion === 3 && R.batteryAnalysis) {
+        ps = tcPilSection(tcPilSnapFromSigned(R.batteryAnalysis));
+        const bad = ps ? tcPilConsistency(R.batteryAnalysis, ps) : ['pil bölümü üretilemedi'];
+        if (ps && bad.length) ps.notes = ['UYARI: PDF ile imzalı kayıt arasında tutarsızlık bulundu (' + bad.join('; ') + '). Bu bölüme güvenme; raporu yeniden oluştur.'].concat(ps.notes);
+      } else if (x && x.pil) ps = tcPilSection(x.pil && x.pilReason ? { ...x.pil, reason: x.pilReason } : x.pil);
+    }
+    if (ps) sections.push(ps); }
   const hw = v2 ? tcxHwRowsFrom(R.hwTests) : ((x && x.hw) || []);
   const hwBadge = v2 ? 'İMZALI · donanım testleri' : 'İMZASIZ · cihaz içi';
   sections.push(hw.length ? { title: 'Bölüm 3 · Ek donanım testleri', badge: hwBadge, rows: hw, ...(v2 ? { notes: ['Fiziksel kontroller (parlaklık, flaş, mikrofon geri dinleme) yalnızca kullanıcı onayıyla başarılı sayılır; "kullanıcı onayı" otomatik ölçüm değildir.'] } : {}) } : { title: 'Bölüm 3 · Ek donanım testleri', badge: hwBadge, notes: [v2 ? 'Bu rapora ek donanım testi eklenmemiş (imzalı kapsamda değil).' : 'Bu rapor için ek donanım testi kaydı yok.'] });
@@ -20802,12 +20903,14 @@ function tcrPrint(doc) {
 }
 
 // ---- rapor oluşturulunca taslağı rapora bağla (yalnızca yerel); iş akışı/imza değişmez
-async function tcrAttach(reportId) {
+async function tcrAttach(reportId, o) {
   try {
+    const signedPil = !!(o && o.signedPil), pilReason = (o && o.pilReason) || '';   // imzalı (v3) raporda yerel pil kopyası TUTULMAZ (kaynak: imzalı kayıt)
     if (!tcrUid()) return;
     const dk = tcrKey('draft'), d = (await tcrGet(dk)) || tcrNewDraft();
-    const rec = { ...d, hw: tcrHwRows(TCK && TCK.hw), adv: TCK && TCK.advLast ? tcrAdvRows(TCK.advLast.data) : [], savedAt: new Date().toISOString() };
-    if (rec.grade || rec.photos.length || rec.note || rec.hw.length || rec.adv.length || Object.keys(rec.defects || {}).length) { await tcrPut(tcrKey('rep', reportId), rec); await tcrDel(dk); }
+    const pil = !signedPil && typeof tcPilCapture === 'function' ? await tcPilCapture() : null;   // Faz 25: pil analizi anlık görüntüsü (yerel; imzasız)
+    const rec = { ...d, hw: tcrHwRows(TCK && TCK.hw), adv: TCK && TCK.advLast ? tcrAdvRows(TCK.advLast.data) : [], ...(pil ? { pil } : {}), ...(pil && pilReason ? { pilReason } : {}), savedAt: new Date().toISOString() };
+    if (rec.grade || rec.photos.length || rec.note || rec.hw.length || rec.adv.length || rec.pil || Object.keys(rec.defects || {}).length) { await tcrPut(tcrKey('rep', reportId), rec); await tcrDel(dk); }
   } catch (e) { /* ek bilgi kaydı rapor oluşturmayı ASLA engellemez */ }
 }
 
@@ -20838,7 +20941,7 @@ async function tcrSave() {
 }
 function tcrRenderEditor() {
   const b = tcBody(); if (!b || !TCRS) return; const d = TCRS.data; tcSetTitle('Kozmetik durum ve fotoğraflar');
-  const signedCos = !!(TCRS.rep && TCRS.rep.report && TCRS.rep.report.schemaVersion === 2 && TCRS.rep.report.cosmetic);   // imzalı beyan sonradan değiştirilemez (yalnızca fotoğraflar düzenlenir)
+  const signedCos = !!(TCRS.rep && TCRS.rep.report && TCRS.rep.report.schemaVersion >= 2 && TCRS.rep.report.cosmetic);   // imzalı beyan sonradan değiştirilemez (yalnızca fotoğraflar düzenlenir)
   const lock = signedCos ? ' disabled' : '';
   const fixed = TCR_SLOTS.map(([slot, label]) => {
     const p = d.photos.find((x) => x.slot === slot);
@@ -20899,8 +21002,8 @@ async function tcrFillCard() {
 async function tcrDecorateReport(b, rep, opts) {
   const host = b.querySelector('#tc-report'); if (!host || host.querySelector('#tcr-ext')) return;
   const ext = await tcrLoadExt(rep.reportId); if (!b.querySelector('#tc-report')) return;
-  const v2 = rep.report && rep.report.schemaVersion === 2;   // Faz 8: v2'de analiz/donanım/kozmetik imzalı kayıttadır; cihazda yalnızca fotoğraflar imzasız kalır
-  const sum = ext ? (v2 ? [ext.photos && ext.photos.length ? ext.photos.length + ' fotoğraf' : null, !rep.report.cosmetic && ext.grade ? 'Kozmetik: ' + tcrGradeLabel(ext.grade) + ' (imzasız beyan)' : null] : [ext.grade ? 'Kozmetik: ' + tcrGradeLabel(ext.grade) + ' (beyan)' : null, ext.photos && ext.photos.length ? ext.photos.length + ' fotoğraf' : null, ext.adv && ext.adv.length ? 'gelişmiş analiz' : null, ext.hw && ext.hw.length ? ext.hw.length + ' ek test' : null]).filter(Boolean).join(' · ') : '';
+  const v2 = rep.report && rep.report.schemaVersion >= 2;   // Faz 8: v2'de analiz/donanım/kozmetik imzalı kayıttadır; cihazda yalnızca fotoğraflar imzasız kalır
+  const sum = ext ? (v2 ? [ext.photos && ext.photos.length ? ext.photos.length + ' fotoğraf' : null, !rep.report.cosmetic && ext.grade ? 'Kozmetik: ' + tcrGradeLabel(ext.grade) + ' (imzasız beyan)' : null, ext.pil && !(rep.report.schemaVersion === 3 && rep.report.batteryAnalysis) ? 'pil analizi (imzasız anlık görüntü)' : null] : [ext.grade ? 'Kozmetik: ' + tcrGradeLabel(ext.grade) + ' (beyan)' : null, ext.photos && ext.photos.length ? ext.photos.length + ' fotoğraf' : null, ext.adv && ext.adv.length ? 'gelişmiş analiz' : null, ext.hw && ext.hw.length ? ext.hw.length + ' ek test' : null, ext.pil ? 'pil analizi (imzasız anlık görüntü)' : null]).filter(Boolean).join(' · ') : '';
   const blok = document.createElement('div'); blok.id = 'tcr-ext'; blok.className = 'tcr-ext';
   blok.innerHTML = `<div class="tc-status" role="note"><b>Cihaz içi ek bölümler (imzasız):</b> ${sum ? tcrEsc(sum) : 'bu rapor için kayıt yok'}. ${v2 ? 'Fotoğraflar sunucuya gönderilmez ve imza kapsamı dışındadır; PDF\'te ayrı bölümde gösterilir.' : 'PDF\'te sunucu imzalı bölümden ayrı gösterilir.'}</div>
     <div class="tcx-actions"><button type="button" class="tk-btn tk-btn--outline" data-rx="qr">QR ve doğrulama bağlantısı</button><button type="button" class="tk-btn tk-btn--outline" data-rx="vrf">Çevrimiçi doğrulama durumu</button><button type="button" class="tk-btn tk-btn--outline" data-rx="cosm">Kozmetik durum ve fotoğraflar</button>${ext ? '<button type="button" class="tk-btn tk-btn--ghost" data-rx="wipe">Yerel ek verileri sil</button>' : ''}</div><div id="tcr-vrf" aria-live="polite"></div>`;
@@ -20968,7 +21071,7 @@ const TCX_KIND = {   // Worker'daki TC_AKIND ile AYNI olmalı (test: istemci yü
   maxClusters: ['clusters'], currentMhz: ['numarr', 1, 16, 1, 6000], supportedRefreshHz: ['numarr', 1, 16, 1, 1000], hdr: ['strarr', 8, 40], present: ['boolmap'], list: ['sensors'],
 };
 const TCX_HW_CONFIRM = ['hw_brightness', 'hw_flash', 'hw_mic_playback'];   // yalnızca bunlar kullanıcı onayıyla "başarılı" olabilir
-const TCX_SCOPE_LABEL = { tests: 'Test sonuçları', analysis: 'Gelişmiş cihaz analizi', hwTests: 'Ek donanım testleri', cosmetic: 'Kozmetik durum', photos: 'Fotoğraflar' };
+const TCX_SCOPE_LABEL = { tests: 'Test sonuçları', analysis: 'Gelişmiş cihaz analizi', hwTests: 'Ek donanım testleri', cosmetic: 'Kozmetik durum', batteryAnalysis: 'Pil analizi', photos: 'Fotoğraflar' };
 
 // ---- saf: istemci → sunucu biçimi (her değer sunucunun doğrulayıcısına uyacak şekilde temizlenir; uymayan değer "Ölçüm başarısız" olur, TAHMİN EDİLMEZ)
 function tcxClean(s, max) {
@@ -21050,18 +21153,31 @@ async function tcxExtend(report, sess) {
   } catch (e) { /* analiz eklenemezse rapor yine de temel testlerle oluşur */ }
   const hw = tcxHwWire(sess && sess.hw); if (hw.length) ext.hwTests = hw;
   try { const c = tcxCosmeticWire(await tcrGet(tcrKey('draft'))); if (c) ext.cosmetic = c; } catch (e) { /* kozmetik okunamazsa eklenmez */ }
-  return Object.keys(ext).length ? { ...report, schemaVersion: 2, ...ext } : report;
+  // Faz 26: pil analizi İMZALI bölüm (şema 3). Okunamazsa/uyumsuzsa eklenmez; sessiz değil: tcSubmit/rapor ekranı 'imzasız' olduğunu söyler.
+  try { if (typeof tcPilSetOmit === 'function') tcPilSetOmit(''); if (report.platform === 'android' && typeof tcPilCaptureWire === 'function') { const w = await tcPilCaptureWire(); if (w) { const why = tcPilWireConflict(w, ext); if (!why) ext.batteryAnalysis = w; else tcPilSetOmit(why); } } } catch (e) { /* pil okunamazsa rapor yine oluşur */ }
+  return Object.keys(ext).length ? { ...report, schemaVersion: ext.batteryAnalysis ? 3 : 2, ...ext } : report;
 }
-function tcxScopeOf(report) { return { v: 1, signed: ['tests', ...(report.analysis ? ['analysis'] : []), ...(report.hwTests ? ['hwTests'] : []), ...(report.cosmetic ? ['cosmetic'] : [])], userDeclared: report.cosmetic ? ['cosmetic'] : [], excluded: ['photos'] }; }
-function tcxDowngrade(report) { const { analysis, hwTests, cosmetic, ...rest } = report; return { ...rest, schemaVersion: 1 }; }
+function tcxScopeOf(report) { return { v: 1, signed: ['tests', ...(report.analysis ? ['analysis'] : []), ...(report.hwTests ? ['hwTests'] : []), ...(report.cosmetic ? ['cosmetic'] : []), ...(report.batteryAnalysis ? ['batteryAnalysis'] : [])], userDeclared: report.cosmetic ? ['cosmetic'] : [], excluded: ['photos'] }; }
+function tcxDowngrade(report) { const { analysis, hwTests, cosmetic, batteryAnalysis, ...rest } = report; return { ...rest, schemaVersion: 1 }; }
+// v3 → v2: yalnızca pil analizi çıkar (diğer imzalı bölümler korunur). Çağıran, pil bölümünün imzalanamadığını kullanıcıya AÇIKÇA bildirir.
+function tcxDropBattery(report) { const { batteryAnalysis, ...rest } = report; return { ...rest, schemaVersion: 2 }; }
+// Aynı raporda analiz bölümündeki döngü ile pil analizindeki döngü çelişemez (Worker aynı kuralı uygular; ±1)
+// Aynı raporda analiz bölümündeki pil değerleri ile pil analizi çelişemez (Worker aynı kuralları uygular): döngü ±1; sağlık yüzdesi ±3 (yalnızca aralık varsa aralık ±3). Dönüş: çelişki nedeni ya da ''.
+function tcPilWireConflict(w, ext) {
+  const bat = ext && ext.analysis && ext.analysis.categories.battery; if (!bat) return '';
+  const c = bat.cycleCount, s = bat.stateOfHealthPercent, h = w.health || {};
+  if (c && c.v != null && w.cycles && w.cycles.reported && Math.abs(c.v - w.cycles.reported.value) > 1) return 'Analiz bölümündeki döngü sayısı ile pil analizindeki döngü sayısı uyuşmadığı için pil analizi imzaya eklenmedi.';
+  if (s && s.v != null && ((h.percent != null && Math.abs(s.v - h.percent) > 3) || (h.percent == null && Array.isArray(h.range) && (s.v < h.range[0] - 3 || s.v > h.range[1] + 3)))) return 'Analiz bölümündeki pil sağlığı yüzdesi ile pil analizindeki yüzde uyuşmadığı için pil analizi imzaya eklenmedi.';
+  return '';
+}
 
 // ---- kapsam göstergeleri (rapor ekranı / doğrulama ekranı / PDF)
 const tcxNames = (a) => a.map((k) => TCX_SCOPE_LABEL[k] || k).join(', ');
 function tcxScopeHTML(report) {
-  const s = report && report.schemaVersion === 2 && report.scope;
+  const s = report && report.schemaVersion >= 2 && report.scope;
   if (!s) return '<div class="tc-status tcx-scope" id="tc-scope" data-scope="v1" role="note"><b>İmza kapsamı:</b> Bu rapor yalnızca temel 11 testi kapsar. Gelişmiş analiz, ek donanım testleri ve kozmetik beyan bu raporun imzasında yer almaz; fotoğraflar hiçbir raporda imzalanmaz.</div>';
   const measured = s.signed.filter((k) => !s.userDeclared.includes(k));
-  return `<div class="tc-status tcx-scope" id="tc-scope" data-scope="v2" role="note"><b>İmza kapsamı:</b> <span data-scope-signed>${escapeHtml(tcxNames(measured))}</span> sunucu kaydıyla imzalıdır.${s.userDeclared.length ? ` <b>Kullanıcı beyanı:</b> <span data-scope-user>${escapeHtml(tcxNames(s.userDeclared))}</span> kullanıcının kendi beyanıdır (ölçüm değildir); imza yalnızca beyanın sonradan değişmediğini gösterir.` : ''} <b>Kapsam dışı:</b> <span data-scope-out>${escapeHtml(tcxNames(s.excluded))}</span> sunucuya gönderilmez ve imzalanmaz; yalnızca bu cihazdaki PDF'te yer alır. İmza, cihazın orijinal olduğunu veya donanımın sağlıklı olduğunu kanıtlamaz.</div>`;
+  return `<div class="tc-status tcx-scope" id="tc-scope" data-scope="v2" role="note"><b>İmza kapsamı:</b> <span data-scope-signed>${escapeHtml(tcxNames(measured))}</span> sunucu kaydıyla imzalıdır.${s.signed.includes('batteryAnalysis') ? ' <b>Pil analizi:</b> değerleri cihazdaki uygulama bildirir; sunucu donanımdan doğrulayamaz.' : ''}${s.userDeclared.length ? ` <b>Kullanıcı beyanı:</b> <span data-scope-user>${escapeHtml(tcxNames(s.userDeclared))}</span> kullanıcının kendi beyanıdır (ölçüm değildir); imza yalnızca beyanın sonradan değişmediğini gösterir.` : ''} <b>Kapsam dışı:</b> <span data-scope-out>${escapeHtml(tcxNames(s.excluded))}</span> sunucuya gönderilmez ve imzalanmaz; yalnızca bu cihazdaki PDF'te yer alır. İmza, cihazın orijinal olduğunu veya donanımın sağlıklı olduğunu kanıtlamaz.</div>`;
 }
 const tcxRowsHTML = (rows) => `<ul class="tcx-list">${rows.map((r) => `<li class="tcx-row"><div class="tcx-row-main"><div class="tcx-row-t">${escapeHtml(r[0])}</div>${r[2] ? `<div class="tcx-row-d">${escapeHtml(r[2])}</div>` : ''}</div><div class="tcx-row-side">${escapeHtml(r[1])}</div></li>`).join('')}</ul>`;
 const TCX_GRADE_TXT = (g) => (typeof tcrGradeLabel === 'function' && tcrGradeLabel(g)) || 'İşaretlenmedi';
@@ -21074,20 +21190,22 @@ function tcxCosmeticRowsFrom(c) {
 }
 // Rapor ekranında imzalı ek bölümler (yalnızca v2): ölçümler ile KULLANICI BEYANI ayrı bloklarda
 function tcxReportSectionsHTML(report) {
-  if (!report || report.schemaVersion !== 2) return '';
+  if (!report || report.schemaVersion < 2) return '';
   let h = '';
   if (report.analysis) { h += `<h3 class="pd-sec-t">Gelişmiş cihaz analizi <span class="tk-badge tk-badge--success">İmzalı</span></h3><p class="tca-intro">Her değerin durumu belirtilir (kaynak: ${escapeHtml(({ android: 'Android uygulaması', android_legacy: 'Android uygulaması (eski sürüm)', web: 'tarayıcı' })[report.analysis.source] || report.analysis.source)}); desteklenmeyen değerler tahmin edilmemiştir.</p>${tcrAdvRows(report.analysis.categories).map((c) => `<h4 class="tc-info-t">${escapeHtml(c.title)}</h4>${tcxRowsHTML(c.rows)}`).join('')}`; }
   if (report.hwTests) h += `<h3 class="pd-sec-t">Ek donanım testleri <span class="tk-badge tk-badge--success">İmzalı</span></h3>${tcxRowsHTML(tcxHwRowsFrom(report.hwTests))}`;
   if (report.cosmetic) h += `<h3 class="pd-sec-t">Kozmetik durum <span class="tk-badge tk-badge--warning">Kullanıcı beyanı</span></h3>${tcxRowsHTML(tcxCosmeticRowsFrom(report.cosmetic))}<p class="tca-intro">Bu bölüm kullanıcının kendi değerlendirmesidir; otomatik ölçüm değildir.</p>`;
+  if (report.batteryAnalysis && typeof tcPilSection === 'function') { const ps = tcPilSection(tcPilSnapFromSigned(report.batteryAnalysis)); if (ps) h += `<h3 class="pd-sec-t">Pil analizi <span class="tk-badge tk-badge--success">İmzalı</span></h3><div id="tcpil-signed">${tcxRowsHTML(ps.rows)}</div><p class="tca-intro">${escapeHtml(TCP_TRUST_NOTE)} Tahmin ile cihazdan okunan değer ayrı etiketlenir; cihazın bildirdiği ve TeknoCheck'in hesapladığı döngü toplanmaz.</p>`; }
   return h ? `<div id="tcx-signed-ext">${h}</div>` : '';
 }
 // Herkese açık doğrulama özeti (sunucu: yalnızca kapsam + durumlar; değerler yok). v1 özetinde HİÇBİR ek alan yoktur → eski biçim aynen.
 function tcxVerifyScopeHTML(s) {
-  if (!s || s.schemaVersion !== 2 || !s.scope) return '';
+  if (!s || !(s.schemaVersion >= 2) || !s.scope) return '';
   const meas = s.scope.signed.filter((k) => !s.scope.userDeclared.includes(k));
   let h = `<div class="tc-status tcx-scope" id="tcx-vscope" data-scope="v2" role="note"><b>İmzalı kapsam:</b> ${escapeHtml(tcxNames(meas))}.${s.scope.userDeclared.length ? ` <b>Kullanıcı beyanı (ölçüm değil):</b> ${escapeHtml(tcxNames(s.scope.userDeclared))}.` : ''} <b>Kapsam dışı:</b> ${escapeHtml(tcxNames(s.scope.excluded))}. İmza içeriğin sonradan değişmediğini gösterir; cihazın orijinalliğini veya sağlığını kanıtlamaz.</div>`;
   if (s.analysis) { const c = s.analysis.counts || {}; h += `<h4 class="tc-info-t">İmzalı cihaz analizi</h4><div class="tcx-counts" data-vanalysis>${c.measured || 0} ölçüldü · ${c.reported || 0} sistem bildirdi · ${c.unsupported || 0} desteklenmiyor · ${c.permission_required || 0} izin gerekli · ${c.failed || 0} ölçüm başarısız</div>`; }
   if (s.hwTests) h += `<h4 class="tc-info-t">İmzalı ek donanım testleri</h4>${tcxRowsHTML(tcxHwRowsFrom(s.hwTests))}`;
+  if (s.battery && typeof tcPilVerifyBlockHTML === 'function') h += tcPilVerifyBlockHTML(s.battery);
   if (s.cosmetic) h += `<h4 class="tc-info-t">Kullanıcı beyanı: kozmetik durum</h4>${tcxRowsHTML(tcxCosmeticRowsFrom({ grade: s.cosmetic.grade, defects: Object.fromEntries((s.cosmetic.defects || []).map((k) => [k, true])), note: s.cosmetic.note }))}`;
   return h;
 }
@@ -21336,11 +21454,12 @@ function tcRpHTML(l, r) {
   const tile = (n, label, cls) => `<div class="tcrp-tile tcrp-tile--${Number(n) === 0 ? 'zero' : cls}"><b>${E(String(n))}</b><span>${E(label)}</span></div>`;
   const tests = (s.tests || []).map((t) => `<li class="tcx-row" data-test="${E(t.id)}" data-status="${E(t.status)}"><div class="tcx-row-main"><div class="tcx-row-t">${E(tcDefOf(t.id).title)}</div><div class="tcx-row-d">${t.kind === 'auto' ? 'Otomatik ölçüm' : t.userConfirmed ? 'Kullanıcı onayıyla' : 'Kullanıcı onayı yok'}</div></div><div class="tcx-row-side">${tcBadge(t.status)}</div></li>`).join('');
   let ek = '';
-  if (s.schemaVersion === 2) {
+  if (s.schemaVersion >= 2) {
     const sc = s.scope;
     if (sc && Array.isArray(sc.signed)) { const olc = sc.signed.filter((k) => !(sc.userDeclared || []).includes(k)); ek += `<h3 class="pd-sec-t">İmza kapsamı</h3><div class="tc-status" role="note"><b>Sunucu imzalı:</b> ${E(tcxNames(olc))}.${(sc.userDeclared || []).length ? ` <b>Kullanıcı beyanı:</b> ${E(tcxNames(sc.userDeclared))} (ölçüm değildir). ` : ' '}Fotoğraflar hiçbir raporda imzalanmaz ve sunucuya gönderilmez.</div>`; }
     if (s.analysis && s.analysis.counts) { const a = s.analysis.counts, satir = TC_RP_ANALYSIS.filter(([k]) => a[k] > 0).map(([k, ad]) => `<li class="tcx-row"><div class="tcx-row-main"><div class="tcx-row-t">${E(ad)}</div></div><div class="tcx-row-side"><b>${E(String(a[k]))}</b> değer</div></li>`).join(''); ek += `<h3 class="pd-sec-t">Gelişmiş cihaz analizi <span class="tk-badge tk-badge--success">İmzalı</span></h3><ul class="tcx-list">${satir || '<li class="tcx-row"><div class="tcx-row-main"><div class="tcx-row-t">Değer yok</div></div></li>'}</ul><p class="tca-intro">Tek tek değerler gizlilik için herkese açık gösterilmez; durum özeti görünür. Desteklenmeyen değerler tahmin edilmemiştir.</p>`; }
     if (s.hwTests && s.hwTests.length) ek += `<h3 class="pd-sec-t">Ek donanım testleri <span class="tk-badge tk-badge--success">İmzalı</span></h3>${tcxRowsHTML(tcxHwRowsFrom(s.hwTests))}<p class="tca-intro">Fiziksel kontroller yalnızca kullanıcı onayıyla başarılı sayılır; "kullanıcı onayı" otomatik ölçüm değildir.</p>`;
+    if (s.battery && typeof tcPilVerifyBlockHTML === 'function') ek += tcPilVerifyBlockHTML(s.battery);
     if (s.cosmetic) { const dk = Array.isArray(s.cosmetic.defects) ? s.cosmetic.defects : [], defs = TCR_DEFECTS.filter(([k]) => dk.includes(k)).map((d) => d[1]); ek += `<h3 class="pd-sec-t">Kozmetik durum <span class="tk-badge tk-badge--warning">Kullanıcı beyanı</span></h3>${tcxRowsHTML([['Genel durum', s.cosmetic.grade ? TCX_GRADE_TXT(s.cosmetic.grade) : 'İşaretlenmedi', ''], ['İşaretlenen kusurlar', defs.length ? defs.join(', ') : 'İşaretlenmedi', ''], ['Not', s.cosmetic.note || '—', '']])}<p class="tca-intro">Bu bölüm satıcının kendi değerlendirmesidir; otomatik ölçüm değildir.</p>`; }
   } else ek += `<h3 class="pd-sec-t">İmza kapsamı</h3><div class="tc-status" role="note">Bu rapor yalnızca temel 11 testi kapsar. Gelişmiş analiz, ek donanım testleri ve kozmetik beyan bu raporun imzasında yer almaz.</div>`;
   return `<div class="tcx tcrp">
@@ -21364,6 +21483,326 @@ function tcOpenReportPage(l, r) {
   body.querySelector('#tc-rp-back').addEventListener('click', () => closemo('tc-rp-mo'));
   body.querySelector('#tc-rp-verify').addEventListener('click', () => tcOpenVerify());
   m.classList.add('on');
+}
+
+// ==== TeknoCheck PİL ANALİZİ (Faz 25): gelişmiş pil sağlığı + şarj döngüsü — arayüz, rapor anlık görüntüsü ====
+// Hesaplar Android'de (BatteryAnalysisLogic.kt / BatteryMonitor.kt) yapılır; burada yalnızca GÖSTERİM ve rapora aktarım vardır.
+// İLKE: gerçek ölçüm / üretici verisi / yazılımsal tahmin AÇIKÇA ayrılır; veri yoksa sahte değer yazılmaz; güveni düşük yüzde kesin gösterilmez.
+// Web'de (Android uygulaması dışı) pil verisi alınamaz → dürüst bilgilendirme. Rapora YEREL anlık görüntü girer (imzasız, "cihaz içi"); sonradan değişen veriler eski raporu değiştirmez.
+const TCP_METHOD = { direct_soh: 'Üreticinin bildirdiği sağlık yüzdesi (doğrudan)', capacity_ratio: 'Gerçek tam dolum kapasitesi ÷ tasarım kapasitesi', estimated: 'TeknoCheck yazılımsal tahmini (şarj sayacı analizi)', none: 'Ölçülemedi' };
+const TCP_KIND = { direct_soh: 'Cihazdan okundu', capacity_ratio: 'Cihazdan okundu · hesaplandı', estimated: 'TAHMİN', none: '' };
+const TCP_CONF = { high: 'Yüksek', medium: 'Orta', low: 'Düşük', insufficient: 'Yetersiz veri' };
+const TCP_EXPLAIN = {
+  direct_soh: 'Pil sağlığı, cihazın/üreticinin doğrudan bildirdiği sağlık yüzdesinden alındı.',
+  capacity_ratio: 'Pil sağlığı, cihazın bildirdiği tam dolum kapasitesi ile fabrika tasarım kapasitesi karşılaştırılarak hesaplandı.',
+  estimated: 'Bu cihaz pil sağlığını doğrudan sağlamıyor. Değer, TeknoCheck\'in şarj/deşarj sırasında topladığı verilerden TAHMİN edildi; gerçek ölçüm değildir.',
+  none: 'Bu cihaz pil sağlığı bilgisini doğrudan sağlamıyor. TeknoCheck, yeterli şarj/deşarj verisi toplandıktan sonra tahmini değer oluşturacak.',
+};
+const TCP_CHARGING = { charging: 'Şarj oluyor', discharging: 'Şarj olmuyor (deşarj)', full: 'Dolu', not_charging: 'Şarj olmuyor', unknown: 'Bilinmiyor' };
+// Android'in "good" kategorisi YALNIZCA "ısı/voltaj gibi anlık bir sorun bildirilmedi" demektir; pilin ne kadar yıprandığını göstermez. "İyi" yazılırsa kapasite sağlığı sanılır → nötr dil.
+const TCP_HEALTHCAT = { good: 'Sorun bildirilmedi', overheat: 'Aşırı ısınma bildirildi', dead: 'Bozuk bildirildi', over_voltage: 'Aşırı voltaj bildirildi', failure: 'Arıza bildirildi', cold: 'Aşırı soğuk bildirildi', unknown: 'Bildirilmiyor' };
+const TCP_HEALTHCAT_NOTE = 'Yalnızca ısı/voltaj gibi anlık sorunları bildirir; pilin yıpranmasını (kapasite sağlığını) göstermez';
+// sysfs: uygulama tarafında dosya "yok" ile "SELinux engeli" ayırt edilemez → "missing" dürüstçe iki ihtimali birden söyler.
+const TCP_SRC_STATE = { available: 'okundu', denied: 'erişim reddedildi', missing: 'okunamadı (yok ya da erişim kısıtlı)', unsupported: 'API değer döndürmedi', invalid: 'okundu ama geçersiz', zero: 'okundu: 0' };
+const TCP_SRC_GROUPS = [['batterymanager', 'Android API · BatteryManager'], ['broadcast', 'Android API · pil yayını'], ['sysfs', 'Sistem dosyaları (sysfs)']];
+// "var" tek başına yanıltıcıdır: API desteği, değerin okunması ve değerin geçerliliği (birimi/işareti doğrulandı) AYRI şeylerdir.
+const TCP_PROP_STATE = { valid: 'okundu · birim doğrulandı', read_unit_unknown: 'değer okundu · birim henüz doğrulanamadı', zero: 'okundu: 0 (gerçek sıfır mı, desteklenmiyor mu belirsiz)', invalid: 'okundu ama geçersiz', unsupported: 'API değer döndürmedi', available: 'okundu', denied: 'erişim reddedildi', missing: 'okunamadı (yok ya da erişim kısıtlı)', pending: 'veri bekleniyor' };
+const TCP_PROP_SHORT = { valid: 'Okundu · birim doğrulandı', read_unit_unknown: 'Okundu · birim doğrulanmadı', zero: 'Okundu: 0 (belirsiz)', invalid: 'Okundu · geçersiz', unsupported: 'API değer vermedi' };
+const TCP_SIGN = { doc: 'işaret Android belgesine uygun', inverted: 'işaret belgenin tersi (üretici farkı olabilir); yalnızca büyüklük kullanılır', unknown: 'işaret doğrulanamadı' };
+const TCP_BG = { off: null, schedule_failed: 'Zamanlama başarısız oldu', unverified: 'Zamanlandı · çalıştığı henüz gözlenmedi (doğrulanmadı)', observed: 'Arka planda çalıştığı gözlendi', run_failed: 'Arka plan çalışması hata verdi (son çalışma başarısız)', stale: 'Son arka plan çalışması uzun süre önce (pil optimizasyonu engelliyor olabilir)' };
+const TCP_LIMITS = 'Pil sağlığı yüzdesi Android\'in herkese açık bir API\'siyle verilmez. Bu sayfadaki değerler yalnızca cihazın uygulamalara açtığı kaynaklardan okunur veya (açıkça "TAHMİN" etiketiyle) hesaplanır. Üreticiye özel kaynaklar gerçek cihazda doğrulanmadıkça tek başına düşük güvenle (başka kaynakla örtüşürse en fazla orta güvenle) işaretlenir. TeknoCheck\'in izleme döngüsü, cihazın ömür boyu toplam döngüsü DEĞİLDİR.';
+
+const tcpNum = (v, d) => (typeof v === 'number' && isFinite(v) ? v.toLocaleString('tr-TR', { maximumFractionDigits: d == null ? 0 : d }) : null);
+const tcpPct = (n) => (typeof n === 'number' ? '%' + tcpNum(n) : null);
+// Pil seviyesi "66%" biçiminde (sağlık/kayıp yüzdeleri tcpPct ile kalır)
+const tcpLevel = (n) => (typeof n === 'number' && isFinite(n) ? tcpNum(n) + '%' : null);
+// Voltaj mV'den (tam sayı) 3 ondalıklı volt: 4004 → "4,004 V". mV yoksa volt değerinden (eski veri) aynı biçim.
+const tcpVolt = (mv, v) => { const x = typeof mv === 'number' && isFinite(mv) ? mv / 1000 : (typeof v === 'number' && isFinite(v) ? v : null); return x == null ? null : x.toLocaleString('tr-TR', { minimumFractionDigits: 3, maximumFractionDigits: 3 }) + ' V'; };
+const tcpRaw = (x) => (typeof x === 'number' && isFinite(x) ? x.toLocaleString('tr-TR', { maximumFractionDigits: 0 }) : null);
+
+async function tcPilFetch() {
+  const n = tcNative();
+  if (!n || typeof n.getBatteryAnalysis !== 'function') return null;
+  try { const d = await n.getBatteryAnalysis(); return d && d.schema === 1 ? d : null; } catch (e) { return null; }
+}
+// Saf: yerel verinin görünüm modeli (testlenebilir)
+function tcPilModel(d) {
+  if (!d) return null;
+  const h = d.health || {}, c = d.cycles || {}, live = d.live || {}, tr = c.tracked || {}, rep = c.reported || null, mon = d.monitoring || {}, mx = d.matrix || {};
+  const method = h.method || 'none', conf = h.confidence || 'insufficient';
+  const m = {
+    takenAt: d.takenAt, device: d.device || {},
+    main: {
+      percent: h.showExact ? h.percent : null, range: !h.showExact && Array.isArray(h.range) ? h.range : null, status: h.showExact ? h.status : null,
+      method, methodLabel: TCP_METHOD[method], kind: TCP_KIND[method], confidence: conf, confidenceLabel: TCP_CONF[conf], score: h.confidenceScore,
+      source: h.source || null, sampleCount: h.sampleCount || 0, observationDays: h.observationDurationMs ? Math.round(h.observationDurationMs / 86400000 * 10) / 10 : 0, lastUpdated: h.lastUpdated || d.takenAt,
+      explain: TCP_EXPLAIN[method] || TCP_EXPLAIN.none, note: h.note || '', conflicts: h.conflicts || [], estimateState: h.estimateState || null,
+      sessions: h.estimateSessions || 0, sessionsNeeded: h.estimateSessionsNeeded || 2,
+    },
+    capacity: { design: h.designCapacityMah == null ? null : h.designCapacityMah, designSource: h.designSource || null, full: h.estimatedFullCapacityMah == null ? null : h.estimatedFullCapacityMah, fullIsEstimate: h.fullCapacityKind ? h.fullCapacityKind === 'estimate' : method === 'estimated', lossMah: h.capacityLossMah == null ? null : h.capacityLossMah, lossPercent: h.capacityLossPercent == null ? null : h.capacityLossPercent },
+    cycles: {
+      reported: rep ? { value: rep.value, source: rep.source, readAt: rep.readAt, note: rep.note } : null, reportedNote: c.reportedNote || '', candidates: Array.isArray(c.candidates) ? c.candidates : [],
+      tracked: { enabled: !!tr.enabled, since: tr.since || null, efc: tr.equivalentCycles == null ? null : tr.equivalentCycles, dischargedMah: tr.dischargedMah || 0, chargedMah: tr.chargedMah || 0, coverage: tr.coveragePercent == null ? null : tr.coveragePercent, basisMah: tr.basisMah == null ? null : tr.basisMah, basisSource: tr.basisSource || null, samples: tr.samples || 0, lastSampleAt: tr.lastSampleAt || null },
+    },
+    live: { level: live.levelPercent, voltageV: live.voltageV, voltageMv: live.voltageMv == null ? null : live.voltageMv, currentMa: live.currentMa, currentUncertain: !!live.currentUnitUncertain, currentRaw: live.currentRaw == null ? null : live.currentRaw, currentState: live.currentState || null, currentSign: live.currentSign || null, counterRaw: live.chargeCounterRaw == null ? null : live.chargeCounterRaw, counterState: live.chargeCounterState || null, temperatureC: live.temperatureC, charging: live.charging, plug: live.plug, technology: live.technology, healthCategory: live.healthCategory, counterMah: live.chargeCounterMah },
+    monitor: { enabled: !!mon.enabled, samples: mon.samples || 0, sessions: mon.sessions || 0, sessionsNeeded: mon.sessionsNeeded || 2, declaredDesign: mon.declaredDesignMah == null ? null : mon.declaredDesignMah, bg: mon.background ? { state: mon.background.state || 'unverified', schedule: mon.background.schedule || null, runs: mon.background.runs || 0, lastRunAt: mon.background.lastRunAt || null, okRuns: mon.background.okRuns || 0, lastOkAt: mon.background.lastOkAt || null, fails: mon.background.fails || 0, lastFailAt: mon.background.lastFailAt || null, failType: mon.background.failType || null } : null, power: mon.power || null },
+    sources: Array.isArray(d.sources) ? d.sources : [], matrix: mx,
+  };
+  return m;
+}
+const tcpRow = (k, v, extra) => `<div class="tcpil-row"><span>${escapeHtml(k)}</span><b>${v == null ? '<i class="tcpil-na">—</i>' : escapeHtml(String(v))}</b>${extra ? `<small>${escapeHtml(extra)}</small>` : ''}</div>`;
+function tcPilHTML(m, native) {
+  if (!native) return `<div class="tcx tcpil"><div class="tc-status" role="note" id="tcpil-web"><b>Pil analizi Android uygulamasında çalışır.</b> Tarayıcı, pil kapasitesi, şarj sayacı ve döngü bilgisini sayfalara açmaz; bu yüzden burada pil sağlığı ölçülemez ve tahmin edilmez. Teknohane Android uygulamasını kullan.</div><p class="tcx-limits">${escapeHtml(TCP_LIMITS)}</p></div>`;
+  if (!m) return `<div class="tcx tcpil"><div class="hm-state" id="tcpil-fail"><b>Pil verisi okunamadı</b><span>Cihaz pil bilgisini bu sırada vermedi veya uygulama sürümü bu özelliği desteklemiyor. Uygulamayı güncelleyip tekrar dene.</span></div></div>`;
+  const a = m.main, cp = m.capacity, cy = m.cycles, lv = m.live, mo = m.monitor;
+  const big = a.percent != null ? `<div class="tcpil-big" id="tcpil-percent">%${escapeHtml(String(a.percent))}</div>` : a.range ? `<div class="tcpil-big tcpil-big--range" id="tcpil-range">%${a.range[0]}–${a.range[1]} <small>arası (tahmini)</small></div>` : `<div class="tcpil-big tcpil-big--na" id="tcpil-na">Hesaplanamadı</div>`;
+  const kindChip = a.kind ? `<span class="tk-badge tk-badge--${a.method === 'estimated' ? 'warning' : 'success'}">${escapeHtml(a.kind)}</span>` : '';
+  const confCls = a.confidence === 'high' ? 'success' : a.confidence === 'medium' ? 'info' : a.confidence === 'low' ? 'warning' : 'neutral';
+  const prog = a.method !== 'direct_soh' && a.method !== 'capacity_ratio' && m.monitor.enabled ? `<div class="tc-status" role="note" id="tcpil-progress">Tahmin için veri toplanıyor: <b>${a.sessions}/${a.sessionsNeeded}</b> yeterli şarj/deşarj oturumu · ${mo.samples} örnek. Pil seviyesinin geniş bir aralıkta (ör. %20→%80) değiştiği oturumlar sayılır.</div>` : '';
+  const main = `<section class="tcpil-main" aria-label="Pil sağlığı"><div class="tcpil-top"><div class="tcpil-h">Pil sağlığı</div><div class="tcpil-chips">${kindChip}<span class="tk-badge tk-badge--${confCls}" id="tcpil-conf">Güvenilirlik: ${escapeHtml(a.confidenceLabel)}</span></div></div>${big}${a.status ? `<div class="tcpil-status" id="tcpil-status">${escapeHtml(a.status)}</div>` : ''}
+    <p class="tcpil-explain" id="tcpil-explain">${escapeHtml(a.explain)}</p>
+    ${tcpRow('Ölçüm yöntemi', a.methodLabel)}${tcpRow('Kaynak', a.source)}${tcpRow('Son ölçüm', tcFmtDate(a.lastUpdated))}${a.method === 'estimated' ? tcpRow('Tahmin verisi', a.sampleCount + ' örnek · ' + a.sessions + ' oturum' + (a.observationDays ? ' · ' + tcpNum(a.observationDays, 1) + ' gün' : '')) : ''}
+    ${a.percent == null && a.note ? `<p class="tcpil-note" id="tcpil-why">${escapeHtml(a.note)}</p>` : ''}${a.conflicts.length ? `<div class="tc-status tc-status--warn" role="note" id="tcpil-conflict"><b>Kaynaklar çelişiyor:</b> ${a.conflicts.map(escapeHtml).join(' · ')}. Öncelik sırası: doğrudan sağlık > kapasite oranı > tahmin.</div>` : ''}${prog}</section>`;
+  const designIn = cp.design == null ? `<div class="tcpil-declare" id="tcpil-declare"><label for="tcpil-design">Fabrika (tasarım) kapasitesi, mAh — telefonun kutusunda/teknik özelliklerinde yazan değer</label><div class="tcpil-declare-r"><input type="number" inputmode="numeric" id="tcpil-design" min="1000" max="20000" placeholder="ör. 5000" value="${mo.declaredDesign || ''}"><button type="button" class="tk-btn tk-btn--outline tk-btn--sm" id="tcpil-design-save">Kaydet</button></div><small>Bu değer SENİN beyanındır (cihazdan okunmadı); tahmini sağlık yüzdesini hesaplamak için kullanılır.</small></div>` : '';
+  // tek satır: mAh + yüzde (eskiden iki ayrı "Kapasite kaybı" satırı vardı)
+  const lossTxt = cp.lossMah != null && a.percent != null ? tcpNum(cp.lossMah) + ' mAh' + (cp.lossPercent != null ? ' (%' + tcpNum(cp.lossPercent) + ')' : '') : (cp.lossPercent != null && a.percent != null ? '%' + tcpNum(cp.lossPercent) : null);
+  const capacity = `<section class="tcpil-sec" aria-label="Pil kapasitesi"><h3 class="pd-sec-t">Pil kapasitesi</h3>${tcpRow('Fabrika tasarım kapasitesi', cp.design != null ? tcpNum(cp.design) + ' mAh' : null, cp.design != null ? (cp.designSource === 'kullanıcı beyanı' ? 'Kullanıcı beyanı' : 'Cihazdan okundu (' + (cp.designSource || '') + ')') : 'Cihaz bu değeri uygulamalara açmıyor')}${tcpRow(cp.fullIsEstimate ? 'Tahmini tam dolum kapasitesi' : 'Mevcut tam dolum kapasitesi', cp.full != null ? tcpNum(cp.full) + ' mAh' : null, cp.full != null ? (cp.fullIsEstimate ? 'TAHMİN — gerçek ölçüm değil' : 'Cihazdan okundu') : 'Güvenilir değer alınamadı')}${tcpRow('Kapasite kaybı', lossTxt, lossTxt && cp.fullIsEstimate ? 'TAHMİN — gerçek ölçüm değil' : null)}${designIn}</section>`;
+  const rp = cy.reported, tk = cy.tracked;
+  const reported = rp ? tcpRow('Cihazın bildirdiği gerçek döngü', tcpNum(rp.value), 'Cihaz tarafından bildirilen döngü · ' + rp.source + ' · okundu: ' + tcFmtDate(rp.readAt)) : tcpRow('Cihazın bildirdiği gerçek döngü', null, cy.reportedNote || 'Bu cihaz bildirmiyor');
+  const efcRow = tk.enabled || tk.samples ? tcpRow('TeknoCheck eşdeğer tam döngü', tk.efc != null ? tcpNum(tk.efc, 2) : (tk.dischargedMah ? 'Hesaplanamadı' : '0'), 'Yalnızca izleme başlangıcından itibaren' + (tk.since ? ' (' + tcFmtDate(tk.since) + ')' : '') + (tk.basisSource ? ' · ' + tk.basisSource + ' esas alındı' : tk.dischargedMah ? ' · tasarım/tahmini kapasite bilinmediği için döngü hesaplanamadı' : '')) : tcpRow('TeknoCheck eşdeğer tam döngü', null, 'İzleme kapalı; başlatınca yalnızca BUNDAN SONRAKİ kullanım ölçülür');
+  // Aday kaynaklar ayrı gösterilir: yalnızca BİRİ seçilir, asla toplanmaz
+  const candTxt = cy.candidates.length ? `<p class="tcpil-note" id="tcpil-cycle-src">Döngü kaynakları (toplanmaz, yalnızca biri seçilir): ${cy.candidates.map((x) => escapeHtml(x.source + ': ' + (x.value == null ? 'okunamadı' : tcpNum(x.value)) + (x.selected ? ' ← seçildi' : ''))).join(' · ')}</p>` : '';
+  const cycles = `<section class="tcpil-sec" aria-label="Şarj döngüsü"><h3 class="pd-sec-t">Şarj döngüsü</h3>${reported}${candTxt}${efcRow}${tk.enabled || tk.samples ? tcpRow('Ölçülen deşarj / şarj', tcpNum(tk.dischargedMah) + ' mAh / ' + tcpNum(tk.chargedMah) + ' mAh', tk.coverage != null ? 'İzleme kapsamı %' + tk.coverage + ' (uygulamanın ölçemediği süreler sayılmaz, uydurulmaz)' : null) : ''}<p class="tcpil-note">TeknoCheck'in hesapladığı döngü, cihazın ömür boyu toplam döngüsü değildir ve cihazın bildirdiği gerçek döngüyle toplanmaz.</p></section>`;
+  // Akım: değer okunduysa ama birimi doğrulanmadıysa "sunmuyor" DENMEZ; ham değer gösterilir, mA'ya çevrilmez. İşaret ayrıca raporlanır.
+  const signTxt = lv.currentSign ? TCP_SIGN[lv.currentSign] : null;
+  const curRow = lv.currentMa != null ? tcpRow('Akım', tcpNum(lv.currentMa) + ' mA', (lv.charging === 'charging' ? 'şarj akımı' : 'deşarj akımı') + (lv.currentUncertain ? ' · birim belirsiz (tahmini)' : '') + (signTxt ? ' · ' + signTxt : ''))
+    : lv.currentState === 'read_unit_unknown' ? tcpRow('Akım', 'Ham değer ' + tcpRaw(lv.currentRaw), 'Birim (µA/mA) henüz doğrulanamadığı için mA\'ya çevrilmedi' + (signTxt ? ' · ' + signTxt : ''))
+    : lv.currentState === 'zero' ? tcpRow('Akım', 'Ham değer 0', TCP_PROP_STATE.zero)
+    : lv.currentState === 'invalid' ? tcpRow('Akım', null, TCP_PROP_STATE.invalid)
+    : tcpRow('Akım', null, lv.currentState === 'unsupported' ? 'Cihaz anlık akımı sunmuyor (API değer döndürmedi)' : 'Cihaz anlık akımı sunmuyor');
+  // Şarj sayacı (kalan şarj; tam dolum kapasitesi DEĞİL)
+  const cntRow = lv.counterMah != null ? tcpRow('Şarj sayacı (kalan şarj)', tcpNum(lv.counterMah) + ' mAh', 'Cihazdan okundu · birim doğrulandı · tam dolum kapasitesi değildir')
+    : lv.counterState === 'read_unit_unknown' ? tcpRow('Şarj sayacı (kalan şarj)', 'Ham değer ' + tcpRaw(lv.counterRaw), 'Birim henüz doğrulanamadı (Android belgesine göre µAh; bu cihazda doğrulanmadı), mAh\'ya çevrilmedi')
+    : lv.counterState === 'invalid' ? tcpRow('Şarj sayacı (kalan şarj)', null, TCP_PROP_STATE.invalid)
+    : lv.counterState ? tcpRow('Şarj sayacı (kalan şarj)', null, 'Cihaz şarj sayacını sunmuyor (API değer döndürmedi)') : '';
+  const liveRows = `<section class="tcpil-sec" aria-label="Anlık pil bilgileri"><h3 class="pd-sec-t">Anlık pil bilgileri</h3>${tcpRow('Şarj seviyesi', tcpLevel(lv.level))}${tcpRow('Voltaj', tcpVolt(lv.voltageMv, lv.voltageV))}${curRow}${cntRow}${tcpRow('Sıcaklık', lv.temperatureC != null ? tcpNum(lv.temperatureC, 1) + ' °C' : null)}${tcpRow('Şarj durumu', TCP_CHARGING[lv.charging] || null)}${tcpRow('Pil teknolojisi', lv.technology || null)}${tcpRow('Android pil durumu (ısı/voltaj)', TCP_HEALTHCAT[lv.healthCategory] || null, TCP_HEALTHCAT_NOTE)}</section>`;
+  const bg = mo.bg, bgState = bg ? bg.state : 'unverified';
+  // Arka plan: yalnızca GÖZLENEN çalışmalar sayılır; başarılı/başarısız ayrı; sistem (pil optimizasyonu) bilgisi izin istemeden okunur
+  const okTxt = bg && bg.okRuns ? ' · ' + bg.okRuns + ' başarılı' + (bg.lastOkAt ? ' (son başarılı: ' + tcFmtDate(bg.lastOkAt) + ')' : '') : '';
+  const bgRow = mo.enabled ? tcpRow('Arka plan örneklemesi', TCP_BG[bgState] || TCP_BG.unverified, bg && (bgState === 'observed' || bgState === 'stale') ? bg.runs + ' çalışma gözlendi' + okTxt + (bg.lastRunAt ? ' · son çalışma: ' + tcFmtDate(bg.lastRunAt) : '') + ' · düzenli 15 dk aralık doğrulanmış sayılmaz' : bgState === 'run_failed' ? bg.fails + ' çalışma hata verdi' + (bg.failType ? ' (' + bg.failType + ')' : '') + (bg.lastFailAt ? ' · son hata: ' + tcFmtDate(bg.lastFailAt) : '') + okTxt : bgState === 'schedule_failed' ? 'Yalnızca uygulama açıkken örnek alınır' : 'Gerçek cihazda arka plan çalışması henüz doğrulanmadı; üretici pil optimizasyonu engelleyebilir. Uygulama açıkken seviye değişimiyle de örnek alınır.') : '';
+  const pw = mo.power || {};
+  const pwRow = mo.enabled && (pw.backgroundRestricted === true || pw.ignoringBatteryOptimizations === false || pw.ignoringBatteryOptimizations === true) ? tcpRow('Pil optimizasyonu (bu uygulama)', pw.backgroundRestricted === true ? 'Arka plan kısıtlanmış' : pw.ignoringBatteryOptimizations === false ? 'Açık (üretici işi geciktirebilir)' : 'Kapalı (kısıtlama yok)', pw.backgroundRestricted === true || pw.ignoringBatteryOptimizations === false ? (bgState === 'stale' || bgState === 'unverified' || bgState === 'run_failed' ? 'Düzenli örnekleme için Ayarlar › Uygulamalar › Teknohane › Pil bölümünde "Kısıtlama yok" seçebilirsin; seçmesen de uygulama açıkken örnek alınır.' : 'Sistem arka plan çalışmasını geciktirebilir.') : null) : '';
+  const monitor = `<section class="tcpil-sec" aria-label="Pil izleme"><h3 class="pd-sec-t">Pil izleme</h3><p class="tcpil-note">İzleme açıkken TeknoCheck pil seviyesini ve şarj sayacını az sıklıkta (hedef ≈15 dk, ve uygulama açıkken seviye değiştikçe) kaydeder. Kayıtlı örnekler yalnızca bu cihazda kalır; rapor oluşturursan yalnızca özet sonuç (ham örnekler değil) rapora girer. Sürekli servis kullanılmaz.</p>${tcpRow('İzleme ayarı', mo.enabled ? 'Açık (senin isteğinle)' : 'Kapalı')}${bgRow}${pwRow}${tcpRow('Kayıtlı örnek', mo.samples)}${tcpRow('Tahmin oturumları', mo.sessions + ' / ' + mo.sessionsNeeded + ' gerekli')}<div class="tcpil-actions"><button type="button" class="tk-btn ${mo.enabled ? 'tk-btn--outline' : 'tk-btn--primary'} tk-btn--block" id="tcpil-toggle">${mo.enabled ? 'Pil izlemeyi durdur' : 'Pil izlemeyi başlat'}</button><button type="button" class="tk-btn tk-btn--outline tk-btn--block" id="tcpil-reset" ${mo.samples || tk.dischargedMah ? '' : 'disabled'}>İzleme verisini sıfırla</button></div></section>`;
+  // Her kaynak KENDİ durumuyla ve kendi kanalı altında: bir kaynağın okunamaması diğerinin de okunamadığı anlamına gelmez.
+  const srcRow = (s) => tcpRow(s.name, TCP_SRC_STATE[s.state] || s.state, [s.path, s.note, s.channel !== 'sysfs' && s.value != null ? 'ham: ' + tcpRaw(s.value) : null].filter(Boolean).join(' · ') || null);
+  const srcLines = TCP_SRC_GROUPS.map(([ch, title]) => { const rows = m.sources.filter((s) => (s.channel || 'sysfs') === ch); return rows.length ? `<h5 class="tcpil-h5">${escapeHtml(title)}</h5>${rows.map(srcRow).join('')}` : ''; }).join('');
+  const mx = m.matrix, dev = m.device;
+  const stateTxt = (v, est) => (est ? ({ available: 'tahmin üretildi', unsupported: 'yapılamıyor (şarj sayacı sunulmuyor)', pending: 'veri bekleniyor' }[v] || 'yok') : (TCP_PROP_STATE[v] || 'okunamadı (yok ya da erişim kısıtlı)'));
+  const detail = `<details class="tcx-priv tcpil-det" id="tcpil-sources"><summary>Veriler nasıl elde edildi? (kaynaklar ve destek durumu)</summary><div class="tcpil-src">${srcLines}</div><h4 class="tcpil-h4">Bu cihazın destek durumu</h4>${tcpRow('Cihaz', [dev.manufacturer, dev.model].filter(Boolean).join(' ') + ' · Android ' + (dev.androidRelease || ''))}${tcpRow('Şarj döngüsü verisi', stateTxt(mx.cycleData))}${tcpRow('Doğrudan sağlık (SOH) verisi', stateTxt(mx.sohData))}${tcpRow('Tasarım kapasitesi', stateTxt(mx.designCapacity))}${tcpRow('Şarj sayacı (BatteryManager)', stateTxt(mx.chargeCounter))}${tcpRow('Anlık akım (BatteryManager)', stateTxt(mx.currentNow))}${tcpRow('Tahmini sağlık', stateTxt(mx.estimatedHealth, true))}${tcpRow('Güven seviyesi', TCP_CONF[mx.confidence] || null)}${mx.multiBattery ? tcpRow('Çoklu batarya', 'Birden fazla batarya algılandı; kapasiteler karıştırılmadı') : ''}${mx.supplyListDenied ? tcpRow('Sistem pil dizini', 'listelenemedi (erişim kısıtlı olabilir)') : ''}<p class="tcpil-note" id="tcpil-legend">“Okundu”, değerin gerçekten okunduğu anlamına gelir; bir API'nin var olması tek başına “okundu” sayılmaz. Birimi veya işareti doğrulanmayan değer mAh/mA'ya çevrilmez, ham olarak gösterilir. Bu tablo gerçek cihazda henüz yalnızca bu cihaz için görülmüştür.</p><p class="tcpil-note">Üretici adaptörleri (${escapeHtml((mx.adapters || []).join(', '))}) gerçek cihazda doğrulanmadığı için üretici-özel kaynaklar tek başına düşük, başka bir kaynakla örtüşürse en fazla orta güvenle kullanılır (asla yüksek değil).</p></details>`;
+  return `<div class="tcx tcpil">${main}${capacity}${cycles}${liveRows}${monitor}${detail}<p class="tcx-limits" id="tcpil-limits">${escapeHtml(TCP_LIMITS)}</p></div>`;
+}
+let tcPilLast = null;
+async function tcPilOpen() {
+  const m = tcEnsureModal(); m.classList.add('on'); if (!TCK) TCK = { platform: tcPlatform(), device: null, tests: {}, busy: false };
+  tcSetTitle('Pil analizi'); const b = tcBody();
+  if (!tcNative()) { b.innerHTML = tcPilHTML(null, false); return; }
+  b.innerHTML = '<div class="load"><div class="spin"></div><span>Pil verileri okunuyor…</span></div>';
+  await tcPilRender();
+}
+async function tcPilRender() {
+  const b = tcBody(); if (!b) return;
+  const d = await tcPilFetch(); tcPilLast = d; if (TCK) TCK.pilLast = d ? { at: new Date().toISOString(), data: d } : null;
+  b.innerHTML = tcPilHTML(tcPilModel(d), true);
+  const on = (id, fn) => { const el = b.querySelector(id); if (el) el.addEventListener('click', fn); };
+  on('#tcpil-toggle', async () => { const n = tcNative(); try { await n.batteryMonitorSet({ enabled: !(tcPilLast && tcPilLast.monitoring && tcPilLast.monitoring.enabled) }); } catch (e) { showToast('⚠️', 'rgba(var(--danger-rgb),.15)', 'İzleme ayarlanamadı', 'Cihaz pil izlemeyi başlatamadı.'); } await tcPilRender(); });
+  on('#tcpil-reset', async () => { const ok = await confirmDialog('İzleme sırasında toplanan örnekler, tahmin oturumları ve hesaplanan eşdeğer döngü silinsin mi? Cihazın bildirdiği değerler etkilenmez.', { title: 'İzleme verisini sıfırla', confirmText: 'Sıfırla', cancelText: 'Vazgeç' }); if (!ok) return; try { const n = tcNative(); await n.batteryReset(); } catch (e) { /* sıfırlanamadı: yeniden okunur */ } await tcPilRender(); });
+  on('#tcpil-design-save', async () => {
+    const v = parseInt((b.querySelector('#tcpil-design') || {}).value, 10);
+    if (!Number.isFinite(v) || v < 1000 || v > 20000) { showToast('⚠️', 'rgba(var(--danger-rgb),.15)', 'Geçersiz kapasite', '1000–20000 mAh arasında bir değer gir.'); return; }
+    try { const n = tcNative(); await n.batteryDeclareDesign({ mah: v }); } catch (e) { showToast('⚠️', 'rgba(var(--danger-rgb),.15)', 'Kaydedilemedi', 'Değer cihaza kaydedilemedi.'); return; }
+    await tcPilRender();
+  });
+}
+// ---- rapor: yerel anlık görüntü (oluşturulduğu ANDAKİ değerler; sonradan değişen veriler eski raporu etkilemez)
+function tcPilSnapshot(d) {
+  if (!d || d.schema !== 1) return null;
+  const h = d.health || {}, c = d.cycles || {}, lv = d.live || {}, tr = c.tracked || {}, rep = c.reported || null;
+  return {
+    v: 1, takenAt: d.takenAt, device: { manufacturer: (d.device || {}).manufacturer, model: (d.device || {}).model, androidRelease: (d.device || {}).androidRelease },
+    health: { percent: h.showExact ? h.percent : null, range: Array.isArray(h.range) ? h.range : null, status: h.showExact ? h.status : null, method: h.method, source: h.source || null, confidence: h.confidence, score: h.confidenceScore, sampleCount: h.sampleCount || 0, observationDays: h.observationDurationMs ? Math.round(h.observationDurationMs / 86400000 * 10) / 10 : 0, designMah: h.designCapacityMah == null ? null : h.designCapacityMah, designSource: h.designSource || null, fullMah: h.estimatedFullCapacityMah == null ? null : h.estimatedFullCapacityMah, fullKind: h.fullCapacityKind === 'estimate' || h.fullCapacityKind === 'device' ? h.fullCapacityKind : (h.method === 'estimated' ? 'estimate' : h.method === 'capacity_ratio' ? 'device' : null), unverifiedAdapter: !!h.unverifiedSource, lossMah: h.capacityLossMah == null ? null : h.capacityLossMah, lossPercent: h.capacityLossPercent == null ? null : h.capacityLossPercent, conflicts: h.conflicts || [], note: h.note || '' },
+    cycles: { reported: rep ? { value: rep.value, source: rep.source, readAt: rep.readAt } : null, tracked: { since: tr.since || null, efc: tr.equivalentCycles == null ? null : tr.equivalentCycles, dischargedMah: tr.dischargedMah || 0, coverage: tr.coveragePercent == null ? null : tr.coveragePercent, basisSource: tr.basisSource || null, enabled: !!tr.enabled } },
+    live: { level: lv.levelPercent == null ? null : lv.levelPercent, voltageV: lv.voltageV == null ? null : lv.voltageV, voltageMv: lv.voltageMv == null ? null : lv.voltageMv, currentMa: lv.currentMa == null ? null : lv.currentMa, temperatureC: lv.temperatureC == null ? null : lv.temperatureC, charging: lv.charging || null, technology: lv.technology || null },
+    props: { chargeCounter: lv.chargeCounterState || null, currentNow: lv.currentState || null, currentSign: lv.currentSign || null },
+    monitoring: { enabled: !!(d.monitoring || {}).enabled, runs: ((d.monitoring || {}).background || {}).runs || 0, background: ((d.monitoring || {}).background || {}).state || null },
+  };
+}
+// Rapor oluşturulurken: son 15 dk içinde açılmış analiz varsa o, yoksa yeni okuma. Hata/Web: null (rapor etkilenmez)
+async function tcPilCapture() {
+  try {
+    const s = TCK && TCK.pilLast; if (s && Date.now() - Date.parse(s.at) < 15 * 60000) return tcPilSnapshot(s.data);
+    return tcPilSnapshot(await tcPilFetch());
+  } catch (e) { return null; }
+}
+// Saf: PDF/rapor bölümü. p: yerel anlık görüntü (imzasız) YA DA imzalı kayıttan türetilen görünüm (p.signed === true). p yoksa null (bölüm hiç eklenmez → eski raporlar/testler aynen kalır).
+// İlke: ölçülen / üretici-bildirdiği / TAHMİN ayrı etiketlenir; imzalı bölüm ile PDF AYNI kaynaktan (imzalı kayıt) üretilir.
+function tcPilSection(p) {
+  if (!p || p.v !== 1) return null;
+  const h = p.health || {}, cy = p.cycles || {}, lv = p.live || {}, rows = [];
+  const conf = TCP_CONF[h.confidence] || '—';
+  const val = h.percent != null ? '%' + h.percent + (h.status ? ' · ' + h.status : '') : (Array.isArray(h.range) ? '%' + h.range[0] + '–' + h.range[1] + ' arası (tahmini)' : 'Hesaplanamadı');
+  rows.push(['Pil sağlığı', val + (h.method === 'estimated' ? ' (TAHMİN)' : ''), 'Yöntem: ' + (TCP_METHOD[h.method] || '—') + (h.source ? ' · Kaynak: ' + h.source : '')]);
+  rows.push(['Güvenilirlik', conf, (h.sampleCount ? h.sampleCount + ' örnek' + (h.observationDays ? ' · ' + tcpNum(h.observationDays, 1) + ' gün' : '') + ' · ' : '') + 'Ölçüm: ' + tcFmtDate(p.takenAt)]);
+  rows.push(['Tasarım kapasitesi', h.designMah != null ? h.designMah + ' mAh' : 'Alınamadı', h.designMah != null ? (h.designSource === 'kullanıcı beyanı' ? 'Kullanıcı beyanı (cihazdan okunmadı)' : 'Cihazdan okundu') : 'Cihaz bu değeri sunmuyor']);
+  // Tahmini ve cihazdan okunan tam kapasite ASLA aynı etiketle gösterilmez (fullKind)
+  const fullEst = h.fullKind === 'estimate' || (h.fullKind == null && h.method === 'estimated');
+  rows.push([fullEst ? 'Tahmini tam kapasite' : 'Mevcut tam kapasite', h.fullMah != null ? h.fullMah + ' mAh' : 'Alınamadı', h.fullMah != null ? (fullEst ? 'TAHMİN — gerçek ölçüm değil' : 'Cihazdan okundu') : '']);
+  if (h.lossMah != null && h.percent != null) rows.push(['Kapasite kaybı', h.lossMah + ' mAh' + (h.lossPercent != null ? ' (%' + h.lossPercent + ')' : ''), fullEst ? 'TAHMİN' : '']);
+  else if (h.lossPercent != null && h.percent != null) rows.push(['Kapasite kaybı', '%' + h.lossPercent, '']);
+  rows.push(['Döngü (cihazın bildirdiği)', cy.reported ? String(cy.reported.value) : 'Bildirilmiyor', cy.reported ? 'Cihaz tarafından bildirilen · ' + cy.reported.source + ' · ' + tcFmtDate(cy.reported.readAt) : 'Bu cihaz şarj döngüsünü uygulamalara bildirmiyor']);
+  const tk = cy.tracked || {};
+  rows.push(['Döngü (TeknoCheck izlemesi)', tk.enabled || tk.efc != null ? (tk.efc != null ? tcpNum(tk.efc, 2) + ' eşdeğer tam döngü' : 'Hesaplanamadı') : 'İzleme yapılmadı', tk.since ? 'Yalnızca izleme başlangıcından itibaren (' + tcFmtDate(tk.since) + ')' + (tk.coverage != null ? ' · kapsam %' + tk.coverage : '') + ' — ömür boyu toplam değildir; cihazın bildirdiği döngüyle toplanmaz' : 'Ömür boyu toplam döngü değildir; cihazın bildirdiği döngüyle toplanmaz']);
+  const liveTxt = [tcpLevel(lv.level), tcpVolt(lv.voltageMv, lv.voltageV), lv.currentMa != null ? lv.currentMa + ' mA' : null, lv.temperatureC != null ? tcpNum(lv.temperatureC, 1) + ' °C' : null, TCP_CHARGING[lv.charging] || null, lv.technology || null].filter(Boolean).join(' · ');
+  rows.push(['Anlık değerler', liveTxt || 'Alınamadı', 'Rapor anındaki anlık görüntü']);
+  // Ham değerin birimi/işareti doğrulanmadıysa söylenir (mA/mAh uydurulmaz)
+  const pr = p.props || {};
+  if (pr.chargeCounter) rows.push(['Şarj sayacı (BatteryManager)', TCP_PROP_SHORT[pr.chargeCounter] || pr.chargeCounter, pr.chargeCounter === 'valid' ? 'Kalan şarj; tam dolum kapasitesi değildir' : 'Birimi doğrulanmayan değer mAh\'a çevrilmez']);
+  if (pr.currentNow) rows.push(['Anlık akım (BatteryManager)', TCP_PROP_SHORT[pr.currentNow] || pr.currentNow, [pr.currentNow === 'valid' ? null : 'Birimi doğrulanmayan değer mA\'ya çevrilmez', pr.currentSign && pr.currentSign !== 'unknown' ? (TCP_SIGN[pr.currentSign] || '') : null].filter(Boolean).join(' · ')]);
+  const mo = p.monitoring || null;
+  if (mo) rows.push(['Pil izleme', mo.enabled ? 'Açık' : 'Kapalı', mo.enabled ? (TCP_BG[mo.background] || TCP_BG.unverified) + (mo.runs ? ' (' + mo.runs + ' çalışma)' : '') : 'İzleme yapılmadı']);
+  const signed = p.signed === true;
+  const notes = [h.note ? 'Ölçüm açıklaması: ' + h.note : null, ...(h.conflicts || []).map((x) => 'Kaynak çelişkisi: ' + x), h.conflictCount ? 'Kaynaklar arasında ' + h.conflictCount + ' çelişki bildirildi.' : null,
+    h.unverifiedAdapter ? 'Bu değer, gerçek cihazda doğrulanmamış üretici/sistem dosyasından geldiği için en fazla orta güvenle sunulur.' : null,
+    signed ? 'Bu bölüm sunucu kaydıyla İMZALIDIR: rapor oluşturulduktan sonra değiştirilemez. Pil değerlerini cihazdaki uygulama bildirir; sunucu donanımdan doğrulayamaz.'
+      : 'Bu bölüm cihazdaki yerel pil analizinin rapor anındaki anlık görüntüsüdür; sunucu imzasının DIŞINDADIR.' + (p.reason ? ' İmzaya eklenememe nedeni: ' + p.reason : ''), TCP_LIMITS].filter(Boolean);
+  return { title: 'Pil analizi' + (signed ? '' : ' (ek bölüm)'), badge: signed ? (h.method === 'estimated' ? 'İMZALI · tahmini · cihaz bildirimi' : 'İMZALI · cihaz bildirimi') : (h.method === 'estimated' ? 'TAHMİNİ · imzasız' : 'CİHAZ İÇİ · imzasız'), rows, notes };
+}
+
+// ==== Faz 26: İMZALI PİL ANALİZİ (rapor şeması v3) — istemci ucu ====
+// Native analizden (getBatteryAnalysis) sunucunun KATI doğrulayıcısına uyan anlık görüntü üretir. Kurallar Worker.tcValidateBattery ile AYNIDIR; tutarsız/okunamayan veri "yetersiz/yok"a DÜŞER, asla uydurulmaz.
+// Ham sayaç/akım değerleri imzalanmaz (yalnızca durumları). trust/origin/sourceKind alanlarını sunucu yazar.
+const TCP_W_BG = ['off', 'schedule_failed', 'unverified', 'observed', 'stale', 'run_failed'];
+const TCP_W_PROP = ['unsupported', 'zero', 'invalid', 'read_unit_unknown', 'valid'];
+const TCP_W_SRC_IDS = { sysfs: ['charge_full', 'charge_full_design', 'cycle_count', 'soh', 'charge_counter', 'current_now', 'voltage_now', 'temp'], batterymanager: ['CHARGE_COUNTER', 'CURRENT_NOW', 'CURRENT_AVERAGE', 'ENERGY_COUNTER', 'CAPACITY'], broadcast: ['EXTRA_CYCLE_COUNT', 'EXTRA_VOLTAGE'] };
+const TCP_W_SRC_STATES = ['available', 'denied', 'missing', 'unsupported', 'invalid', 'zero'];
+const TCP_W_CHARGING = ['charging', 'discharging', 'not_charging', 'full', 'unknown'];
+const TCP_W_HEALTHCAT = ['good', 'overheat', 'dead', 'over_voltage', 'failure', 'cold'];
+// Worker (TC_BAT_ORIGIN / TC_BAT_SRCKIND) ile AYNI eşleme: sunucu kaydındaki trust/origin/sourceKind alanları, gönderilen yükte yoktur; ekranda/PDF'te sunucu kaydıyla aynı görünüm için yöntemden türetilir.
+const TCP_ORIGIN_BY_METHOD = { direct_soh: 'device_reported', capacity_ratio: 'calculated_from_device', estimated: 'software_estimate', none: 'none' };
+const TCP_SRCKIND_BY_METHOD = { direct_soh: 'sysfs', capacity_ratio: 'sysfs', estimated: 'charge_counter_regression', none: 'none' };
+function tcPilCompleteSigned(b) {
+  if (!b || b.v !== 1 || !b.health) return b;
+  return { ...b, trust: 'client_reported', health: { ...b.health, origin: TCP_ORIGIN_BY_METHOD[b.health.method] || 'none', sourceKind: TCP_SRCKIND_BY_METHOD[b.health.method] || 'none' } };
+}
+const TCP_ORIGIN_LABEL = { device_reported: 'Cihaz/üretici dosyası bildirdi', calculated_from_device: 'Cihazdan okunan kapasite değerlerinden hesaplandı', software_estimate: 'TeknoCheck yazılımsal TAHMİNİ (ölçüm değildir)', none: 'Ölçülemedi' };
+const TCP_SRCKIND_LABEL = { sysfs: 'Sistem dosyaları (sysfs)', charge_counter_regression: 'Şarj sayacı ↔ pil seviyesi regresyonu', none: '—' };
+const TCP_CYCLE_SRC = { extra_cycle_count: 'Android BatteryManager (EXTRA_CYCLE_COUNT)', sysfs: 'sysfs (sistem dosyası)' };
+const TCP_TRUST_NOTE = 'Pil değerlerini cihazdaki uygulama bildirir; sunucu donanımdan doğrulayamaz. İmza, değerlerin rapor oluşturulduktan sonra değiştirilmediğini gösterir.';
+const tcpIntIn = (v, lo, hi) => (typeof v === 'number' && isFinite(v) && Math.round(v) === v && v >= lo && v <= hi ? v : null);
+const tcpNumIn = (v, lo, hi) => (typeof v === 'number' && isFinite(v) && v >= lo && v <= hi ? v : null);
+const tcpOneOf = (v, a) => (typeof v === 'string' && a.includes(v) ? v : null);
+function tcPilWire(d) {
+  if (!d || d.schema !== 1 || typeof d.takenAt !== 'string') return null;
+  const h = d.health || {}, c = d.cycles || {}, lv = d.live || {}, mon = d.monitoring || {}, tr = c.tracked || {}, rep = c.reported || null;
+  // ---- sağlık: güven ↔ gösterim uyumu (sunucu kuralıyla aynı)
+  let method = tcpOneOf(h.method, ['direct_soh', 'capacity_ratio', 'estimated', 'none']) || 'none', conf = tcpOneOf(h.confidence, ['high', 'medium', 'low', 'insufficient']) || 'insufficient';
+  let percent = h.showExact ? tcpIntIn(typeof h.percent === 'number' ? Math.round(h.percent) : null, 1, 100) : null;
+  let range = !h.showExact && Array.isArray(h.range) && h.range.length === 2 ? [tcpIntIn(h.range[0], 1, 100), tcpIntIn(h.range[1], 1, 100)] : null;
+  if (range && (range[0] == null || range[1] == null || range[0] >= range[1] || range[1] - range[0] > 20)) range = null;
+  if ((conf === 'medium' || conf === 'high') && percent == null) conf = 'insufficient';
+  if (conf === 'low') { percent = null; if (range == null) conf = 'insufficient'; }
+  if (conf === 'insufficient' || method === 'none') { method = 'none'; conf = 'insufficient'; percent = null; range = null; }
+  if (conf === 'medium' || conf === 'high') range = null;
+  if (method === 'estimated' && conf === 'high') conf = 'medium';
+  const unverified = method !== 'none' && (!!h.unverifiedSource || method === 'direct_soh');
+  if (unverified && conf === 'high') conf = 'medium';
+  // ---- kapasite: tahmin ile cihazdan okunan ASLA karışmaz
+  let design = tcpIntIn(h.designCapacityMah, 1000, 30000), dSrc = design == null ? null : (h.designSource === 'kullanıcı beyanı' ? 'user_declared' : 'device');
+  let full = tcpIntIn(h.estimatedFullCapacityMah, 500, 30000), fKind = tcpOneOf(h.fullCapacityKind, ['device', 'estimate']) || (method === 'estimated' ? 'estimate' : method === 'capacity_ratio' ? 'device' : null);
+  if (full == null) fKind = null; if (fKind == null) full = null;
+  if ((method === 'estimated' && fKind === 'device') || ((method === 'capacity_ratio' || method === 'direct_soh') && fKind === 'estimate')) { full = null; fKind = null; }
+  const capOk = method !== 'capacity_ratio' || (dSrc === 'device' && fKind === 'device' && design != null && full != null);
+  const ratioOk = !(percent != null && design != null && full != null && (method === 'capacity_ratio' || method === 'estimated') && Math.abs(percent - Math.min(100, Math.round(full / design * 100))) > 2);
+  if (!capOk || !ratioOk) { method = 'none'; conf = 'insufficient'; percent = null; range = null; if (!ratioOk) { full = null; fKind = null; } }
+  const days = typeof h.observationDurationMs === 'number' && h.observationDurationMs > 0 ? tcpNumIn(Math.round(h.observationDurationMs / 86400000 * 10) / 10, 0, 3650) || 0 : 0;
+  const note = tcxClean(typeof h.note === 'string' ? h.note : '', 160) || null;
+  const health = { method, confidence: conf, percent, range, designMah: design, designSource: dSrc, fullMah: full, fullKind: fKind, lossPercent: percent != null ? 100 - percent : null, sampleCount: tcpIntIn(h.sampleCount, 0, 1000000) || 0, observationDays: days, unverifiedAdapter: method !== 'none' && unverified, conflictCount: Math.min(3, Array.isArray(h.conflicts) ? h.conflicts.length : 0), note };
+  // ---- döngü: cihazın bildirdiği ile TeknoCheck izlemesi AYRI (toplanmaz)
+  const rv = rep ? tcpIntIn(rep.value, 0, 20000) : null, rsrc = rep && typeof rep.source === 'string' ? (rep.source.includes('EXTRA_CYCLE_COUNT') ? 'extra_cycle_count' : /^sysfs/.test(rep.source) ? 'sysfs' : null) : null;
+  const enabled = !!mon.enabled;
+  let efc = tcpNumIn(typeof tr.equivalentCycles === 'number' ? Math.round(tr.equivalentCycles * 100) / 100 : null, 0, 20000);
+  const basis = tr.basisSource === 'tasarım kapasitesi' ? 'design' : tr.basisSource === 'tahmini tam kapasite' ? 'estimated_full' : null;
+  const dis = tcpIntIn(Math.round(tr.dischargedMah || 0), 0, 10000000) || 0;
+  if (efc != null && basis == null) efc = null;
+  if (efc != null && !enabled && dis === 0) efc = null;
+  const cycles = { reported: rv != null && rsrc ? { value: rv, source: rsrc } : null, tracked: { enabled, efc, basis, coveragePercent: tcpIntIn(typeof tr.coveragePercent === 'number' ? Math.round(tr.coveragePercent) : null, 0, 100), dischargedMah: dis } };
+  // ---- anlık anlık görüntü + özellik durumları (ham değerler İMZALANMAZ)
+  const live = { levelPercent: tcpIntIn(lv.levelPercent, 0, 100), voltageMv: tcpIntIn(lv.voltageMv, 2500, 5600), temperatureC: tcpNumIn(typeof lv.temperatureC === 'number' ? Math.round(lv.temperatureC * 10) / 10 : null, -30, 90), charging: tcpOneOf(lv.charging, TCP_W_CHARGING), healthCategory: tcpOneOf(lv.healthCategory, TCP_W_HEALTHCAT) };
+  const cn = tcpOneOf(lv.chargeCounterState, TCP_W_PROP), cu = tcpOneOf(lv.currentState, TCP_W_PROP); let sg = tcpOneOf(lv.currentSign, ['doc', 'inverted', 'unknown']);
+  if ((cu === 'unsupported' || cu === 'zero') && sg && sg !== 'unknown') sg = 'unknown';
+  const properties = { chargeCounter: cn, currentNow: cu, currentSign: sg };
+  const sources = [], seen = new Set();
+  (Array.isArray(d.sources) ? d.sources : []).forEach((x) => {
+    if (!x || !TCP_W_SRC_IDS[x.channel] || !TCP_W_SRC_IDS[x.channel].includes(x.name) || !TCP_W_SRC_STATES.includes(x.state) || seen.has(x.channel + '/' + x.name) || sources.length >= 16) return;
+    seen.add(x.channel + '/' + x.name); sources.push({ id: x.name, channel: x.channel, state: x.state });
+  });
+  // ---- izleme / arka plan: gözlenen çalışma yoksa "gözlendi" yazılmaz
+  const bgIn = mon.background || {}; let bg = tcpOneOf(bgIn.state, TCP_W_BG) || (enabled ? 'unverified' : 'off'); let runs = tcpIntIn(bgIn.runs, 0, 10000000) || 0;
+  if (!enabled) bg = 'off'; else if (bg === 'off') bg = 'unverified';
+  if ((bg === 'observed' || bg === 'stale' || bg === 'run_failed') && runs < 1) bg = 'unverified';
+  if (bg === 'unverified') runs = 0;
+  const monitoring = { enabled, samples: tcpIntIn(mon.samples, 0, 1000000) || 0, sessions: tcpIntIn(mon.sessions, 0, 64) || 0, background: bg, runs };
+  return { v: 1, takenAt: d.takenAt, health, cycles, live, properties, sources, support: { multiBattery: !!(d.matrix || {}).multiBattery }, monitoring };
+}
+// Rapora eklenemeyen pil analizinin nedeni (tcxExtend yazar, tcSubmit tüketir): sessiz düşüş yok, kullanıcıya söylenir
+let tcpOmitReason = '';
+const tcPilSetOmit = (r) => { tcpOmitReason = r || ''; };
+const tcPilTakeOmit = () => { const r = tcpOmitReason; tcpOmitReason = ''; return r; };
+// Rapor oluşturulurken TAZE okuma (önbellek yok: imzalı anlık görüntü rapor anında alınır). Web/hata: null (rapor etkilenmez).
+async function tcPilCaptureWire() { try { return tcPilWire(await tcPilFetch()); } catch (e) { return null; } }
+// imzalı kayıt (sunucu kopyası) → PDF/ekran bölümünün beklediği görünüm
+function tcPilSnapFromSigned(b0) {
+  if (!b0 || b0.v !== 1 || !b0.health) return null;
+  const b = tcPilCompleteSigned(b0), h = b.health, cy = b.cycles || {}, tk = cy.tracked || {}, lv = b.live || {}, mo = b.monitoring || {};
+  const lossMah = h.designMah != null && h.fullMah != null && h.percent != null ? h.designMah - h.fullMah : null;
+  const status = h.percent != null ? (h.percent >= 90 ? 'Çok iyi' : h.percent >= 80 ? 'İyi' : h.percent >= 70 ? 'Orta' : 'Zayıf') : null;
+  return {
+    v: 1, signed: true, takenAt: b.takenAt, trust: b.trust,
+    health: { percent: h.percent, range: h.range, status, method: h.method, source: TCP_SRCKIND_LABEL[h.sourceKind] || null, confidence: h.confidence, sampleCount: h.sampleCount, observationDays: h.observationDays, designMah: h.designMah, designSource: h.designSource === 'user_declared' ? 'kullanıcı beyanı' : (h.designMah != null ? 'sistem dosyası' : null), fullMah: h.fullMah, fullKind: h.fullKind, lossMah, lossPercent: h.lossPercent, conflicts: [], conflictCount: h.conflictCount, note: h.note || '', unverifiedAdapter: h.unverifiedAdapter },
+    cycles: { reported: cy.reported ? { value: cy.reported.value, source: TCP_CYCLE_SRC[cy.reported.source] || cy.reported.source, readAt: b.takenAt } : null, tracked: { enabled: tk.enabled, since: null, efc: tk.efc, dischargedMah: tk.dischargedMah, coverage: tk.coveragePercent, basisSource: tk.basis === 'design' ? 'tasarım kapasitesi' : tk.basis === 'estimated_full' ? 'tahmini tam kapasite' : null } },
+    live: { level: lv.levelPercent, voltageV: null, voltageMv: lv.voltageMv, currentMa: null, temperatureC: lv.temperatureC, charging: lv.charging, technology: null },
+    props: { chargeCounter: (b.properties || {}).chargeCounter, currentNow: (b.properties || {}).currentNow, currentSign: (b.properties || {}).currentSign },
+    monitoring: { enabled: mo.enabled, runs: mo.runs, background: mo.background },
+  };
+}
+// İmzalı rapor ile PDF/ekran bölümü arasında tutarlılık denetimi: imzalı kayıttan BAĞIMSIZ beklenen metinler üretilir ve bölüm satırlarıyla karşılaştırılır. Dönüş: sorun listesi ([] = tutarlı).
+function tcPilConsistency(b, section) {
+  if (!b || b.v !== 1 || !b.health) return ['imzalı pil kaydı yok'];
+  if (!section || !Array.isArray(section.rows)) return ['pil bölümü yok'];
+  const out = [], row = (n) => section.rows.find((r) => r[0] === n), h = b.health, cy = b.cycles || {};
+  const want = h.percent != null ? '%' + h.percent : Array.isArray(h.range) ? '%' + h.range[0] + '–' + h.range[1] : 'Hesaplanamadı';
+  const r1 = row('Pil sağlığı'); if (!r1 || String(r1[1]).indexOf(want) !== 0) out.push('pil sağlığı: PDF "' + (r1 ? r1[1] : '—') + '" ≠ imzalı "' + want + '"');
+  if (r1 && h.method === 'estimated' && String(r1[1]).indexOf('TAHMİN') < 0) out.push('tahmin etiketi eksik');
+  if (r1 && h.method !== 'estimated' && String(r1[1]).indexOf('TAHMİN') >= 0) out.push('ölçüm tahmin diye etiketlenmiş');
+  if (r1 && String(r1[2]).indexOf(TCP_METHOD[h.method] || '\u0000') < 0) out.push('ölçüm yöntemi uyuşmuyor');
+  const r2 = row('Güvenilirlik'); if (!r2 || r2[1] !== (TCP_CONF[h.confidence] || '—')) out.push('güvenilirlik uyuşmuyor');
+  const r3 = row('Döngü (cihazın bildirdiği)'), wc = cy.reported ? String(cy.reported.value) : 'Bildirilmiyor'; if (!r3 || r3[1] !== wc) out.push('cihazın bildirdiği döngü: PDF "' + (r3 ? r3[1] : '—') + '" ≠ imzalı "' + wc + '"');
+  const r4 = row('Tasarım kapasitesi'), wd = h.designMah != null ? h.designMah + ' mAh' : 'Alınamadı'; if (!r4 || r4[1] !== wd) out.push('tasarım kapasitesi uyuşmuyor');
+  const r5 = row(h.fullKind === 'estimate' ? 'Tahmini tam kapasite' : 'Mevcut tam kapasite'), wf = h.fullMah != null ? h.fullMah + ' mAh' : 'Alınamadı'; if (!r5 || r5[1] !== wf) out.push('tam kapasite uyuşmuyor veya yanlış etiketli');
+  return out;
+}
+// QR doğrulama ve ilan rapor sayfası: herkese açık özetteki pil bloğu (yöntem + kaynak + güven; DEĞER yok)
+function tcPilVerifyBlockHTML(b) {
+  if (!b || !b.method) return '';
+  const E = escapeHtml, bgTxt = b.background && b.background !== 'off' ? TCP_BG[b.background] : null;
+  const rows = [
+    ['Ölçüm yöntemi', TCP_METHOD[b.method] || '—', TCP_ORIGIN_LABEL[b.origin] || ''],
+    ['Veri kaynağı', TCP_SRCKIND_LABEL[b.sourceKind] || '—', b.unverifiedAdapter ? 'Gerçek cihazda doğrulanmamış üretici/sistem dosyası; en fazla orta güven' : ''],
+    ['Güvenilirlik', TCP_CONF[b.confidence] || '—', b.hasExactPercent ? 'Kesin yüzde var' : b.hasRange ? 'Yalnızca aralık (düşük güven)' : 'Pil sağlığı hesaplanamadı'],
+    ['Cihazın bildirdiği şarj döngüsü', b.cycleSource ? 'Var' : 'Cihaz bildirmiyor', b.cycleSource ? (TCP_CYCLE_SRC[b.cycleSource] || '') : ''],
+    ['TeknoCheck döngü izlemesi', b.cycleTracked ? 'Var' : 'Yok', b.cycleTracked ? 'Yalnızca izleme süresince; cihazın toplam döngüsü değildir' : ''],
+    ...(bgTxt ? [['Arka plan izleme', bgTxt, '']] : []),
+  ];
+  return `<h4 class="tc-info-t">İmzalı pil analizi</h4><div class="tcpil-vblock" id="tcpil-vblock" data-method="${E(b.method)}" data-origin="${E(b.origin || '')}" data-source="${E(b.sourceKind || '')}">${tcxRowsHTML(rows)}</div><p class="tca-intro" id="tcpil-vtrust">${E(TCP_TRUST_NOTE)} Pil değerleri (yüzde, döngü, kapasite) herkese açık özette gösterilmez; satıcının PDF raporunda yer alır.</p>`;
 }
 
 // ==================================================================== FAZ 9 — TEKNOCHECK İŞLETME YÖNETİMİ: SAF MANTIK (kaynak: teknocheck/isletme.js; uygula.mjs gömer)
@@ -29080,8 +29519,109 @@ if (isNativeApp()) {
 // native ortamda hiç çalıştırılmıyor (bkz. görev raporu, W1).
 if(!isNativeApp() && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register(SW_BASE + 'sw.js', { scope: SW_BASE })
+    navigator.serviceWorker.register(SW_BASE + 'sw.js', { scope: SW_BASE, updateViaCache: 'none' })
+      .then((reg) => { window.__tkSwReg = reg; })
       .catch(() => {});
+  });
+  // Yeni kabuk (index.html) yayınlandığında SW haber verir → mevcut güncelleme çubuğu ("Yenile") gösterilir; kullanıcı eski sürümde sessizce kalmaz.
+  navigator.serviceWorker.addEventListener('message', (e) => {
+    if (e.data && e.data.tip === 'kabuk-guncellendi') { try { tkRenderUpdateUI({ level: 'soft', latest: 'web-' + Math.floor(Date.now() / 3600000), message: 'Teknohane\'nin yeni sürümü hazır.' }, false); } catch (err) { /* sessiz */ } }
+  });
+}
+
+// ===== PWA / ANA EKRAN =====
+// Yükleme önerisi: iOS'ta otomatik kurulum penceresi YOKTUR (Apple izin vermez) — yalnızca doğru adımlar gösterilir. Zaten yüklüyse, kapatıldıysa veya uygun değilse GÖSTERİLMEZ.
+const TK_PWA_KEY = 'tk_pwa_state';
+function tkPwaGetState() { try { const o = JSON.parse(localStorage.getItem(TK_PWA_KEY) || '{}'); return (o && typeof o === 'object') ? o : {}; } catch (e) { return {}; } }
+function tkPwaSetState(patch) { try { localStorage.setItem(TK_PWA_KEY, JSON.stringify({ ...tkPwaGetState(), ...patch })); } catch (e) { /* depolama yok: öneri oturum içinde kalır */ } }
+// Saf: platform sınıflaması. 'ios' (Safari/diğer iOS tarayıcıları), 'ios-inapp' (Instagram/Facebook vb. uygulama içi tarayıcı: Ana Ekrana Ekle YOK), 'android', 'desktop'
+function tkPwaPlatform(ua, platform, maxTouch) {
+  ua = String(ua || '');
+  const ios = /iPad|iPhone|iPod/.test(ua) || (platform === 'MacIntel' && maxTouch > 1);
+  if (ios) return /FBAN|FBAV|FB_IAB|Instagram|Line\/|Snapchat|TikTok|musical_ly|Twitter|LinkedInApp|MicroMessenger|Telegram|GSA\//i.test(ua) ? 'ios-inapp' : 'ios';
+  if (/Android/i.test(ua)) return 'android';
+  return 'desktop';
+}
+// Saf: gösterim kararı. c = {platform, native, standalone, canPrompt, now, state}
+const TK_DAY = 86400000;
+function tkPwaDecide(c) {
+  const st = c.state || {};
+  if (c.native || c.standalone || st.installed) return { show: false, reason: 'installed' };
+  if (c.platform === 'desktop') return { show: false, reason: 'desktop' };               // masaüstünde rahatsız edici öneri yok (profil kartı kalır)
+  if (c.platform === 'android' && !c.canPrompt) return { show: false, reason: 'no-prompt' };
+  if ((st.dismissed || 0) >= 3) return { show: false, reason: 'dismissed-forever' };
+  if (st.until && c.now < st.until) return { show: false, reason: 'snoozed' };
+  if ((st.visits || 0) < 2) return { show: false, reason: 'first-visit' };               // ilk ziyarette önerme
+  return { show: true, kind: c.platform };
+}
+function tkPwaDismiss() {
+  const st = tkPwaGetState(), n = (st.dismissed || 0) + 1;
+  tkPwaSetState({ dismissed: n, until: Date.now() + (n === 1 ? 30 : n === 2 ? 90 : 3650) * TK_DAY });   // 1. kapatma: 30 gün, 2.: 90 gün, 3.: bir daha gösterilmez
+  document.getElementById('pwa-nudge')?.remove();
+}
+function tkPwaShowNudge(kind) {
+  if (document.getElementById('pwa-nudge')) return;
+  const el = document.createElement('div'); el.id = 'pwa-nudge'; el.setAttribute('role', 'region'); el.setAttribute('aria-label', 'Uygulamayı yükle');
+  const txt = kind === 'android' ? 'Teknohane\'yi uygulama olarak yükle: tek dokunuşla aç.' : kind === 'ios-inapp' ? 'Ana ekrana eklemek için bu sayfayı Safari\'de aç.' : 'Teknohane\'yi ana ekranına ekle: uygulama gibi aç.';
+  const act = kind === 'android' ? 'Yükle' : 'Nasıl?';
+  el.innerHTML = '<img src="icons/icon-96.png" alt="" width="36" height="36"><span class="pn-t">' + txt + '</span><button type="button" class="pn-go">' + act + '</button><button type="button" class="pn-x" aria-label="Şimdilik kapat">✕</button>';
+  el.querySelector('.pn-go').onclick = () => { if (kind === 'android') { pwaInstallApp(); el.remove(); } else openIosInstallModal(kind); };
+  el.querySelector('.pn-x').onclick = tkPwaDismiss;
+  document.body.appendChild(el);
+}
+function tkPwaMaybeShow() {
+  try {
+    if (document.visibilityState === 'hidden' || document.querySelector('#ios-install-overlay, .mo.on')) return;
+    const d = tkPwaDecide({ platform: tkPwaPlatform(navigator.userAgent, navigator.platform, navigator.maxTouchPoints), native: isNativeApp(), standalone: isPwaStandalone(), canPrompt: !!pwaDeferredInstallPrompt, now: Date.now(), state: tkPwaGetState() });
+    if (d.show) tkPwaShowNudge(d.kind); else if (d.reason === 'installed') document.getElementById('pwa-nudge')?.remove();
+  } catch (e) { /* öneri hiçbir zaman uygulamayı bozmaz */ }
+}
+window.addEventListener('appinstalled', () => { tkPwaSetState({ installed: true }); document.getElementById('pwa-nudge')?.remove(); });
+if (!isNativeApp()) {
+  try { if (!sessionStorage.getItem('tk_pwa_counted')) { sessionStorage.setItem('tk_pwa_counted', '1'); tkPwaSetState({ visits: (tkPwaGetState().visits || 0) + 1 }); } } catch (e) { /* sessiz */ }
+  window.addEventListener('load', () => { setTimeout(tkPwaMaybeShow, 8000); });
+  window.addEventListener('beforeinstallprompt', () => { setTimeout(tkPwaMaybeShow, 8000); });
+  // Çevrimdışı bilgisi: yalnızca web/PWA; çalışmayan özellikler "çalışıyor" gibi gösterilmez
+  const tkOfflineBar = () => {
+    let bar = document.getElementById('tk-offline-bar');
+    if (!bar) { bar = document.createElement('div'); bar.id = 'tk-offline-bar'; bar.setAttribute('role', 'status'); bar.textContent = 'Çevrimdışısın: pazar, mesajlar ve fiyatlar gibi canlı veriler bağlantı gelene kadar güncellenmez.'; document.body.appendChild(bar); }
+    bar.classList.toggle('on', navigator.onLine === false);
+  };
+  window.addEventListener('offline', tkOfflineBar); window.addEventListener('online', tkOfflineBar); window.addEventListener('load', tkOfflineBar);
+  // Açılış yardımı: oturum durumu 15 sn içinde çözülmezse (askıda ağ, bozuk önbellek) kullanıcı boş/sonsuz yüklemede bırakılmaz
+  function tkBootHelpCheck() {
+    {
+      if (typeof tkAuthSettled !== 'undefined' && tkAuthSettled) return;
+      let h = document.getElementById('tk-boot-help');
+      if (!h) {
+        h = document.createElement('div'); h.id = 'tk-boot-help'; h.setAttribute('role', 'alertdialog'); h.setAttribute('aria-label', 'Açılış yardımı');
+        h.innerHTML = '<div class="bh-card"><b>Teknohane hâlâ açılıyor…</b><p>Bağlantın yavaş olabilir. Biraz bekleyebilir ya da yeniden deneyebilirsin. Sorun sürerse önbelleği temizleyip yeniden aç.</p><button type="button" class="bh-go" id="bh-retry">Yeniden dene</button><button type="button" id="bh-clear">Önbelleği temizle ve yeniden aç</button></div>';
+        document.body.appendChild(h);
+        h.querySelector('#bh-retry').onclick = () => location.reload();
+        h.querySelector('#bh-clear').onclick = async () => {
+          try { navigator.serviceWorker && navigator.serviceWorker.controller && navigator.serviceWorker.controller.postMessage({ tip: 'temizle' }); } catch (e) { /* sessiz */ }
+          try { for (const r of await navigator.serviceWorker.getRegistrations()) { if (r.scope.endsWith(SW_BASE)) await r.unregister(); } } catch (e) { /* sessiz */ }
+          try { for (const n of await caches.keys()) { if (n.indexOf('teknohane-') === 0) await caches.delete(n); } } catch (e) { /* sessiz */ }
+          location.reload();
+        };
+      }
+      h.classList.add('on');
+      const iv = setInterval(() => { if (typeof tkAuthSettled !== 'undefined' && tkAuthSettled) { h.classList.remove('on'); clearInterval(iv); } }, 1000);
+    }
+  }
+  window.tkBootHelpCheck = tkBootHelpCheck;
+  window.addEventListener('load', () => { setTimeout(tkBootHelpCheck, 15000); });
+  // Uygulama arka plandan dönünce (iOS ana ekran uygulaması günlerce bellekte kalabilir): SW ve kabuk güncel mi?
+  let tkLastShellCheck = Date.now();
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible' || Date.now() - tkLastShellCheck < 15 * 60000) return;
+    tkLastShellCheck = Date.now(); tkPwaMaybeShow();
+    try { window.__tkSwReg && window.__tkSwReg.update(); navigator.serviceWorker && navigator.serviceWorker.controller && navigator.serviceWorker.controller.postMessage({ tip: 'kabuk-denetle' }); } catch (e) { /* sessiz */ }
+  });
+  // Klavye açılınca odaklı alan görünür kalsın (iOS ana ekran uygulaması)
+  document.addEventListener('focusin', (e) => {
+    const t = e.target; if (!t || !/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || !(isPwaStandalone() || /iPhone|iPad/.test(navigator.userAgent))) return;
+    setTimeout(() => { try { t.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (err) { /* sessiz */ } }, 350);
   });
 }
 </script>
