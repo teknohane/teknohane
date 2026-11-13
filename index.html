@@ -1542,6 +1542,49 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .notif-cat-dot.on{display:inline-block;}
 .notif-date-hdr{font-size:12px;font-weight:700;color:var(--text3);margin:16px 0 8px;text-transform:uppercase;letter-spacing:.5px;}
 .notif-date-hdr:first-child{margin-top:0;}
+/* ===== BİLDİRİM MERKEZİ — Faz 28 ===== */
+#notif-mo .ms.nc{padding:0;display:flex;flex-direction:column;overflow:hidden;border-radius:0;max-height:100%;height:100%;}
+.nc-hd{flex:none;display:grid;grid-template-columns:var(--tap-min) minmax(0,1fr) auto;align-items:center;gap:var(--space-2);padding:calc(var(--space-2) + var(--st)) var(--space-3) var(--space-2);background:var(--bg2);border-bottom:var(--bw) solid var(--border2);}
+.nc-ib{width:var(--tap-min);height:var(--tap-min);padding:0;border:0;border-radius:50%;background:transparent;color:var(--text);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;}
+.nc-ib:hover{background:var(--surf2);}
+.nc-ib:disabled{opacity:.4;cursor:default;}
+.nc-ib:focus-visible,.notif-cat-pill:focus-visible,.nc-card:focus-visible,.nc-del:focus-visible{outline:2px solid var(--cyan);outline-offset:2px;}
+.nc-ttl{min-width:0;}
+.nc-ttl h1{margin:0;font-size:var(--fs-lg);font-weight:var(--fw-bold);line-height:1.2;flex:none;}
+.nc-ttl p{margin:2px 0 0;font-size:var(--fs-sm);color:var(--text2);}
+.nc-acts{display:flex;align-items:center;gap:2px;}
+.nc-cats{flex:none;display:flex;gap:var(--space-2);overflow-x:auto;padding:var(--space-2) var(--space-3);scrollbar-width:none;-webkit-overflow-scrolling:touch;border-bottom:var(--bw) solid var(--border2);}
+.nc-cats::-webkit-scrollbar{display:none;}
+.notif-cat-pill{flex:none;display:inline-flex;align-items:center;min-height:36px;padding:0 var(--space-4);border-radius:var(--radius-pill);border:var(--bw) solid var(--border2);background:var(--surf);color:var(--text);font:inherit;font-size:var(--fs-md);font-weight:var(--fw-semibold);white-space:nowrap;cursor:pointer;}
+.notif-cat-pill.on{background:var(--cyan);border-color:var(--cyan);color:var(--color-on-accent);}
+.nc-body{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:var(--space-3) var(--space-3) var(--space-4);}
+.nc-list{display:flex;flex-direction:column;}
+.nc-list .notif-date-hdr{margin:var(--space-4) 2px var(--space-2);}
+.nc-list .notif-date-hdr:first-child{margin-top:var(--space-1);}
+.nc-list .notif-swipe-wrap{margin-bottom:var(--space-2);border-radius:var(--radius-lg);}
+/* Faz 28: kırmızı silme alanı yalnızca kart kaydırılırken/açıkken görünür (yuvarlak köşelerden sızmaz) */
+.nc-list .notif-swipe-wrap .notif-swipe-del{opacity:0;animation:none;transition:opacity .12s ease;}
+.nc-list .notif-swipe-wrap.swiping .notif-swipe-del{opacity:1;}
+.notif-item.nc-card{align-items:flex-start;gap:var(--space-3);padding:var(--space-3);border:var(--bw) solid var(--border2);border-radius:var(--radius-lg);background:var(--surf);}
+.notif-item.nc-card.unread{background-color:var(--surf);background-image:linear-gradient(rgba(var(--accent-rgb),.08),rgba(var(--accent-rgb),.08));border:var(--bw) solid rgba(var(--accent-rgb),.38);padding-left:var(--space-3);border-radius:var(--radius-lg);}   /* OPAK zemin: kaydırarak silme simgesi kartın arkasından görünmez */
+.notif-item.nc-card.unread .notif-msg{font-weight:var(--fw-semibold);}
+.nc-card .notif-ic{width:40px;height:40px;margin-top:1px;}
+.nc-card .notif-txt{display:flex;flex-direction:column;gap:2px;min-width:0;}
+.nc-kind{display:flex;align-items:center;gap:var(--space-2);font-size:var(--fs-xs);font-weight:var(--fw-bold);letter-spacing:.3px;text-transform:uppercase;color:var(--text3);}
+.nc-new{padding:1px 7px;border-radius:var(--radius-pill);background:var(--cyan);color:var(--color-on-accent);font-size:var(--fs-2xs);letter-spacing:0;}
+.nc-card .notif-msg{font-size:var(--fs-base);line-height:1.45;overflow-wrap:anywhere;}
+.nc-card .notif-time{margin-top:var(--space-1);font-size:var(--fs-xs);}
+.nc-card .unread-dot{margin-top:6px;box-shadow:none;}
+.nc-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
+.nc-more{margin-top:var(--space-3);}
+.nc-foot{display:flex;justify-content:center;margin-top:var(--space-4);}
+.nc-foot[hidden],.nc-acts [hidden],.nc-more[hidden]{display:none!important;}   /* Faz 28: display kuralları hidden özniteliğini ezmesin */
+.nc-del{min-height:var(--tap-min);padding:0 var(--space-4);border:0;background:transparent;color:var(--red);font:inherit;font-size:var(--fs-md);font-weight:var(--fw-semibold);cursor:pointer;}
+.nc-state{display:flex;flex-direction:column;align-items:center;gap:var(--space-2);padding:var(--space-8) var(--space-4);text-align:center;color:var(--text2);}
+.nc-state-ic{font-size:34px;line-height:1;}
+.nc-state b{font-size:var(--fs-lg);color:var(--text);}
+.nc-state span{font-size:var(--fs-md);line-height:1.5;max-width:300px;}
+@media (min-width:900px){#notif-mo .ms.nc{max-width:640px;margin:0 auto;border-left:var(--bw) solid var(--border2);border-right:var(--bw) solid var(--border2);}}
 .psec-title{font-size:14px;font-weight:700;margin-bottom:14px;}
 .pcol-card{background:var(--surf);border:1px solid var(--border);border-radius:18px;padding:18px;margin-bottom:16px;}
 .pcol-current{display:flex;align-items:center;gap:12px;background:rgba(var(--accent-rgb),.06);border:1px solid rgba(var(--accent-rgb),.2);border-radius:14px;padding:12px 14px;margin-bottom:16px;}
@@ -2424,6 +2467,60 @@ textarea.fi{min-height:96px;}
 .tcpil-h5{margin:var(--space-3) 0 var(--space-1);font-size:var(--fs-sm);color:var(--text-muted);text-transform:none;font-weight:600;}
 .tc-status--warn{border-color:var(--color-warning, var(--border));}
 
+/* ===== Faz 28 — TeknoCheck BAĞIMSIZ EKRAN KABUĞU + sade ana ekran ===== */
+#tc-mo{z-index:1110;align-items:stretch;justify-content:center;background:var(--bg2);backdrop-filter:none;-webkit-backdrop-filter:none;}
+.tcx-shell{position:relative;display:flex;flex-direction:column;width:100%;max-width:760px;height:100%;min-height:0;background:var(--bg2);overflow:hidden;}
+.tcx-hd{flex:none;display:grid;grid-template-columns:var(--tap-min) minmax(0,1fr) var(--tap-min);align-items:center;gap:var(--space-2);padding:calc(var(--space-2) + var(--st)) var(--space-3) var(--space-2);background:var(--bg2);border-bottom:var(--bw) solid var(--border2);}
+.tcx-hd-b{width:var(--tap-min);height:var(--tap-min);padding:0;border:0;border-radius:50%;background:transparent;color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.tcx-hd-b:hover{background:var(--surf2);}
+.tcx-hd-b:focus-visible,.tcm-card:focus-visible,.tcm-tip-x:focus-visible{outline:2px solid var(--cyan);outline-offset:2px;}
+.tcx-hd-t{margin:0;text-align:center;font-size:var(--fs-lg);font-weight:var(--fw-bold);line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.tcx-bd{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:var(--space-4) var(--space-4) calc(var(--space-6) + var(--sb));}
+@media (min-width:900px){#tc-mo{background:var(--scrim);}.tcx-shell{height:calc(100% - 32px);margin:16px 0;border:var(--bw) solid var(--border);border-radius:var(--radius-xl);box-shadow:var(--shadow-3);}}
+.tcx-help{position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;padding:var(--space-4);background:var(--scrim);}
+.tcx-help-card{width:min(420px,100%);max-height:100%;overflow:auto;padding:var(--space-5);background:var(--bg2);border:var(--bw) solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-3);display:flex;flex-direction:column;gap:var(--space-3);}
+.tcx-help-card h2{margin:0;font-size:var(--fs-lg);}
+.tcx-help-card p{margin:0;font-size:var(--fs-md);line-height:1.55;color:var(--text2);}
+/* ana ekran */
+.tcm{gap:var(--space-4);}
+.tcm-hero .tc-info-h{margin:0 0 var(--space-1);font-size:var(--fs-2xl);}
+.tcm-dev{display:inline-flex;align-items:center;gap:var(--space-2);max-width:100%;margin:var(--space-3) 0 0;padding:6px var(--space-3);border-radius:var(--radius-pill);background:var(--surf);border:var(--bw) solid var(--border2);font-size:var(--fs-sm);color:var(--text2);}
+.tcm-dev span:last-child{min-width:0;overflow-wrap:anywhere;}
+.tcm-dev-ic svg{display:block;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+.tcm-grid{display:grid;grid-template-columns:1fr;gap:var(--space-3);}
+@media (min-width:640px){.tcm-grid{grid-template-columns:1fr 1fr;}.tcm-grid>.tcm-card:last-child:nth-child(odd){grid-column:1/-1;}}
+.tcm-card{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:var(--space-3);width:100%;min-height:88px;padding:var(--space-4);text-align:left;font:inherit;color:var(--text);background:var(--surf);border:var(--bw) solid var(--border2);border-radius:var(--radius-lg);cursor:pointer;}
+.tcm-card:hover{border-color:var(--border);}
+.tcm-card:active{background:var(--surf2);}
+.tcm-card--soft{background:transparent;}
+.tcm-ic{width:44px;height:44px;border-radius:var(--radius-md);background:rgba(var(--accent-rgb),.12);color:var(--cyan);display:flex;align-items:center;justify-content:center;}
+.tcm-ic svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+.tcm-tx{min-width:0;}
+.tcm-tx b{display:block;font-size:var(--fs-base);font-weight:var(--fw-bold);line-height:1.25;}
+.tcm-tx small{display:block;margin-top:2px;font-size:var(--fs-sm);line-height:1.4;color:var(--text2);overflow-wrap:anywhere;}
+.tcm-meta{display:inline-block;margin-top:6px;font-size:var(--fs-xs);font-weight:var(--fw-semibold);color:var(--cyan);}
+.tcm-go{display:inline-flex;align-items:center;gap:2px;font-size:var(--fs-sm);font-weight:var(--fw-bold);color:var(--cyan);white-space:nowrap;}
+.tcm-go svg{fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;}
+@media (max-width:359px){.tcm-card{grid-template-columns:40px minmax(0,1fr);padding:var(--space-3);}.tcm-ic{width:40px;height:40px;}.tcm-go{grid-column:2;justify-self:start;}}
+.tcm-tip{display:flex;flex-direction:column;align-items:stretch;gap:var(--space-2);padding:var(--space-3) var(--space-4);border-radius:var(--radius-lg);background:rgba(var(--accent-rgb),.08);border:var(--bw) solid rgba(var(--accent-rgb),.3);font-size:var(--fs-md);line-height:1.45;}
+.tcm-tip-t{margin:0;line-height:1.55;}
+.tcm-tip-x{align-self:flex-end;min-height:44px;min-width:44px;padding:0 var(--space-3);border:0;border-radius:var(--radius-md);background:var(--surf2);color:var(--text);font-weight:var(--fw-semibold);cursor:pointer;}
+.tcm-priv{margin:0;}
+.tcm-lim{margin:0;}
+/* "Cihazımı Test Et" adım göstergesi */
+.tcx-steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-2);}
+.tcx-step{display:flex;gap:var(--space-2);align-items:flex-start;min-width:0;padding:var(--space-2) var(--space-3);border:var(--bw) solid var(--border2);border-radius:var(--radius-md);background:var(--surf);}
+.tcx-step.is-cur{border-color:var(--cyan);}
+.tcx-step-n{flex:none;width:22px;height:22px;border-radius:50%;background:var(--surf3);color:var(--text2);font-size:var(--fs-xs);font-weight:var(--fw-bold);display:flex;align-items:center;justify-content:center;}
+.tcx-step.is-cur .tcx-step-n,.tcx-step.is-done .tcx-step-n{background:var(--cyan);color:var(--bg);}
+.tcx-step-t{min-width:0;}
+.tcx-step-t b{display:block;font-size:var(--fs-xs);line-height:1.25;overflow-wrap:anywhere;}
+.tcx-step-t small{display:block;font-size:var(--fs-2xs);color:var(--text2);overflow-wrap:anywhere;}
+@media (max-width:420px){.tcx-steps{grid-template-columns:1fr;}}
+/* adım göstergesi: dar ekranda yan yana kompakt (alt satır gizli) */
+@media (max-width:420px){.tcx-steps{grid-template-columns:repeat(3,minmax(0,1fr));}.tcx-step{flex-direction:column;align-items:flex-start;gap:var(--space-1);}.tcx-step-t small{display:none;}}
+.tcx-foot{margin:0 calc(-1 * var(--space-4));padding:var(--space-3) var(--space-4) var(--space-2);border-top:var(--bw) solid var(--border2);}
+
 /* ============================================================================
    FAZ 9 — İŞLETME YÖNETİMİ (C1 belirteçleri; gereksiz grafik/animasyon YOK). Kaynak: teknocheck/isletme.css
    ============================================================================ */
@@ -2569,6 +2666,49 @@ textarea.fi{min-height:96px;}
   .hm-lgrid{grid-template-columns:repeat(4,minmax(0,1fr));}
 }
 
+
+/* ==== FAZ 29 — ANA SAYFA DİNAMİK KART ŞERİTLERİ: kaydırmalı, otomatik dönen, sade ==== */
+.hm-car{position:relative;}
+.hm-car-track{display:flex;gap:var(--space-3);overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain;position:relative;transition:opacity .18s ease;}
+.hm-car-track::-webkit-scrollbar{display:none;}
+.hm-car-track.hm-car-fade{opacity:0;}
+.hm-car-item{scroll-snap-align:start;min-width:0;}
+.hm-car-item:focus-visible{outline:2px solid var(--color-accent);outline-offset:-2px;border-radius:var(--radius-lg);}
+.hm-car-track.hm-hslides{gap:0;}
+/* ilanlar: mobilde 2, geniş ekranda 4 kart; çubuk başına sayfa */
+.hm-car-lst{--hm-pv:2;}
+.hm-car-track.hm-lgrid{display:flex;gap:var(--space-3);}
+.hm-lgrid .hm-lc.hm-car-item{flex:0 0 calc((100% - (var(--hm-pv) - 1) * var(--space-3)) / var(--hm-pv));width:auto;}
+@media (min-width:900px){.hm-car-lst{--hm-pv:4;}}
+/* karşılaştırma önerileri: mobilde sonraki kartın bir kısmı görünür, geniş ekranda 3 kart */
+.hm-car-track.hm-cmps{display:flex;gap:var(--space-2);}
+.hm-cmps .hm-cmp.hm-car-item{flex:0 0 calc(100% - 28px);width:auto;}
+.hm-car--single .hm-cmps .hm-cmp.hm-car-item{flex-basis:100%;}
+@media (min-width:700px){.hm-cmps .hm-cmp.hm-car-item{flex:0 0 calc((100% - 2 * var(--space-2)) / 3);}.hm-car--single .hm-cmps .hm-cmp.hm-car-item{flex-basis:calc((100% - 2 * var(--space-2)) / 3);}}
+.hm-use-track .hm-uc.hm-car-item{flex:0 0 232px;}
+.hm-car-dots{display:flex;justify-content:center;gap:6px;margin-top:var(--space-3);}
+.hm-car-dots:empty{display:none;}
+.hm-dots.hm-car-dots{margin-top:0;pointer-events:none;}
+.hm-car-dot{position:relative;width:6px;height:6px;padding:0;border-radius:6px;border:var(--bw) solid var(--border);background:var(--border2);cursor:pointer;pointer-events:auto;transition:width var(--dur-base) var(--ease),background var(--dur-base);}
+.hm-car-hero .hm-car-dot{background:rgba(var(--bg-rgb),.55);}
+.hm-car-dot::after{content:"";position:absolute;inset:-9px -3px;}
+.hm-car-dot.on{width:18px;background:var(--color-accent);border-color:var(--color-accent);}
+.hm-car-dot:focus-visible,.hm-car-nav:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px;}
+.hm-car-nav{display:none;}
+@media (hover:hover) and (pointer:fine) and (min-width:700px){
+  .hm-car-nav{display:flex;align-items:center;justify-content:center;position:absolute;top:var(--hm-nav-top,40%);width:40px;height:40px;margin-top:-20px;padding:0;border-radius:50%;border:var(--bw) solid var(--border2);background:var(--surf);color:var(--text);box-shadow:var(--shadow-1);cursor:pointer;z-index:2;}
+  .hm-car-nav:disabled{opacity:.35;cursor:default;}
+  .hm-car-prev{left:-18px;}.hm-car-next{right:-18px;}
+  .hm-car-hero{--hm-nav-top:130px;}
+  .hm-car-hero .hm-car-prev{left:10px;}.hm-car-hero .hm-car-next{right:10px;}
+}
+.hm-car--single .hm-car-nav,.hm-car--single .hm-car-dots{display:none!important;}
+/* uzun cihaz/ilan adları KESİLMEZ: satıra sarılır; şerit içindeki kartlar en uzun karta eşitlenir (geçişte yükseklik değişmez) */
+.hm-car-track{align-items:stretch;}
+.hm-car .hm-hs-n,.hm-car .hm-hs-m,.hm-car .hm-cmp-n,.hm-car .hm-cmp-v,.hm-car .hm-cmp-b,.hm-car .hm-lc-m{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;}
+.hm-car .hm-lc-t{display:block;-webkit-line-clamp:unset;overflow:visible;overflow-wrap:anywhere;}
+.hm-car .hm-cmp-n,.hm-car .hm-cmp-v{display:block;-webkit-line-clamp:unset;}
+@media (prefers-reduced-motion:reduce){.hm-car-track{scroll-behavior:auto;transition:none;}.hm-car-dot{transition:none;}}
 
 /* ============================================================================
    PAKET 3 — CİHAZLAR, TELEFON DETAYI VE KARŞILAŞTIRMA (2026-11-03)
@@ -3402,30 +3542,25 @@ textarea.fi{min-height:96px;}
 </div>
 
 <!-- HABER DETAY MODAL -->
-<!-- BİLDİRİMLER MODAL -->
+<!-- BİLDİRİMLER MODAL (Faz 28: yeniden tasarım — kendi üst çubuğu, kaydırılabilir kategori şeridi, kendi kaydırma alanı; veri akışı/işlevler aynı) -->
 <div class="mo fullscreen" id="notif-mo" onclick="closemo('notif-mo')">
-  <div class="ms" onclick="event.stopPropagation()">
-    <div class="det-sticky">
-      <div class="det-close" onclick="closemo('notif-mo')">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+  <div class="ms nc" onclick="event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="nc-title">
+    <header class="nc-hd">
+      <button type="button" class="nc-ib" id="nc-back" aria-label="Geri" onclick="closemo('notif-mo')"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <div class="nc-ttl"><h1 id="nc-title" class="fs-title">Bildirimler</h1><p id="nc-sub" aria-live="polite">Yükleniyor…</p></div>
+      <div class="nc-acts">
+        <span id="notif-actions" hidden><button type="button" class="nc-ib" id="nc-readall" aria-label="Tümünü okundu olarak işaretle" title="Tümünü okundu yap" onclick="markAllNotifsRead()"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="2 13 6 17 13 8"/><polyline points="10 15 12 17 21 7"/></svg></button></span>
+        <button type="button" class="nc-ib" id="nc-settings" aria-label="Bildirim ayarları" title="Bildirim ayarları" onclick="ncOpenSettings()"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
       </div>
-      <span class="fs-title">Bildirimler</span>
-      <span id="notif-actions" style="font-size:12px;display:none;white-space:nowrap">
-        <span role="button" aria-label="Bildirimleri okundu yap" style="color:var(--cyan);cursor:pointer;font-weight:600" onclick="markAllNotifsRead()">Tümünü Okundu Yap</span>
-        <span style="color:var(--text3)"> · </span>
-        <span role="button" aria-label="Bildirimleri sil" style="color:var(--red);cursor:pointer;font-weight:600" onclick="clearAllNotifications()">Tümünü Sil</span>
-      </span>
+    </header>
+    <div class="nc-cats" id="notif-category-filters" role="toolbar" aria-label="Bildirim kategorileri">
+      <button type="button" class="notif-cat-pill on" data-cat="all" aria-pressed="true" onclick="setNotifCategory('all')">Tümü<span class="notif-cat-dot" data-cat-dot="all" role="img" aria-label="okunmamış var"></span></button><button type="button" class="notif-cat-pill" data-cat="market" aria-pressed="false" onclick="setNotifCategory('market')">Pazar<span class="notif-cat-dot" data-cat-dot="market" role="img" aria-label="okunmamış var"></span></button><button type="button" class="notif-cat-pill" data-cat="followers" aria-pressed="false" onclick="setNotifCategory('followers')">Takipçiler<span class="notif-cat-dot" data-cat-dot="followers" role="img" aria-label="okunmamış var"></span></button><button type="button" class="notif-cat-pill" data-cat="referrals" aria-pressed="false" onclick="setNotifCategory('referrals')">Referanslar<span class="notif-cat-dot" data-cat-dot="referrals" role="img" aria-label="okunmamış var"></span></button><button type="button" class="notif-cat-pill" data-cat="business" aria-pressed="false" onclick="setNotifCategory('business')">İşletme<span class="notif-cat-dot" data-cat-dot="business" role="img" aria-label="okunmamış var"></span></button><button type="button" class="notif-cat-pill" data-cat="system" aria-pressed="false" onclick="setNotifCategory('system')">Sistem<span class="notif-cat-dot" data-cat-dot="system" role="img" aria-label="okunmamış var"></span></button>
     </div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px" id="notif-category-filters">
-      <span class="pcompl-pill notif-cat-pill" data-cat="all" onclick="setNotifCategory('all')" style="background:var(--cyan);color:var(--color-on-accent)">Tümü</span>
-      <span class="pcompl-pill notif-cat-pill" data-cat="followers" onclick="setNotifCategory('followers')">Takipçiler<span class="notif-cat-dot" data-cat-dot="followers"></span></span>
-      <span class="pcompl-pill notif-cat-pill" data-cat="referrals" onclick="setNotifCategory('referrals')">Referanslar<span class="notif-cat-dot" data-cat-dot="referrals"></span></span>
-      <span class="pcompl-pill notif-cat-pill" data-cat="market" onclick="setNotifCategory('market')">Pazar<span class="notif-cat-dot" data-cat-dot="market"></span></span>
-      <span class="pcompl-pill notif-cat-pill" data-cat="business" onclick="setNotifCategory('business')">İşletme<span class="notif-cat-dot" data-cat-dot="business"></span></span>
-      <span class="pcompl-pill notif-cat-pill" data-cat="system" onclick="setNotifCategory('system')">Sistem<span class="notif-cat-dot" data-cat-dot="system"></span></span>
+    <div class="nc-body" id="nc-body">
+      <div id="notif-list" class="nc-list"></div>
+      <button class="apbtn nc-more" id="notif-load-more" style="display:none" onclick="loadNotifPage(false)">Daha fazla göster</button>
+      <div class="nc-foot" id="nc-foot" hidden><button type="button" class="nc-del" onclick="clearAllNotifications()">Tüm bildirimleri sil</button></div>
     </div>
-    <div id="notif-list"></div>
-    <button class="apbtn" id="notif-load-more" style="margin-top:12px;background:var(--surf2);color:var(--text);display:none" onclick="loadNotifPage(false)">Daha Fazla</button>
   </div>
 </div>
 
@@ -9689,6 +9824,7 @@ function subscribeNotifBadge(uid) {
       badge._lastN = n;
       if (n > 0) { badge.textContent = n > 9 ? '9+' : n; badge.style.display = 'flex'; }
       else badge.style.display = 'none';
+      ncUpdateSub();
     }, () => {});
 }
 
@@ -9816,6 +9952,8 @@ function handleDailySummaryAction(type, id) {
   else if (type === 'profile') { gt('profile'); }
 }
 
+// Bildirim türünün kategori etiketi (gerçek NOTIF_TYPE_CATEGORY eşlemesinden; uydurma tür yok)
+const NOTIF_CAT_LABEL = { followers: 'Takipçi', referrals: 'Referans', market: 'Pazar', business: 'İşletme', system: 'Sistem', messages: 'Mesaj', forum: 'Topluluk' };
 function renderNotifGroupCard(g) {
   if (g.type === 'daily_summary') return renderDailySummaryNotifCard(g.items[0]);
   const first = g.items[0].data();
@@ -9839,12 +9977,14 @@ function renderNotifGroupCard(g) {
   const icHtml = first.fromPhotoURL
     ? `<img src="${first.fromPhotoURL}" alt="" loading="lazy" decoding="async"><span class="notif-ic-badge">${meta.ic}</span>`
     : meta.ic;
+  const kind = NOTIF_CAT_LABEL[NOTIF_TYPE_CATEGORY[first.type] || 'system'] || 'Bildirim';
+  const click = `clickNotifGroup('${ids}','${first.listingId||''}',${anyUnread},'${first.postId||''}','${first.type}','${first.fromUid||''}','${fromNameJs}')`;
   return `<div class="notif-swipe-wrap" data-ids="${ids}">
     <div class="notif-swipe-del" role="button" aria-label="Bu bildirimi sil" onclick="event.stopPropagation();performNotifDelete(this.closest('.notif-swipe-wrap'))">🗑️</div>
-    <div class="notif-item msg-in ${anyUnread?'unread':''}" onclick="clickNotifGroup('${ids}','${first.listingId||''}',${anyUnread},'${first.postId||''}','${first.type}','${first.fromUid||''}','${fromNameJs}')">
+    <div class="notif-item nc-card msg-in ${anyUnread?'unread':''}" role="button" tabindex="0" onclick="${click}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();${click}}">
       <div class="notif-ic" style="background:${first.fromPhotoURL?'var(--surf2)':meta.bg}">${icHtml}</div>
-      <div class="notif-txt" style="flex:1"><div class="notif-msg">${label}</div><div class="notif-time">${anyUnread?'<span style="color:var(--cyan);font-weight:700">Yeni · </span>':''}${time}</div></div>
-      ${anyUnread?'<div class="unread-dot"></div>':''}
+      <div class="notif-txt"><div class="nc-kind">${kind}${anyUnread?'<span class="nc-new">Yeni</span>':''}</div><div class="notif-msg">${label}</div><div class="notif-time">${time}</div></div>
+      ${anyUnread?'<span class="unread-dot" aria-hidden="true"></span><span class="nc-sr">Okunmamış</span>':''}
     </div>
   </div>`;
 }
@@ -9861,14 +10001,15 @@ function renderNotifList() {
   const loadMoreBtn = document.getElementById('notif-load-more');
   if (!notifAccumulatedDocs.length) {
     list.innerHTML = notifCurrentCategory === 'all'
-      ? `<div class="no" id="notif-empty"><div style="font-size:30px;margin-bottom:6px">🔔</div>Henüz bildirimin yok<br><span style="font-size:11px;color:var(--text3)">Mesaj, ilan, işletme ve hesap gelişmelerini burada göreceksin.</span></div>`
-      : `<div class="no" id="notif-empty">Bu kategoride bildirimin yok<br><span style="font-size:11px;color:var(--text3)">Tüm bildirimlerini görmek için "Tümü"ne dokun.</span></div>`;
+      ? `<div class="no nc-state" id="notif-empty"><div class="nc-state-ic" aria-hidden="true">🔔</div><b>Henüz bildirimin yok</b><span>Mesaj, ilan, işletme ve hesap gelişmelerini burada göreceksin.</span></div>`
+      : `<div class="no nc-state" id="notif-empty"><div class="nc-state-ic" aria-hidden="true">📭</div><b>Bu kategoride bildirimin yok</b><span>Tüm bildirimlerini görmek için "Tümü"ne dokun.</span><button type="button" class="tk-btn tk-btn--outline tk-btn--sm" onclick="setNotifCategory('all')">Tümünü göster</button></div>`;
     list._renderedUnits = null;
-    actions.style.display = 'none';
+    actions.hidden = true; const ft0 = document.getElementById('nc-foot'); if (ft0) ft0.hidden = true;
     loadMoreBtn.style.display = 'none';
+    ncUpdateSub();
     return;
   }
-  actions.style.display = 'inline';
+  actions.hidden = false; const ft1 = document.getElementById('nc-foot'); if (ft1) ft1.hidden = false; ncUpdateSub();
   loadMoreBtn.style.display = notifHasMore ? 'block' : 'none';
   if (notifHasMore) observeLoadMoreOnScroll(loadMoreBtn, () => loadNotifPage(false));
 
@@ -9934,15 +10075,23 @@ function renderNotifList() {
   newlyCreated.forEach(node => attachSwipeDelete(node));
 }
 
+function ncMarkCategory(cat) {
+  document.querySelectorAll('.notif-cat-pill').forEach(el => { const active = el.dataset.cat === cat; el.classList.toggle('on', active); el.setAttribute('aria-pressed', active ? 'true' : 'false'); });
+}
 function setNotifCategory(cat) {
   notifCurrentCategory = cat;
-  document.querySelectorAll('.notif-cat-pill').forEach(el => {
-    const active = el.dataset.cat === cat;
-    el.style.background = active ? 'var(--cyan)' : '';
-    el.style.color = active ? '#000' : '';
-  });
+  ncMarkCategory(cat);
+  const nb = document.getElementById('nc-body'); if (nb) nb.scrollTop = 0;
   loadNotifPage(true);
 }
+// Üst çubuk altmetni: okunmamış sayısı (zil rozetini besleyen TEK dinleyicinin sayısı; yeni sorgu yok)
+function ncUpdateSub() {
+  const el = document.getElementById('nc-sub'); if (!el) return;
+  const bd = document.getElementById('notif-badge'), loadedUnread = (typeof notifAccumulatedDocs !== 'undefined' ? notifAccumulatedDocs : []).filter(d => !d.data().read).length, n = Math.max((bd && bd._lastN) || 0, loadedUnread);
+  el.textContent = n > 0 ? (n >= 50 ? '50+' : n) + ' okunmamış bildirim' : 'Hepsi okundu';
+  const ra = document.getElementById('nc-readall'); if (ra) ra.disabled = n === 0;
+}
+function ncOpenSettings() { closemo('notif-mo'); if (typeof openSettingsPage === 'function') openSettingsPage(); }
 
 // Gerçek boyutlu skeleton — spinner yerine. Sohbet/Pazar'daki aynı desen (satır + ikon iskeleti).
 function notifSkeletonHTML() {
@@ -9973,7 +10122,10 @@ async function loadNotifPage(reset) {
     console.error('Bildirimler yüklenemedi:', e);
     // Kullanıcıya ham Firestore hata metni/Firebase Console linki GÖSTERİLMEZ (bu bir admin/geliştirici
     // aracı değil) — yalnızca konsola loglanır, ekranda sade ve profesyonel bir mesaj kalır.
-    list.innerHTML = `<div class="no">Bildirimler yüklenemedi.<br><span style="font-size:11px;color:var(--text3)">Lütfen internet bağlantını kontrol edip tekrar dene.</span><br><button type="button" class="tk-btn tk-btn--outline tk-btn--sm" style="margin-top:10px" onclick="loadNotifPage(true)">Tekrar dene</button></div>`;
+    list._renderedUnits = null;
+    // Faz 28: hata ekranında "Daha fazla göster", "Tümünü okundu" ve "Tüm bildirimleri sil" gösterilmez (yüklenmemiş liste üzerinde işlem yapılamaz)
+    { const lm = document.getElementById('notif-load-more'), ft = document.getElementById('nc-foot'), ac = document.getElementById('notif-actions'); if (lm) lm.style.display = 'none'; if (ft) ft.hidden = true; if (ac) ac.hidden = true; }
+    list.innerHTML = `<div class="no nc-state" id="notif-error" role="alert"><div class="nc-state-ic" aria-hidden="true">⚠️</div><b>Bildirimler yüklenemedi</b><span>Lütfen internet bağlantını kontrol edip tekrar dene.</span><button type="button" class="tk-btn tk-btn--outline tk-btn--sm" onclick="loadNotifPage(true)">Tekrar dene</button></div>`;
   } finally {
     notifLoading = false;
   }
@@ -10001,11 +10153,7 @@ async function openNotifications() {
   document.getElementById('notif-mo').classList.add('on');
   const wasAlreadyOnAll = notifCurrentCategory === 'all';
   notifCurrentCategory = 'all';
-  document.querySelectorAll('.notif-cat-pill').forEach(el => {
-    const active = el.dataset.cat === 'all';
-    el.style.background = active ? 'var(--cyan)' : '';
-    el.style.color = active ? '#000' : '';
-  });
+  ncMarkCategory('all');
   // PERFORMANS DÜZELTMESİ: modal art arda kapatılıp açılırsa (örn. kullanıcı yanlışlıkla dokunursa)
   // eskiden her seferinde 1 sayfa bildirim + 5 count() sorgusu tekrar çalışırdı. Son açılıştan bu yana
   // kısa bir "tazelik" penceresi geçmediyse ve zaten yüklü veri varsa, mevcut listeyle devam edilir —
@@ -10045,6 +10193,7 @@ function attachSwipeDelete(wrap) {
       item.style.transition = 'transform .2s ease';
       item.style.transform = 'translateX(0)';
       wrap._open = false;
+      setTimeout(() => { if (!wrap._open) wrap.classList.remove('swiping'); }, 220);
     }
   }, { capture: true });
   item.addEventListener('touchstart', e => {
@@ -10067,6 +10216,7 @@ function attachSwipeDelete(wrap) {
     if (locked !== 'x') return; // dikey kaydırma — native scroll'a bırak, kartı hareket ettirme
     dx = Math.min(0, moveX);
     item.style.transform = `translateX(${dx}px)`;
+    if (dx < 0) wrap.classList.add('swiping');
   }, { passive: true });
   item.addEventListener('touchend', () => {
     dragging = false;
@@ -10080,6 +10230,7 @@ function attachSwipeDelete(wrap) {
     } else {
       item.style.transform = 'translateX(0)';
       wrap._open = false;
+      setTimeout(() => { if (!wrap._open) wrap.classList.remove('swiping'); }, 220);
     }
     dx = 0;
   });
@@ -19258,6 +19409,7 @@ async function rhome() {
   if (!c) return;
   phoneApplyVerified(); // C4: katalog henüz yüklenmemiş olsa bile yerleşik kayıtlara doğrulanmış resmî görseller/alanlar uygulanır
   hmHeroKey = '';       // C11: ekran yeniden çizildi → vitrin şeridi sıfırdan kurulur (seçili sekme/marka korunur)
+  hmCarsDestroyAll(); hmSel = Object.create(null); hmSeenSnap = hmSeenAll();   // Faz 29: eski zamanlayıcılar temizlenir; seçim, o anki "görülenler" üzerinden yapılır
   c.innerHTML = `
     <div class="hm">
       <section class="hm-sec hm-hero hm-search" aria-label="Telefon ara">
@@ -19278,9 +19430,11 @@ async function rhome() {
 
       <section class="hm-sec hm-disc" id="hm-disc" aria-label="Öne çıkan telefonlar">
         <div class="hm-tabs" role="group" aria-label="Cihaz listesi">${HM_TABS.map(t => `<button type="button" class="hm-tab" data-tab="${t[0]}" aria-pressed="${!hmBrand && hmTab === t[0]}" onclick="hmTabPick('${t[0]}')">${t[1]}</button>`).join('')}</div>
-        <div class="hm-hwrap">
-          <div class="hm-hslides" id="hm-hs" onscroll="hmHeroScroll(this)"></div>
-          <div class="hm-dots" id="hm-dots" aria-hidden="true"></div>
+        <div class="hm-hwrap hm-car hm-car-hero" id="hm-car-hero" data-car="hero" role="region" aria-roledescription="carousel" aria-label="Cihaz vitrini">
+          <div class="hm-hslides hm-car-track" id="hm-hs"></div>
+          <div class="hm-dots hm-car-dots" id="hm-dots" role="group" aria-label="Vitrin sayfaları"></div>
+          <button type="button" class="hm-car-nav hm-car-prev" aria-label="Önceki cihaz" disabled>${HM_NAV_SVG('15 18 9 12 15 6')}</button>
+          <button type="button" class="hm-car-nav hm-car-next" aria-label="Sonraki cihaz">${HM_NAV_SVG('9 18 15 12 9 6')}</button>
         </div>
         <div class="hm-hfoot"><span class="hm-hlab" id="hm-hlab"></span><button type="button" class="hm-link" id="hm-hall" onclick="hmHeroAll()">Tüm cihazlar</button></div>
       </section>
@@ -19292,8 +19446,9 @@ async function rhome() {
 
       <section class="hm-sec" id="hm-cmp-sec" style="display:none" aria-label="Karşılaştırma önerileri">
         <div class="hm-h"><h2 class="hm-t" id="hm-cmp-title">Karşılaştırma Önerileri</h2><button type="button" class="hm-link" onclick="gt('compare');setCmpView('compare')">Tümü</button></div>
-        <div class="hm-cmps" id="hm-cmp"></div>
+        <div id="hm-cmp"></div>
       </section>
+      ${hmUseSectionHTML()}
     </div>`;
   hmRenderHero();
   hmRenderCompare().then(hmRenderHero).catch(() => {});
@@ -19423,18 +19578,20 @@ function tcEnsureModal() {
   if (m) return m;
   m = document.createElement('div');
   m.className = 'mo'; m.id = 'tc-mo';
-  m.innerHTML = `<div class="det-sheet" role="dialog" aria-modal="true" aria-labelledby="tc-title"><div class="det-sticky"><div class="det-close" role="button" tabindex="0" aria-label="Kapat" id="tc-close" style="order:-1"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></div><div id="tc-title" style="font-size:15px;font-weight:700;color:var(--text2)">TeknoCheck</div><div style="width:34px"></div></div><div class="det-body" id="tc-body"></div></div><div class="tcx-stage" id="tc-stage" hidden></div>`;
+  // Faz 28: bağımsız ekran kabuğu — kendi üst çubuğu (geri · başlık · yardım) ve kendi kaydırma alanı; ana uygulamanın alt gezinmesi bu ekranın ALTINDA kalır
+  m.innerHTML = `<div class="tcx-shell" role="dialog" aria-modal="true" aria-labelledby="tc-title"><header class="tcx-hd"><button type="button" class="tcx-hd-b" id="tc-close" aria-label="Geri"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg></button><h1 id="tc-title" class="tcx-hd-t">TeknoCheck</h1><button type="button" class="tcx-hd-b" id="tc-help" aria-label="Bu ekran hakkında yardım"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.6 2.2c-.8.4-1.2 1-1.2 1.9M12 17h.01"/></svg></button></header><div class="tcx-bd" id="tc-body"></div></div><div class="tcx-stage" id="tc-stage" hidden></div>`;
   document.body.appendChild(m);
-  m.addEventListener('click', e => { if (e.target === m) tcClose(); });
   m.querySelector('#tc-close').addEventListener('click', () => tcClose());
-  m.querySelector('#tc-close').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tcClose(); } });
+  m.querySelector('#tc-help').addEventListener('click', () => tcHelp());
   new MutationObserver(() => { if (!m.classList.contains('on')) tcCleanup(); }).observe(m, { attributes: true, attributeFilter: ['class'] });   // geri tuşu da (closemo) aynı temizliği tetikler
   return m;
 }
 function tcBody() { return document.getElementById('tc-body'); }
 function tcSetTitle(t) { const e = document.getElementById('tc-title'); if (e) e.textContent = t; }
-function tcClose() { closemo('tc-mo'); }
+// Faz 28: "kapat" = bir önceki ekrana (kökteyse ana uygulamaya) dön; tarayıcı geri tuşuyla aynı yol
+function tcClose() { tcNavBack(); }
 function tcCleanup() {
+  tcNavOnClosed();   // dışarıdan kapatıldıysa açtığımız geçmiş kayıtlarını geri sar
   const n = tcNative();
   if (TCK) { TCK.closed = true; if (TCK.resolveStage) { const r = TCK.resolveStage; TCK.resolveStage = null; r('cancel'); } }
   tcStopCamera();
@@ -19459,12 +19616,13 @@ function tcOpen() {
   if (n && n.addListener) {
     Promise.resolve(n.addListener('interrupted', () => { if (TCK && TCK.busy && TCK.current) { TCK.runId = (TCK.runId || 0) + 1; if (TCK.hw && /^hw_/.test(TCK.current)) TCK.hw[TCK.current] = { status: 'skipped', note: 'Uygulama arka plana alındı / test kesildi' }; else TCK.tests[TCK.current] = { status: 'untested', measured: TCK.tests[TCK.current].measured || {}, note: 'Uygulama arka plana alındı / test kesildi' }; tcHideStage(); TCK.busy = false; TCK.current = null; showToast('⏸️', 'var(--surf2)', 'Test kesildi', 'Tamamlanmayan test başarılı sayılmaz.'); tcRender(); } })).then(h => { if (h) tcListeners.push(h); }).catch(() => {});
   }
-  tcRender();
+  tcHomeRender();   // Faz 28: önce sade ana ekran (testler "Cihazımı Test Et" ekranında)
 }
+// "Cihazımı Test Et" ekranı (eski ana ekran içeriği): testler, ek donanım testleri, kozmetik durum, rapor oluşturma
 function tcRender() {
   if (!TCK) return;
   const b = tcBody(); if (!b) return;
-  tcSetTitle('TeknoCheck');
+  { const m0 = tcEnsureModal(), was = m0.classList.contains('on'); m0.classList.add('on'); tcNavEnter('test', null, was); }
   const native = !!tcNative();
   const pend = tcPendingGet();
   const done = TC_DEFS.filter(d => ['passed', 'failed', 'skipped', 'unsupported', 'untested'].includes(TCK.tests[d.id].status)).length;
@@ -19478,19 +19636,20 @@ function tcRender() {
     ${tcsHeroHTML(tcsModel(TCK), native)}
     ${native ? '' : `<div class="tc-status" role="note" id="tc-webnote"><b>Bu sayfa Android uygulaması değil.</b> Donanım testlerinin çoğu (kamera, mikrofon, sensör, batarya, bağlantı, titreşim) yalnızca Teknohane Android uygulamasında çalışır. Burada yalnızca ekran/dokunmatik testleri denenebilir; <b>web'de rapor oluşturulamaz</b>.</div>`}
     ${pend ? `<div class="tc-status" id="tc-pending" role="note"><b>Gönderilmemiş rapor var.</b> Sunucuya ulaşılamadığı için bekletiliyor; <b>sunucu onayı olmadığından doğrulanmış sayılmaz</b>. <button type="button" class="tk-btn tk-btn--outline tk-btn--sm" data-act="retry-pending">Şimdi gönder</button> <button type="button" class="tk-btn tk-btn--outline tk-btn--sm" data-act="drop-pending">Sil</button></div>` : ''}
-    ${tcsNavHTML(native)}
+    ${tcStepsHTML(tcsModel(TCK))}
     ${tcsSummaryHTML(tcsModel(TCK))}
     <details class="tcx-priv" ${TCK.introSeen ? '' : 'open'}><summary>Gizlilik: neler toplanır?</summary><ul>
       <li>Cihaz üreticisi, modeli, Android sürümü, ekran ve bellek/depolama boyutları, batarya ve bağlantı durumu, sensör varlığı.</li>
       <li><b>Toplanmaz:</b> IMEI, seri numarası, Android kimliği, konum verisi, fotoğraf/video, ses kaydı.</li>
       <li>Kamera ve mikrofon izni yalnızca ilgili test başlarken istenir; reddedersen diğer testler çalışır.</li>
       <li>Rapor oluşturmadıkça hiçbir sonuç sunucuya gönderilmez. Rapor oluşturunca sunucuya şunlar gider ve imzalanır: aşağıdaki test sonuçları, gelişmiş cihaz analizi (değer + durum), ek donanım test durumları ve varsa kozmetik <b>kullanıcı beyanın</b>. <b>Fotoğraflar hiçbir zaman gönderilmez.</b></li></ul></details>
-    <div class="tcx-actions tcs-sec">${native ? `<button type="button" class="tk-btn tk-btn--primary" data-act="run-auto" ${TCK.busy ? 'disabled' : ''}>Otomatik testleri çalıştır</button>` : ''}<button type="button" class="tk-btn tk-btn--outline" data-act="verify">Rapor doğrula</button></div>
+    <div class="tcx-actions tcs-sec">${native ? `<button type="button" class="tk-btn tk-btn--primary" data-act="run-auto" ${TCK.busy ? 'disabled' : ''}>Otomatik testleri çalıştır</button>` : ''}</div>
     <div id="tcs-tests" class="tcs-sec-h"><h3 class="tc-info-t">Temel testler</h3><span class="tcs-sec-s">${done}/${TC_DEFS.length} sonuçlandı</span></div>
     <ul class="tcx-list">${rows}</ul>
     ${typeof tchSectionHTML === 'function' ? tchSectionHTML(native) : ''}
     ${typeof tcrCardHTML === 'function' ? tcrCardHTML() : ''}
-    <div class="tcx-foot"><div class="tcx-prog">${done}/${TC_DEFS.length} test sonuçlandı</div><button type="button" class="tk-btn tk-btn--primary tk-btn--block" data-act="finish" ${(!native || TCK.busy) ? 'disabled' : ''}>Raporu oluştur</button>${native ? '<p class="tcx-hint">Tamamlanmayan testler raporda "test edilmedi" veya "atlandı" olarak görünür; başarılı sayılmaz.</p><p class="tcx-hint" id="tc-scope-hint">İmzalı rapora eklenir: bu testler, gelişmiş cihaz analizi, ek donanım test durumları ve varsa kozmetik <b>kullanıcı beyanı</b>. Fotoğraflar sunucuya gönderilmez, imzalanmaz.</p>' : ''}</div></div>`;
+    ${native ? '<p class="tcx-hint">Tamamlanmayan testler raporda "test edilmedi" veya "atlandı" olarak görünür; başarılı sayılmaz.</p><p class="tcx-hint" id="tc-scope-hint">İmzalı rapora eklenir: bu testler, gelişmiş cihaz analizi, ek donanım test durumları ve varsa kozmetik <b>kullanıcı beyanı</b>. Fotoğraflar sunucuya gönderilmez, imzalanmaz.</p>' : ''}
+    <div class="tcx-foot"><div class="tcx-prog">${done}/${TC_DEFS.length} test sonuçlandı</div><button type="button" class="tk-btn tk-btn--primary tk-btn--block" data-act="finish" ${(!native || TCK.busy) ? 'disabled' : ''}>Raporu oluştur</button></div></div>`;
   TCK.introSeen = true;
   b.querySelectorAll('[data-run]').forEach(btn => btn.addEventListener('click', () => tcRunTest(btn.dataset.run)));
   if (typeof tchBind === 'function') tchBind(b);
@@ -19789,8 +19948,8 @@ function tcReportRowsHTML(report) {
   return sec('Otomatik ölçümler', group.auto) + sec('Kullanıcı onayıyla (manuel / karma)', group.manual) + sec('Desteklenmeyen · ölçülemeyen · atlanan', group.other);
 }
 function tcShowReport(rep, opts) {
-  opts = opts || {}; const b = tcBody(); if (!b) return;
-  tcSetTitle('TeknoCheck raporu');
+  opts = opts || {}; { const m0 = tcEnsureModal(), was = m0.classList.contains('on'); m0.classList.add('on'); tcNavEnter('report', { id: rep.reportId, rep, opts }, was); }
+  const b = tcBody(); if (!b) return;
   const d = rep.report.device, c = rep.counts || tcCountsOf(rep.report.tests);
   const revoked = rep.status === 'revoked';
   b.innerHTML = `<div class="tcx" id="tc-report" data-report="${escapeHtml(rep.reportId)}">
@@ -19805,12 +19964,12 @@ function tcShowReport(rep, opts) {
     ${tcReportRowsHTML(rep.report)}
     ${tcxReportSectionsHTML(rep.report)}
     <h3 class="pd-sec-t">Sınırlamalar</h3><p class="tcx-limits" id="tc-limits">${escapeHtml(TC_LIMITS)}</p>
-    <button type="button" class="tk-btn tk-btn--outline tk-btn--block" data-act="back">${opts.fresh ? 'Teste dön' : 'Raporlarıma dön'}</button></div>`;
+    <button type="button" class="tk-btn tk-btn--outline tk-btn--block" data-act="back">${opts.fresh ? 'Teste dön' : 'Raporlarıma dön'}</button></div>`;   // Faz 28: önceki ekrana (gerçek geri) döner
   b.querySelectorAll('[data-act]').forEach(btn => btn.addEventListener('click', () => tcReportAction(btn.dataset.act, rep, opts)));
   tcrDecorateReport(b, rep, opts);   // Faz 7: ek veri özeti, QR, çevrimiçi doğrulama durumu
 }
 async function tcReportAction(a, rep, opts) {
-  if (a === 'back') return opts.fresh ? tcRender() : tcOpenMyReports();
+  if (a === 'back') return opts.fresh ? tcNavGoOrBack('test', tcRender) : tcNavGoOrBack('reports', tcOpenMyReports);
   if (a === 'copy') { try { await navigator.clipboard.writeText(`${rep.reportId} ${rep.verifyCode}`); showToast('📋', 'var(--surf2)', 'Kopyalandı', 'Rapor no ve doğrulama kodu'); } catch (e) { showToast('ℹ️', 'var(--surf2)', 'Kopyalanamadı', 'Kodu elle not al.'); } return; }
   if (a === 'share') { const t = tcSummaryText(rep, rep.reportId, rep.verifyCode); if (typeof openShareMenu === 'function') openShareMenu('TeknoCheck raporu', t, 'https://www.teknohane.net/'); return; }
   if (a === 'pdf') return tcExportPdf(rep);
@@ -19827,8 +19986,8 @@ async function tcExportPdf(rep) { return tcrExport(rep); }   // Faz 7: fotoğraf
 // ---------------------------------------------------------------- Raporlarım (Profil)
 async function tcOpenMyReports() {
   if (!user) { showToast('🔒', 'var(--surf2)', 'Giriş gerekli', 'Raporlarını görmek için giriş yap.'); gt('profile'); return; }
-  const m = tcEnsureModal(); m.classList.add('on'); if (!TCK) TCK = { platform: tcPlatform(), startedAt: new Date().toISOString(), device: null, tests: Object.fromEntries(TC_DEFS.map(d => [d.id, { status: 'idle' }])), busy: false, closed: false };
-  tcSetTitle('TeknoCheck raporlarım');
+  const m = tcEnsureModal(), was = m.classList.contains('on'); m.classList.add('on'); if (!TCK) TCK = { platform: tcPlatform(), startedAt: new Date().toISOString(), device: null, tests: Object.fromEntries(TC_DEFS.map(d => [d.id, { status: 'idle' }])), busy: false, closed: false };
+  tcNavEnter('reports', null, was);
   const b = tcBody(); b.innerHTML = '<div class="load"><div class="spin"></div></div>';
   const idToken = await tcIdToken(); const r = await tcCall('mine', { idToken });
   if (!TCK) return;
@@ -19845,8 +20004,8 @@ async function tcOpenMyReports() {
 // ---------------------------------------------------------------- herkese açık doğrulama
 function tcOpenVerify(prefill) {
   if (typeof closemo === 'function') closemo('tc-info-mo');
-  const m = tcEnsureModal(); m.classList.add('on'); if (!TCK) TCK = { platform: tcPlatform(), startedAt: new Date().toISOString(), device: null, tests: Object.fromEntries(TC_DEFS.map(d => [d.id, { status: 'idle' }])), busy: false, closed: false };
-  tcSetTitle('Rapor doğrula');
+  const m = tcEnsureModal(), was = m.classList.contains('on'); m.classList.add('on'); if (!TCK) TCK = { platform: tcPlatform(), startedAt: new Date().toISOString(), device: null, tests: Object.fromEntries(TC_DEFS.map(d => [d.id, { status: 'idle' }])), busy: false, closed: false };
+  tcNavEnter('verify', null, was);
   const b = tcBody();
   b.innerHTML = `<div class="tcx"><h2 class="tc-info-h">Rapor doğrula</h2><p class="tc-info-lead">Satıcının verdiği rapor numarasını ve doğrulama kodunu gir. Sonuç sunucu kaydıyla karşılaştırılır; giriş yapman gerekmez.</p>
     <label class="tcx-lbl" for="tc-v-id">Rapor no</label><input class="tk-input" id="tc-v-id" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="TC…" value="${escapeHtml((prefill && prefill.reportId) || '')}">
@@ -19909,7 +20068,8 @@ async function tcSlotAction(a, l, r) {
 // Rapor seçici: listing verilirse raporu seçip o ilana, rapor verilirse ilanı seçip o rapora bağlar
 async function tcLinkPicker(rep, listing) {
   if (!user) { gt('profile'); return; }
-  const m = tcEnsureModal(); m.classList.add('on'); if (!TCK) TCK = { platform: tcPlatform(), device: null, tests: {}, busy: false };
+  const m = tcEnsureModal(), was = m.classList.contains('on'); m.classList.add('on'); if (!TCK) TCK = { platform: tcPlatform(), device: null, tests: {}, busy: false };
+  tcNavEnter('link', { id: (listing && listing.id) || (rep && rep.reportId) || 'x', rep, listing }, was);
   tcSetTitle('TeknoCheck raporu bağla'); const b = tcBody(); b.innerHTML = '<div class="load"><div class="spin"></div></div>';
   const idToken = await tcIdToken();
   let reports = rep ? [rep] : null, listings = listing ? [listing] : null;
@@ -19948,7 +20108,7 @@ function hmTeknoCheckCardHTML() {
   </section>`;
 }
 // Android uygulamasında kart doğrudan gerçek test akışını (tcOpen: gizlilik özeti + testler) açar; web'de testler çalışmadığı için bilgi/rapor doğrulama sayfası açılır.
-function hmTeknoCheckGo() { if (tcNative()) tcOpen(); else openTeknoCheckInfo(); }
+function hmTeknoCheckGo() { if (tcNative()) { tcOpen(); tcHomeGo('test'); } else openTeknoCheckInfo(); }   // Ana Sayfa kartı "Testi başlat" der: doğrudan test merkezi; geri -> TeknoCheck ana ekranı
 function openTeknoCheckInfo() {
   const body = document.getElementById('tc-info-body');
   if (!body) return;
@@ -20219,16 +20379,16 @@ function tcaHTML(data, opts) {
     ${ven ? `<div class="tc-status" role="note" id="tca-vendor">${escapeHtml(ven)}</div>` : ''}
     ${cats}
     <div class="tc-status" role="note"><b>Gizlilik:</b> ${web ? 'Bu tarayıcı analizi yalnızca cihazında gösterilir; rapora eklenmez.' : 'Android uygulamasında <b>rapor oluşturduğunda</b> bu analiz (değer + durum) imzalı rapora eklenir; Gizlilik gereği IMEI, seri no, Android kimliği, ağ adı (SSID), adres ve konum <b>okunmaz</b> ve gönderilmez.'}</div>
-    <div class="tcx-actions"><button type="button" class="tk-btn tk-btn--outline" data-tca="refresh">Yenile</button><button type="button" class="tk-btn tk-btn--primary" data-tca="back">${o.back === 'tests' ? 'Testlere dön' : 'Kapat'}</button></div>
+    <div class="tcx-actions"><button type="button" class="tk-btn tk-btn--outline" data-tca="refresh">Yenile</button></div>
   </div>`;
 }
 let tcaRun = 0;
 async function tcaOpen(fromTests) {
   if (typeof closemo === 'function') closemo('tc-info-mo');
-  const m = tcEnsureModal(); m.classList.add('on');
+  const m = tcEnsureModal(), was = m.classList.contains('on'); m.classList.add('on'); tcNavEnter('device', null, was);
   const run = ++tcaRun, b = tcBody(); if (!b) return;
-  const back = fromTests && TCK ? 'tests' : 'close';
-  tcSetTitle(tcNative() ? 'Gelişmiş analiz' : 'Tarayıcı analizi');
+  const pk = (typeof TCNAV !== 'undefined' && TCNAV.idx > 0) ? tcNavName(TCNAV.keys[TCNAV.idx - 1]) : '', back = pk === 'test' ? 'tests' : pk === 'home' ? 'home' : 'close';   // Faz 28: düğme gerçekten nereye döneceğini söyler
+  tcSetTitle(tcNative() ? 'Cihaz Bilgileri' : 'Tarayıcı Bilgileri');
   b.innerHTML = '<div class="tcx"><p class="tc-info-lead" id="tca-loading" role="status">Cihaz bilgileri okunuyor…</p></div>';
   let res;
   try { res = await tcaCollect(); } catch (e) { res = { platform: tcNative() ? 'android' : 'web', data: {} }; }
@@ -20238,7 +20398,6 @@ async function tcaOpen(fromTests) {
   if (TCK) TCK.advLast = { platform: res.platform, data: res.data, at: new Date().toISOString() };   // Faz 7: son analiz (yalnızca bellekte; rapora yerel ek bölüm olarak eklenir)
   bb.querySelectorAll('[data-tca-go]').forEach((c) => c.addEventListener('click', () => { const t = bb.querySelector(`[data-cat="${c.dataset.tcaGo}"]`); if (t) t.scrollIntoView({ behavior: tcsReduce() ? 'auto' : 'smooth', block: 'start' }); }));   // Faz 6: kategori kısayolları
   bb.querySelector('[data-tca="refresh"]').addEventListener('click', () => tcaOpen(fromTests));
-  bb.querySelector('[data-tca="back"]').addEventListener('click', () => { tcaRun++; if (back === 'tests' && TCK) tcRender(); else tcClose(); });
 }
 
 // ==================================================================== FAZ 5 — EK DONANIM TESTLERİ (kaynak: teknocheck/istemci3.js; uygula.mjs gömer)
@@ -20581,12 +20740,12 @@ const TCS_IC = {
 };
 function tcsHeroHTML(m, native) {
   const R = 18, C = Math.round(2 * Math.PI * R * 10) / 10, off = Math.round(C * (1 - m.pct / 100) * 10) / 10;
-  const d = TCK && TCK.device;
+  const d = TCK && (TCK.device || TCK.devHint);
   const dev = d && (d.manufacturer || d.model) ? [tcaBrandName(d.manufacturer, d.brand) || d.manufacturer, d.model].filter(Boolean).join(' ') + (d.androidRelease ? ' · Android ' + d.androidRelease : '') : (native ? 'Cihaz bilgisi için "Donanım ve sistem bilgisi" testini çalıştır' : 'Web tarayıcısı · yalnızca ekran/dokunma testleri');
   const issue = m.failed > 0 ? `<span class="tcs-chip tcs-chip--bad">${m.failed} sorun</span>` : '';
   const wait = m.waiting > 0 ? `<span class="tcs-chip tcs-chip--warn">${m.waiting} onay/izin bekliyor</span>` : '';
   return `<section class="tcs-hero" aria-label="Genel durum"><div class="tcs-ring" role="img" aria-label="${m.done} / ${m.total} temel test sonuçlandı"><svg viewBox="0 0 44 44" aria-hidden="true"><circle class="tcs-ring-bg" cx="22" cy="22" r="${R}"/><circle class="tcs-ring-fg${TCK && TCK.introSeen ? '' : ' tcs-ring-anim'}" cx="22" cy="22" r="${R}" style="--c:${C};stroke-dasharray:${C};stroke-dashoffset:${off}"/></svg><div class="tcs-ring-n"><b>${m.done}</b><small>/${m.total}</small></div></div>
-    <div class="tcs-hero-main"><h2 class="tc-info-h">TeknoCheck</h2><p class="tc-info-lead">Telefonunun durumunu test et, sonuçları raporla, güvenle alıp sat.</p><p class="tcs-dev">${escapeHtml(dev)}</p>
+    <div class="tcs-hero-main"><p class="tc-info-lead">Testleri sırayla çalıştır; sonuçlar burada toplanır. Hazır olunca imzalı rapor oluşturabilirsin.</p><p class="tcs-dev">${escapeHtml(dev)}</p>
     <div class="tcs-chips"><span class="tcs-chip">${native ? 'Android uygulaması' : 'Web'}</span><span class="tcs-chip">Temel ${m.done}/${m.total}</span><span class="tcs-chip">Ek ${m.hwDone}/${m.hwTotal}</span>${issue}${wait}</div></div></section>`;
 }
 function tcsNavHTML(native) {
@@ -20929,7 +21088,8 @@ async function tcrOpenEditor(opts) {
   const o = opts || {};
   if (!tcrUid()) { showToast('🔒', 'var(--surf2)', 'Giriş gerekli', 'Fotoğraf ve kozmetik bilgi için giriş yapmalısın.'); return; }
   if (typeof closemo === 'function') closemo('tc-info-mo');
-  const m = tcEnsureModal(); m.classList.add('on'); if (!TCK) TCK = { platform: tcPlatform(), startedAt: new Date().toISOString(), device: null, tests: Object.fromEntries(TC_DEFS.map((d) => [d.id, { status: 'idle' }])), busy: false, closed: false };
+  const m = tcEnsureModal(), was = m.classList.contains('on'); m.classList.add('on'); if (!TCK) TCK = { platform: tcPlatform(), startedAt: new Date().toISOString(), device: null, tests: Object.fromEntries(TC_DEFS.map((d) => [d.id, { status: 'idle' }])), busy: false, closed: false };
+  tcNavEnter('editor', { id: o.reportId || 'taslak', args: o }, was);
   const key = o.reportId ? tcrKey('rep', o.reportId) : tcrKey('draft');
   const data = (await tcrGet(key)) || tcrNewDraft();
   TCRS = { key, data, rep: o.rep || null, opts: o, err: '', busy: false };
@@ -20968,7 +21128,7 @@ function tcrRenderEditor() {
   b.querySelectorAll('[data-cap]').forEach((x) => x.addEventListener('change', async () => { TCRS.data = tcrSetCaption(TCRS.data, x.dataset.cap, x.value); await tcrSave(); }));
   b.querySelectorAll('[data-ph="del"]').forEach((x) => x.addEventListener('click', async () => { TCRS.data = tcrRemovePhoto(TCRS.data, x.dataset.id); TCRS.err = ''; await tcrSave(); tcrRenderEditor(); }));
   b.querySelectorAll('[data-ph="cam"],[data-ph="gal"]').forEach((x) => x.addEventListener('click', () => tcrPick(x.dataset.slot, x.dataset.ph === 'cam')));
-  b.querySelector('[data-tcr="done"]').addEventListener('click', () => { const o = TCRS && TCRS.opts; TCRS = null; if (o && o.rep) tcShowReport(o.rep, o.repOpts || {}); else if (TCK && TCK.tests) tcRender(); else tcClose(); });
+  b.querySelector('[data-tcr="done"]').addEventListener('click', () => { const o = TCRS && TCRS.opts; TCRS = null; if (TCNAV.live && TCNAV.idx > 0) tcNavBack(); else if (o && o.rep) tcShowReport(o.rep, o.repOpts || {}); else if (TCK && TCK.tests) tcRender(); else tcClose(); });   // Faz 28: geldiği ekrana gerçek geri
 }
 // Fotoğraf seç/çek: dosya seçici kullanıcı dokunuşuyla açılır; sıkıştırılır; hata durumunda kullanıcıya açıklanır, mevcut fotoğraf KORUNUR
 function tcrPick(slot, camera) {
@@ -21603,8 +21763,8 @@ function tcPilHTML(m, native) {
 }
 let tcPilLast = null;
 async function tcPilOpen() {
-  const m = tcEnsureModal(); m.classList.add('on'); if (!TCK) TCK = { platform: tcPlatform(), device: null, tests: {}, busy: false };
-  tcSetTitle('Pil analizi'); const b = tcBody();
+  const m = tcEnsureModal(), was = m.classList.contains('on'); m.classList.add('on'); if (!TCK) TCK = { platform: tcPlatform(), device: null, tests: {}, busy: false };
+  tcNavEnter('pil', null, was); const b = tcBody();
   if (!tcNative()) { b.innerHTML = tcPilHTML(null, false); return; }
   b.innerHTML = '<div class="load"><div class="spin"></div><span>Pil verileri okunuyor…</span></div>';
   await tcPilRender();
@@ -21803,6 +21963,233 @@ function tcPilVerifyBlockHTML(b) {
     ...(bgTxt ? [['Arka plan izleme', bgTxt, '']] : []),
   ];
   return `<h4 class="tc-info-t">İmzalı pil analizi</h4><div class="tcpil-vblock" id="tcpil-vblock" data-method="${E(b.method)}" data-origin="${E(b.origin || '')}" data-source="${E(b.sourceKind || '')}">${tcxRowsHTML(rows)}</div><p class="tca-intro" id="tcpil-vtrust">${E(TCP_TRUST_NOTE)} Pil değerleri (yüzde, döngü, kapasite) herkese açık özette gösterilmez; satıcının PDF raporunda yer alır.</p>`;
+}
+
+// ==================================================================== FAZ 28 — TeknoCheck BAĞIMSIZ EKRAN KABUĞU + GERÇEK GEÇMİŞ (history) TABANLI İÇ NAVİGASYON + SADE ANA EKRAN (kaynak: teknocheck/istemci10.js)
+// Mimari: ana uygulama SPA'sı değişmez. TeknoCheck tam ekran kendi kabuğunda (#tc-mo) açılır; her iç ekran bir tarayıcı geçmişi kaydıdır:
+//   uygulama geçmişi:  [… , uygulama-kaydı] → TeknoCheck açılınca [… , uygulama-kaydı, tc:home, tc:test, tc:pil …]
+// Geri/ileri = tarayıcının kendi geçmişi (tarayıcı geri/ileri, Android donanım geri → Capacitor backButton → history.back()). Ana uygulamanın popstate işleyicisi önce tcNavPop()'u çağırır.
+// Kurallar: aynı ekrana tekrar geçiş yeni kayıt AÇMAZ; açık katman (yardım, çalışan test, soru) geri tuşuyla önce kapanır; kök ekranda geri → ana uygulama (kayıt tüketilir, ana uygulamanın kendi kaydı bozulmaz);
+// dışarıdan kapatma (closemo) açtığımız kayıtları tek hamlede geri sarar; sayfa yenilenirse eski oturumdan kalan kayıtlar sessizce atlanır; ileri tuşu aynı oturumda kapatılan TeknoCheck'i bıraktığı ekranda açar.
+const TCNAV = { sid: Math.random().toString(36).slice(2, 8), live: false, idx: -1, cur: null, keys: [], ctx: {}, scroll: {}, forms: {}, silent: false, unwinding: 0, stale: 0, backTimer: null };
+const TC_TITLES = { home: 'TeknoCheck', test: 'Cihazımı Test Et', pil: 'Pil Analizi', device: 'Cihaz Bilgileri', reports: 'Test ve Raporlarım', report: 'Rapor Detayı', verify: 'Rapor Doğrulama', editor: 'Kozmetik Durum', link: 'Raporu İlana Bağla' };
+const TC_HELP = {
+  home: 'TeknoCheck telefonunun durumunu test eder, pilini analiz eder ve istersen sunucu imzalı bir rapor oluşturur. Başlamak için "Cihazımı Test Et"i seç. Satıcıdan aldığın bir raporu "Rapor Doğrula"dan kontrol edebilirsin.',
+  test: 'Testleri tek tek ya da "Otomatik testleri çalıştır" ile başlat. Tamamlanmayan testler başarılı sayılmaz. Hazır olunca "Raporu oluştur"a dokun. Fotoğraflar hiçbir zaman sunucuya gönderilmez.',
+  pil: 'Pil sağlığı yalnızca cihazın uygulamalara açtığı bilgilerden okunur veya (açıkça "TAHMİN" etiketiyle) hesaplanır. Okunamayan değerler uydurulmaz. İzleme açık kalırsa tahmin zamanla iyileşir.',
+  device: 'Cihazının modeli, işlemcisi, belleği, ekranı ve bağlantıları. Her değerin yanında kaynağı yazar; okunamayanlar "desteklenmiyor" olarak görünür.',
+  reports: 'Oluşturduğun imzalı raporlar burada listelenir. Bir rapora dokunarak PDF, QR ve doğrulama bilgilerine ulaşırsın. Raporu iptal edebilir veya ilanına bağlayabilirsin.',
+  report: 'Rapor numarası ve doğrulama kodu ile alıcı raporu doğrulayabilir. İmza, raporun sonradan değişmediğini gösterir; cihazın orijinal veya kusursuz olduğunu kanıtlamaz.',
+  verify: 'Satıcının verdiği rapor numarasını ve doğrulama kodunu gir (ya da QR bağlantısını aç). Sonuç sunucu kaydıyla karşılaştırılır; giriş yapman gerekmez.',
+  editor: 'Cihazın dış görünümünü ve fotoğraflarını bu cihazda kaydedebilirsin. Fotoğraflar sunucuya gönderilmez; kozmetik beyan senin kendi değerlendirmendir.',
+  link: 'İmzalı bir raporu kendi Pazar ilanına bağlayabilirsin; alıcı ilanda doğrulanmış özeti görür.',
+};
+const tcNavKey = (name, ctx) => name + (ctx && ctx.id ? ':' + ctx.id : '');
+const tcNavName = (key) => String(key || '').split(':')[0];
+function tcNavState(key, i) { return { tc: 1, s: TCNAV.sid, k: key, i }; }
+function tcNavBodyScroller() { return document.getElementById('tc-body'); }
+function tcNavSaveScroll() { const b = tcNavBodyScroller(); if (b && TCNAV.cur) { TCNAV.scroll[TCNAV.cur] = b.scrollTop; tcNavSaveForm(); } }
+// Form alanları (yazılmış metin, işaret kutuları): ekrandan çıkılırken saklanır, geri/ileri dönüşte geri yüklenir. Parola/dosya alanları saklanmaz.
+function tcNavSaveForm() {
+  const b = tcNavBodyScroller(); if (!b || !TCNAV.cur) return;
+  const f = {}; b.querySelectorAll('input[id], textarea[id], select[id]').forEach((el) => { if (el.type === 'file' || el.type === 'password') return; f[el.id] = (el.type === 'checkbox' || el.type === 'radio') ? !!el.checked : el.value; });
+  if (Object.keys(f).length) TCNAV.forms[TCNAV.cur] = f;
+}
+function tcNavRestoreForm(key) {
+  const f = TCNAV.forms[key]; if (!f) return;
+  [0, 150, 500].forEach((ms) => setTimeout(() => {
+    const b = tcNavBodyScroller(); if (!b || TCNAV.cur !== key) return;
+    Object.keys(f).forEach((id) => { const el = b.querySelector('#' + (window.CSS && CSS.escape ? CSS.escape(id) : id)); if (!el || document.activeElement === el) return; if (el.type === 'checkbox' || el.type === 'radio') el.checked = !!f[id]; else if (el.value !== f[id]) el.value = f[id]; });
+  }, ms));
+}
+function tcNavRestoreScroll(key) {
+  const y = TCNAV.scroll[key]; if (!y) return;
+  [0, 120, 400, 900].forEach((ms) => setTimeout(() => { const b = tcNavBodyScroller(); if (b && TCNAV.cur === key && b.scrollTop !== y) b.scrollTop = y; }, ms));   // async ekranlar (raporlar) sonradan dolar
+}
+// Her ekran açıcısı çağırır: kabuğu açar (gerekirse kök kaydı ekler), yeni ekranda geçmişe kayıt ekler. wasOpen: çağrıdan ÖNCE kabuk açık mıydı.
+function tcNavEnter(name, ctx, wasOpen) {
+  const key = tcNavKey(name, ctx);
+  if (ctx) TCNAV.ctx[key] = ctx;
+  tcNavChrome(name);
+  if (TCNAV.silent) { TCNAV.cur = key; return; }
+  if (!wasOpen || !TCNAV.live) {
+    TCNAV.live = true; TCNAV.idx = 0; TCNAV.keys = [key]; TCNAV.cur = key; TCNAV.scroll = {}; TCNAV.forms = {};
+    try { history.pushState(tcNavState(key, 0), '', location.href); } catch (e) { /* geçmiş yoksa yalnızca kabuk düğmeleriyle gezilir */ }
+  } else if (key !== TCNAV.cur) {   // aynı ekrana tekrar tekrar geçiş geçmişi yığmaz
+    tcNavSaveScroll();
+    TCNAV.idx++; TCNAV.keys = TCNAV.keys.slice(0, TCNAV.idx).concat(key); TCNAV.cur = key;
+    try { history.pushState(tcNavState(key, TCNAV.idx), '', location.href); } catch (e) { /* sessiz */ }
+  }
+}
+function tcNavChrome(name) {
+  const m = document.getElementById('tc-mo'); if (m) m.dataset.route = name;
+  tcSetTitle(TC_TITLES[name] || 'TeknoCheck');
+  const h = document.getElementById('tcx-help'); if (h) h.remove();
+}
+const TC_ROUTES = {
+  home: () => tcHomeRender(), test: () => tcRender(), pil: () => tcPilOpen(), device: () => tcaOpen(true), reports: () => tcOpenMyReports(), verify: () => tcOpenVerify(),
+  report: (c) => (c && c.rep ? tcShowReport(c.rep, c.opts || {}) : tcHomeRender()), editor: (c) => tcrOpenEditor((c && c.args) || {}), link: (c) => (c && c.rep !== undefined ? tcLinkPicker(c.rep, c.listing) : tcHomeRender()),
+};
+function tcNavRender(key, idx) {
+  const name = tcNavName(key), fn = TC_ROUTES[name] || TC_ROUTES.home;
+  TCNAV.silent = true; TCNAV.idx = typeof idx === 'number' ? idx : TCNAV.idx;
+  try { fn(TCNAV.ctx[key]); TCNAV.cur = key; } catch (e) { try { TC_ROUTES.home(); TCNAV.cur = 'home'; } catch (e2) { /* sessiz */ } } finally { TCNAV.silent = false; }
+  tcNavRestoreScroll(key); tcNavRestoreForm(key);
+}
+function tcNavCanReopen(key) { const n = tcNavName(key); return !!TC_ROUTES[n] && (['report', 'editor', 'link'].indexOf(n) < 0 || !!TCNAV.ctx[key]); }
+function tcNewSession() { return { platform: tcPlatform(), startedAt: new Date().toISOString(), device: null, tests: Object.fromEntries(TC_DEFS.map((d) => [d.id, { status: 'idle' }])), busy: false, closed: false }; }
+// İleri tuşu: aynı oturumda kapatılan TeknoCheck'i bıraktığı ekranda yeniden açar
+function tcNavReopen(st) {
+  const m = tcEnsureModal(); if (!TCK) TCK = tcNewSession();
+  m.classList.add('on'); TCNAV.live = true; TCNAV.cur = st.k;
+  tcNavRender(st.k, st.i);
+}
+// Açık katmanlar (yardım, çalışan test/soru): geri tuşu ÖNCE bunları kapatır. Dönüş: bir şey kapatıldı mı
+function tcNavDismissOverlay() {
+  const help = document.getElementById('tcx-help'); if (help) { help.remove(); return true; }
+  const s = typeof tcStage === 'function' ? tcStage() : null;
+  if (s && !s.hidden) {
+    if (TCK && TCK.resolveStage) { const r = TCK.resolveStage; TCK.resolveStage = null; r('cancel'); return true; }
+    if (TCK && TCK.busy) {   // çalışan test: iptal et, tamamlanmamış sayılır (başarılı DEĞİL)
+      TCK.runId = (TCK.runId || 0) + 1; try { tcStopCamera(); } catch (e) { /* sessiz */ }
+      if (TCK.current) { if (TCK.hw && /^hw_/.test(TCK.current)) TCK.hw[TCK.current] = { status: 'skipped', note: 'Test geri tuşuyla durduruldu' }; else if (TCK.tests[TCK.current]) TCK.tests[TCK.current] = { status: 'untested', measured: TCK.tests[TCK.current].measured || {}, note: 'Test geri tuşuyla durduruldu' }; }
+      tcHideStage(); TCK.busy = false; TCK.current = null; if (TCNAV.cur === 'test') tcRender();
+      return true;
+    }
+    tcHideStage(); return true;
+  }
+  return false;
+}
+// Ana uygulamanın popstate işleyicisinin EN BAŞINDA çağrılır. true: olayı biz işledik (uygulama işleyicisi çalışmasın)
+function tcNavPop(e) {
+  const m = document.getElementById('tc-mo'), open = !!m && m.classList.contains('on'), st = e && e.state;
+  if (TCNAV.unwinding > 0) { TCNAV.unwinding--; return true; }
+  if (TCNAV.backTimer) { clearTimeout(TCNAV.backTimer); TCNAV.backTimer = null; }
+  if (!open) {
+    if (st && st.tc) {
+      if (st.s === TCNAV.sid && tcNavCanReopen(st.k)) { tcNavReopen(st); return true; }
+      if (TCNAV.stale++ < 8) { try { history.back(); } catch (err) { /* sessiz */ } }   // başka oturumdan kalan TeknoCheck kayıtları sessizce atlanır
+      return true;
+    }
+    TCNAV.stale = 0; return false;
+  }
+  if (tcNavDismissOverlay()) { try { history.pushState(tcNavState(TCNAV.cur, TCNAV.idx), '', location.href); } catch (err) { /* sessiz */ } return true; }
+  if (st && st.tc && st.s === TCNAV.sid) { tcNavSaveScroll(); tcNavRender(st.k, st.i); return true; }
+  TCNAV.live = false; TCNAV.idx = -1; TCNAV.cur = null;   // kökün altına inildi → ana uygulama; kayıtlar zaten tüketildi
+  closemo('tc-mo'); return true;
+}
+// Kabuk dışarıdan kapatılırsa (closemo/gt) açtığımız kayıtları tek hamlede geri sar
+function tcNavOnClosed() {
+  if (!TCNAV.live) return;
+  const n = TCNAV.idx + 1; TCNAV.live = false; TCNAV.idx = -1; TCNAV.cur = null;
+  if (n > 0) { TCNAV.unwinding++; try { history.go(-n); } catch (e) { TCNAV.unwinding--; } setTimeout(() => { if (TCNAV.unwinding > 0) TCNAV.unwinding = 0; }, 800); }
+}
+// Kabuktaki geri düğmesi: tarayıcı geri tuşuyla AYNI yolu izler
+function tcNavBack() {
+  if (!TCNAV.live) { closemo('tc-mo'); return; }
+  try { history.back(); } catch (e) { closemo('tc-mo'); return; }
+  if (TCNAV.backTimer) clearTimeout(TCNAV.backTimer);
+  TCNAV.backTimer = setTimeout(() => { TCNAV.backTimer = null; const m = document.getElementById('tc-mo'); if (m && m.classList.contains('on')) { TCNAV.live = false; closemo('tc-mo'); } }, 450);   // geçmiş çalışmazsa kabuk yine kapanır
+}
+// İşlemi "önceki ekrana dön" olarak yapan düğmeler: hedef önceki kayıtsa geri git, değilse ileri git
+function tcNavGoOrBack(name, fn) { const prev = TCNAV.keys[TCNAV.idx - 1]; if (TCNAV.live && prev && tcNavName(prev) === name) tcNavBack(); else fn(); }
+
+// ---------------------------------------------------------------- yardım katmanı (kabuğun sağ üst düğmesi)
+function tcHelp() {
+  const m = document.getElementById('tc-mo'); if (!m) return;
+  const ex = document.getElementById('tcx-help'); if (ex) { ex.remove(); return; }
+  const name = (m.dataset.route || 'home'), d = document.createElement('div');
+  d.id = 'tcx-help'; d.className = 'tcx-help'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-labelledby', 'tcx-help-t');
+  d.innerHTML = `<div class="tcx-help-card"><h2 id="tcx-help-t">${escapeHtml(TC_TITLES[name] || 'TeknoCheck')}</h2><p>${escapeHtml(TC_HELP[name] || TC_HELP.home)}</p><button type="button" class="tk-btn tk-btn--primary tk-btn--block" id="tcx-help-ok">Anladım</button></div>`;
+  m.querySelector('.tcx-shell').appendChild(d);
+  d.addEventListener('click', (e) => { if (e.target === d) d.remove(); });
+  d.querySelector('#tcx-help-ok').addEventListener('click', () => d.remove());
+  d.querySelector('#tcx-help-ok').focus();
+}
+
+// ---------------------------------------------------------------- sade ana ekran
+const TCH_IC = {
+  test: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2.5"/><polyline points="9.5 12.5 11.5 14.5 15 10"/></svg>',
+  pil: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="8" width="16" height="9" rx="2"/><path d="M21 11v3M7 11v3M11 11v3"/></svg>',
+  device: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="14" height="14" rx="2"/><path d="M9 21h6M12 18v3M9 9h6M9 13h4"/></svg>',
+  reports: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>',
+  verify: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l8 3v6c0 4.7-3.2 8.6-8 10-4.8-1.4-8-5.3-8-10v-6l8-3z"/><polyline points="8.5 12 11 14.5 15.5 9.5"/></svg>',
+  biz: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V8l8-5 8 5v13M9 21v-6h6v6M8 10h.01M12 10h.01M16 10h.01"/></svg>',
+  go: '<svg viewBox="0 0 24 24" aria-hidden="true" width="16" height="16"><polyline points="9 6 15 12 9 18"/></svg>',
+  dev: '<svg viewBox="0 0 24 24" aria-hidden="true" width="18" height="18"><rect x="7" y="2" width="10" height="20" rx="2.5"/><path d="M11 18h2"/></svg>',
+};
+function tchCardHTML(c) {
+  return `<button type="button" class="tcm-card${c.soft ? ' tcm-card--soft' : ''}" data-go="${c.id}" id="tcm-${c.id}"><span class="tcm-ic">${TCH_IC[c.ic || c.id]}</span><span class="tcm-tx"><b>${escapeHtml(c.title)}</b><small>${escapeHtml(c.text)}</small>${c.meta ? `<span class="tcm-meta">${escapeHtml(c.meta)}</span>` : ''}</span><span class="tcm-go">${escapeHtml(c.cta)}${TCH_IC.go}</span></button>`;
+}
+function tcHomeRender() {
+  if (!TCK) return;
+  const b = tcBody(); if (!b) return;
+  const m = tcEnsureModal(), wasOpen = m.classList.contains('on'); m.classList.add('on');
+  tcNavEnter('home', null, wasOpen);
+  const native = !!tcNative(), pend = tcPendingGet(), model = typeof tcsModel === 'function' ? tcsModel(TCK) : { done: 0, total: TC_DEFS.length };
+  const d = TCK.device || TCK.devHint;
+  const dev = d && (d.manufacturer || d.model) ? [(typeof tcaBrandName === 'function' && tcaBrandName(d.manufacturer, d.brand)) || d.manufacturer, d.model].filter(Boolean).join(' ') + (d.androidRelease ? ' · Android ' + d.androidRelease : '') : (native ? 'Bu telefon' : 'Web tarayıcısı');
+  const cards = [
+    { id: 'test', title: 'Cihazımı Test Et', text: native ? 'Ekran, kamera, mikrofon ve sensörleri adım adım dene.' : 'Ekran ve dokunmatik testleri. Diğer testler Android uygulamasında.', cta: model.done ? 'Devam et' : 'Başla', meta: model.done ? model.done + '/' + model.total + ' test sonuçlandı' : '' },
+    { id: 'pil', title: 'Pil Analizi', text: 'Pil sağlığı, şarj döngüsü ve kapasite. Ölçüm yöntemi ve güvenilirlik belirtilir.', cta: 'Analiz et', meta: native ? '' : 'Yalnızca Android uygulamasında' },
+    { id: 'device', title: 'Cihaz Bilgileri', text: 'Model, işlemci, bellek, ekran ve bağlantılar. Her değerin kaynağı yazar.', cta: 'Görüntüle' },
+    { id: 'reports', title: 'Test ve Raporlarım', text: 'Oluşturduğun imzalı raporlar, PDF ve QR doğrulama.', cta: 'Aç', meta: typeof user !== 'undefined' && user ? '' : 'Giriş gerekir' },
+    { id: 'verify', title: 'Rapor Doğrula', text: 'Rapor numarası ve doğrulama koduyla bir raporu kontrol et.', cta: 'Doğrula', soft: true },
+  ];
+  const first = !tcHomeTipSeen();
+  b.innerHTML = `<div class="tcx tcm">
+    <section class="tcm-hero" aria-label="TeknoCheck"><h2 class="tc-info-h">Ne yapmak istersin?</h2><p class="tc-info-lead">Telefonunun durumunu test et, pilini analiz et, güvenilir rapor oluştur.</p><p class="tcm-dev" id="tcm-dev"><span class="tcm-dev-ic">${TCH_IC.dev}</span><span>${escapeHtml(dev)}</span></p></section>
+    ${native ? '' : `<div class="tc-status" role="note" id="tc-webnote"><b>Bu sayfa Android uygulaması değil.</b> Kamera, mikrofon, sensör, batarya ve bağlantı testleri yalnızca Teknohane Android uygulamasında çalışır; web'de rapor oluşturulamaz. Rapor doğrulama ve tarayıcı bilgisi burada da kullanılabilir.</div>`}
+    ${pend ? `<div class="tc-status" id="tc-pending" role="note"><b>Gönderilmemiş rapor var.</b> Sunucuya ulaşılamadığı için bekletiliyor; <b>sunucu onayı olmadığından doğrulanmış sayılmaz</b>. <button type="button" class="tk-btn tk-btn--outline tk-btn--sm" data-act="retry-pending">Şimdi gönder</button> <button type="button" class="tk-btn tk-btn--outline tk-btn--sm" data-act="drop-pending">Sil</button></div>` : ''}
+    ${first && native ? `<div class="tcm-tip" id="tcm-tip" role="note"><p class="tcm-tip-t"><b>Nereden başlamalı?</b><br>"Cihazımı Test Et" ile başla; testler bitince "Raporu oluştur"a dokun. Sorun olursa sağ üstteki <b>?</b> düğmesi her ekranda yardım verir.</p><button type="button" class="tcm-tip-x" id="tcm-tip-x" aria-label="İpucunu kapat">Tamam</button></div>` : ''}
+    <nav class="tcm-grid" aria-label="TeknoCheck bölümleri" id="tcm-grid">${cards.map(tchCardHTML).join('')}</nav>
+    <details class="tcx-priv tcm-priv"><summary>Gizlilik: neler toplanır?</summary><ul>
+      <li>Cihaz üreticisi, modeli, Android sürümü, ekran ve bellek/depolama boyutları, batarya ve bağlantı durumu, sensör varlığı.</li>
+      <li><b>Toplanmaz:</b> IMEI, seri numarası, Android kimliği, konum verisi, fotoğraf/video, ses kaydı.</li>
+      <li>Rapor oluşturmadıkça hiçbir sonuç sunucuya gönderilmez. <b>Fotoğraflar hiçbir zaman gönderilmez.</b></li></ul></details>
+    <p class="tcx-limits tcm-lim">TeknoCheck raporu, cihazın kusursuz olduğunu veya parçalarının orijinal olduğunu kanıtlamaz; yalnızca yapılan testlerin sonucunu gösterir.</p></div>`;
+  b.querySelectorAll('[data-go]').forEach((btn) => btn.addEventListener('click', () => tcHomeGo(btn.dataset.go)));
+  b.querySelectorAll('[data-act]').forEach((btn) => btn.addEventListener('click', () => tcAction(btn.dataset.act)));
+  const x = b.querySelector('#tcm-tip-x'); if (x) x.addEventListener('click', () => { try { localStorage.setItem('tk_tc_tip', '1'); } catch (e) { /* sessiz */ } const t = b.querySelector('#tcm-tip'); if (t) t.remove(); });
+  tcHomeFillDevice(); tcHomeBizCheck();
+}
+function tcHomeTipSeen() { try { return localStorage.getItem('tk_tc_tip') === '1'; } catch (e) { return true; } }
+function tcHomeGo(id) {
+  if (id === 'test') return tcRender();
+  if (id === 'pil') return tcPilOpen();
+  if (id === 'device') return tcaOpen(true);
+  if (id === 'reports') return tcOpenMyReports();
+  if (id === 'verify') return tcOpenVerify();
+  if (id === 'biz' && typeof bizOpen === 'function') return bizOpen();
+}
+// Cihaz satırı: izin gerektirmeyen model bilgisi (rapordaki device_info testinden bağımsız; testin sonucunu etkilemez)
+async function tcHomeFillDevice() {
+  try {
+    const n = tcNative(); if (!n || !n.getDeviceInfo || !TCK || TCK.device || TCK.devHint) return;
+    const di = await n.getDeviceInfo(); if (!TCK || !di) return;
+    TCK.devHint = { manufacturer: di.manufacturer, brand: di.brand, model: di.model, androidRelease: di.androidRelease };
+    const el = document.querySelector('#tcm-dev span:last-child'); if (!el) return;
+    el.textContent = [(typeof tcaBrandName === 'function' && tcaBrandName(di.manufacturer, di.brand)) || di.manufacturer, di.model].filter(Boolean).join(' ') + (di.androidRelease ? ' · Android ' + di.androidRelease : '');
+  } catch (e) { /* cihaz satırı isteğe bağlıdır */ }
+}
+// İşletme Araçları kartı: yalnızca etkin işletme üyeliği olan kullanıcıya (mevcut bizOpen akışının kullandığı aynı salt-okunur sorgu)
+async function tcHomeBizCheck() {
+  try {
+    if (typeof user === 'undefined' || !user || typeof bizDb !== 'function' || !TCK) return;
+    if (TCK.bizMember === undefined) { const snap = await bizDb().collection('business_memberships').where('uid', '==', user.uid).get(); TCK.bizMember = snap.docs.some((d) => d.data().active !== false); }
+    if (!TCK.bizMember) return;
+    const g = document.getElementById('tcm-grid'); if (!g || document.getElementById('tcm-biz')) return;
+    g.insertAdjacentHTML('beforeend', tchCardHTML({ id: 'biz', title: 'İşletme Araçları', text: 'Cihaz envanteri, IMEI/seri kaydı, giriş-çıkış işlemleri ve ekip.', cta: 'Aç' }));
+    g.querySelector('#tcm-biz').addEventListener('click', () => tcHomeGo('biz'));
+  } catch (e) { /* işletme kartı yüklenemezse ana ekran etkilenmez */ }
+}
+
+// "Cihazımı Test Et" adım göstergesi: 1 Testleri çalıştır → 2 Sonuçları incele → 3 Rapor oluştur (yalnızca bilgi; hiçbir şeyi engellemez)
+function tcStepsHTML(m) {
+  const done = m.done || 0, total = m.total || TC_DEFS.length, all = done >= total;
+  const cur = !done ? 1 : (all ? 3 : 2);
+  const st = (n, t, s) => `<li class="tcx-step${n < cur ? ' is-done' : n === cur ? ' is-cur' : ''}"${n === cur ? ' aria-current="step"' : ''}><span class="tcx-step-n" aria-hidden="true">${n < cur ? '✓' : n}</span><span class="tcx-step-t"><b>${t}</b><small>${s}</small></span></li>`;
+  return `<ol class="tcx-steps" aria-label="Adımlar">${st(1, 'Testleri çalıştır', done + '/' + total + ' tamam')}${st(2, 'Sonuçları incele', 'Sorunlar aşağıda')}${st(3, 'Rapor oluştur', 'İmzalı rapor')}</ol>`;
 }
 
 // ==================================================================== FAZ 9 — TEKNOCHECK İŞLETME YÖNETİMİ: SAF MANTIK (kaynak: teknocheck/isletme.js; uygula.mjs gömer)
@@ -22798,28 +23185,38 @@ function hmThumbHTML(p) {
   return img ? `<img src="${hmEsc(img)}" alt="" loading="lazy" decoding="async" onerror="phImgFail(this)">` : HM_PH_HTML;
 }
 function hmHeroData() {
-  if (hmBrand) {
+  // Seçim oturum içinde ÖNBELLEKLİDİR (kararlı liste); havuz değişirse (ör. 700+ katalog yüklendi) yeniden hesaplanır.
+  const key = hmBrand ? 'b:' + hmBrand : hmTab, sig = PHONES.length + '|' + String((systemSettings && systemSettings.trendingPhones) || '');
+  const hit = hmSel[key];
+  if (hit && hit.sig === sig) return hit.d;
+  const d = hmHeroCompute(key);
+  hmSel[key] = { sig, d };
+  return d;
+}
+function hmHeroCompute(key) {
+  const N = 10;
+  if (hmBrand) {            // marka süzmesi: kullanıcının bilinçli gezintisi — sıralama kararlı, otomatik geçiş yok
     const bl = hmBrand.toLowerCase();
     const l = PHONES.filter(p => p.name && brandDisplay(p.brand).toLowerCase() === bl)
       .sort((a, b) => (hmHasImg(b) ? 1 : 0) - (hmHasImg(a) ? 1 : 0) || (b.yr || 0) - (a.yr || 0));
-    return { list: l.slice(0, 10), label: hmBrand + ' · ' + l.length + ' model' };
+    return { list: l.slice(0, N), label: hmBrand + ' · ' + l.length + ' model' };
   }
-  if (hmTab === 'new') return { list: hmNewList(10), label: 'Son çıkan modeller' };
+  if (hmTab === 'new') return { list: hmPick('hero:new', hmNewList(40), N), label: 'Son çıkan modeller' };   // havuz = gerçek çıkış yılına göre en yeni bant; tarihi bilinmeyenler yok
   if (hmTab === 'bat') {
     const l = PHONES.filter(p => p.name && hmHasImg(p) && (hmBatMah(p) || 0) >= HM_BAT_MIN).sort((a, b) => hmBatMah(b) - hmBatMah(a));
-    return { list: l.slice(0, 10), label: HM_BAT_MIN.toLocaleString('tr-TR') + ' mAh ve üzeri batarya' };
+    return { list: hmPick('hero:bat', l.slice(0, 30), N), label: HM_BAT_MIN.toLocaleString('tr-TR') + ' mAh ve üzeri batarya' };
   }
   if (hmTab === 'val') {
     const l = PHONES.filter(p => p.name && hmHasImg(p) && hmPriceTl(p) && hmPriceTl(p) <= HM_VAL_MAX).sort((a, b) => (b.yr || 0) - (a.yr || 0) || hmPriceTl(a) - hmPriceTl(b));
-    return { list: l.slice(0, 10), label: '₺' + HM_VAL_MAX.toLocaleString('tr-TR') + ' ve altı · referans fiyat' };
+    return { list: hmPick('hero:val', l.slice(0, 30), N), label: '₺' + HM_VAL_MAX.toLocaleString('tr-TR') + ' ve altı · referans fiyat' };
   }
   const norm = x => String(x || '').toLowerCase().trim();
   const lines = String((systemSettings && systemSettings.trendingPhones) || '').split('\n').map(x => x.trim()).filter(Boolean);
   const seen = new Set();
-  const cur = lines.map(l => PHONES.find(p => norm(p.brand + ' ' + p.name) === norm(l))).filter(p => p && hmHasImg(p) && !seen.has(p.id) && seen.add(p.id)).slice(0, 10);
-  if (cur.length >= 3) return { list: cur, label: 'Öne çıkan modeller' };
-  const flags = hmFlagList(new Set(), 10);
-  return { list: flags.length >= 3 ? flags : hmNewList(10), label: 'Öne çıkan modeller' };
+  const cur = lines.map(l => PHONES.find(p => norm(p.brand + ' ' + p.name) === norm(l))).filter(p => p && hmHasImg(p) && !seen.has(p.id) && seen.add(p.id)).slice(0, 30);
+  if (cur.length >= 3) return { list: hmPick('hero:feat', cur, N), label: 'Öne çıkan modeller' };     // yönetici kürasyonu: yönetici sırası korunur, 10'dan fazlaysa gösterilmeyenler sıra alır
+  const flags = hmFlagList(new Set(), 40);
+  return { list: flags.length >= 3 ? hmPick('hero:feat', flags, N) : hmPick('hero:new', hmNewList(40), N), label: 'Öne çıkan modeller' };
 }
 function hmSlideHTML(p, i) {
   const img = phoneImageUrl(p), brand = brandDisplay(p.brand);
@@ -22827,39 +23224,279 @@ function hmSlideHTML(p, i) {
   const bat = hmBatMah(p);
   const third = (hmTab === 'bat' && !hmBrand && bat) ? bat.toLocaleString('tr-TR') + ' mAh' : fmtSpecValue('chip', p.chip);
   const meta = [p.yr, fmtSpecValue('scr', p.scr), third].filter(Boolean).join(' · ');
-  return `<button type="button" class="hm-hs" data-id="${hmEsc(p.id)}" onclick="hmOpenPhone('${escapeJsAttr(p.id)}')" aria-label="${hmEsc(brand + ' ' + p.name)} incele">
+  return `<button type="button" class="hm-hs hm-car-item" data-id="${hmEsc(p.id)}" onclick="hmOpenPhone('${escapeJsAttr(p.id)}')" aria-label="${hmEsc(brand + ' ' + p.name)} incele">
     <span class="hm-fig hm-hs-fig">${media}</span>
     <span class="hm-hs-row"><span class="hm-hs-tx"><span class="hm-hs-b">${hmEsc(brand)}</span><span class="hm-hs-n">${hmEsc(p.name)}</span>${meta ? `<span class="hm-hs-m">${hmEsc(meta)}</span>` : ''}</span>${p.price ? `<span class="hm-hs-p">${hmEsc(p.price)}<small>referans</small></span>` : ''}</span>
   </button>`;
 }
 function hmRenderHero() {
-  const hs = document.getElementById('hm-hs');
-  if (!hs) return;
+  const root = document.getElementById('hm-car-hero'), hs = document.getElementById('hm-hs');
+  if (!root || !hs) return;
   const d = hmHeroData();
   document.querySelectorAll('#hm-disc .hm-tab').forEach(b => b.setAttribute('aria-pressed', String(!hmBrand && b.dataset.tab === hmTab)));
   document.querySelectorAll('.hm-brand').forEach(b => b.setAttribute('aria-pressed', String(!!hmBrand && b.dataset.brand === hmBrand)));
   document.getElementById('hm-hlab').textContent = d.label;
   document.getElementById('hm-hall').textContent = hmBrand ? 'Tüm ' + hmBrand + ' modelleri' : 'Tüm cihazlar';
-  const key = hmTab + '|' + (hmBrand || '') + '|' + d.list.map(p => p.id).join(',');
-  if (key === hmHeroKey) return;       // aynı liste yeniden hesaplandıysa kaydırma konumu bozulmaz
-  hmHeroKey = key;
-  hs.innerHTML = d.list.length ? d.list.map(hmSlideHTML).join('') : '<div class="hm-hempty">Bu seçimde katalogda cihaz yok.</div>';
-  hs.scrollLeft = 0;
-  const dots = document.getElementById('hm-dots');
-  dots.innerHTML = d.list.length > 1 ? d.list.map((_, i) => `<i${i ? '' : ' class="on"'}></i>`).join('') : '';
+  if (!d.list.length) { hmCarDestroy('hero'); root._sig = ''; hs.innerHTML = '<div class="hm-hempty">Bu seçimde katalogda cihaz yok.</div>'; root.classList.add('hm-car--single'); const dt = document.getElementById('hm-dots'); if (dt) dt.innerHTML = ''; return; }
+  hmCarRender('hero', root, d.list, (p, i) => hmSlideHTML(p, i), { sec: 'hero:' + (hmBrand ? 'b:' + hmBrand : hmTab), auto: !hmBrand });   // aynı liste yeniden hesaplanırsa hiçbir şey değişmez
 }
-function hmHeroScroll(el) {
-  const i = el.clientWidth ? Math.round(el.scrollLeft / el.clientWidth) : 0;
-  document.querySelectorAll('#hm-dots i').forEach((d, k) => d.classList.toggle('on', k === i));
-}
-function hmTabPick(t) { hmTab = t; hmBrand = null; hmRenderHero(); }
+function hmHeroScroll() { /* Faz 29: kaydırma/nokta denetleyicisi hmCarMount içinde; eski satır içi çağrılar için boş bırakıldı */ }
+function hmTabPick(t) { hmTab = t; hmBrand = null; hmCarDestroy('hero'); hmRenderHero(); }
 function hmBrandPick(b) {
   hmBrand = hmBrand === b ? null : b;
+  hmCarDestroy('hero');
   hmRenderHero();
   if (hmBrand) loadExtraPhones().then(() => { if (hmBrand === b) hmRenderHero(); }).catch(() => {});   // 700+ telefonluk katalog tembel yüklenir; yüklenince marka listesi zenginleşir
 }
 function hmHeroAll() { if (hmBrand) hmBrandGo(hmBrand); else { gt('compare'); setCmpView('catalog'); } }
 async function hmCompareAdd(id) { await loadExtraPhones(); gt('compare'); addPhoneToCompare(id, true); setCmpView('catalog'); }
+
+// ==== FAZ 29 — ANA SAYFA DİNAMİK KART AKIŞI: bağımsız, otomatik dönen ama kullanıcıyı bölmeyen kart şeritleri ====
+// Her bölüm (hero vitrin / ilanlar / karşılaştırma / içerik) kendi denetleyicisine ve TEK zamanlayıcısına sahiptir. Veri kaynakları DEĞİŞMEDİ:
+// cihazlar bellekteki PHONES + systemSettings, ilanlar mevcut Firestore sorgusu. Kart geçişi hiçbir yeni istek yapmaz; veri yenileme ayrı çalışır.
+const HM_AUTO_MS = 6000;                    // otomatik geçiş aralığı
+const HM_RESUME_MS = 12000;                 // kullanıcı etkileşiminden sonra otomatik geçişe dönmeden önce beklenen süre
+const HM_SEEN_KEY = 'tk_hm_seen_v1', HM_SEEN_CAP = 80, HM_SEEN_WINDOW = 12 * 3600e3;   // son gösterilen kartların hafızası (cihazda, ziyaretler arası)
+const HM_LST_FRESH_MS = 3 * 60e3, HM_LST_BG_MS = 5 * 60e3;                          // ilan önbelleği tazeliği / arka plan yenileme eşiği
+const hmCars = Object.create(null);         // bölüm kimliği → denetleyici (bölüm başına en çok BİR)
+let hmSel = Object.create(null);            // oturum içi cihaz seçimi önbelleği (liste kararlı kalsın)
+let hmSeenSnap = {};                        // rhome() anındaki görülenler: oturum boyunca seçim sabit kalır, ziyaretler arasında döner
+let hmCarBound = false, hmListingsAt = 0, hmListingsBusy = false, hmBgTimer = 0, hmSmooth = true;   // hmSmooth: yumuşak kaydırma (testler kapatabilir)
+
+function hmReduced() { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } }
+function hmSeenAll() { try { return JSON.parse(localStorage.getItem(HM_SEEN_KEY) || '{}') || {}; } catch (e) { return {}; } }
+function hmSeenMark(sec, id) {
+  try {
+    const all = hmSeenAll(), m = all[sec] || (all[sec] = {});
+    m[id] = Date.now();
+    const ks = Object.keys(m);
+    if (ks.length > HM_SEEN_CAP) ks.sort((a, b) => m[a] - m[b]).slice(0, ks.length - HM_SEEN_CAP).forEach(k => delete m[k]);
+    localStorage.setItem(HM_SEEN_KEY, JSON.stringify(all));
+  } catch (e) { /* depolama yoksa seçim çalışır; yalnızca ziyaretler arası hafıza olmaz */ }
+}
+// Yakın zamanda gösterilmemiş kayıtlar ÖNCE (öncelik sırası korunarak), sonra en eski görülenler. Rastgele DEĞİL: aynı girdi → aynı çıktı.
+function hmUnseenFirst(sec, list, keyFn) {
+  keyFn = keyFn || (x => x.id);
+  const seen = hmSeenSnap[sec] || {}, now = Date.now(), fresh = [], stale = [];
+  list.forEach((x, i) => { const t = seen[keyFn(x)] || 0; (now - t > HM_SEEN_WINDOW ? fresh : stale).push({ x, i, t }); });
+  stale.sort((a, b) => a.t - b.t || a.i - b.i);
+  return fresh.concat(stale);
+}
+// pool: öncelik sırasına göre gerçek kayıtlar → en çok n tanesi; sonuç havuzdaki ÖZGÜN sıraya göre dizilir (öncelik/güncellik sırası bozulmaz).
+function hmPick(sec, pool, n, keyFn) {
+  if (pool.length <= n) return pool.slice();
+  return hmUnseenFirst(sec, pool, keyFn).slice(0, n).sort((a, b) => a.i - b.i).map(o => o.x);
+}
+
+// ---- denetleyici ----
+function hmCarDestroy(id) {
+  const c = hmCars[id]; if (!c) return;
+  c.dead = true; clearTimeout(c.timer); clearTimeout(c.fadeT); clearTimeout(c.tgtT); cancelAnimationFrame(c.raf);
+  try { c.io && c.io.disconnect(); } catch (e) { /* sessiz */ }
+  try { c.ro && c.ro.disconnect(); } catch (e) { /* sessiz */ }
+  c.ac.abort(); delete hmCars[id];
+}
+function hmCarsDestroyAll() { Object.keys(hmCars).forEach(hmCarDestroy); }
+function hmCarGeo(c) {
+  const k = c.track.children, n = k.length;
+  if (!n) return { n: 0, pv: 1, pages: 0 };
+  let pv = 1;
+  if (n > 1) {
+    const r0 = k[0].getBoundingClientRect(), r1 = k[1].getBoundingClientRect(), gap = Math.max(0, r1.left - r0.right);
+    pv = Math.max(1, Math.round((c.track.clientWidth + gap) / ((r0.width || 1) + gap)));
+  }
+  return { n, pv, pages: Math.ceil(n / pv) };
+}
+function hmCarPos(c, i) { const k = c.track.children; return k[i] && k[0] ? k[i].offsetLeft - k[0].offsetLeft : 0; }
+function hmCarNearest(c, g) {   // ekranın sol kenarına en yakın (görünen ilk) kart
+  g = g || hmCarGeo(c);
+  let best = 0, bd = Infinity;
+  for (let i = 0; i < g.n; i++) { const d = Math.abs(hmCarPos(c, i) - c.track.scrollLeft); if (d < bd) { bd = d; best = i; } }
+  return best;
+}
+function hmCarPage(c, g) {
+  g = g || hmCarGeo(c);
+  const t = c.track, max = t.scrollWidth - t.clientWidth;
+  if (max > 2 && t.scrollLeft >= max - 2) return g.pages - 1;
+  return Math.min(g.pages - 1, Math.floor(hmCarNearest(c, g) / g.pv));
+}
+function hmCarGo(c, page, smooth) {
+  const g = hmCarGeo(c); if (g.pages < 1) return;
+  page = Math.max(0, Math.min(g.pages - 1, page));
+  const max = Math.max(0, c.track.scrollWidth - c.track.clientWidth), left = Math.min(max, hmCarPos(c, Math.min(g.n - 1, page * g.pv))), sm = smooth && hmSmooth && !hmReduced();
+  const moves = Math.abs(left - c.track.scrollLeft) > 2;
+  c.prog = Date.now() + (sm ? 2500 : 250); c.target = moves ? left : null;     // hedefe varılana kadar gelen kaydırma olayları kullanıcı hareketi sayılmaz (konum zaten oradaysa olay gelmez → kilit kurulmaz)
+  clearTimeout(c.tgtT); if (moves) c.tgtT = setTimeout(() => { c.target = null; c.prog = Date.now() + 250; }, 6000);   // güvenlik: hedefe varılamazsa (kesilen animasyon) kilit kalkar
+  c.track.scrollTo({ left, behavior: sm ? 'smooth' : 'auto' });
+}
+function hmCarUpdate(c) {
+  if (c.dead) return;
+  const g = hmCarGeo(c), p = g.pages ? hmCarPage(c, g) : 0, single = g.pages < 2;
+  c.root.classList.toggle('hm-car--single', single);
+  if (c.dotsEl) {
+    if (c.dotCount !== g.pages) {
+      c.dotCount = g.pages;
+      c.dotsEl.innerHTML = g.pages > 1 && g.pages <= 12 ? Array.from({ length: g.pages }, (_, i) => `<button type="button" class="hm-car-dot" data-p="${i}" aria-label="${i + 1}. karta git"></button>`).join('') : '';
+    }
+    c.dotsEl.querySelectorAll('.hm-car-dot').forEach((d, i) => { d.classList.toggle('on', i === p); if (i === p) d.setAttribute('aria-current', 'true'); else d.removeAttribute('aria-current'); });
+  }
+  const pr = c.root.querySelector('.hm-car-prev'), nx = c.root.querySelector('.hm-car-next');
+  if (pr) pr.disabled = p <= 0;
+  if (nx) nx.disabled = p >= g.pages - 1;
+  c.page = p;
+  if (c.vis && g.n && !c.marked.has(p)) {           // yalnızca GERÇEKTEN görünen sayfa "gösterildi" sayılır
+    c.marked.add(p);
+    for (let i = p * g.pv; i < Math.min(g.n, p * g.pv + g.pv); i++) if (c.ids[i] != null) hmSeenMark(c.sec, c.ids[i]);
+  }
+  const k0 = g.n ? hmCarNearest(c, g) : 0;
+  c.activeId = c.ids[k0] != null ? c.ids[k0] : null;      // kullanıcının bulunduğu (görünen ilk) kart — içerik yenilenince buraya dönülür
+}
+function hmCarCanRun(c) {
+  return !c.dead && c.auto && !hmReduced() && c.vis && !document.hidden && !c.hover && !c.focus && Date.now() >= c.until
+    && !document.querySelector('.mo.on') && !!document.getElementById('s-home')?.classList.contains('on');
+}
+function hmCarArm(c) {
+  clearTimeout(c.timer); c.timer = 0;
+  if (c.dead || !c.auto || hmReduced() || !c.vis || document.hidden) return;
+  if (hmCarGeo(c).pages < 2) return;                 // tek sayfa/kart: zamanlayıcı hiç kurulmaz
+  const d = HM_AUTO_MS + (c.offset || 0);   // başlangıç gecikmesi: ilk adım atılana kadar korunur (bölümler aynı anda kaymaz)
+  c.timer = setTimeout(() => {
+    c.timer = 0; c.offset = 0;
+    if (c.dead) return;
+    if (!c.track.isConnected) { hmCarDestroy(c.id); return; }   // bileşen kaldırıldıysa zamanlayıcı da kalkar
+    if (hmCarCanRun(c)) hmCarAdvance(c);
+    hmCarArm(c);
+  }, d);
+}
+function hmCarAdvance(c) {
+  const g = hmCarGeo(c); if (g.pages < 2) return;
+  const p = hmCarPage(c, g);
+  if (p + 1 < g.pages) { hmCarGo(c, p + 1, true); return; }
+  // son karttan sonra başa dönüş: uzun bir geri kaydırma yerine kısa solma → sıçrama/şerit taraması yok
+  c.track.classList.add('hm-car-fade');
+  c.fadeT = setTimeout(() => {
+    if (c.dead) return;
+    hmCarGo(c, 0, false);
+    requestAnimationFrame(() => { c.track.classList.remove('hm-car-fade'); hmCarUpdate(c); });
+  }, 190);
+}
+function hmCarUserPause(c) { c.until = Date.now() + HM_RESUME_MS; c.target = null; }      // kullanıcı müdahalesi sürmekte olan otomatik kaydırmayı da bırakır
+function hmCarBindGlobal() {
+  if (hmCarBound) return; hmCarBound = true;
+  document.addEventListener('visibilitychange', () => { Object.values(hmCars).forEach(c => { if (document.hidden) { clearTimeout(c.timer); c.timer = 0; } else hmCarArm(c); }); if (!document.hidden) hmListingsBgCheck(); });
+  try { matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', () => Object.values(hmCars).forEach(c => hmCarArm(c))); } catch (e) { /* eski WebView */ }
+  hmBgTimer = setInterval(hmListingsBgCheck, 60000);     // ilan tazeliği kontrolü (kart geçişinden bağımsız, yalnızca bayatsa sorgular)
+}
+function hmCarMount(id, root, opts) {
+  hmCarDestroy(id);
+  const track = root.querySelector('.hm-car-track'); if (!track) return null;
+  hmCarBindGlobal();
+  const ac = new AbortController(), sg = { signal: ac.signal };
+  const c = { id, root, track, ac, sec: opts.sec || id, ids: opts.ids || [], auto: opts.auto !== false, offset: opts.offset || 0, dotsEl: root.querySelector('.hm-car-dots'),
+    timer: 0, fadeT: 0, raf: 0, until: opts.until || 0, prog: 0, target: null, hover: false, focus: false, vis: true, dead: false, page: 0, dotCount: -1, marked: new Set(), activeId: null, io: null, ro: null };
+  hmCars[id] = c;
+  const upd = () => { if (c.raf) return; c.raf = requestAnimationFrame(() => { c.raf = 0; hmCarUpdate(c); }); };
+  track.addEventListener('scroll', () => {
+    if (c.target != null) { if (Math.abs(track.scrollLeft - c.target) <= 2) { c.target = null; c.prog = Date.now() + 150; } }   // programlı kaydırma sürüyor/hedefe vardı: kullanıcı hareketi DEĞİL
+    else if (Date.now() > c.prog) hmCarUserPause(c);
+    upd();
+  }, { passive: true, ...sg });
+  track.addEventListener('scrollend', () => { c.target = null; }, sg);
+  ['pointerdown', 'touchstart', 'wheel'].forEach(ev => track.addEventListener(ev, () => { hmCarUserPause(c); clearTimeout(c.timer); c.timer = 0; hmCarArm(c); }, { passive: true, ...sg }));
+  track.addEventListener('keydown', e => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    hmCarUserPause(c); hmCarGo(c, hmCarPage(c) + (e.key === 'ArrowRight' ? 1 : -1), true); e.preventDefault();
+  }, sg);
+  root.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') { c.hover = true; clearTimeout(c.timer); c.timer = 0; } }, sg);
+  root.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') { c.hover = false; hmCarArm(c); } }, sg);
+  root.addEventListener('focusin', e => { c.focus = !!(e.target.matches && e.target.matches(':focus-visible')); if (c.focus) { clearTimeout(c.timer); c.timer = 0; } }, sg);
+  root.addEventListener('focusout', () => { c.focus = false; hmCarArm(c); }, sg);
+  root.querySelectorAll('.hm-car-prev,.hm-car-next').forEach(b => b.addEventListener('click', () => {
+    hmCarUserPause(c); hmCarGo(c, hmCarPage(c) + (b.classList.contains('hm-car-next') ? 1 : -1), true);
+  }, sg));
+  if (c.dotsEl) c.dotsEl.addEventListener('click', e => { const d = e.target.closest && e.target.closest('.hm-car-dot'); if (d) { hmCarUserPause(c); hmCarGo(c, +d.dataset.p, true); } }, sg);
+  if (typeof IntersectionObserver === 'function') {
+    c.io = new IntersectionObserver(es => { if (!track.isConnected) { hmCarDestroy(id); return; }   // bileşen DOM'dan kalktı → denetleyici de kalkar
+      const v = es[es.length - 1].isIntersecting; if (v !== c.vis) { c.vis = v; if (v) { hmCarUpdate(c); hmCarArm(c); } else { clearTimeout(c.timer); c.timer = 0; } } }, { threshold: 0.4 });
+    c.io.observe(root);
+  }
+  if (typeof ResizeObserver === 'function') { c.ro = new ResizeObserver(() => { if (!track.isConnected) { hmCarDestroy(id); return; } upd(); hmCarArm(c); }); c.ro.observe(track); }
+  if (opts.startIdx > 0) { c.prog = Date.now() + 250; const b0 = track.scrollLeft; track.scrollLeft = hmCarPos(c, opts.startIdx); if (Math.abs(track.scrollLeft - b0) > 2) { c.target = track.scrollLeft; c.tgtT = setTimeout(() => { c.target = null; }, 1500); } }
+  hmCarUpdate(c); hmCarArm(c);
+  return c;
+}
+// Kart şeridini çizer. items: [{id}], html(item, i) → çocuk elemanın HTML'i (hm-car-item sınıfını taşımalı).
+// Aynı içerik tekrar çizilmez (kaydırma/zamanlayıcı bozulmaz); içerik değişirse kullanıcının bulunduğu kart (kimlik) korunur, yoksa aynı sayfa konumu.
+function hmCarRender(id, root, items, html, opts) {
+  opts = opts || {};
+  const track = root.querySelector('.hm-car-track'); if (!track) return null;
+  const ids = items.map(x => x.id), markup = items.map(html).join(''), old = hmCars[id];
+  if (old && !old.dead && root._sig === markup && old.root === root) { old.auto = opts.auto !== false; hmCarArm(old); return old; }
+  let startIdx = 0;
+  if (old && !old.dead && old.activeId != null) { const k = ids.indexOf(old.activeId); startIdx = k > 0 ? k : 0; }
+  root._sig = markup;
+  if (old) old.prog = Date.now() + 400;      // yeniden çizimin tetiklediği kaydırma olayı kullanıcı hareketi sayılmaz
+  track.innerHTML = markup;
+  root.dataset.n = String(items.length);
+  return hmCarMount(id, root, { ids, sec: opts.sec || id, auto: opts.auto, offset: old && !old.dead ? 0 : opts.offset, startIdx, until: old && !old.dead ? old.until : 0 });   // yenilemede kullanıcının beklemesi ve başlangıç gecikmesi sıfırlanmaz
+}
+const HM_NAV_SVG = d => `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="${d}"/></svg>`;
+function hmCarChrome(label) {   // dots + masaüstü okları (iskelet; çocuklar hmCarRender ile gelir)
+  return `<div class="hm-car-dots" role="group" aria-label="${hmEsc(label)} sayfaları"></div>
+    <button type="button" class="hm-car-nav hm-car-prev" aria-label="Önceki" disabled>${HM_NAV_SVG('15 18 9 12 15 6')}</button>
+    <button type="button" class="hm-car-nav hm-car-next" aria-label="Sonraki">${HM_NAV_SVG('9 18 15 12 9 6')}</button>`;
+}
+// İskeleti bir kez kurar (yeniden çizimde kaydırma ve zamanlayıcı korunur); durum mesajı (hata/boş) görünürse yeniden kurar.
+function hmCarScaffold(host, id, label, extraCls, trackCls) {
+  let root = host.querySelector(':scope > .hm-car[data-car="' + id + '"]');
+  if (!root) {
+    hmCarDestroy(id);
+    host.innerHTML = `<div class="hm-car ${extraCls || ''}" id="hm-car-${id}" data-car="${id}" role="region" aria-roledescription="carousel" aria-label="${hmEsc(label)}">
+      <div class="hm-car-track ${trackCls || ''}"></div>${hmCarChrome(label)}</div>`;
+    root = host.firstElementChild;
+  }
+  return root;
+}
+
+// ---- İlanların arka planda tazelenmesi (kart geçişinden bağımsız; yalnızca Ana Sayfa görünürken ve veri bayatsa) ----
+function hmListingsBgCheck() {
+  if (document.hidden || !document.getElementById('hm-lst')) return;
+  if (!document.getElementById('s-home')?.classList.contains('on')) return;
+  if (hmListingsState === 'ok' && Date.now() - hmListingsAt > HM_LST_BG_MS) hmLoadListings({ silent: true, force: true });
+}
+
+// ---- Karşılaştırma önerisi: yalnızca gerçek katalogdan, yeterli teknik veriye sahip, FARKLI marka, gerçekten rakip iki cihaz ----
+function hmCmpHas(v) { return v != null && String(v).trim() !== '' && !/^[-–—?]+$/.test(String(v).trim()); }
+function hmCmpOk(p) { return !!(p && p.id && p.name && p.brand && p.yr && hmCmpHas(p.chip) && hmCmpHas(p.scr) && hmCmpHas(p.bat) && hmCmpHas(p.ram) && hmCmpHas(p.storage)); }
+function hmCmpTier(p) { return HM_FLAG_RE.test(p.name) && !HM_FLAG_EXCL.test(p.brand + ' ' + p.name) ? 'f' : 'm'; }
+function hmCmpKey(a, b) { return a.id < b.id ? a.id + '|' + b.id : b.id + '|' + a.id; }
+function hmCmpPairs(pool, avoid, max, curated) {
+  const norm = s => String(s || '').toLowerCase().trim(), cand = [];
+  for (let i = 0; i < pool.length; i++) for (let j = i + 1; j < pool.length; j++) {
+    const a = pool[i], b = pool[j];
+    if (a.id === b.id || norm(a.brand) === norm(b.brand) || norm(a.brand + a.name) === norm(b.brand + b.name)) continue;   // aynı cihaz / aynı marka yok
+    let s = 0;
+    if (hmCmpTier(a) === hmCmpTier(b)) s += 2;
+    if (Math.abs(a.yr - b.yr) <= 1) s += 1;
+    const pa = hmPriceTl(a), pb = hmPriceTl(b);
+    if (pa && pb) { const r = Math.max(pa, pb) / Math.min(pa, pb); if (r <= 1.6) s += 1; else if (r > 2.2) s -= 2; }
+    if (!curated && s < 3) continue;                    // yönetici kürasyonu değilse yalnızca gerçekten denk rakipler
+    cand.push({ a, b, s, i: cand.length, av: (avoid.has(a.id) ? 1 : 0) + (avoid.has(b.id) ? 1 : 0), id: hmCmpKey(a, b) });
+  }
+  cand.sort((x, y) => y.s - x.s || x.av - y.av || x.i - y.i);
+  const ordered = hmUnseenFirst('cmp', cand.slice(0, 80), x => x.id).map(o => o.x), use = new Map(), out = [];
+  for (const p of ordered) {
+    if (out.length >= max) break;
+    if ((use.get(p.a.id) || 0) >= 2 || (use.get(p.b.id) || 0) >= 2) continue;     // aynı cihaz en çok iki öneride
+    use.set(p.a.id, (use.get(p.a.id) || 0) + 1); use.set(p.b.id, (use.get(p.b.id) || 0) + 1); out.push(p);
+  }
+  return out;
+}
+
+function hmUseSectionHTML() {   // inceleme/haber modülleri kapalıysa (şu an) bölüm hiç çizilmez
+  if (!(YOUTUBE_MODULU_AKTIF || HABER_MODULU_AKTIF)) return '';
+  return `<section class="hm-sec" id="hm-use-sec" style="display:none" aria-label="Cihaz incelemeleri ve haberler"><div class="hm-h"><h2 class="hm-t">${YOUTUBE_MODULU_AKTIF && HABER_MODULU_AKTIF ? 'İnceleme ve Haberler' : (YOUTUBE_MODULU_AKTIF ? 'Cihaz İncelemeleri' : 'Haberler')}</h2></div><div id="hm-use"></div></section>`;
+}
 
 // ---- Telefon arama (mevcut PHONES kataloğu; Cihazlar ekranının keşfet araması ile AYNI eşleştirme alanları) ----
 function hmSearchFocus() {
@@ -22931,35 +23568,29 @@ async function hmRenderCompare() {
   try {
     if (!systemSettings || !Object.keys(systemSettings).length) await loadSystemSettings();
   } catch (e) { /* ayarlar okunamazsa katalogdan türetilmiş öneriye düşülür */ }
+  if (!document.getElementById('hm-cmp')) return;     // bu arada ekran yeniden çizildiyse
   const norm = s => String(s || '').toLowerCase().trim();
   const lines = String((systemSettings && systemSettings.trendingPhones) || '').split('\n').map(s => s.trim()).filter(Boolean);
   const seen = new Set();
   let pool = lines.map(line => PHONES.find(p => norm(p.brand + ' ' + p.name) === norm(line)))
-    .filter(p => p && !seen.has(p.id) && seen.add(p.id));
-  let curated = pool.length >= 2;
+    .filter(p => p && hmCmpOk(p) && !seen.has(p.id) && seen.add(p.id));
+  const curated = pool.length >= 2;
   if (!curated) {
-    const brands = new Set();
-    // C4: görseli doğrulanmış cihazlar tercih edilir (≥4 varsa yalnızca onlardan), böylece öneri kartları baş harf yerine gerçek ürün görseli taşır
-    const yrPool = PHONES.filter(p => p.yr), imgPool = yrPool.filter(hmHasImg);
-    pool = [...(imgPool.length >= 4 ? imgPool : yrPool)].sort((a, b) => b.yr - a.yr)
-      .filter(p => { const b = norm(p.brand); if (brands.has(b)) return false; brands.add(b); return true; })
-      .slice(0, 8);
+    // Faz 29: yalnızca teknik verisi yeterli cihazlar; en yeni iki yıl bandı; görseli doğrulanmış olanlar tercih edilir; markalar dönüşümlü
+    const base = PHONES.filter(hmCmpOk), top = base.reduce((m, p) => Math.max(m, p.yr), 0), recent = base.filter(p => p.yr >= top - 1);
+    const withImg = recent.filter(hmHasImg), src = withImg.length >= 8 ? withImg : recent;
+    pool = hmDiversify([...src].sort((a, b) => b.yr - a.yr), 30);
   }
-  const used = new Set();
-  const pairs = [];
-  for (const a of pool) {
-    if (used.has(a.id) || pairs.length >= 3) continue;
-    const b = pool.find(x => x !== a && !used.has(x.id) && norm(x.brand) !== norm(a.brand));
-    if (!b) continue;
-    used.add(a.id); used.add(b.id);
-    pairs.push([a, b]);
-  }
-  if (!pairs.length) { sec.style.display = 'none'; return; }
+  let avoid = new Set();
+  try { avoid = new Set(hmHeroData().list.map(p => p.id)); } catch (e) { /* vitrin henüz yok */ }   // vitrinde görünen cihazlar önerilerde geriye alınır (görsel tekrar azalır)
+  const pairs = hmCmpPairs(pool, avoid, 9, curated);
+  if (!pairs.length) { hmCarDestroy('cmp'); el.innerHTML = ''; sec.style.display = 'none'; return; }
   document.getElementById('hm-cmp-title').textContent = curated ? 'Popüler Karşılaştırmalar' : 'Karşılaştırma Önerileri';
+  const root = hmCarScaffold(el, 'cmp', 'Karşılaştırma önerileri', 'hm-car-cmp', 'hm-cmps');
   const nm = p => hmEsc(p.name);
-  el.innerHTML = pairs.map(([a, b]) => `<button type="button" class="hm-cmp" aria-label="${hmEsc(a.name)} ile ${hmEsc(b.name)} karşılaştır"
+  hmCarRender('cmp', root, pairs, ({ a, b }) => `<button type="button" class="hm-cmp hm-car-item" aria-label="${hmEsc(a.name)} ile ${hmEsc(b.name)} karşılaştır"
       onclick="hmCompare('${escapeJsAttr(a.id)}','${escapeJsAttr(b.id)}')"><span class="hm-cmp-pics"><span class="hm-fig hm-cmp-fig">${hmThumbHTML(a)}</span><span class="hm-fig hm-cmp-fig">${hmThumbHTML(b)}</span><span class="hm-vs">VS</span></span>
-      <span class="hm-cmp-tx"><span class="hm-cmp-n">${nm(a)}</span><span class="hm-cmp-v">${nm(b)}</span><span class="hm-cmp-b">${hmEsc(brandDisplay(a.brand))} · ${hmEsc(brandDisplay(b.brand))}</span></span><span class="hm-cmp-go">Karşılaştır</span></button>`).join('');
+      <span class="hm-cmp-tx"><span class="hm-cmp-n">${nm(a)}</span><span class="hm-cmp-v">${nm(b)}</span><span class="hm-cmp-b">${hmEsc(brandDisplay(a.brand))} · ${hmEsc(brandDisplay(b.brand))}</span></span><span class="hm-cmp-go">Karşılaştır</span></button>`, { sec: 'cmp', offset: 3000 });
   sec.style.display = '';
 }
 function hmCompare(idA, idB) {
@@ -22971,11 +23602,19 @@ function hmCompare(idA, idB) {
 }
 
 // ---- İkinci el ilanlar (yeni + öne çıkan) ----
-async function hmLoadListings() {
+async function hmLoadListings(opts) {
+  opts = opts || {};
   const el = document.getElementById('hm-lst');
   if (!el) return;
-  hmListingsState = 'loading';
-  el.innerHTML = `<div class="hm-lgrid">${'<div class="tk-skeleton hm-sk"></div>'.repeat(2)}</div>`;
+  // Faz 29: taze ilan listesi varken (3 dk) yeniden sorgu yapılmaz; zorunlu yenileme (PTR/yeniden dene/arka plan) hmListingsAt'i sıfırlar veya force verir
+  if (!opts.force && hmListingsState === 'ok' && hmListings && Date.now() - hmListingsAt < HM_LST_FRESH_MS) { hmRenderListings(); return; }
+  if (hmListingsBusy) return;                       // aynı anda tek sorgu
+  hmListingsBusy = true;
+  if (!opts.silent) {
+    hmListingsState = 'loading';
+    hmCarDestroy('lst');
+    el.innerHTML = `<div class="hm-lgrid">${'<div class="tk-skeleton hm-sk"></div>'.repeat(2)}</div>`;
+  }
   try {
     const col = db.collection('teknohane_listings');
     const [feat, fresh] = await Promise.all([
@@ -22984,17 +23623,20 @@ async function hmLoadListings() {
     ]);
     // Çevrimdışıyken Firestore ağa ulaşamayınca ÖNBELLEKTEN boş bir sonuç döndürebilir — bu "ilan yok" DEĞİL, bağlantı sorunudur.
     if (fresh.empty && fresh.metadata && fresh.metadata.fromCache) throw new Error('offline');
-    const ok = l => !l.sold && !l.paused && !isListingExpired(l);
+    const ok = l => !l.sold && isListingPublic(l);    // Faz 29: yayında + reddedilmemiş + duraklatılmamış + süresi dolmamış + satılmamış
     const toL = d => ({ id: d.id, ...d.data() });
     const featured = feat ? feat.docs.map(toL).filter(ok) : [];
     const ids = new Set(featured.map(l => l.id));
     const newer = fresh.docs.map(toL).filter(ok).filter(l => !ids.has(l.id));
     hmListings = [...featured.map(l => ({ ...l, _hmFeatured: true })), ...newer].slice(0, 20);
     hmListingsState = hmListings.length ? 'ok' : 'empty';
+    hmListingsAt = Date.now();
   } catch (e) {
+    if (opts.silent && hmListings && hmListingsState === 'ok') { hmListingsBusy = false; return; }   // arka plan yenilemesi başarısızsa eldeki liste kalır
     hmListings = null;
     hmListingsState = 'error';
   }
+  hmListingsBusy = false;
   hmRenderListings();
 }
 function hmRenderListings() {
@@ -23002,18 +23644,23 @@ function hmRenderListings() {
   if (!el || hmListingsState === 'loading') return;
   if (sec) sec.hidden = false;
   if (hmListingsState === 'error') {
-    el.innerHTML = `<div class="hm-state"><b>İlanlar yüklenemedi</b><span>İnternet bağlantını kontrol edip tekrar dene.</span><button type="button" class="tk-btn tk-btn--outline tk-btn--sm" onclick="hmLoadListings()">Tekrar dene</button></div>`;
+    hmCarDestroy('lst');
+    el.innerHTML = `<div class="hm-state"><b>İlanlar yüklenemedi</b><span>İnternet bağlantını kontrol edip tekrar dene.</span><button type="button" class="tk-btn tk-btn--outline tk-btn--sm" onclick="hmListingsAt=0;hmLoadListings({force:true})">Tekrar dene</button></div>`;
     return;
   }
   if (hmListingsState === 'empty' || !hmListings || !hmListings.length) {
+    hmCarDestroy('lst');
     el.innerHTML = `<div class="hm-state"><b>Henüz ilan yok</b><span>İlk ilanı sen ver ya da Pazar’a göz at.</span><button type="button" class="tk-btn tk-btn--outline tk-btn--sm" onclick="gt('market')">Pazar’a git</button></div>`;
     return;
   }
-  // C4: vitrine yalnızca GERÇEK FOTOĞRAFLI, yayında ilanlar alınır (fotoğrafsız ilanlar kart yığını yaratır; Pazar'da zaten listelenir)
-  // C11: yalnızca TELEFON kategorisi (kulaklık/saat/tablet/bilgisayar/aksesuar ana ekran vitrininde yer almaz; kategorisi olmayan eski ilan = telefon)
-  const withPhoto = hmListings.filter(l => l.photo1 && listingEffectiveCategory(l) === 'telefon').slice(0, 4);
-  if (!withPhoto.length) { el.innerHTML = ''; if (sec) sec.hidden = true; return; }
-  el.innerHTML = `<div class="hm-lgrid">${withPhoto.map(hmListingCardHTML).join('')}</div>`;
+  // C4: vitrine yalnızca GERÇEK FOTOĞRAFLI, yayında ilanlar alınır · C11: yalnızca TELEFON kategorisi
+  const pool = hmListings.filter(l => l.photo1 && listingEffectiveCategory(l) === 'telefon' && !l.sold && isListingPublic(l));
+  if (!pool.length) { hmCarDestroy('lst'); el.innerHTML = ''; if (sec) sec.hidden = true; return; }
+  // Faz 29: öne çıkarılan ilanlar önce (öncelik korunur), sonra en yeniler; yakın zamanda gösterilenler geriye alınır. En çok 12 kart (2 kart/sayfa → 6 sayfa).
+  const feat = pool.filter(l => l._hmFeatured), rest = pool.filter(l => !l._hmFeatured);
+  const sel = [...hmPick('lst:f', feat, 6), ...hmPick('lst', rest, 12 - Math.min(6, feat.length))];
+  const root = hmCarScaffold(el, 'lst', 'İkinci el telefon ilanları', 'hm-car-lst', 'hm-lgrid');
+  hmCarRender('lst', root, sel, l => hmListingCardHTML(l), { sec: 'lst', offset: 1500 });
 }
 // Oturum durumu (soğuk başlatmada auth rhome()'dan SONRA çözülür) değişince fiyat kilidi yeni sorgu OLMADAN yeniden çizilir.
 function hmRefreshAuth() { if (hmListingsState === 'ok') hmRenderListings(); }
@@ -23028,7 +23675,7 @@ function hmListingCardHTML(l) {
   const tags = (l._hmFeatured ? '<span class="tk-badge tk-badge--warning">Öne çıkan</span>' : '')
     + (l.condition ? `<span class="tk-badge ${isNew ? 'tk-badge--success' : 'tk-badge--neutral'}">${hmEsc(l.condition)}</span>` : '');
   const when = l.createdAt?.toDate ? ' · ' + timeAgo(l.createdAt.toDate()) : '';
-  return `<button type="button" class="hm-lc" onclick="hmOpenListing('${escapeJsAttr(l.id)}')">
+  return `<button type="button" class="hm-lc hm-car-item" onclick="hmOpenListing('${escapeJsAttr(l.id)}')">
     <span class="hm-lc-ph">${photo}${tags ? `<span class="hm-lc-tags">${tags}</span>` : ''}</span>
     <span class="hm-lc-body">${price}<span class="hm-lc-t">${hmEsc(l.model || 'İlan')}</span><span class="hm-lc-m">${hmEsc(l.location || 'Konum belirtilmedi')}${hmEsc(when)}</span></span>
   </button>`;
@@ -23047,13 +23694,18 @@ async function hmLoadUseful() {
   let news = [];
   let pending = 2;
   const draw = () => {
-    const cards = [
-      ...vids.slice(0, 4).map(v => hmUseCardHTML('Video', v.thumb, v.title, `ol('${escapeJsAttr(v.url)}')`)),
-      ...news.slice(0, 3).map((n, i) => hmUseCardHTML('Haber', n.image, n.title, `openNewsArticle(${i})`))
+    // Faz 29: mevcut video/haber kayıtları kart şeridi olur; yetersiz içerik yapay kartlarla DOLDURULMAZ (tek kart → şerit/otomatik geçiş yok)
+    const items = [
+      ...hmPick('use:v', vids.slice(0, 12), 6, v => v.id || v.url).map(v => ({ id: 'v:' + (v.id || v.url), html: hmUseCardHTML('Video', v.thumb, v.title, `ol('${escapeJsAttr(v.url)}')`) })),
+      ...news.slice(0, 3).map((n, i) => ({ id: 'n:' + (n.url || n.title || i), html: hmUseCardHTML('Haber', n.image, n.title, `openNewsArticle(${i})`) }))
     ];
-    if (cards.length) { sec.style.display = ''; el.innerHTML = `<div class="hm-strip">${cards.join('')}</div>`; }
-    else if (pending > 0) { sec.style.display = ''; el.innerHTML = `<div class="hm-strip">${'<div class="tk-skeleton hm-sk-u"></div>'.repeat(2)}</div>`; }
-    else { sec.style.display = 'none'; } // gösterilecek gerçek içerik yok → bölümü hiç göstermeyiz
+    if (items.length) {
+      sec.style.display = '';
+      const root = hmCarScaffold(el, 'use', 'Cihaz incelemeleri ve haberler', 'hm-car-use', 'hm-strip hm-use-track');
+      hmCarRender('use', root, items, it => it.html, { sec: 'use', offset: 4500 });
+    }
+    else if (pending > 0) { sec.style.display = ''; hmCarDestroy('use'); el.innerHTML = `<div class="hm-strip">${'<div class="tk-skeleton hm-sk-u"></div>'.repeat(2)}</div>`; }
+    else { hmCarDestroy('use'); sec.style.display = 'none'; } // gösterilecek gerçek içerik yok → bölümü hiç göstermeyiz
   };
   draw();
   const vp = (async () => {
@@ -23069,7 +23721,7 @@ async function hmLoadUseful() {
   await Promise.allSettled([vp, np]);
 }
 function hmUseCardHTML(kind, img, title, action) {
-  return `<button type="button" class="hm-uc" onclick="${action}">
+  return `<button type="button" class="hm-uc hm-car-item" onclick="${action}">
     <span class="hm-uc-ph">${img ? `<img src="${hmEsc(img)}" alt="" width="232" height="130" loading="lazy" decoding="async">` : ''}<span class="tk-badge tk-badge--neutral">${kind}</span></span>
     <span class="hm-uc-t">${hmEsc(title)}</span>
   </button>`;
@@ -23216,7 +23868,7 @@ function onVideoSearchInput(q) {
   if (!q.trim()) { fvid(q); return; }
   videoSearchDebounceTimer = setTimeout(() => fvid(q), 300);
 }
-function retry() { vc=null;cc=null;cid=null;newsCache=null;document.getElementById('home-c').innerHTML='<div class="load"><div class="spin"></div><span>Yenileniyor…</span></div>';rhome(); }
+function retry() { vc=null;cc=null;cid=null;newsCache=null;hmListingsAt=0;document.getElementById('home-c').innerHTML='<div class="load"><div class="spin"></div><span>Yenileniyor…</span></div>';rhome(); }
 
 // COMPARE
 const PHONES=[
@@ -29346,7 +29998,7 @@ setInterval(() => {
 setTimeout(() => {
   // İçerik
   setupPTR('s-home', async () => {
-    vc=null; cc=null; cid=null; newsCache=null;
+    vc=null; cc=null; cid=null; newsCache=null; hmListingsAt = 0;
     document.getElementById('home-c').innerHTML = '<div class="load"><div class="spin"></div><span>Yenileniyor…</span></div>';
     await rhome();
   });
@@ -29379,7 +30031,9 @@ setTimeout(() => {
 // GERİ TUŞU KORUMASI
 // Açık modal varsa kapat, yoksa çıkış uyarısı göster
 let backPressedOnce = false;
-window.addEventListener('popstate', () => {
+window.addEventListener('popstate', (ev) => {
+  // Faz 28: TeknoCheck kendi geçmiş kayıtlarını yönetir (iç ekranlar, ileri/geri, yardım/test katmanları, kök ekranda geri = ana uygulama)
+  if (typeof tcNavPop === 'function' && tcNavPop(ev)) return;
   // İlan detayı fotoğraf galerisi açıksa ÖNCE onu kapat (en üstte açıldığı için önceliklidir).
   const lgMo = document.getElementById('listing-gallery-mo');
   if (lgMo?.classList.contains('on')) {
