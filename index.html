@@ -2521,6 +2521,16 @@ textarea.fi{min-height:96px;}
 @media (max-width:420px){.tcx-steps{grid-template-columns:repeat(3,minmax(0,1fr));}.tcx-step{flex-direction:column;align-items:flex-start;gap:var(--space-1);}.tcx-step-t small{display:none;}}
 .tcx-foot{margin:0 calc(-1 * var(--space-4));padding:var(--space-3) var(--space-4) var(--space-2);border-top:var(--bw) solid var(--border2);}
 
+/* ==== FAZ 30 — web TeknoCheck panelleri (mikrofon dalgası, canlı sensör değerleri), güvenli alan ve dokunma hedefleri ==== */
+.tcw-wave{display:block;width:100%;max-width:300px;height:80px;align-self:center;background:var(--surf);border:var(--bw) solid var(--border2);border-radius:var(--radius-md);}
+.tcw-db{font-variant-numeric:tabular-nums;font-weight:var(--fw-semibold);text-align:center;color:var(--text2);min-height:1.4em;}
+.tcw-live{display:grid;grid-template-columns:auto minmax(0,1fr);gap:var(--space-1) var(--space-3);margin:0;font-variant-numeric:tabular-nums;}
+.tcw-live dt{color:var(--text2);}
+.tcw-live dd{margin:0;font-weight:var(--fw-semibold);overflow-wrap:anywhere;}
+.tcx-stage.tcx-ask{padding-bottom:calc(var(--space-3) + var(--sb));}
+.tcx-btns .tk-btn{min-height:var(--tap-min);}
+.tcx-video{max-width:100%;max-height:46vh;object-fit:contain;border-radius:var(--radius-md);background:var(--surf);}
+
 /* ============================================================================
    FAZ 9 — İŞLETME YÖNETİMİ (C1 belirteçleri; gereksiz grafik/animasyon YOK). Kaynak: teknocheck/isletme.css
    ============================================================================ */
@@ -19485,7 +19495,8 @@ const TC_DEFS = [
   { id: 'battery', kind: 'auto', title: 'Batarya ve şarj', hint: 'Seviye, şarj durumu, kaynak, sıcaklık ve voltaj (Android verdiği ölçüde). Pil sağlığı/kapasitesi ÖLÇÜLEMEZ.' },
   { id: 'connectivity', kind: 'auto', title: 'Bağlantı', hint: 'Wi-Fi, mobil veri, internet erişimi; Bluetooth/NFC/GPS için yalnızca DONANIM VARLIĞI (gerçek eşleşme/iletişim testi yapılmaz).' },
 ];
-const TC_STATUS_LABEL = { passed: 'Başarılı', failed: 'Başarısız', awaiting_user: 'Kullanıcı onayı bekliyor', skipped: 'Atlandı', unsupported: 'Desteklenmiyor', untested: 'Test edilemedi', running: 'Çalışıyor', idle: 'Bekliyor' };
+const TC_STATUS_LABEL = { passed: 'Başarılı', failed: 'Başarısız', awaiting_user: 'Kullanıcı onayı bekliyor', skipped: 'Atlandı', unsupported: 'Desteklenmiyor', untested: 'Test edilemedi', running: 'Çalışıyor', idle: 'Bekliyor', permission_denied: 'İzin verilmedi', error: 'Teknik hata', no_data: 'Veri elde edilemedi' };
+const TC_FINAL_ALL = ['passed', 'failed', 'skipped', 'unsupported', 'untested', 'permission_denied', 'error', 'no_data'];   // Faz 30: web raporu durumları (Android v1–v3 ilk beşini kullanır)
 const TC_KIND_LABEL = { auto: 'Otomatik ölçüm', manual: 'Kullanıcı onayı', mixed: 'Otomatik + kullanıcı onayı' };
 const TC_OVERALL_LABEL = { completed: 'Testler tamamlandı', incomplete: 'Bazı testler tamamlanamadı', issues: 'Sorun tespit edildi' };
 const TC_LIMITS = 'TeknoCheck raporu, testin yapıldığı anda cihazdan alınan ölçümleri ve kullanıcı onaylarını özetler. Cihazın kusursuz olduğunu, parçalarının orijinal olduğunu, ekran/kamera görüntü kalitesini veya pil sağlığını KANITLAMAZ. Sunucu imzası raporun sonradan değiştirilmediğini gösterir; ölçümün gerçekten bu cihazdan geldiğini garanti etmez. Satın almadan önce cihazı kendin de kontrol et.';
@@ -19507,11 +19518,11 @@ function tcNative() { return (typeof isNativeApp === 'function' && isNativeApp()
 function tcPlatform() { return tcNative() ? 'android' : 'web'; }
 function tcOverallOf(tests) {
   if (tests.some(t => t.status === 'failed')) return 'issues';
-  if (tests.some(t => ['skipped', 'untested', 'idle', 'running', 'awaiting_user'].includes(t.status))) return 'incomplete';
+  if (tests.some(t => ['skipped', 'untested', 'idle', 'running', 'awaiting_user', 'permission_denied', 'error', 'no_data'].includes(t.status))) return 'incomplete';
   return 'completed';
 }
-function tcCountsOf(tests) { const c = { passed: 0, failed: 0, skipped: 0, unsupported: 0, untested: 0 }; tests.forEach(t => { const s = ['passed', 'failed', 'skipped', 'unsupported'].includes(t.status) ? t.status : 'untested'; c[s]++; }); return c; }
-function tcFinalStatus(s) { return ['passed', 'failed', 'skipped', 'unsupported', 'untested'].includes(s) ? s : 'untested'; }   // idle/running/awaiting_user ASLA başarılı sayılmaz
+function tcCountsOf(tests) { const c = { passed: 0, failed: 0, skipped: 0, unsupported: 0, untested: 0 }; tests.forEach(t => { const s = TC_FINAL_ALL.includes(t.status) ? t.status : 'untested'; c[s] = (c[s] || 0) + 1; }); return c; }
+function tcFinalStatus(s) { return TC_FINAL_ALL.includes(s) ? s : 'untested'; }   // idle/running/awaiting_user ASLA başarılı sayılmaz
 function tcBuildReport(sess) {
   const d = sess.device || {};
   return {
@@ -19531,7 +19542,8 @@ function tcDefOf(id) { return TC_DEFS.find(d => d.id === id) || { id, title: id,
 function tcFmtDate(iso) { const t = Date.parse(iso || ''); return isNaN(t) ? '—' : new Date(t).toLocaleString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }); }
 function tcYesNo(v) { return v === true ? 'var' : v === false ? 'yok' : 'bilinmiyor'; }
 // Her testin sonucu için okunabilir, DÜRÜST ayrıntı metni
-function tcDetailText(id, m, status) {
+function tcDetailText(id, m, status, platform) {
+  if (platform === 'web') return tcwDetailText(id, m, status);   // Faz 30: web raporu/test sonucu (ölçülmeyen şey yazılmaz)
   m = m || {};
   switch (id) {
     case 'device_info': return [m.manufacturer && m.model ? `${m.manufacturer} ${m.model}` : null, m.androidRelease ? `Android ${m.androidRelease}` : null, m.ramMb ? `RAM ~${Math.round(m.ramMb / 1024 * 10) / 10} GB` : null, m.screenWidthPx ? `${m.screenWidthPx}×${m.screenHeightPx}` : null].filter(Boolean).join(' · ') || 'Bilgi okunamadı';
@@ -19550,9 +19562,10 @@ function tcDetailText(id, m, status) {
 function tcSummaryText(rep, id, code) {
   const c = rep.counts || tcCountsOf(rep.report ? rep.report.tests : []);
   const d = rep.report ? rep.report.device : rep.device;
-  return `TeknoCheck raporu — ${d.manufacturer} ${d.model}\n${TC_OVERALL_LABEL[rep.overall] || ''} (${c.passed} başarılı, ${c.failed} başarısız, ${c.skipped + c.untested} tamamlanamadı, ${c.unsupported} desteklenmiyor)\nRapor no: ${id}\nDoğrulama kodu: ${code}\nDoğrulamak için Teknohane → Ana Sayfa → TeknoCheck → Rapor doğrula.\nNot: Bu rapor cihazın kusursuz veya orijinal olduğunu kanıtlamaz.`;
+  return `TeknoCheck raporu — ${tcDevLine(d, rep.platform || (rep.report && rep.report.platform))}\n${TC_OVERALL_LABEL[rep.overall] || ''} (${c.passed} başarılı, ${c.failed} başarısız, ${c.skipped + c.untested} tamamlanamadı, ${c.unsupported} desteklenmiyor)\nRapor no: ${id}\nDoğrulama kodu: ${code}\nDoğrulamak için Teknohane → Ana Sayfa → TeknoCheck → Rapor doğrula.\nNot: Bu rapor cihazın kusursuz veya orijinal olduğunu kanıtlamaz.`;
 }
 function tcPdfDocument(rep, id, code) {
+  if (rep.report && rep.report.schemaVersion === 4) return tcwBuildDoc({ ...rep, reportId: id, verifyCode: code });   // Faz 30: web raporu
   const r = rep.report, d = r.device;
   const rows = r.tests.map(t => { const def = tcDefOf(t.id); return [def.title, TC_STATUS_LABEL[t.status] + (t.kind !== 'auto' && t.userConfirmed ? ' (kullanıcı onayı)' : ''), tcDetailText(t.id, t.measured, t.status)]; });
   const unmeasured = ['Pil sağlığı / kapasite yüzdesi: Android sunmadığı için ölçülemedi.', 'Kamera sensör kalitesi, ekran piksel sağlığı: ölçülemez; yalnızca kullanıcı değerlendirmesi kaydedildi.', 'Bluetooth/NFC: yalnızca donanım varlığı; gerçek eşleşme/iletişim testi yapılmadı.'];
@@ -19617,6 +19630,8 @@ function tcOpen() {
     Promise.resolve(n.addListener('interrupted', () => { if (TCK && TCK.busy && TCK.current) { TCK.runId = (TCK.runId || 0) + 1; if (TCK.hw && /^hw_/.test(TCK.current)) TCK.hw[TCK.current] = { status: 'skipped', note: 'Uygulama arka plana alındı / test kesildi' }; else TCK.tests[TCK.current] = { status: 'untested', measured: TCK.tests[TCK.current].measured || {}, note: 'Uygulama arka plana alındı / test kesildi' }; tcHideStage(); TCK.busy = false; TCK.current = null; showToast('⏸️', 'var(--surf2)', 'Test kesildi', 'Tamamlanmayan test başarılı sayılmaz.'); tcRender(); } })).then(h => { if (h) tcListeners.push(h); }).catch(() => {});
   }
   tcHomeRender();   // Faz 28: önce sade ana ekran (testler "Cihazımı Test Et" ekranında)
+  // Faz 30: yetenek profili çalışma anında algılanır; yalnızca bu cihaz/tarayıcıda uygulanabilir testler sunulur. Misafirken kaydedilen web sonuçları girişten sonra geri yüklenir.
+  tcDetectApplicable().then(() => { if (tcwDraftRestore()) { try { tcRender(); } catch (e) { /* sessiz */ } if (typeof showToast === 'function') showToast('✅', 'var(--surf2)', 'Sonuçların geri yüklendi', 'Giriş yaptın; kaydedilmemiş web test sonuçların hazır. Raporu oluşturabilirsin.'); } });
 }
 // "Cihazımı Test Et" ekranı (eski ana ekran içeriği): testler, ek donanım testleri, kozmetik durum, rapor oluşturma
 function tcRender() {
@@ -19625,31 +19640,35 @@ function tcRender() {
   { const m0 = tcEnsureModal(), was = m0.classList.contains('on'); m0.classList.add('on'); tcNavEnter('test', null, was); }
   const native = !!tcNative();
   const pend = tcPendingGet();
-  const done = TC_DEFS.filter(d => ['passed', 'failed', 'skipped', 'unsupported', 'untested'].includes(TCK.tests[d.id].status)).length;
-  const rows = TC_DEFS.map(def => {
+  const defs = tcDefs(), prof = TCK.profile || (native ? 'android_native' : 'other_web');
+  const done = defs.filter(d => TC_FINAL_ALL.includes(TCK.tests[d.id].status)).length;
+  const rows = defs.map(def => {
     const t = TCK.tests[def.id];
-    const detail = ['passed', 'failed', 'unsupported', 'untested', 'skipped'].includes(t.status) ? tcDetailText(def.id, t.measured, t.status) + (t.note ? ' · ' + t.note : '') : def.hint;
-    const runnable = native || def.id === 'screen_color' || def.id === 'touch';
-    return `<li class="tcx-row" data-test="${def.id}" data-status="${t.status}"><div class="tcx-row-main"><div class="tcx-row-t">${escapeHtml(def.title)} <span class="tcx-kind">${TC_KIND_LABEL[def.kind]}</span></div><div class="tcx-row-d">${escapeHtml(detail)}</div></div><div class="tcx-row-side">${tcBadge(t.status)}${runnable ? `<button type="button" class="tk-btn tk-btn--outline tk-btn--sm" data-run="${def.id}" ${TCK.busy ? 'disabled' : ''}>${t.status === 'idle' ? 'Başlat' : 'Tekrar'}</button>` : `<span class="tcx-na">Android uygulaması gerekir</span>`}</div></li>`;
+    const detail = TC_FINAL_ALL.includes(t.status) ? tcDetailText(def.id, t.measured, t.status, native ? 'android' : 'web') + (t.note && (native || ['skipped', 'untested'].includes(t.status)) ? ' · ' + t.note : '') : tcHintOf(def);   // web: izin/hata/veri-yok notu ayrıntı metniyle aynıdır, tekrarlanmaz
+    const title = native ? def.title : tcTitleOf(def.id, 'web');
+    const stBadge = !native && t.status === 'passed' && def.kind !== 'auto' && t.userConfirmed ? `<span class="tk-badge tk-badge--success">${tcwStatusLabel('passed', def.kind, true)}</span>` : (!native && t.status === 'skipped' ? `<span class="tk-badge tk-badge--neutral">${tcwStatusLabel('skipped')}</span>` : tcBadge(t.status));
+    return `<li class="tcx-row" data-test="${def.id}" data-status="${t.status}"><div class="tcx-row-main"><div class="tcx-row-t">${escapeHtml(title)} <span class="tcx-kind">${TC_KIND_LABEL[def.kind]}</span></div><div class="tcx-row-d">${escapeHtml(detail)}</div></div><div class="tcx-row-side">${stBadge}<button type="button" class="tk-btn tk-btn--outline tk-btn--sm" data-run="${def.id}" ${TCK.busy ? 'disabled' : ''}>${t.status === 'idle' ? 'Başlat' : 'Tekrar'}</button></div></li>`;
   }).join('');
+  const naNote = !native && TCK.notApplicable && TCK.notApplicable.length ? `<p class="tcx-hint" id="tc-na-note">Bu cihazda/tarayıcıda uygulanamadığı için gösterilmeyen testler (${TCK.notApplicable.map(id => escapeHtml(tcTitleOf(id, 'web'))).join(', ')}) yapılmaz; raporun teknik kapsam bölümünde belirtilir.</p>` : '';
   b.innerHTML = `<div class="tcx">
     ${tcsHeroHTML(tcsModel(TCK), native)}
-    ${native ? '' : `<div class="tc-status" role="note" id="tc-webnote"><b>Bu sayfa Android uygulaması değil.</b> Donanım testlerinin çoğu (kamera, mikrofon, sensör, batarya, bağlantı, titreşim) yalnızca Teknohane Android uygulamasında çalışır. Burada yalnızca ekran/dokunmatik testleri denenebilir; <b>web'de rapor oluşturulamaz</b>.</div>`}
+    ${native ? '' : `<div class="tc-status" role="note" id="tc-webnote"><b>${escapeHtml(TC_PROFILE_LABEL[prof] || 'Web tarayıcısı')}</b> üzerinden test ediyorsun; yalnızca bu cihazda çalışan testler gösterilir. Üye olmadan test edebilirsin, raporu kaydetmek için giriş gerekir. Pil sağlığı ve cihaz modeli tarayıcıdan okunamaz (Android uygulamasında okunur).</div>`}
     ${pend ? `<div class="tc-status" id="tc-pending" role="note"><b>Gönderilmemiş rapor var.</b> Sunucuya ulaşılamadığı için bekletiliyor; <b>sunucu onayı olmadığından doğrulanmış sayılmaz</b>. <button type="button" class="tk-btn tk-btn--outline tk-btn--sm" data-act="retry-pending">Şimdi gönder</button> <button type="button" class="tk-btn tk-btn--outline tk-btn--sm" data-act="drop-pending">Sil</button></div>` : ''}
     ${tcStepsHTML(tcsModel(TCK))}
     ${tcsSummaryHTML(tcsModel(TCK))}
     <details class="tcx-priv" ${TCK.introSeen ? '' : 'open'}><summary>Gizlilik: neler toplanır?</summary><ul>
-      <li>Cihaz üreticisi, modeli, Android sürümü, ekran ve bellek/depolama boyutları, batarya ve bağlantı durumu, sensör varlığı.</li>
+      ${native ? '<li>Cihaz üreticisi, modeli, Android sürümü, ekran ve bellek/depolama boyutları, batarya ve bağlantı durumu, sensör varlığı.</li>' : '<li>Tarayıcı ve işletim sistemi adı/sürümü, ekran boyutu, tarayıcının desteklediği özellikler ve yaptığın test sonuçları. Cihaz modeli, pil sağlığı, IMEI ve seri numarası tarayıcıdan okunamaz.</li>'}
       <li><b>Toplanmaz:</b> IMEI, seri numarası, Android kimliği, konum verisi, fotoğraf/video, ses kaydı.</li>
       <li>Kamera ve mikrofon izni yalnızca ilgili test başlarken istenir; reddedersen diğer testler çalışır.</li>
       <li>Rapor oluşturmadıkça hiçbir sonuç sunucuya gönderilmez. Rapor oluşturunca sunucuya şunlar gider ve imzalanır: aşağıdaki test sonuçları, gelişmiş cihaz analizi (değer + durum), ek donanım test durumları ve varsa kozmetik <b>kullanıcı beyanın</b>. <b>Fotoğraflar hiçbir zaman gönderilmez.</b></li></ul></details>
-    <div class="tcx-actions tcs-sec">${native ? `<button type="button" class="tk-btn tk-btn--primary" data-act="run-auto" ${TCK.busy ? 'disabled' : ''}>Otomatik testleri çalıştır</button>` : ''}</div>
-    <div id="tcs-tests" class="tcs-sec-h"><h3 class="tc-info-t">Temel testler</h3><span class="tcs-sec-s">${done}/${TC_DEFS.length} sonuçlandı</span></div>
+    <div class="tcx-actions tcs-sec"><button type="button" class="tk-btn tk-btn--primary" data-act="run-auto" ${TCK.busy ? 'disabled' : ''}>Otomatik testleri çalıştır</button></div>
+    <div id="tcs-tests" class="tcs-sec-h"><h3 class="tc-info-t">Temel testler</h3><span class="tcs-sec-s">${done}/${defs.length} sonuçlandı</span></div>
     <ul class="tcx-list">${rows}</ul>
-    ${typeof tchSectionHTML === 'function' ? tchSectionHTML(native) : ''}
+    ${native && typeof tchSectionHTML === 'function' ? tchSectionHTML(native) : ''}
+    ${naNote}
     ${typeof tcrCardHTML === 'function' ? tcrCardHTML() : ''}
     ${native ? '<p class="tcx-hint">Tamamlanmayan testler raporda "test edilmedi" veya "atlandı" olarak görünür; başarılı sayılmaz.</p><p class="tcx-hint" id="tc-scope-hint">İmzalı rapora eklenir: bu testler, gelişmiş cihaz analizi, ek donanım test durumları ve varsa kozmetik <b>kullanıcı beyanı</b>. Fotoğraflar sunucuya gönderilmez, imzalanmaz.</p>' : ''}
-    <div class="tcx-foot"><div class="tcx-prog">${done}/${TC_DEFS.length} test sonuçlandı</div><button type="button" class="tk-btn tk-btn--primary tk-btn--block" data-act="finish" ${(!native || TCK.busy) ? 'disabled' : ''}>Raporu oluştur</button></div></div>`;
+    <div class="tcx-foot"><div class="tcx-prog">${done}/${defs.length} test sonuçlandı</div><button type="button" class="tk-btn tk-btn--primary tk-btn--block" data-act="finish" ${TCK.busy ? 'disabled' : ''}>${native || user ? 'Raporu oluştur' : 'Giriş yap ve raporu oluştur'}</button></div></div>`;
   TCK.introSeen = true;
   b.querySelectorAll('[data-run]').forEach(btn => btn.addEventListener('click', () => tcRunTest(btn.dataset.run)));
   if (typeof tchBind === 'function') tchBind(b);
@@ -19695,7 +19714,7 @@ async function tcEnsurePermission(alias) {
 async function tcRunTest(id) {
   if (!TCK || TCK.busy) return;
   TCK.busy = true; TCK.current = id; TCK.tests[id] = { status: 'running', measured: {} }; const myRun = TCK.runId = (TCK.runId || 0) + 1; tcRender();
-  tcsMarkStage(tcDefOf(id).title + ' · Test ' + (TC_DEFS.findIndex(d => d.id === id) + 1) + '/' + TC_DEFS.length);
+  tcsMarkStage(tcDefOf(id).title + ' · Test ' + (tcDefs().findIndex(d => d.id === id) + 1) + '/' + tcDefs().length);
   let res;
   try { res = await TC_IMPL[id](); }
   catch (e) { res = { status: 'untested', measured: {}, note: 'Test sırasında beklenmeyen hata' }; }
@@ -19706,7 +19725,8 @@ async function tcRunTest(id) {
   TCK.busy = false; TCK.current = null; tcRender();
 }
 async function tcRunAuto() {
-  for (const id of ['device_info', 'battery', 'connectivity', 'sensors']) { if (!TCK || TCK.closed) return; await tcRunTest(id); }
+  // Android: tek dokunuşta güvenli otomatik testler. Web: kullanıcı izni/dokunuşu gerektirmeyenler (kamera/mikrofon/sensör düğmeyle ayrı başlatılır).
+  for (const id of (tcNative() ? ['device_info', 'battery', 'connectivity', 'sensors'] : ['device_info', 'connectivity', 'battery'])) { if (!TCK || TCK.closed) return; if (TCK.applicable && !TCK.applicable.includes(id)) continue; await tcRunTest(id); }
 }
 function tcPickMeasured(o, keys) { const m = {}; keys.forEach(k => { if (o && o[k] !== undefined) m[k] = o[k]; }); return m; }
 
@@ -19888,16 +19908,26 @@ async function tcCameraTest(side) {
 // ---------------------------------------------------------------- rapor oluşturma (sunucu imzası) ve görüntüleme
 async function tcFinish() {
   if (!TCK || TCK.busy) return;
-  if (!tcNative()) { showToast('ℹ️', 'var(--surf2)', 'Android uygulaması gerekir', 'Web\'de rapor oluşturulamaz.'); return; }
+  if (!tcNative()) return tcFinishWeb();   // Faz 30: web raporu (şema v4)
   if (!user) { showToast('🔒', 'var(--surf2)', 'Giriş gerekli', 'Rapor oluşturmak için giriş yapmalısın.'); closemo('tc-mo'); gt('profile'); return; }
   if (!TCK.device || TCK.tests.device_info.status !== 'passed') { await tcRunTest('device_info'); if (!TCK || !TCK.device) return; }
   const base = tcBuildReport(TCK);
-  const incomplete = base.tests.filter(t => t.status === 'untested' || t.status === 'skipped').length;
+  const incomplete = base.tests.filter(t => (t.status === 'untested' || t.status === 'skipped') && !(TCK.notApplicable || []).includes(t.id)).length;
   if (incomplete) { const ok = await confirmDialog(`${incomplete} test tamamlanmadı; raporda "test edilmedi/atlandı" olarak görünecek, başarılı sayılmayacak. Raporu yine de oluşturayım mı?`, { title: 'Eksik testler var', confirmText: 'Raporu oluştur', cancelText: 'Geri dön' }); if (!ok) return; }
   const ent = typeof subClientTcEntitled === 'function' ? await subClientTcEntitled() : true;   // Faz 10: gelişmiş imzalı rapor VIP/ücretli işletme üyesi içindir (sunucu aynı kararı verir)
   if (!ent && typeof showToast === 'function') showToast('👑', 'var(--surf2)', 'Temel rapor hazırlanıyor', SUB_TC_UPSELL);
   const report = ent ? await tcxExtend(base, TCK) : base;   // Faz 8: gelişmiş analiz + ek donanım testleri + kozmetik beyan imzalı kayda eklenir (fotoğraflar ASLA)
   return tcSubmit(report);
+}
+// Faz 30: web raporu. Giriş yoksa sonuçlar yalnızca bu cihazda (24 saat) saklanır, giriş sonrası geri yüklenir. Rapor yalnızca sunulan testleri taşır.
+async function tcFinishWeb() {
+  const defs = tcDefs(), pending = defs.filter(d => !TC_FINAL_ALL.includes(TCK.tests[d.id].status)).length;
+  if (!(TCK.tests.device_info && TC_FINAL_ALL.includes(TCK.tests.device_info.status))) { await tcRunTest('device_info'); if (!TCK) return; }
+  if (!user) { tcwDraftSave(); showToast('🔒', 'var(--surf2)', 'Giriş gerekli', 'Test sonuçların bu cihazda saklandı; giriş yaptıktan sonra raporu oluşturabilirsin.'); closemo('tc-mo'); gt('profile'); return; }
+  const base = tcBuildReportWeb(TCK);
+  const incomplete = base.tests.filter(t => ['untested', 'skipped', 'permission_denied', 'error', 'no_data'].includes(t.status) || (t.status === 'idle')).length;
+  if (incomplete || pending) { const ok = await confirmDialog(`${incomplete + pending} test tamamlanmadı veya sonuç alınamadı; raporda ayrı durumlarla gösterilecek, başarılı sayılmayacak. Raporu yine de oluşturayım mı?`, { title: 'Eksik testler var', confirmText: 'Raporu oluştur', cancelText: 'Geri dön' }); if (!ok) return; }
+  return tcSubmit(base);
 }
 async function tcSubmit(report) {
   const b = tcBody(); if (!b) return;
@@ -19910,7 +19940,7 @@ async function tcSubmit(report) {
   const pilWas = report.schemaVersion === 3; let pilNote = ''; const pilOmit = typeof tcPilTakeOmit === 'function' ? tcPilTakeOmit() : '';
   {
     let cur = report;
-    while (!r._network && !r.success && r.error === 'invalid_report' && cur.schemaVersion >= 2) {
+    while (!r._network && !r.success && r.error === 'invalid_report' && cur.schemaVersion >= 2 && cur.schemaVersion <= 3) {
       const detail = String(r.detail || ''), nx = cur.schemaVersion === 3 ? tcxDropBattery(cur) : tcxDowngrade(cur);
       if (cur.schemaVersion === 3) pilNote = detail === 'unsupported_schema' ? 'Sunucu henüz pil analizi imzasını desteklemiyor (eski sürüm).' : 'Sunucu pil analizini kabul etmedi (' + (detail.replace(/^invalid_battery:/, '') || 'doğrulama') + ').';
       const rn = await tcCall('submit', { idToken, report: nx });
@@ -19933,7 +19963,8 @@ async function tcSubmit(report) {
     return;
   }
   tcPendingSet(null);
-  if (report.schemaVersion >= 2) report = { ...report, scope: tcxScopeOf(report) };
+  if (report.schemaVersion === 4) report = tcwDecorate(report);   // Faz 30: sunucu kaydındaki kaynak/yöntem/güven alanları yerel görünüme de eklenir
+  else if (report.schemaVersion >= 2) report = { ...report, scope: tcxScopeOf(report) };
   if (report.batteryAnalysis && typeof tcPilCompleteSigned === 'function') report = { ...report, batteryAnalysis: tcPilCompleteSigned(report.batteryAnalysis) };   // sunucu kaydındaki trust/origin/sourceKind ile aynı görünüm   // sunucu da aynı kapsamı kayda yazdı (Raporlarım'da sunucu kopyası gösterilir)
   const signedPil = report.schemaVersion === 3 && !!report.batteryAnalysis;
   await tcrAttach(r.reportId, { signedPil, pilReason: pilNote });   // Faz 7: kozmetik/fotoğraf taslağı + cihaz içi ek bölümler YEREL olarak rapora bağlanır (imza/sunucu istekleri değişmez)
@@ -19943,9 +19974,10 @@ async function tcSubmit(report) {
 }
 function tcReportRowsHTML(report) {
   const group = { auto: [], manual: [], other: [] };
-  report.tests.forEach(t => { const def = tcDefOf(t.id); const li = `<li class="tcx-row" data-test="${t.id}" data-status="${t.status}"><div class="tcx-row-main"><div class="tcx-row-t">${escapeHtml(def.title)} <span class="tcx-kind">${TC_KIND_LABEL[def.kind]}</span></div><div class="tcx-row-d">${escapeHtml(tcDetailText(t.id, t.measured, t.status))}${t.note ? ' · ' + escapeHtml(t.note) : ''}</div></div><div class="tcx-row-side">${tcBadge(t.status)}</div></li>`; (['unsupported', 'untested', 'skipped'].includes(t.status) ? group.other : (def.kind === 'auto' ? group.auto : group.manual)).push(li); });
+  report.tests.forEach(t => { const def = tcDefOf(t.id); if (t.note === TCW_NA_NOTE) return;   // Faz 30: platformda uygulanamayan test satır olarak gösterilmez; teknik kapsam notunda yer alır
+    const web = report.platform === 'web', li = `<li class="tcx-row" data-test="${t.id}" data-status="${t.status}"><div class="tcx-row-main"><div class="tcx-row-t">${escapeHtml(tcTitleOf(t.id, report.platform))} <span class="tcx-kind">${TC_KIND_LABEL[def.kind]}</span>${web && t.confidence && t.confidence !== 'none' ? ` <span class="tcx-kind" title="Kaynak: ${escapeHtml(TCW_SRC_LABEL[t.source] || '')}">${escapeHtml(TCW_CONF_LABEL[t.confidence] || '')}</span>` : ''}</div><div class="tcx-row-d">${escapeHtml(tcDetailText(t.id, t.measured, t.status, report.platform))}${t.note && !(web && ['permission_denied', 'error', 'no_data', 'unsupported'].includes(t.status)) ? ' · ' + escapeHtml(t.note) : ''}</div></div><div class="tcx-row-side">${tcStatusBadge(t, report.platform)}</div></li>`; (['unsupported', 'untested', 'skipped'].includes(t.status) ? group.other : (def.kind === 'auto' ? group.auto : group.manual)).push(li); });
   const sec = (t, a) => a.length ? `<h3 class="pd-sec-t">${t}</h3><ul class="tcx-list">${a.join('')}</ul>` : '';
-  return sec('Otomatik ölçümler', group.auto) + sec('Kullanıcı onayıyla (manuel / karma)', group.manual) + sec('Desteklenmeyen · ölçülemeyen · atlanan', group.other);
+  return sec('Otomatik ölçümler', group.auto) + sec('Kullanıcı onayıyla (manuel / karma)', group.manual) + sec('Desteklenmeyen · ölçülemeyen · atlanan', group.other) + tcwScopeHTML(report);
 }
 function tcShowReport(rep, opts) {
   opts = opts || {}; { const m0 = tcEnsureModal(), was = m0.classList.contains('on'); m0.classList.add('on'); tcNavEnter('report', { id: rep.reportId, rep, opts }, was); }
@@ -19953,16 +19985,16 @@ function tcShowReport(rep, opts) {
   const d = rep.report.device, c = rep.counts || tcCountsOf(rep.report.tests);
   const revoked = rep.status === 'revoked';
   b.innerHTML = `<div class="tcx" id="tc-report" data-report="${escapeHtml(rep.reportId)}">
-    <div class="tcx-verdict tcx-verdict--${revoked ? 'revoked' : rep.overall}"><div class="tcx-verdict-t">${revoked ? 'Bu rapor iptal edildi' : TC_OVERALL_LABEL[rep.overall]}</div><div class="tcx-verdict-s">${escapeHtml(d.manufacturer)} ${escapeHtml(d.model)} · Android ${escapeHtml(d.androidRelease)} · ${tcFmtDate(rep.createdAt)}</div>
-      <div class="tcx-counts">${c.passed} başarılı · ${c.failed} başarısız · ${c.skipped + c.untested} tamamlanamadı · ${c.unsupported} desteklenmiyor</div></div>
+    <div class="tcx-verdict tcx-verdict--${revoked ? 'revoked' : rep.overall}"><div class="tcx-verdict-t">${revoked ? 'Bu rapor iptal edildi' : TC_OVERALL_LABEL[rep.overall]}</div><div class="tcx-verdict-s">${escapeHtml(tcDevLine(d, rep.platform))} · ${tcFmtDate(rep.createdAt)}</div>
+      <div class="tcx-counts">${tcCountsLine(c)}</div></div>
     <div class="tcx-code"><div><small>Rapor no</small><b id="tc-rid">${escapeHtml(rep.reportId)}</b></div><div><small>Doğrulama kodu</small><b id="tc-code">${escapeHtml(rep.verifyCode)}</b></div><button type="button" class="tk-btn tk-btn--outline tk-btn--sm" data-act="copy">Kopyala</button></div>
     <div class="tc-status" role="note">Sunucu kaydıyla imzalandı: rapor oluşturulduktan sonra değiştirilirse doğrulama başarısız olur. ${rep.platform === 'android' ? '' : 'Bu rapor Android uygulamasından değil; ilana bağlanamaz.'}</div>
-    ${tcxScopeHTML(rep.report)}
+    ${rep.platform === 'web' ? tcwSourceBox(rep.report) : tcxScopeHTML(rep.report)}
     ${opts.pilNote ? `<div class="tc-status tc-status--warn" role="note" id="tcpil-downgrade"><b>Pil analizi imzaya eklenemedi:</b> ${escapeHtml(opts.pilNote)} Pil bölümü bu raporda İMZASIZ yerel anlık görüntü olarak yer alır.</div>` : ''}
     ${rep.linkedListingId ? `<div class="tc-status" role="note">Bu rapor bir Pazar ilanına bağlı.</div>` : ''}
     <div class="tcx-actions"><button type="button" class="tk-btn tk-btn--primary" data-act="pdf">PDF olarak dışa aktar</button><button type="button" class="tk-btn tk-btn--outline" data-act="share">Özeti paylaş</button>${(!revoked && rep.platform === 'android') ? '<button type="button" class="tk-btn tk-btn--outline" data-act="link">İlana bağla</button>' : ''}${revoked ? '' : '<button type="button" class="tk-btn tk-btn--outline" data-act="revoke">Raporu iptal et</button>'}</div>
     ${tcReportRowsHTML(rep.report)}
-    ${tcxReportSectionsHTML(rep.report)}
+    ${rep.platform === 'web' ? '' : tcxReportSectionsHTML(rep.report)}
     <h3 class="pd-sec-t">Sınırlamalar</h3><p class="tcx-limits" id="tc-limits">${escapeHtml(TC_LIMITS)}</p>
     <button type="button" class="tk-btn tk-btn--outline tk-btn--block" data-act="back">${opts.fresh ? 'Teste dön' : 'Raporlarıma dön'}</button></div>`;   // Faz 28: önceki ekrana (gerçek geri) döner
   b.querySelectorAll('[data-act]').forEach(btn => btn.addEventListener('click', () => tcReportAction(btn.dataset.act, rep, opts)));
@@ -20021,9 +20053,9 @@ async function tcDoVerify() {
 }
 function tcSummaryHTML(s) {
   const c = s.counts || tcCountsOf(s.tests || []);
-  return `<div class="tcx-sum"><div class="tcx-verdict-s">${escapeHtml(s.device.manufacturer)} ${escapeHtml(s.device.model)} · Android ${escapeHtml(s.device.androidRelease)}</div><div class="tcx-verdict-s">Oluşturulma: ${tcFmtDate(s.createdAt)} · TeknoCheck ${escapeHtml(s.appVersion || '')} · ${s.platform === 'android' ? 'Android' : 'Web'}</div>
-    <div class="tcx-counts"><b>${TC_OVERALL_LABEL[s.overall] || ''}</b> — ${c.passed} başarılı · ${c.failed} başarısız · ${c.skipped + c.untested} tamamlanamadı · ${c.unsupported} desteklenmiyor</div>
-    <ul class="tcx-list">${s.tests.map(t => `<li class="tcx-row" data-test="${t.id}" data-status="${t.status}"><div class="tcx-row-main"><div class="tcx-row-t">${escapeHtml(tcDefOf(t.id).title)} <span class="tcx-kind">${t.kind === 'auto' ? 'otomatik ölçüm' : t.userConfirmed ? 'kullanıcı onaylı' : 'kullanıcı onayı yok'}</span></div></div><div class="tcx-row-side">${tcBadge(t.status)}</div></li>`).join('')}</ul>${tcxVerifyScopeHTML(s)}</div>`;
+  return `<div class="tcx-sum"><div class="tcx-verdict-s">${escapeHtml(tcDevLine(s.device, s.platform))}</div><div class="tcx-verdict-s">Oluşturulma: ${tcFmtDate(s.createdAt)} · TeknoCheck ${escapeHtml(s.appVersion || '')} · ${s.platform === 'android' ? 'Android' : 'Web'}</div>
+    <div class="tcx-counts"><b>${TC_OVERALL_LABEL[s.overall] || ''}</b> — ${tcCountsLine(c)}</div>${s.platform === 'web' ? tcwVerifyScopeNote(s) : ''}
+    <ul class="tcx-list">${s.tests.map(t => `<li class="tcx-row" data-test="${t.id}" data-status="${t.status}"><div class="tcx-row-main"><div class="tcx-row-t">${escapeHtml(tcDefOf(t.id).title)} <span class="tcx-kind">${t.confidence ? escapeHtml(TCW_CONF_LABEL[t.confidence] || '') + ' · ' + escapeHtml(TCW_SRC_LABEL[t.source] || '') : t.kind === 'auto' ? 'otomatik ölçüm' : t.userConfirmed ? 'kullanıcı onaylı' : 'kullanıcı onayı yok'}</span></div></div><div class="tcx-row-side">${tcStatusBadge(t, s.platform)}</div></li>`).join('')}</ul>${tcxVerifyScopeHTML(s)}</div>`;
 }
 function tcVerifyResultHTML(r) {
   const box = (cls, title, text, extra) => `<div class="tcx-result tcx-result--${cls}" role="status"><b>${title}</b><p>${text}</p>${extra || ''}</div>`;
@@ -20103,12 +20135,12 @@ function hmTeknoCheckCardHTML() {
         <span class="hm-tc-t" style="display:block">Telefonunu test et.</span>
         <span class="hm-tc-s" style="display:block">Donanımını kontrol et, raporunu oluştur.</span>
       </span>
-      <span class="hm-tc-go ${native ? 'hm-tc-go--on' : ''}">${native ? 'Testi başlat' : 'Android uygulamasında'}</span>
+      <span class="hm-tc-go hm-tc-go--on">Testi başlat</span>
     </button>
   </section>`;
 }
 // Android uygulamasında kart doğrudan gerçek test akışını (tcOpen: gizlilik özeti + testler) açar; web'de testler çalışmadığı için bilgi/rapor doğrulama sayfası açılır.
-function hmTeknoCheckGo() { if (tcNative()) { tcOpen(); tcHomeGo('test'); } else openTeknoCheckInfo(); }   // Ana Sayfa kartı "Testi başlat" der: doğrudan test merkezi; geri -> TeknoCheck ana ekranı
+function hmTeknoCheckGo() { tcOpen(); tcHomeGo('test'); }   // Faz 30: web'de de (iPhone Safari dahil) doğrudan test merkezi   // Ana Sayfa kartı "Testi başlat" der: doğrudan test merkezi; geri -> TeknoCheck ana ekranı
 function openTeknoCheckInfo() {
   const body = document.getElementById('tc-info-body');
   if (!body) return;
@@ -20117,17 +20149,17 @@ function openTeknoCheckInfo() {
     <div class="tc-info">
       <h2 class="tc-info-h" id="tc-info-title">TeknoCheck</h2>
       <p class="tc-info-lead">Telefonun durumunu test et, sonuçları raporla, güvenle alıp sat.</p>
-      ${native ? '' : '<div class="tc-status" role="note"><b>Donanım testleri Android uygulamasında çalışır.</b> Bu sayfada test yapılamaz ve rapor oluşturulamaz; ama aldığın bir raporu aşağıdan doğrulayabilirsin.</div>'}
+      ${native ? '' : '<div class="tc-status" role="note"><b>Tarayıcıdan test edebilirsin.</b> Yalnızca bu cihazda gerçekten çalışan testler gösterilir. Pil sağlığı, pil döngüsü, IMEI ve cihaz modeli tarayıcıdan okunamaz; bunlar Android uygulamasında okunur.</div>'}
       <h3 class="tc-info-t">Testler</h3>
-      <ul class="tc-list">${TC_DEFS.map(d => `<li><span>${hmEsc(d.title)}</span><span class="tk-badge tk-badge--neutral">${TC_KIND_LABEL[d.kind]}</span></li>`).join('')}</ul>
+      <ul class="tc-list">${(typeof tcDefs === 'function' && TCK && TCK.applicable ? tcDefs() : TC_DEFS).map(d => `<li><span>${hmEsc(native ? d.title : tcTitleOf(d.id, 'web'))}</span><span class="tk-badge tk-badge--neutral">${TC_KIND_LABEL[d.kind]}</span></li>`).join('')}</ul>
       <h3 class="tc-info-t">Nasıl çalışır?</h3>
       <ol class="tc-steps">
-        <li>Testleri Android uygulamasında çalıştırırsın; ölçülebilenler otomatik, görüntü/ses/titreşim gibi şeyler senin onayınla kaydedilir.</li>
+        <li>Testleri tarayıcıdan (iPhone Safari, Android, masaüstü) ya da Android uygulamasından çalıştırırsın; ölçülebilenler otomatik, görüntü/ses/titreşim gibi şeyler senin onayınla kaydedilir. Üye olmadan test edebilirsin.</li>
         <li>Rapor oluşturulunca sunucu raporu imzalar ve rapor no + doğrulama kodu verir.</li>
         <li>İstersen raporu Pazar ilanına bağlarsın; alıcı ilanda sunucu doğrulamalı özeti görür veya kodla doğrular.</li>
       </ol>
       <div class="tc-status" role="note">Rapor cihazın kusursuz ya da parçalarının orijinal olduğunu kanıtlamaz; pil sağlığı ve kamera/ekran kalitesi ölçülmez.</div>
-      ${native ? '<button type="button" class="tk-btn tk-btn--primary tk-btn--block" id="tc-start">Teste başla</button>' : ''}
+      <button type="button" class="tk-btn tk-btn--primary tk-btn--block" id="tc-start">Teste başla</button>
       <button type="button" class="tk-btn tk-btn--outline tk-btn--block" id="tc-adv-open">${native ? 'Gelişmiş analiz' : 'Tarayıcı analizi'}</button>
       <button type="button" class="tk-btn tk-btn--outline tk-btn--block" id="tc-verify-open">Rapor doğrula</button>
       <button type="button" class="tk-btn tk-btn--outline tk-btn--block" id="tc-biz-open">İşletme yönetimi</button>
@@ -20398,6 +20430,29 @@ async function tcaOpen(fromTests) {
   if (TCK) TCK.advLast = { platform: res.platform, data: res.data, at: new Date().toISOString() };   // Faz 7: son analiz (yalnızca bellekte; rapora yerel ek bölüm olarak eklenir)
   bb.querySelectorAll('[data-tca-go]').forEach((c) => c.addEventListener('click', () => { const t = bb.querySelector(`[data-cat="${c.dataset.tcaGo}"]`); if (t) t.scrollIntoView({ behavior: tcsReduce() ? 'auto' : 'smooth', block: 'start' }); }));   // Faz 6: kategori kısayolları
   bb.querySelector('[data-tca="refresh"]').addEventListener('click', () => tcaOpen(fromTests));
+}
+
+// ---------------------------------------------------------------- Faz 30: web raporu görünüm yardımcıları
+function tcCountsLine(c) {
+  const parts = [`${c.passed} başarılı`, `${c.failed} başarısız`, `${(c.skipped || 0) + (c.untested || 0)} tamamlanamadı`, `${c.unsupported} desteklenmiyor`];
+  if (c.permission_denied) parts.push(`${c.permission_denied} izin verilmedi`);
+  if (c.error) parts.push(`${c.error} teknik hata`);
+  if (c.no_data) parts.push(`${c.no_data} veri elde edilemedi`);
+  return parts.join(' · ');
+}
+const TCW_NOT_LABEL = { battery_health: 'pil sağlığı', battery_cycles: 'pil döngüsü', imei: 'IMEI', serial: 'seri numarası', device_model: 'cihaz modeli', photos: 'fotoğraf', audio: 'ses kaydı', location: 'konum' };
+function tcwSourceBox(r) {
+  const na = (r.notApplicable || []).map(id => tcTitleOf(id, 'web'));
+  return `<div class="tc-status" role="note" id="tcw-source"><b>Kaynak: web tarayıcısı.</b> Bu raporun ölçümleri tarayıcının bildirdiği değerlere ve senin onaylarına dayanır; Android yerel donanım analiziyle (pil sağlığı, döngü, cihaz modeli) aynı kapsamda DEĞİLDİR. Her test için kaynak ve güven düzeyi aşağıda yazar.${na.length ? ` Bu cihazda uygulanamayan ve yapılmayan testler: ${na.map(escapeHtml).join(', ')}.` : ''} Tarayıcıdan okunamayan: ${Object.values(TCW_NOT_LABEL).join(', ')}.</div>`;
+}
+function tcwScopeHTML(r) {
+  const gizli = (r.tests || []).filter(t => t.note === TCW_NA_NOTE).map(t => tcTitleOf(t.id, r.platform));
+  const web = r.platform === 'web', na = web ? (r.notApplicable || []).map(id => tcTitleOf(id, 'web')) : gizli;
+  return na.length ? `<h3 class="pd-sec-t">Teknik kapsam</h3><p class="tcx-limits" id="tcw-scope">Bu ${web ? 'tarayıcıda/cihazda' : 'cihazda'} uygulanamadığı için sunulmayan alanlar: ${na.map(escapeHtml).join(', ')}.</p>` : '';
+}
+function tcwVerifyScopeNote(s) {
+  const na = (s.notApplicable || []).map(id => tcTitleOf(id, 'web'));
+  return `<p class="tcx-limits">Bu rapor <b>web tarayıcısından</b> oluşturuldu: ölçümler tarayıcının bildirdiğine ve kullanıcı onaylarına dayanır; cihaz modeli, pil sağlığı ve IMEI içermez.${na.length ? ' Bu cihazda uygulanamayan testler: ' + na.map(escapeHtml).join(', ') + '.' : ''}</p>`;
 }
 
 // ==================================================================== FAZ 5 — EK DONANIM TESTLERİ (kaynak: teknocheck/istemci3.js; uygula.mjs gömer)
@@ -20701,8 +20756,8 @@ function tchRowHTML(def, native) {
   return `<li class="tcx-row tch-row" data-hw="${def.id}" data-status="${t.status}"><div class="tcx-row-main"><div class="tcx-row-t">${tchEsc(def.title)} <span class="tcx-kind">${TCH_KIND[def.kind]}</span></div><div class="tcx-row-d">${tchEsc(detail)}</div></div><div class="tcx-row-side"><span class="tk-badge tk-badge--${sb[1]}">${sb[0]}</span>${btn}</div></li>`;
 }
 function tchSectionHTML(native) {
-  const groups = [...new Set(TCH_DEFS.map((d) => d.group))];
-  return `<section class="tch" id="tch"><h3 class="tc-info-t">Ek donanım testleri</h3><p class="tca-intro">Bu bölümdeki sonuçların <b>durumu</b> (başarılı/başarısız/atlandı…) ve kullanıcı onayı, rapor oluşturduğunda <b>imzalı rapora</b> eklenir; kayıt, ses ve sensör verisi eklenmez. Her test yalnızca sen başlatınca çalışır; bitince kamera, mikrofon, sensör ve flaş kapatılır.</p>${groups.map((g) => `<h4 class="tch-g">${tchEsc(g)}</h4><ul class="tcx-list tch-list">${TCH_DEFS.filter((d) => d.group === g).map((d) => tchRowHTML(d, native)).join('')}</ul>`).join('')}</section>`;
+  const groups = [...new Set(TCH_DEFS.filter((d) => !(TCK && TCK.hwHidden || []).includes(d.id)).map((d) => d.group))];
+  return `<section class="tch" id="tch"><h3 class="tc-info-t">Ek donanım testleri</h3><p class="tca-intro">Bu bölümdeki sonuçların <b>durumu</b> (başarılı/başarısız/atlandı…) ve kullanıcı onayı, rapor oluşturduğunda <b>imzalı rapora</b> eklenir; kayıt, ses ve sensör verisi eklenmez. Her test yalnızca sen başlatınca çalışır; bitince kamera, mikrofon, sensör ve flaş kapatılır.</p>${groups.map((g) => `<h4 class="tch-g">${tchEsc(g)}</h4><ul class="tcx-list tch-list">${TCH_DEFS.filter((d) => d.group === g && !(TCK && TCK.hwHidden || []).includes(d.id)).map((d) => tchRowHTML(d, native)).join('')}</ul>`).join('')}</section>`;
 }
 function tchBind(b) {
   b.querySelectorAll('[data-hw-run]').forEach((btn) => btn.addEventListener('click', () => tchRun(btn.dataset.hwRun)));
@@ -20712,14 +20767,15 @@ function tchBind(b) {
 // ==================================================================== FAZ 6 — ARAYÜZ (yalnızca sunum; test/ölçüm/rapor mantığı DEĞİŞMEDİ)
 // Üst bölüm (halka gösterge + cihaz özeti), bölüm kartları, sonuç özeti. Animasyonlar ölçülü ve yalnızca geçiş anlarında; "Hareketi azalt" tercihi CSS ile tam kapatır.
 const tcsReduce = () => { try { return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } };
-const TCS_FIN = ['passed', 'failed', 'skipped', 'unsupported', 'untested'];
+const TCS_FIN = TC_FINAL_ALL;
 // Saf: oturumdan özet modeli (testlenebilir)
 function tcsModel(sess) {
-  const c = { passed: 0, failed: 0, skipped: 0, unsupported: 0, untested: 0, awaiting: 0, running: 0, idle: 0 };
-  TC_DEFS.forEach((d) => { const s = ((sess.tests || {})[d.id] || { status: 'idle' }).status; if (TCS_FIN.includes(s)) c[s]++; else if (s === 'awaiting_user') c.awaiting++; else if (s === 'running') c.running++; else c.idle++; });
+  const c = { passed: 0, failed: 0, skipped: 0, unsupported: 0, untested: 0, permission_denied: 0, error: 0, no_data: 0, awaiting: 0, running: 0, idle: 0 };
+  tcDefs().forEach((d) => { const s = ((sess.tests || {})[d.id] || { status: 'idle' }).status; if (TCS_FIN.includes(s)) c[s]++; else if (s === 'awaiting_user') c.awaiting++; else if (s === 'running') c.running++; else c.idle++; });
   const h = { passed: 0, failed: 0, skipped: 0, unsupported: 0, permission_required: 0, awaiting_user: 0, running: 0, idle: 0 };
-  TCH_DEFS.forEach((d) => { const s = ((sess.hw || {})[d.id] || { status: 'idle' }).status; h[s] = (h[s] || 0) + 1; });
-  const total = TC_DEFS.length, done = TCS_FIN.reduce((a, k) => a + c[k], 0), hwTotal = TCH_DEFS.length, hwDone = hwTotal - h.idle - h.running;
+  const hwList = tcNative() ? TCH_DEFS.filter((d) => !(sess.hwHidden || []).includes(d.id)) : [];   // Faz 30: web'de ek donanım bölümü yok; Android'de cihazda olmayan donanım gizlenir
+  hwList.forEach((d) => { const s = ((sess.hw || {})[d.id] || { status: 'idle' }).status; h[s] = (h[s] || 0) + 1; });
+  const total = tcDefs().length, done = TCS_FIN.reduce((a, k) => a + c[k], 0), hwTotal = hwList.length, hwDone = hwTotal - h.idle - h.running;
   return { total, done, pct: Math.round(done * 100 / total), c, h, hwTotal, hwDone, waiting: c.awaiting + h.awaiting_user + h.permission_required, failed: c.failed + h.failed };
 }
 // Saf: genel değerlendirme. Test edilmeyen/atlanan/desteklenmeyen donanım ASLA "sağlıklı" sayılmaz.
@@ -20727,9 +20783,9 @@ function tcsVerdict(m) {
   if (m.done === 0 && m.hwDone === 0) return { tone: 'idle', title: 'Henüz test yapılmadı', text: 'Testleri başlat. Yapılmayan testler değerlendirmeye dahil edilmez; cihaz hakkında bir sonuç çıkarılmaz.' };
   if (m.failed > 0) return { tone: 'bad', title: 'Sorun tespit edildi', text: m.failed + ' test başarısız. Ayrıntılar aşağıda; bir arıza olabileceği gibi test koşulundan da kaynaklanabilir, tekrar dene.' };
   if (m.waiting > 0) return { tone: 'warn', title: 'Onayını bekleyen kontroller var', text: m.waiting + ' kontrol kullanıcı onayı veya izin bekliyor; tamamlanana kadar sonuç sayılmaz.' };
-  const skipped = m.c.skipped + m.c.untested + m.c.unsupported;
+  const skipped = m.c.skipped + m.c.untested + m.c.unsupported + m.c.permission_denied + m.c.error + m.c.no_data;
   if (m.done < m.total) return { tone: 'warn', title: 'Test tamamlanmadı', text: (m.total - m.done) + ' temel test yapılmadı. Yapılmayan donanımlar sağlıklıymış gibi değerlendirilmez.' };
-  if (skipped > 0) return { tone: 'warn', title: 'Tamamlandı, bazı testler yapılamadı', text: skipped + ' test atlandı, desteklenmedi veya test edilemedi; bunlar değerlendirmeye dahil değildir.' };
+  if (skipped > 0) return { tone: 'warn', title: 'Tamamlandı, bazı testler yapılamadı', text: skipped + ' test atlandı, izin verilmedi, veri alınamadı veya test edilemedi; bunlar değerlendirmeye dahil değildir.' };
   return { tone: 'ok', title: 'Yapılan testlerde sorun görülmedi', text: 'Bu, cihazın kusursuz olduğunu veya parçalarının orijinal olduğunu kanıtlamaz; yalnızca yapılan testlerin sonucudur.' };
 }
 const TCS_IC = {
@@ -20741,12 +20797,12 @@ const TCS_IC = {
 function tcsHeroHTML(m, native) {
   const R = 18, C = Math.round(2 * Math.PI * R * 10) / 10, off = Math.round(C * (1 - m.pct / 100) * 10) / 10;
   const d = TCK && (TCK.device || TCK.devHint);
-  const dev = d && (d.manufacturer || d.model) ? [tcaBrandName(d.manufacturer, d.brand) || d.manufacturer, d.model].filter(Boolean).join(' ') + (d.androidRelease ? ' · Android ' + d.androidRelease : '') : (native ? 'Cihaz bilgisi için "Donanım ve sistem bilgisi" testini çalıştır' : 'Web tarayıcısı · yalnızca ekran/dokunma testleri');
+  const dev = d && (d.manufacturer || d.model) ? [tcaBrandName(d.manufacturer, d.brand) || d.manufacturer, d.model].filter(Boolean).join(' ') + (d.androidRelease ? ' · Android ' + d.androidRelease : '') : (native ? 'Cihaz bilgisi için "Donanım ve sistem bilgisi" testini çalıştır' : (TCK && TCK.env ? tcwDevLine(TCK.env) : 'Web tarayıcısı'));
   const issue = m.failed > 0 ? `<span class="tcs-chip tcs-chip--bad">${m.failed} sorun</span>` : '';
   const wait = m.waiting > 0 ? `<span class="tcs-chip tcs-chip--warn">${m.waiting} onay/izin bekliyor</span>` : '';
   return `<section class="tcs-hero" aria-label="Genel durum"><div class="tcs-ring" role="img" aria-label="${m.done} / ${m.total} temel test sonuçlandı"><svg viewBox="0 0 44 44" aria-hidden="true"><circle class="tcs-ring-bg" cx="22" cy="22" r="${R}"/><circle class="tcs-ring-fg${TCK && TCK.introSeen ? '' : ' tcs-ring-anim'}" cx="22" cy="22" r="${R}" style="--c:${C};stroke-dasharray:${C};stroke-dashoffset:${off}"/></svg><div class="tcs-ring-n"><b>${m.done}</b><small>/${m.total}</small></div></div>
     <div class="tcs-hero-main"><p class="tc-info-lead">Testleri sırayla çalıştır; sonuçlar burada toplanır. Hazır olunca imzalı rapor oluşturabilirsin.</p><p class="tcs-dev">${escapeHtml(dev)}</p>
-    <div class="tcs-chips"><span class="tcs-chip">${native ? 'Android uygulaması' : 'Web'}</span><span class="tcs-chip">Temel ${m.done}/${m.total}</span><span class="tcs-chip">Ek ${m.hwDone}/${m.hwTotal}</span>${issue}${wait}</div></div></section>`;
+    <div class="tcs-chips"><span class="tcs-chip">${escapeHtml((TCK && TC_PROFILE_LABEL[TCK.profile]) || (native ? 'Android uygulaması' : 'Web'))}</span><span class="tcs-chip">Temel ${m.done}/${m.total}</span>${m.hwTotal ? `<span class="tcs-chip">Ek ${m.hwDone}/${m.hwTotal}</span>` : ''}${issue}${wait}</div></div></section>`;
 }
 function tcsNavHTML(native) {
   const item = (ic, t, s, btn) => `<div class="tcs-nav-i"><span class="tcs-ic">${ic}</span><div class="tcs-nav-t"><b>${t}</b><small>${s}</small></div>${btn}</div>`;
@@ -20756,7 +20812,7 @@ function tcsSummaryHTML(m) {
   const v = tcsVerdict(m), hwOk = m.h.passed;
   const cell = (k, n, cls) => `<div class="tcs-cell${cls ? ' tcs-cell--' + cls : ''}"><b>${n}</b><span>${k}</span></div>`;
   return `<section class="tcs-sum tcs-sum--${v.tone}" aria-live="polite" aria-label="Sonuç özeti"><h3 class="tc-info-t">Sonuç özeti</h3><div class="tcs-verdict"><b>${escapeHtml(v.title)}</b><p>${escapeHtml(v.text)}</p></div>
-    <div class="tcs-grid">${cell('Tamamlanan', m.done + '/' + m.total)}${cell('Başarılı', m.c.passed + hwOk, 'ok')}${cell('Başarısız', m.failed, m.failed ? 'bad' : '')}${cell('Atlanan', m.c.skipped + m.h.skipped)}${cell('Onay/izin bekleyen', m.waiting, m.waiting ? 'warn' : '')}${cell('Desteklenmeyen', m.c.unsupported + m.h.unsupported)}</div>
+    <div class="tcs-grid">${cell('Tamamlanan', m.done + '/' + m.total)}${cell('Başarılı', m.c.passed + hwOk, 'ok')}${cell('Başarısız', m.failed, m.failed ? 'bad' : '')}${cell('Atlanan', m.c.skipped + m.h.skipped)}${cell('Onay/izin bekleyen', m.waiting, m.waiting ? 'warn' : '')}${cell('Desteklenmeyen', m.c.unsupported + m.h.unsupported)}${(m.c.permission_denied + m.c.error + m.c.no_data) ? cell('İzin yok / hata / veri yok', m.c.permission_denied + m.c.error + m.c.no_data, 'warn') : ''}</div>
     <p class="tcs-note">Temel testler imzalı rapora girer; ek donanım testleri yalnızca bu cihazda görünür. Test edilmeyen donanımlar değerlendirmeye dahil değildir.</p></section>`;
 }
 // Çalışan testin tam ekran aşamasına başlık/ilerleme etiketi (yalnızca CSS ile görünür; test mantığına dokunmaz)
@@ -20939,8 +20995,9 @@ function tcrCosmeticRows(x) {
 }
 // Saf: tam belge. ext: { grade, defects, note, photos, hw:[rows], adv:[cats] } veya null (eski raporlar: ek bölümler "kayıt yok" der)
 // Durum metninden görsel ton (PDF'te renkli rozet): ok | bad | warn | info | muted | plain (Kotlin ReportLayout.toneOf ile AYNI kural)
-const tcrTone = (st) => /^(Başarılı|Ölçüldü|Hesaplandı)/.test(st) ? 'ok' : /^(Başarısız|Ölçüm başarısız)/.test(st) ? 'bad' : /^(Sistem|Üretici)/.test(st) ? 'info' : /^Desteklenmiyor/.test(st) ? 'muted' : /^(Erişim izni|Atlandı|Test edilemedi|Kullanıcı onayı bekliyor|Bekliyor)/.test(st) ? 'warn' : 'plain';
+const tcrTone = (st) => /^(Başarılı|Ölçüldü|Hesaplandı|Kullanıcı tarafından doğrulandı)/.test(st) ? 'ok' : /^(Başarısız|Ölçüm başarısız)/.test(st) ? 'bad' : /^(Sistem|Üretici)/.test(st) ? 'info' : /^Desteklenmiyor/.test(st) ? 'muted' : /^(Erişim izni|Atlandı|Test edilemedi|Kullanıcı onayı bekliyor|Bekliyor|İzin verilmedi|Teknik hata|Veri elde edilemedi|Kullanıcı testi tamamlamadı)/.test(st) ? 'warn' : 'plain';
 function tcrBuildDoc(rep, ext) {
+  if (rep.report && rep.report.schemaVersion === 4 && typeof tcwBuildDoc === 'function') return tcwBuildDoc(rep);   // Faz 30: web raporu
   const base = tcPdfDocument(rep, rep.reportId, rep.verifyCode), x = ext || null, c = rep.counts || tcCountsOf(rep.report.tests);
   const url = tcqVerifyUrl(rep.reportId, rep.verifyCode); let qr = null; try { qr = tcqEncode(url); } catch (e) { qr = null; }
   const R = rep.report || {}, v2 = R.schemaVersion >= 2;   // Faz 8: v2 raporlarda analiz/donanım/kozmetik İMZALI KAYITTAN gelir; v1'de eski davranış (cihaz içi, imzasız)
@@ -21167,10 +21224,11 @@ async function tcrDecorateReport(b, rep, opts) {
   const blok = document.createElement('div'); blok.id = 'tcr-ext'; blok.className = 'tcr-ext';
   blok.innerHTML = `<div class="tc-status" role="note"><b>Cihaz içi ek bölümler (imzasız):</b> ${sum ? tcrEsc(sum) : 'bu rapor için kayıt yok'}. ${v2 ? 'Fotoğraflar sunucuya gönderilmez ve imza kapsamı dışındadır; PDF\'te ayrı bölümde gösterilir.' : 'PDF\'te sunucu imzalı bölümden ayrı gösterilir.'}</div>
     <div class="tcx-actions"><button type="button" class="tk-btn tk-btn--outline" data-rx="qr">QR ve doğrulama bağlantısı</button><button type="button" class="tk-btn tk-btn--outline" data-rx="vrf">Çevrimiçi doğrulama durumu</button><button type="button" class="tk-btn tk-btn--outline" data-rx="cosm">Kozmetik durum ve fotoğraflar</button>${ext ? '<button type="button" class="tk-btn tk-btn--ghost" data-rx="wipe">Yerel ek verileri sil</button>' : ''}</div><div id="tcr-vrf" aria-live="polite"></div>`;
+  if (rep.report && rep.report.schemaVersion === 4) { const st = blok.querySelector('.tc-status'); if (st) st.remove(); const cb = blok.querySelector('[data-rx="cosm"]'); if (cb) cb.remove(); const wb = blok.querySelector('[data-rx="wipe"]'); if (wb) wb.remove(); }   // Faz 30: web raporunda kozmetik/fotoğraf/cihaz içi ek bölüm YOK
   const anchor = host.querySelector('.tcx-actions'); if (anchor) anchor.after(blok); else host.appendChild(blok);
   blok.querySelector('[data-rx="qr"]').addEventListener('click', () => tcrShowQr(rep, opts));
   blok.querySelector('[data-rx="vrf"]').addEventListener('click', () => tcrVerifyOnline(rep));
-  blok.querySelector('[data-rx="cosm"]').addEventListener('click', () => tcrOpenEditor({ reportId: rep.reportId, rep, repOpts: opts }));
+  { const cb2 = blok.querySelector('[data-rx="cosm"]'); if (cb2) cb2.addEventListener('click', () => tcrOpenEditor({ reportId: rep.reportId, rep, repOpts: opts })); }
   const w = blok.querySelector('[data-rx="wipe"]');
   if (w) w.addEventListener('click', async () => { const ok = await confirmDialog('Bu rapora ait fotoğraflar, kozmetik beyan ve cihaz içi ek bölümler bu cihazdan silinecek. İmzalı rapor sunucuda kalır.', { title: 'Yerel ek verileri sil', confirmText: 'Sil', cancelText: 'Vazgeç' }); if (!ok) return; await tcrDel(tcrKey('rep', rep.reportId)); showToast('✅', 'var(--surf2)', 'Silindi', 'Ek veriler bu cihazdan kaldırıldı.'); tcShowReport(rep, opts); });
 }
@@ -21360,7 +21418,7 @@ function tcxReportSectionsHTML(report) {
 }
 // Herkese açık doğrulama özeti (sunucu: yalnızca kapsam + durumlar; değerler yok). v1 özetinde HİÇBİR ek alan yoktur → eski biçim aynen.
 function tcxVerifyScopeHTML(s) {
-  if (!s || !(s.schemaVersion >= 2) || !s.scope) return '';
+  if (!s || !(s.schemaVersion >= 2) || !s.scope || s.schemaVersion === 4) return '';   // Faz 30: web (v4) kapsamı ayrı gösterilir
   const meas = s.scope.signed.filter((k) => !s.scope.userDeclared.includes(k));
   let h = `<div class="tc-status tcx-scope" id="tcx-vscope" data-scope="v2" role="note"><b>İmzalı kapsam:</b> ${escapeHtml(tcxNames(meas))}.${s.scope.userDeclared.length ? ` <b>Kullanıcı beyanı (ölçüm değil):</b> ${escapeHtml(tcxNames(s.scope.userDeclared))}.` : ''} <b>Kapsam dışı:</b> ${escapeHtml(tcxNames(s.scope.excluded))}. İmza içeriğin sonradan değişmediğini gösterir; cihazın orijinalliğini veya sağlığını kanıtlamaz.</div>`;
   if (s.analysis) { const c = s.analysis.counts || {}; h += `<h4 class="tc-info-t">İmzalı cihaz analizi</h4><div class="tcx-counts" data-vanalysis>${c.measured || 0} ölçüldü · ${c.reported || 0} sistem bildirdi · ${c.unsupported || 0} desteklenmiyor · ${c.permission_required || 0} izin gerekli · ${c.failed || 0} ölçüm başarısız</div>`; }
@@ -22130,16 +22188,16 @@ function tcHomeRender() {
   const d = TCK.device || TCK.devHint;
   const dev = d && (d.manufacturer || d.model) ? [(typeof tcaBrandName === 'function' && tcaBrandName(d.manufacturer, d.brand)) || d.manufacturer, d.model].filter(Boolean).join(' ') + (d.androidRelease ? ' · Android ' + d.androidRelease : '') : (native ? 'Bu telefon' : 'Web tarayıcısı');
   const cards = [
-    { id: 'test', title: 'Cihazımı Test Et', text: native ? 'Ekran, kamera, mikrofon ve sensörleri adım adım dene.' : 'Ekran ve dokunmatik testleri. Diğer testler Android uygulamasında.', cta: model.done ? 'Devam et' : 'Başla', meta: model.done ? model.done + '/' + model.total + ' test sonuçlandı' : '' },
-    { id: 'pil', title: 'Pil Analizi', text: 'Pil sağlığı, şarj döngüsü ve kapasite. Ölçüm yöntemi ve güvenilirlik belirtilir.', cta: 'Analiz et', meta: native ? '' : 'Yalnızca Android uygulamasında' },
-    { id: 'device', title: 'Cihaz Bilgileri', text: 'Model, işlemci, bellek, ekran ve bağlantılar. Her değerin kaynağı yazar.', cta: 'Görüntüle' },
+    { id: 'test', title: 'Cihazımı Test Et', text: native ? 'Ekran, kamera, mikrofon ve sensörleri adım adım dene.' : 'Ekran, dokunmatik, kamera, mikrofon ve bu cihazda desteklenen sensörleri tarayıcıdan dene.', cta: model.done ? 'Devam et' : 'Başla', meta: model.done ? model.done + '/' + model.total + ' test sonuçlandı' : '' },
+    { id: 'pil', title: 'Pil Analizi', text: 'Pil sağlığı, şarj döngüsü ve kapasite. Ölçüm yöntemi ve güvenilirlik belirtilir.', cta: native ? 'Analiz et' : 'Bilgi', meta: native ? '' : 'Tarayıcıdan okunamaz; yalnızca Android uygulamasında' },
+    { id: 'device', title: 'Cihaz Bilgileri', text: native ? 'Model, işlemci, bellek, ekran ve bağlantılar. Her değerin kaynağı yazar.' : 'Tarayıcı, işletim sistemi, ekran ve tarayıcının desteklediği yetenekler. Her değerin kaynağı yazar.', cta: 'Görüntüle' },
     { id: 'reports', title: 'Test ve Raporlarım', text: 'Oluşturduğun imzalı raporlar, PDF ve QR doğrulama.', cta: 'Aç', meta: typeof user !== 'undefined' && user ? '' : 'Giriş gerekir' },
     { id: 'verify', title: 'Rapor Doğrula', text: 'Rapor numarası ve doğrulama koduyla bir raporu kontrol et.', cta: 'Doğrula', soft: true },
   ];
   const first = !tcHomeTipSeen();
   b.innerHTML = `<div class="tcx tcm">
     <section class="tcm-hero" aria-label="TeknoCheck"><h2 class="tc-info-h">Ne yapmak istersin?</h2><p class="tc-info-lead">Telefonunun durumunu test et, pilini analiz et, güvenilir rapor oluştur.</p><p class="tcm-dev" id="tcm-dev"><span class="tcm-dev-ic">${TCH_IC.dev}</span><span>${escapeHtml(dev)}</span></p></section>
-    ${native ? '' : `<div class="tc-status" role="note" id="tc-webnote"><b>Bu sayfa Android uygulaması değil.</b> Kamera, mikrofon, sensör, batarya ve bağlantı testleri yalnızca Teknohane Android uygulamasında çalışır; web'de rapor oluşturulamaz. Rapor doğrulama ve tarayıcı bilgisi burada da kullanılabilir.</div>`}
+    ${native ? '' : `<div class="tc-status" role="note" id="tc-webnote"><b>Web tarayıcısından test ediyorsun.</b> Yalnızca bu cihazda gerçekten çalışan testler gösterilir; üye olmadan test edebilirsin. Rapor oluşturmak ve kaydetmek için giriş gerekir. Pil sağlığı ve cihaz modeli tarayıcıdan okunamaz.</div>`}
     ${pend ? `<div class="tc-status" id="tc-pending" role="note"><b>Gönderilmemiş rapor var.</b> Sunucuya ulaşılamadığı için bekletiliyor; <b>sunucu onayı olmadığından doğrulanmış sayılmaz</b>. <button type="button" class="tk-btn tk-btn--outline tk-btn--sm" data-act="retry-pending">Şimdi gönder</button> <button type="button" class="tk-btn tk-btn--outline tk-btn--sm" data-act="drop-pending">Sil</button></div>` : ''}
     ${first && native ? `<div class="tcm-tip" id="tcm-tip" role="note"><p class="tcm-tip-t"><b>Nereden başlamalı?</b><br>"Cihazımı Test Et" ile başla; testler bitince "Raporu oluştur"a dokun. Sorun olursa sağ üstteki <b>?</b> düğmesi her ekranda yardım verir.</p><button type="button" class="tcm-tip-x" id="tcm-tip-x" aria-label="İpucunu kapat">Tamam</button></div>` : ''}
     <nav class="tcm-grid" aria-label="TeknoCheck bölümleri" id="tcm-grid">${cards.map(tchCardHTML).join('')}</nav>
@@ -22190,6 +22248,454 @@ function tcStepsHTML(m) {
   const cur = !done ? 1 : (all ? 3 : 2);
   const st = (n, t, s) => `<li class="tcx-step${n < cur ? ' is-done' : n === cur ? ' is-cur' : ''}"${n === cur ? ' aria-current="step"' : ''}><span class="tcx-step-n" aria-hidden="true">${n < cur ? '✓' : n}</span><span class="tcx-step-t"><b>${t}</b><small>${s}</small></span></li>`;
   return `<ol class="tcx-steps" aria-label="Adımlar">${st(1, 'Testleri çalıştır', done + '/' + total + ' tamam')}${st(2, 'Sonuçları incele', 'Sorunlar aşağıda')}${st(3, 'Rapor oluştur', 'İmzalı rapor')}</ol>`;
+}
+// ==== FAZ 30 — WEB TEKNOCHECK: yetenek profilleri (Web iPhone Safari / Android web / masaüstü / Android uygulaması), web test uygulamaları ve şema-v4 raporu ====
+// İlkeler: (1) Yalnızca bu platformda GERÇEKTEN uygulanabilir testler sunulur (desteklenmeyenler listeden gizlenir; raporda "teknik kapsam" notunda açıklanır). (2) Tarayıcıdan cihaz modeli, IMEI, seri no,
+// pil sağlığı/döngüsü OKUNMAZ ve tahmin edilmez. (3) Kamera/mikrofon/sensör yalnızca kullanıcı bir düğmeye basınca açılır, test bitince kapatılır; görüntü/ses/konum saklanmaz veya gönderilmez.
+// (4) Kaynak/güven düzeyi istemciden gelmez, sunucu türetir; istemci yalnızca yerel görüntü için aynı kuralı yansıtır (tcwDerive).
+const TCW_NA_NOTE = 'Bu cihazda/platformda uygulanamaz';
+const TC_PROFILE_LABEL = { ios_safari: 'iPhone / iPad Safari', android_web: 'Android web tarayıcısı', desktop_web: 'Masaüstü web tarayıcısı', other_web: 'Web tarayıcısı', android_native: 'Android uygulaması' };
+// Sunucudaki TC_WEB_SPEC ile AYNI izinli ölçüm anahtarları (sunucu fazlasını reddeder)
+const TCW_KEYS = {
+  device_info: ['osName', 'osVersion', 'browserName', 'browserVersion', 'deviceClass', 'screenWidthPx', 'screenHeightPx', 'pixelRatio', 'maxTouchPoints', 'standalone', 'secureContext', 'orientation', 'capabilities'],
+  screen_color: ['colorsShown', 'colorsConfirmed', 'gradientShown', 'deadPixel', 'brightness'], touch: ['coveragePercent', 'zones', 'zonesTouched', 'events', 'multiTouchMax'],
+  camera_front: ['present', 'opened', 'permission', 'previewShown', 'width', 'height', 'errorName'], camera_back: ['present', 'opened', 'permission', 'previewShown', 'width', 'height', 'errorName'],
+  speaker: ['heard', 'tonesPlayed', 'audioContextState', 'errorName'], microphone: ['verdict', 'maxDb', 'permission', 'errorName'], vibration: ['supported', 'started'],
+  sensors: ['present', 'withData', 'absent', 'noData', 'permission', 'geolocation', 'errorName'], battery: ['levelPercent', 'charging', 'source'],
+  connectivity: ['online', 'effectiveType', 'downlinkMbps', 'rttMs', 'saveData', 'connectionType', 'internetReachable'],
+};
+const TCW_METHOD = { device_info: 'Tarayıcı kimliği ve tarayıcı API\'leri', screen_color: 'Kullanıcının görsel değerlendirmesi', touch: 'Dokunma (pointer) olayları', camera_front: 'Canlı görüntü + kullanıcı değerlendirmesi', camera_back: 'Canlı görüntü + kullanıcı değerlendirmesi', speaker: 'Test tonu + kullanıcı onayı', microphone: 'Ses seviyesi ölçümü (WebAudio; kayıt saklanmaz)', vibration: 'Titreşim API\'si + kullanıcı onayı', sensors: 'DeviceMotion / DeviceOrientation olayları', battery: 'Battery Status API', connectivity: 'Ağ bilgisi API\'si + erişim denemesi' };
+const TCW_HINT = {
+  device_info: 'Tarayıcı, işletim sistemi, ekran ve desteklenen tarayıcı yetenekleri okunur. Cihaz modeli, IMEI, seri numarası ve pil sağlığı tarayıcıdan OKUNAMAZ; bu raporda yer almaz.',
+  screen_color: 'Ekran tek renkle dolar, sonra bir renk geçişi gösterilir; ölü piksel, leke ve parlaklığı SEN değerlendirirsin (tarayıcı pikselleri ölçemez).',
+  touch: 'Izgaradaki bütün bölgelere dokun; çoklu dokunma da denenir. Yalnızca gerçekten alınan dokunma olayları sayılır.',
+  camera_front: 'Kamera açılır ve canlı görüntü gösterilir; görüntüyü SEN değerlendirirsin. Fotoğraf çekilmez, görüntü saklanmaz veya gönderilmez. Tarayıcı kamera izni ister.',
+  camera_back: 'Kamera açılır ve canlı görüntü gösterilir; görüntüyü SEN değerlendirirsin. Fotoğraf çekilmez, görüntü saklanmaz veya gönderilmez. Tarayıcı kamera izni ister.',
+  speaker: 'Farklı frekanslarda test sesleri çalınır; duyup duymadığını SEN onaylarsın. (iPhone\'da yan düğmeyle sessize alınmışsa ses gelmeyebilir.)',
+  microphone: 'Birkaç saniye ses seviyesi ölçülür ve dalga gösterilir. Ses sunucuya GİTMEZ; istersen kendi sesini yalnızca bu cihazda dinleyebilirsin. Tarayıcı mikrofon izni ister.',
+  vibration: 'Kısa bir titreşim verilir; hissedip hissetmediğini SEN onaylarsın.',
+  sensors: 'Telefonu hareket ettirince ivmeölçer/jiroskop/yön verisi gelip gelmediği kontrol edilir. iPhone\'da Safari önce izin ister. Konum denemesi isteğe bağlıdır; konum kaydedilmez.',
+  battery: 'Tarayıcının bildirdiği şarj seviyesi ve şarj durumu. Pil SAĞLIĞI ve döngüsü tarayıcıdan ölçülemez.',
+  connectivity: 'Tarayıcının bildirdiği bağlantı durumu ve bu siteye erişim denemesi.',
+};
+const TCW_TITLE = { device_info: 'Tarayıcı ve cihaz bilgisi' };
+let tcwEnvCache = null;
+const tcwSecure = () => { try { return window.isSecureContext !== false; } catch (e) { return false; } };
+const tcwAC = () => window.AudioContext || window.webkitAudioContext || null;
+
+// ---------------------------------------------------------------- ortam + yetenek algılama (çalışma anında; tahmin YOK)
+async function tcwEnv() {
+  if (tcwEnvCache) return tcwEnvCache;
+  const nav = navigator, ua = nav.userAgent || '', touch = nav.maxTouchPoints || 0;
+  let osName = 'Unknown', osVersion = '', browserName = 'Other', browserVersion = '', m;
+  const iPad = /iPad/.test(ua) || (/Macintosh/.test(ua) && touch > 1);
+  if (/iPhone|iPod/.test(ua)) { osName = 'iOS'; m = ua.match(/OS (\d+)[_.](\d+)(?:[_.](\d+))?/); osVersion = m ? m[1] + '.' + m[2] + (m[3] ? '.' + m[3] : '') : ''; }
+  else if (iPad) { osName = 'iPadOS'; m = /iPad/.test(ua) ? ua.match(/OS (\d+)[_.](\d+)/) : null; osVersion = m ? m[1] + '.' + m[2] : ''; }   // iPad Safari masaüstü kimliği verir → sürüm bilinmez, YAZILMAZ
+  else if (/Android/.test(ua)) { osName = 'Android'; m = ua.match(/Android (\d+(?:\.\d+)*)/); osVersion = m ? m[1] : ''; if (/Android 10; K\)/.test(ua)) osVersion = ''; }   // Chrome UA küçültmesi: "10; K" gerçek sürüm DEĞİLDİR
+  else if (/Windows/.test(ua)) osName = 'Windows';
+  else if (/CrOS/.test(ua)) osName = 'ChromeOS';
+  else if (/Macintosh|Mac OS X/.test(ua)) osName = 'macOS';
+  else if (/Linux|X11/.test(ua)) osName = 'Linux';
+  try { const uad = nav.userAgentData; if (osName === 'Android' && uad && uad.getHighEntropyValues) { const h = await uad.getHighEntropyValues(['platformVersion']); if (h && h.platformVersion) osVersion = String(h.platformVersion).split('.').slice(0, 2).join('.'); } } catch (e) { /* izin/destek yok: sürüm bilinmez */ }
+  const ver = (re) => { const x = ua.match(re); return x ? x[1] : ''; };
+  if (/EdgiOS|EdgA|Edg\//.test(ua)) { browserName = 'Edge'; browserVersion = ver(/(?:EdgiOS|EdgA|Edg)\/(\d+(?:\.\d+)?)/); }
+  else if (/OPR\/|OPiOS/.test(ua)) { browserName = 'Opera'; browserVersion = ver(/(?:OPR|OPiOS)\/(\d+(?:\.\d+)?)/); }
+  else if (/SamsungBrowser/.test(ua)) { browserName = 'Samsung Internet'; browserVersion = ver(/SamsungBrowser\/(\d+(?:\.\d+)?)/); }
+  else if (/FxiOS|Firefox\//.test(ua)) { browserName = 'Firefox'; browserVersion = ver(/(?:FxiOS|Firefox)\/(\d+(?:\.\d+)?)/); }
+  else if (/CriOS|Chrome\//.test(ua)) { browserName = 'Chrome'; browserVersion = ver(/(?:CriOS|Chrome)\/(\d+(?:\.\d+)?)/); }
+  else if (/Safari\//.test(ua) && /Version\//.test(ua)) { browserName = 'Safari'; browserVersion = ver(/Version\/(\d+(?:\.\d+)?)/); }
+  const mobile = osName === 'iOS' || osName === 'iPadOS' || osName === 'Android';
+  const deviceClass = osName === 'iOS' ? 'phone' : osName === 'iPadOS' ? 'tablet' : osName === 'Android' ? (/Mobile/.test(ua) ? 'phone' : 'tablet') : osName === 'Unknown' ? 'unknown' : 'desktop';
+  const md = nav.mediaDevices, caps = [];
+  if (md && md.getUserMedia) caps.push('camera', 'microphone');
+  if (tcwAC()) caps.push('webaudio');
+  if (window.MediaRecorder) caps.push('mediarecorder');
+  if (window.DeviceMotionEvent) caps.push('devicemotion');
+  if (window.DeviceOrientationEvent) caps.push('deviceorientation');
+  if (nav.geolocation) caps.push('geolocation');
+  if (typeof nav.vibrate === 'function') caps.push('vibrate');
+  if (typeof nav.getBattery === 'function') caps.push('battery');
+  if (nav.connection) caps.push('connection');
+  if (touch > 0 || 'ontouchstart' in window) caps.push('touch');
+  let standalone = false; try { standalone = nav.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone)').matches); } catch (e) { /* sessiz */ }
+  let orientation = 'unknown'; try { orientation = matchMedia('(orientation: portrait)').matches ? 'portrait' : 'landscape'; } catch (e) { /* sessiz */ }
+  const sc = window.screen || {};
+  tcwEnvCache = { osName, osVersion, browserName, browserVersion, deviceClass, mobile, secure: tcwSecure(), standalone, orientation, caps: caps.slice(0, 24), maxTouchPoints: touch, screenWidthPx: Math.round(sc.width || innerWidth || 0), screenHeightPx: Math.round(sc.height || innerHeight || 0), pixelRatio: Math.round((window.devicePixelRatio || 1) * 100) / 100 };
+  return tcwEnvCache;
+}
+function tcwProfileOf(env) { return env.osName === 'iOS' || env.osName === 'iPadOS' ? 'ios_safari' : env.osName === 'Android' ? 'android_web' : (env.deviceClass === 'desktop' ? 'desktop_web' : 'other_web'); }
+// Platformda GERÇEKTEN uygulanabilir test kimlikleri (web)
+async function tcwApplicableWeb(env) {
+  const md = navigator.mediaDevices, gum = !!(md && md.getUserMedia) && env.secure, AC = tcwAC();
+  let cams = null; if (gum && md.enumerateDevices) { try { cams = (await md.enumerateDevices()).filter(d => d.kind === 'videoinput').length; } catch (e) { cams = null; } }
+  const touch = env.maxTouchPoints > 0 || env.caps.includes('touch'), ids = ['device_info', 'screen_color'];
+  if (touch) ids.push('touch');
+  if (gum && cams !== 0) { ids.push('camera_front'); if (env.mobile) ids.push('camera_back'); }   // arka kamera yalnızca telefon/tablette; masaüstü web kamerası tek ve yön bilgisi yok
+  if (AC) ids.push('speaker');
+  if (gum && AC) ids.push('microphone');
+  if (env.mobile && typeof navigator.vibrate === 'function') ids.push('vibration');   // iPhone Safari'de titreşim API'si yok → liste dışı; masaüstünde motor yok → liste dışı
+  if (env.mobile && env.secure && (window.DeviceMotionEvent || window.DeviceOrientationEvent)) ids.push('sensors');
+  if (env.osName === 'Android' && typeof navigator.getBattery === 'function') ids.push('battery');
+  ids.push('connectivity');
+  return TC_DEFS.map(d => d.id).filter(id => ids.includes(id));
+}
+// Android uygulaması: yerel yetenek bilgisinden (donanım yoksa test sunulmaz)
+async function tcwApplicableNative(n) {
+  const all = TC_DEFS.map(d => d.id); let cap = {};
+  try { cap = (await n.getCapabilities()) || {}; } catch (e) { return { ids: all, hwHidden: [] }; }
+  const drop = new Set();
+  if (cap.cameraFront === false) drop.add('camera_front');
+  if (cap.cameraBack === false) drop.add('camera_back');
+  if (cap.microphone === false) drop.add('microphone');
+  if (cap.vibrator === false) drop.add('vibration');
+  if (typeof cap.sensorCount === 'number' && cap.sensorCount === 0) drop.add('sensors');
+  const hwHidden = []; if (cap.bluetooth === false) hwHidden.push('hw_bluetooth'); if (cap.nfc === false) hwHidden.push('hw_nfc'); if (cap.wifi === false) hwHidden.push('hw_wifi'); if (cap.gps === false) hwHidden.push('hw_gps');
+  return { ids: all.filter(id => !drop.has(id)), hwHidden };
+}
+// Test oturumu açılırken çağrılır; bitince listeyi yeniden çizer. TCK.applicable: sunulan testler; TCK.notApplicable: sunulmayanlar
+async function tcDetectApplicable() {
+  const sess = TCK; if (!sess) return;
+  try {
+    const n = tcNative();
+    if (n) {
+      const r = await tcwApplicableNative(n); if (TCK !== sess) return;
+      sess.profile = 'android_native'; sess.applicable = r.ids; sess.notApplicable = TC_DEFS.map(d => d.id).filter(id => !r.ids.includes(id));
+      sess.notApplicable.forEach(id => { sess.tests[id] = { status: 'unsupported', measured: {}, note: TCW_NA_NOTE }; });   // Android sözleşmesi 11 testin hepsini ister: sunulmayan "desteklenmiyor" gider, raporda teknik kapsam olarak gösterilir
+      sess.hwHidden = r.hwHidden; sess.hw = sess.hw || {}; r.hwHidden.forEach(id => { sess.hw[id] = { status: 'unsupported', note: TCW_NA_NOTE }; });
+    } else {
+      const env = await tcwEnv(); if (TCK !== sess) return;
+      sess.env = env; sess.profile = tcwProfileOf(env); sess.applicable = await tcwApplicableWeb(env); if (TCK !== sess) return;
+      sess.notApplicable = TC_DEFS.map(d => d.id).filter(id => !sess.applicable.includes(id));
+    }
+  } catch (e) { if (TCK === sess) { sess.applicable = TC_DEFS.map(d => d.id); sess.notApplicable = []; } }
+  if (TCK === sess && typeof TCNAV !== 'undefined' && TCNAV.cur && (TCNAV.cur === 'test' || TCNAV.cur === 'home')) { try { TCNAV.cur === 'test' ? tcRender() : tcHomeRender(); } catch (e) { /* sessiz */ } }
+}
+// Sunulan test tanımları (yetenek algılanana kadar hepsi)
+function tcDefs() { return TCK && TCK.applicable ? TC_DEFS.filter(d => TCK.applicable.includes(d.id)) : TC_DEFS; }
+function tcHintOf(def) { return !tcNative() && TCW_HINT[def.id] ? TCW_HINT[def.id] : def.hint; }
+function tcTitleOf(id, platform) { const d = tcDefOf(id); return platform === 'web' && TCW_TITLE[id] ? TCW_TITLE[id] : d.title; }
+
+// ---------------------------------------------------------------- yerel görünüm için kaynak/güven (sunucudaki kuralın aynısı; sunucu kaydı belirleyicidir)
+function tcwDerive(t) {
+  const kindAuto = (tcDefOf(t.id).kind === 'auto'), conf = t.status === 'passed' ? (kindAuto ? 'browser_reported' : 'user_confirmed') : t.status === 'failed' ? (t.userConfirmed ? 'user_reported' : 'browser_reported') : 'none';
+  return { source: 'web_browser', method: 'x', confidence: conf };
+}
+const TCW_CONF_LABEL = { browser_reported: 'Tarayıcı bildirdi', user_confirmed: 'Kullanıcı doğruladı', user_reported: 'Kullanıcı bildirdi', none: 'Sonuç yok' };
+const TCW_SRC_LABEL = { web_browser: 'Web tarayıcısı' };
+function tcwStatusLabel(s, kind, confirmed) { return s === 'passed' && kind !== 'auto' && confirmed ? 'Kullanıcı tarafından doğrulandı' : s === 'skipped' ? 'Kullanıcı testi tamamlamadı' : (TC_STATUS_LABEL[s] || s); }
+
+// ---------------------------------------------------------------- web test uygulamaları (her biri kullanıcı düğmesiyle başlar; bitince donanım akışı kapatılır)
+const tcwErrName = (e) => { const n = e && e.name; return ['NotAllowedError', 'NotFoundError', 'NotReadableError', 'OverconstrainedError', 'AbortError', 'SecurityError', 'TypeError'].includes(n) ? n : 'Other'; };
+function tcwMediaFail(e, kind) {
+  const n = tcwErrName(e);
+  if (n === 'NotAllowedError' || n === 'SecurityError') return { status: 'permission_denied', measured: { permission: 'denied' }, note: (kind === 'camera' ? 'Kamera' : 'Mikrofon') + ' izni verilmedi' };
+  if (n === 'NotFoundError' || n === 'OverconstrainedError') return kind === 'camera' ? { status: 'unsupported', measured: { present: false }, note: 'Cihazda kullanılabilir kamera bulunamadı' } : { status: 'unsupported', measured: {}, note: 'Mikrofon bulunamadı' };
+  return { status: 'error', measured: { errorName: n }, note: (kind === 'camera' ? 'Kamera' : 'Mikrofon') + ' açılamadı (teknik hata)' };
+}
+function tcwPanel(title, text, bodyHtml, buttons) {
+  return new Promise(resolve => {
+    const s = tcStage(); if (!s || !TCK) return resolve('cancel');
+    s.className = 'tcx-stage tcx-ask'; s.style.background = ''; s.hidden = false;
+    s.innerHTML = `<div class="tcx-card" role="alertdialog" aria-labelledby="tcw-t"><h3 id="tcw-t">${escapeHtml(title)}</h3>${text ? `<p>${escapeHtml(text)}</p>` : ''}${bodyHtml || ''}<div class="tcx-btns" id="tcw-btns">${(buttons || []).map(b => `<button type="button" class="tk-btn ${b.cls || 'tk-btn--outline'}" data-v="${escapeHtml(b.value)}">${escapeHtml(b.label)}</button>`).join('')}</div></div>`;
+    TCK.resolveStage = resolve;
+    s.querySelectorAll('[data-v]').forEach(btn => btn.addEventListener('click', () => { TCK.resolveStage = null; resolve(btn.dataset.v); }));
+  });
+}
+// İzin isteyen testler GİZLENMEZ; tarayıcı izin penceresinden ÖNCE ne yapılacağı açıklanır (izin zaten verilmişse atlanır). iOS hareket izni bunun dışındadır: kullanıcı dokunuşunda hemen istenmelidir.
+async function tcwExplain(kind) {
+  TCK.explained = TCK.explained || {};
+  if (TCK.explained[kind]) return true;
+  try { const st = await navigator.permissions.query({ name: kind }); if (st && st.state === 'granted') return true; } catch (e) { /* izin durumu sorgulanamıyor: açıklama gösterilir */ }
+  const cam = kind === 'camera';
+  const a = await tcAsk(cam ? 'Kamera izni gerekiyor' : 'Mikrofon izni gerekiyor', cam ? 'Bu test için tarayıcı kamera izni isteyecek. Görüntü yalnızca ekranda gösterilir; kaydedilmez ve hiçbir yere gönderilmez. Test bitince kamera kapanır. İzin vermezsen diğer testler çalışmaya devam eder.' : 'Bu test için tarayıcı mikrofon izni isteyecek. Yalnızca ses seviyesi ölçülür; ses sunucuya gönderilmez. Test bitince mikrofon kapanır. İzin vermezsen diğer testler çalışmaya devam eder.', [{ label: 'Devam et', value: 'go', cls: 'tk-btn--primary' }, { label: 'Vazgeç', value: 'skip' }]);
+  if (a !== 'go') return false;
+  TCK.explained[kind] = true; tcHideStage(); return true;
+}
+async function tcwCamera(side) {
+  const md = navigator.mediaDevices; if (!md || !md.getUserMedia) return { status: 'unsupported', measured: {}, note: 'Tarayıcı kamera erişimini desteklemiyor' };
+  if (!tcwSecure()) return { status: 'unsupported', measured: {}, note: 'Kamera için güvenli (HTTPS) bağlantı gerekir' };
+  if (!(await tcwExplain('camera'))) return { status: 'cancelled' };
+  let stream;
+  try { stream = await md.getUserMedia({ video: side === 'front' ? { facingMode: 'user' } : { facingMode: { ideal: 'environment' } }, audio: false }); }
+  catch (e) { return tcwMediaFail(e, 'camera'); }
+  if (!TCK) { stream.getTracks().forEach(t => { try { t.stop(); } catch (e) { /* sessiz */ } }); return { status: 'cancelled' }; }
+  tcStream = stream;
+  const trk = stream.getVideoTracks()[0], st = trk && trk.getSettings ? trk.getSettings() : {};
+  if (side === 'back' && st.facingMode === 'user') { tcStopCamera(); return { status: 'unsupported', measured: { present: false }, note: 'Arka kamera açılamadı (yalnızca ön kamera bulundu)' }; }
+  const asked = tcAsk(side === 'front' ? 'Ön kamera görüntüsü' : 'Arka kamera görüntüsü', 'Canlı görüntü normal mi (net, renkler doğal, leke/çizgi yok)? Bu değerlendirmeyi sen yaparsın; sensör kalitesi ölçülmez. Görüntü kaydedilmez ve gönderilmez.', [{ label: 'Görüntü normal', value: 'ok', cls: 'tk-btn--primary' }, { label: 'Sorun var', value: 'bad' }, { label: 'Atla', value: 'skip' }], '<video id="tcx-video" class="tcx-video" autoplay playsinline muted></video>');
+  const v = document.getElementById('tcx-video'); if (v && tcStream) { try { v.muted = true; v.setAttribute('playsinline', ''); v.srcObject = tcStream; const p = v.play && v.play(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* sessiz */ } }
+  const a = await asked; tcStopCamera();
+  const measured = { present: true, opened: true, permission: 'granted', previewShown: true, width: st.width || null, height: st.height || null };
+  if (a === 'ok') return { status: 'passed', userConfirmed: true, measured };
+  if (a === 'bad') return { status: 'failed', userConfirmed: true, measured };
+  return { status: 'cancelled' };
+}
+async function tcwMicrophone() {
+  const md = navigator.mediaDevices, AC = tcwAC(); if (!md || !md.getUserMedia || !AC) return { status: 'unsupported', measured: {}, note: 'Tarayıcı mikrofon erişimini desteklemiyor' };
+  if (!tcwSecure()) return { status: 'unsupported', measured: {}, note: 'Mikrofon için güvenli (HTTPS) bağlantı gerekir' };
+  if (!(await tcwExplain('microphone'))) return { status: 'cancelled' };
+  let last = null;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    let stream, ac;
+    try { stream = await md.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }, video: false }); }
+    catch (e) { return tcwMediaFail(e, 'mic'); }
+    const stopAll = () => { try { stream.getTracks().forEach(t => t.stop()); } catch (e) { /* sessiz */ } try { ac && ac.close && ac.close(); } catch (e) { /* sessiz */ } };
+    if (!TCK) { stopAll(); return { status: 'cancelled' }; }
+    let chunks = [], rec = null;
+    try { ac = new AC(); if (ac.resume) await ac.resume(); const src = ac.createMediaStreamSource(stream), an = ac.createAnalyser(); an.fftSize = 1024; src.connect(an);
+      if (window.MediaRecorder) { try { rec = new MediaRecorder(stream); rec.ondataavailable = ev => { if (ev.data && ev.data.size) chunks.push(ev.data); }; rec.start(); } catch (e) { rec = null; } }   // yalnızca BELLEKTE, istenirse geri dinleme için
+      const panel = tcwPanel('Mikrofon dinleniyor…', '4 saniye boyunca konuş veya telefona hafifçe vur. Ses sunucuya GİTMEZ; yalnızca seviye ölçülür.', '<canvas id="tcw-wave" class="tcw-wave" width="300" height="80" aria-label="Ses dalgası"></canvas><div class="tcw-db" id="tcw-db" aria-live="polite">—</div>', [{ label: 'İptal', value: 'cancel' }]);
+      const cv = document.getElementById('tcw-wave'), g = cv && cv.getContext ? cv.getContext('2d') : null, buf = new Float32Array(an.fftSize);
+      let maxDb = -120, nonZero = false, stopped = false; const t0 = Date.now();
+      const tick = () => {
+        if (stopped || !TCK) return;
+        an.getFloatTimeDomainData(buf); let sum = 0; for (let i = 0; i < buf.length; i++) { sum += buf[i] * buf[i]; if (buf[i] !== 0) nonZero = true; }
+        const rms = Math.sqrt(sum / buf.length), db = rms > 0 ? Math.max(-120, 20 * Math.log10(rms)) : -120; if (db > maxDb) maxDb = db;
+        const el = document.getElementById('tcw-db'); if (el) el.textContent = db > -119 ? Math.round(db) + ' dB' : 'sinyal yok';
+        if (g) { g.clearRect(0, 0, 300, 80); g.beginPath(); g.strokeStyle = '#1fd1c3'; g.lineWidth = 2; for (let i = 0; i < buf.length; i += 4) { const x = i / buf.length * 300, y = 40 - buf[i] * 38; i ? g.lineTo(x, y) : g.moveTo(x, y); } g.stroke(); }
+        if (Date.now() - t0 < 4000) setTimeout(tick, 50); else if (TCK && TCK.resolveStage) { const r = TCK.resolveStage; TCK.resolveStage = null; r('done'); }
+      };
+      tick(); const out = await panel; stopped = true;
+      if (rec && rec.state !== 'inactive') { await new Promise(r => { try { rec.onstop = r; rec.stop(); } catch (e) { r(); } setTimeout(r, 900); }); }   // son veri parçası stop'tan SONRA gelir
+      stopAll(); tcHideStage();
+      if (out === 'cancel' || !TCK) { return { status: 'cancelled' }; }
+      const verdict = maxDb > -50 ? 'signal' : (!nonZero ? 'dead' : 'quiet'), measured = { verdict, maxDb: Math.round(maxDb), permission: 'granted' };
+      last = measured;
+      if (verdict === 'signal') {
+        if (chunks.length) { const a = await tcwPanel('Kendi sesini dinlemek ister misin?', 'Kayıt yalnızca bu cihazın belleğinde tutulur; hiçbir yere gönderilmez ve kapatınca silinir.', '', [{ label: 'Dinle', value: 'play', cls: 'tk-btn--primary' }, { label: 'Geç', value: 'skip' }]);
+          if (a === 'play') { const url = URL.createObjectURL(new Blob(chunks, { type: (chunks[0] && chunks[0].type) || 'audio/mp4' })); try { const au = new Audio(url); au.playsInline = true; await au.play(); await new Promise(r => { au.onended = r; setTimeout(r, 6000); }); } catch (e) { /* oynatılamadı: yalnızca isteğe bağlı adım */ } finally { URL.revokeObjectURL(url); } chunks = []; tcHideStage(); } else tcHideStage(); }
+        return { status: 'passed', measured };
+      }
+      if (attempt === 0) { const a = await tcAsk(verdict === 'dead' ? 'Hiç ses sinyali alınamadı' : 'Yeterli ses algılanamadı', 'Mikrofon izni verildi ama sinyal gelmedi. Daha yüksek sesle konuşarak veya mikrofon deliğinin yakınına vurarak tekrar dene. Tarayıcı, mikrofonun bozuk olup olmadığını bilemez.', [{ label: 'Tekrar dene', value: 'again', cls: 'tk-btn--primary' }, { label: 'Atla', value: 'skip' }]); if (a === 'again') continue; if (a !== 'skip') return { status: 'cancelled' }; return { status: 'cancelled' }; }
+    } catch (e) { stopAll(); tcHideStage(); return { status: 'error', measured: { errorName: tcwErrName(e) }, note: 'Ses ölçümü sırasında teknik hata' }; }
+  }
+  return { status: 'no_data', measured: last || { verdict: 'quiet', permission: 'granted' }, note: 'Yeterli ses sinyali alınamadı' };
+}
+async function tcwSpeaker() {
+  const AC = tcwAC(); if (!AC) return { status: 'unsupported', measured: {}, note: 'Tarayıcı ses çalmayı (WebAudio) desteklemiyor' };
+  let ac; try { ac = new AC(); if (ac.resume) await ac.resume(); } catch (e) { return { status: 'error', measured: { errorName: tcwErrName(e) }, note: 'Ses sistemi başlatılamadı' }; }
+  const play = async () => {
+    const tones = [440, 1000, 2000];
+    for (const f of tones) { const o = ac.createOscillator(), gn = ac.createGain(); o.type = 'sine'; o.frequency.value = f; gn.gain.value = 0; o.connect(gn); gn.connect(ac.destination); const t = ac.currentTime; gn.gain.linearRampToValueAtTime(0.25, t + 0.05); gn.gain.linearRampToValueAtTime(0, t + 0.65); o.start(t); o.stop(t + 0.7); await new Promise(r => setTimeout(r, 800)); if (!TCK) break; }
+    return tones.length;
+  };
+  try {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const n = await play(); if (!TCK) return { status: 'cancelled' };
+      const a = await tcAsk('Test seslerini duydun mu?', '3 farklı tonda (alçak, orta, tiz) bip sesi çalındı. iPhone\'da yan düğmeyle sessize alındıysa veya ses kapalıysa duyulmaz; sesi açıp tekrar çal.', [{ label: 'Evet, duydum', value: 'yes', cls: 'tk-btn--primary' }, { label: 'Hayır, duymadım', value: 'no' }, { label: 'Tekrar çal', value: 'again' }, { label: 'Atla', value: 'skip' }]);
+      const measured = { tonesPlayed: n, audioContextState: ['running', 'suspended', 'closed', 'interrupted'].includes(ac.state) ? ac.state : 'suspended' };
+      if (a === 'yes') return { status: 'passed', userConfirmed: true, measured: { ...measured, heard: true } };
+      if (a === 'no') return { status: 'failed', userConfirmed: true, measured: { ...measured, heard: false } };
+      if (a === 'again') continue;
+      return { status: 'cancelled' };
+    }
+    return { status: 'untested', measured: {}, note: 'Onay alınamadı' };
+  } finally { try { ac.close && ac.close(); } catch (e) { /* sessiz */ } }
+}
+async function tcwVibration() {
+  if (typeof navigator.vibrate !== 'function') return { status: 'unsupported', measured: { supported: false }, note: 'Tarayıcı titreşim API\'sini desteklemiyor' };
+  let ok = false; try { ok = navigator.vibrate(700) === true; } catch (e) { ok = false; }
+  if (!ok) return { status: 'unsupported', measured: { supported: false }, note: 'Titreşim başlatılamadı (tarayıcı izin vermedi)' };
+  const a = await tcAsk('Titreşimi hissettin mi?', 'Telefon yaklaşık yarım saniye titreşmeliydi.', [{ label: 'Evet, hissettim', value: 'yes', cls: 'tk-btn--primary' }, { label: 'Hayır', value: 'no' }, { label: 'Atla', value: 'skip' }]);
+  if (a === 'yes') return { status: 'passed', userConfirmed: true, measured: { supported: true, started: true } };
+  if (a === 'no') return { status: 'failed', userConfirmed: true, measured: { supported: true, started: true } };
+  return { status: 'cancelled' };
+}
+// iOS: DeviceMotion/Orientation izni YALNIZCA kullanıcı dokunuşunun çağrı yığınında istenebilir → ilk iş, hiçbir await'ten ÖNCE
+async function tcwSensors() {
+  const DM = window.DeviceMotionEvent, DO = window.DeviceOrientationEvent;
+  const reqs = []; try { if (DM && typeof DM.requestPermission === 'function') reqs.push(DM.requestPermission()); if (DO && typeof DO.requestPermission === 'function') reqs.push(DO.requestPermission()); } catch (e) { return { status: 'error', measured: { errorName: tcwErrName(e) }, note: 'Sensör izni istenemedi' }; }
+  let permission = 'n/a';
+  if (reqs.length) { try { const res = await Promise.all(reqs); permission = res.every(r => r === 'granted') ? 'granted' : 'denied'; } catch (e) { return tcwErrName(e) === 'NotAllowedError' ? { status: 'permission_denied', measured: { permission: 'denied' }, note: 'Hareket sensörü izni verilmedi' } : { status: 'error', measured: { errorName: tcwErrName(e) }, note: 'Sensör izni alınamadı' }; } }
+  if (permission === 'denied') return { status: 'permission_denied', measured: { permission: 'denied' }, note: 'Hareket sensörü izni verilmedi' };
+  if (!DM && !DO) return { status: 'unsupported', measured: {}, note: 'Tarayıcı hareket sensörlerini desteklemiyor' };
+  const seen = { accelerometer: false, gyroscope: false, orientation: false }, live = { accelerometer: '—', gyroscope: '—', orientation: '—' };
+  const onMotion = (e) => { const a = e.accelerationIncludingGravity, r = e.rotationRate; if (a && (a.x !== null || a.y !== null || a.z !== null)) { seen.accelerometer = true; live.accelerometer = [a.x, a.y, a.z].map(v => (v == null ? 0 : v).toFixed(1)).join(' · '); } if (r && (r.alpha !== null || r.beta !== null || r.gamma !== null)) { seen.gyroscope = true; live.gyroscope = [r.alpha, r.beta, r.gamma].map(v => (v == null ? 0 : v).toFixed(0)).join(' · '); } };
+  const onOri = (e) => { if (e.alpha !== null || e.beta !== null || e.gamma !== null) { seen.orientation = true; live.orientation = [e.alpha, e.beta, e.gamma].map(v => (v == null ? 0 : v).toFixed(0)).join(' · '); } };
+  window.addEventListener('devicemotion', onMotion); window.addEventListener('deviceorientation', onOri);
+  tcwSensorCleanup = () => { window.removeEventListener('devicemotion', onMotion); window.removeEventListener('deviceorientation', onOri); };
+  let out;
+  try {
+    const panel = tcwPanel('Sensörler okunuyor…', 'Telefonu 3 saniye boyunca elinde yavaşça hareket ettir veya çevir.', '<dl class="tcw-live"><dt>İvmeölçer</dt><dd id="tcw-s-a">—</dd><dt>Jiroskop</dt><dd id="tcw-s-g">—</dd><dt>Yön</dt><dd id="tcw-s-o">—</dd></dl>', [{ label: 'İptal', value: 'cancel' }]);
+    const t0 = Date.now(); const loop = () => { if (!TCK) return; const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; }; set('tcw-s-a', live.accelerometer); set('tcw-s-g', live.gyroscope); set('tcw-s-o', live.orientation); if (Date.now() - t0 < 3200) setTimeout(loop, 100); else if (TCK && TCK.resolveStage) { const r = TCK.resolveStage; TCK.resolveStage = null; r('done'); } };
+    loop(); out = await panel;
+  } finally { tcwSensorCleanup(); tcwSensorCleanup = () => {}; tcHideStage(); }
+  if (out === 'cancel' || !TCK) return { status: 'cancelled' };
+  const names = Object.keys(seen), present = names.filter(k => seen[k]), absent = names.filter(k => !seen[k]);
+  // İsteğe bağlı konum erişimi (konum KAYDEDİLMEZ; yalnızca erişilebilirlik kategorisi)
+  let geolocation = 'skipped';
+  if (navigator.geolocation) {
+    const a = await tcAsk('Konum erişimini de dene?', 'İstersen konum erişiminin çalışıp çalışmadığına bakılır. Konum bilgisi kaydedilmez, gösterilmez ve gönderilmez.', [{ label: 'Dene', value: 'go', cls: 'tk-btn--primary' }, { label: 'Geç', value: 'skip' }]);
+    if (a === 'go') geolocation = await new Promise(res => { try { navigator.geolocation.getCurrentPosition(() => res('available'), (er) => res(er && er.code === 1 ? 'denied' : er && er.code === 3 ? 'timeout' : 'unavailable'), { timeout: 8000, maximumAge: 0 }); } catch (e) { res('unavailable'); } });
+    tcHideStage();
+  }
+  if (!TCK) return { status: 'cancelled' };
+  const measured = { present: present.length, withData: present.length, absent, noData: [], permission, geolocation };
+  if (!present.length) return { status: 'no_data', measured, note: 'Sensörlerden veri alınamadı (cihaz sensör bildirmedi veya hareket algılanmadı)' };
+  return { status: 'passed', measured };
+}
+let tcwSensorCleanup = () => {};
+async function tcwBattery() {
+  if (typeof navigator.getBattery !== 'function') return { status: 'unsupported', measured: {}, note: 'Tarayıcı pil durumu API\'sini desteklemiyor' };
+  try { const b = await navigator.getBattery(); if (typeof b.level !== 'number') return { status: 'no_data', measured: {}, note: 'Pil bilgisi alınamadı' }; return { status: 'passed', measured: { levelPercent: Math.round(b.level * 100), charging: b.charging ? 'charging' : 'discharging', source: 'web_battery_api' } }; }
+  catch (e) { return { status: 'error', measured: {}, note: 'Pil durumu okunamadı' }; }
+}
+async function tcwConnectivity() {
+  const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection || null, m = { online: navigator.onLine === true };
+  if (c) { if (['slow-2g', '2g', '3g', '4g'].includes(c.effectiveType)) m.effectiveType = c.effectiveType; if (typeof c.downlink === 'number') m.downlinkMbps = c.downlink; if (typeof c.rtt === 'number') m.rttMs = c.rtt; if (typeof c.saveData === 'boolean') m.saveData = c.saveData; if (['bluetooth', 'cellular', 'ethernet', 'wifi', 'wimax', 'other', 'none', 'unknown'].includes(c.type)) m.connectionType = c.type; }
+  let reach = false; try { const ac = new AbortController(), to = setTimeout(() => ac.abort(), 5000); const r = await fetch('/manifest.json?tc=' + Date.now(), { cache: 'no-store', method: 'HEAD', signal: ac.signal }); clearTimeout(to); reach = !!r && r.status < 500; } catch (e) { reach = false; }
+  m.internetReachable = reach;
+  return { status: 'passed', measured: m };
+}
+async function tcwDeviceInfo() {
+  const e = await tcwEnv();
+  return { status: 'passed', measured: { osName: e.osName, osVersion: e.osVersion, browserName: e.browserName, browserVersion: e.browserVersion, deviceClass: e.deviceClass, screenWidthPx: e.screenWidthPx, screenHeightPx: e.screenHeightPx, pixelRatio: e.pixelRatio, maxTouchPoints: e.maxTouchPoints, standalone: e.standalone, secureContext: e.secure, orientation: e.orientation, capabilities: e.caps } };
+}
+// Renk testi (web): 6 düz renk + renk geçişi; ölü piksel ve parlaklık KULLANICI değerlendirmesidir (tarayıcı pikselleri ölçemez)
+async function tcwScreenColor() {
+  const steps = [['Siyah', '#000000', 'Siyahta parlak, hep yanan noktalar (takılı piksel) ara.'], ['Beyaz', '#ffffff', 'Beyazda koyu/renkli noktalar (ölü piksel), leke ve sarılık-mavilik ara.'], ['Kırmızı', '#ff0000', 'Kırmızı dışında kalan nokta veya şerit var mı?'], ['Yeşil', '#00ff00', 'Yeşil dışında kalan nokta veya şerit var mı?'], ['Mavi', '#0000ff', 'Mavi dışında kalan nokta veya şerit var mı?'], ['Gri', '#808080', 'Gri düz görünüyor mu, bantlanma veya leke var mı?'], ['Renk geçişi', 'linear-gradient(90deg,#000,#fff)', 'Siyahtan beyaza geçişte ani basamak, bant veya renk sapması var mı?']];
+  let shown = 0;
+  for (const [name, bg, hint] of steps) {
+    const act = await new Promise(resolve => {
+      const s = tcStage(); if (!s || !TCK) return resolve('cancel');
+      s.className = 'tcx-stage tcx-color'; s.style.background = bg; s.hidden = false;
+      s.innerHTML = `<div class="tcx-color-bar"><span>${escapeHtml(name)} · ${shown + 1}/${steps.length}</span><button type="button" class="tk-btn tk-btn--sm" data-v="skip">Testi atla</button></div><div class="tcx-color-hint">${escapeHtml(hint)} Sonraki ekran için dokun.</div><button type="button" class="tcx-color-tap" data-v="next" aria-label="Sonraki ekran"></button>`;
+      TCK.resolveStage = resolve; s.querySelectorAll('[data-v]').forEach(b => b.addEventListener('click', () => { TCK.resolveStage = null; resolve(b.dataset.v); }));
+    });
+    if (act === 'cancel' || act === 'skip') return { status: 'cancelled' };
+    shown++;
+  }
+  tcHideStage();
+  const dp = await tcAsk('Ölü piksel, leke veya çizgi gördün mü?', 'Hep siyah/beyaz kalan nokta, renk bozulması, leke veya çizgi var mıydı? Bu kararı yalnızca sen verirsin; tarayıcı pikselleri ölçemez.', [{ label: 'Hayır, görmedim', value: 'none', cls: 'tk-btn--primary' }, { label: 'Evet, gördüm', value: 'found' }, { label: 'Atla', value: 'skip' }]);
+  if (dp !== 'none' && dp !== 'found') return { status: 'cancelled' };
+  const br = await tcAsk('Parlaklık ve görünürlük yeterli mi?', 'Ekran bu ortamda rahat okunuyor mu? (Parlaklığı tarayıcı ölçemez; yalnızca senin değerlendirmen kaydedilir.)', [{ label: 'Evet, normal', value: 'ok', cls: 'tk-btn--primary' }, { label: 'Hayır, soluk/karanlık', value: 'low' }, { label: 'Atla', value: 'skip' }]);
+  if (br !== 'ok' && br !== 'low') return { status: 'cancelled' };
+  const measured = { colorsShown: 6, colorsConfirmed: dp === 'none' ? 6 : 0, gradientShown: true, deadPixel: dp, brightness: br };
+  return dp === 'none' && br === 'ok' ? { status: 'passed', userConfirmed: true, measured } : { status: 'failed', userConfirmed: true, measured };
+}
+const TCW_IMPL = { device_info: tcwDeviceInfo, screen_color: tcwScreenColor, camera_front: () => tcwCamera('front'), camera_back: () => tcwCamera('back'), speaker: tcwSpeaker, microphone: tcwMicrophone, vibration: tcwVibration, sensors: tcwSensors, battery: tcwBattery, connectivity: tcwConnectivity };
+{
+  const nativeImpl = Object.assign({}, TC_IMPL);
+  Object.keys(TCW_IMPL).forEach(id => {
+    TC_IMPL[id] = async function () {
+      if (tcNative()) return nativeImpl[id].call(TC_IMPL);
+      const sess = TCK, r = await TCW_IMPL[id]();
+      if (r && r.status === 'unsupported' && sess && TCK === sess && sess.applicable && id !== 'device_info') {   // gerçek destek yok → test listeden kalkar, raporun teknik kapsamında belirtilir
+        sess.applicable = sess.applicable.filter(x => x !== id); sess.notApplicable = [...new Set([...(sess.notApplicable || []), id])];
+        if (typeof showToast === 'function') showToast('ℹ️', 'var(--surf2)', 'Bu cihazda uygulanamıyor', (tcTitleOf(id, 'web')) + ' bu tarayıcıda/cihazda çalışmıyor; listeden kaldırıldı.');
+      }
+      return r;
+    };
+  });   // Android uygulaması: yerel testler AYNEN; web: tarayıcı uygulamaları (dokunmatik test ortak)
+}
+
+// ---------------------------------------------------------------- web raporu (şema v4)
+function tcBuildReportWeb(sess) {
+  const e = sess.env || {}, na = new Set(sess.notApplicable || []);
+  TC_DEFS.forEach(d => { const r = sess.tests[d.id]; if (r && r.status === 'unsupported' && d.id !== 'device_info') na.add(d.id); });   // çalışma anında desteklenmediği anlaşılan test raporda satır değil, teknik kapsamdır
+  const defs = TC_DEFS.filter(d => (!sess.applicable || sess.applicable.includes(d.id)) && !na.has(d.id));
+  const keep = (id, m) => { const o = {}; (TCW_KEYS[id] || []).forEach(k => { if (m && m[k] !== undefined) o[k] = m[k]; }); return o; };
+  const tests = defs.map(def => {
+    const r = sess.tests[def.id] || { status: 'idle' }, st = tcFinalStatus(r.status), rec = { id: def.id, status: st, measured: keep(def.id, r.measured || {}) };
+    if (def.kind !== 'auto') rec.userConfirmed = r.userConfirmed === true && (st === 'passed' || st === 'failed');
+    if (r.note) rec.note = String(r.note).slice(0, 120);
+    return rec;
+  });
+  const di = tests.find(t => t.id === 'device_info'); if (di && di.status === 'idle') di.status = 'untested';
+  const rep = {
+    schemaVersion: 4, platform: 'web', appVersion: 'web', startedAt: sess.startedAt, finishedAt: new Date().toISOString(),
+    device: { osName: e.osName || 'Unknown', osVersion: e.osVersion || '', browserName: e.browserName || 'Other', browserVersion: e.browserVersion || '', deviceClass: e.deviceClass || 'unknown', screenWidthPx: e.screenWidthPx || 0, screenHeightPx: e.screenHeightPx || 0, pixelRatio: e.pixelRatio || 1, maxTouchPoints: e.maxTouchPoints || 0, standalone: !!e.standalone, secureContext: !!e.secure },
+    tests,
+  };
+  const naList = [...na].filter(id => TCW_KEYS[id] && !defs.some(d => d.id === id)); if (naList.length) rep.notApplicable = naList;
+  return rep;
+}
+// Sunucu kaydındaki türetilmiş alanları yerel kopyaya da ekler (gösterim için)
+function tcwDecorate(report) {
+  return { ...report, tests: report.tests.map(t => { const d = tcwDerive({ ...t, userConfirmed: t.userConfirmed === true }); return { ...t, kind: tcDefOf(t.id).kind, source: d.source, method: TCW_METHOD[t.id] || '', confidence: d.confidence, userConfirmed: t.userConfirmed === true }; }), notApplicable: report.notApplicable || [], scope: { v: 1, signed: ['device', 'tests', 'notApplicable'], source: 'web_browser' } };
+}
+function tcwDevLine(d) { return [d.browserName, [d.osName, d.osVersion].filter(Boolean).join(' ')].filter(Boolean).join(' · '); }
+function tcDevLine(d, platform) { return platform === 'web' || (d && d.osName) ? tcwDevLine(d) : [d.manufacturer, d.model].filter(Boolean).join(' ') + (d.androidRelease ? ' · Android ' + d.androidRelease : ''); }
+// Web testlerinin okunabilir ayrıntı metni (ölçülmeyen şey yazılmaz)
+function tcwDetailText(id, m, status) {
+  m = m || {};
+  const yn = (v) => v === true ? 'evet' : v === false ? 'hayır' : 'bilinmiyor';
+  switch (id) {
+    case 'device_info': return [m.browserName ? m.browserName + (m.browserVersion ? ' ' + m.browserVersion : '') : null, m.osName ? m.osName + (m.osVersion ? ' ' + m.osVersion : '') : null, m.screenWidthPx ? `${m.screenWidthPx}×${m.screenHeightPx} px` : null, m.standalone ? 'ana ekran uygulaması' : null].filter(Boolean).join(' · ') || 'Bilgi alınamadı';
+    case 'screen_color': return status === 'passed' ? 'Renkler ve renk geçişi gösterildi; kullanıcı ölü piksel/leke görmediğini ve parlaklığı yeterli bulduğunu onayladı (otomatik ölçüm DEĞİL).' : status === 'failed' ? (m.deadPixel === 'found' ? 'Kullanıcı ekranda ölü piksel/leke/çizgi bildirdi.' : 'Kullanıcı parlaklığı/görünürlüğü yetersiz buldu.') : 'Değerlendirme yapılmadı.';
+    case 'touch': return m.zones ? `${m.zonesTouched}/${m.zones} bölgeye dokunuldu (%${m.coveragePercent})${m.multiTouchMax > 1 ? ' · en çok ' + m.multiTouchMax + ' parmak aynı anda' : ''}` : 'Ölçüm yok';
+    case 'camera_front': case 'camera_back': return m.present === false ? 'Kullanılabilir kamera bulunamadı' : m.permission === 'denied' ? 'Kamera izni verilmedi' : m.errorName ? 'Kamera açılamadı (' + m.errorName + ')' : status === 'passed' || status === 'failed' ? `Kamera açıldı${m.width ? ' (' + m.width + '×' + m.height + ')' : ''}; görüntü değerlendirmesi kullanıcıya ait (sensör kalitesi ölçülmez)` : 'Değerlendirme yapılmadı.';
+    case 'speaker': return status === 'passed' ? 'Üç farklı tonda test sesi çalındı; kullanıcı duyduğunu onayladı.' : status === 'failed' ? 'Kullanıcı sesi duymadığını bildirdi.' : 'Değerlendirme yapılmadı.';
+    case 'microphone': return m.permission === 'denied' ? 'Mikrofon izni verilmedi' : m.errorName ? 'Mikrofon açılamadı (' + m.errorName + ')' : m.verdict === 'signal' ? `Ses seviyesi ölçüldü (tepe ${m.maxDb} dB); ses kaydedilmedi/gönderilmedi.` : m.verdict === 'dead' ? 'Tarayıcıdan hiç ses sinyali gelmedi (mikrofonun bozuk olduğu SONUCUNA varılamaz).' : 'Yeterli ses algılanamadı.';
+    case 'vibration': return m.supported === false ? 'Titreşim kullanılamadı' : status === 'passed' ? 'Titreşim verildi; kullanıcı hissettiğini onayladı.' : status === 'failed' ? 'Kullanıcı titreşimi hissetmediğini bildirdi.' : 'Değerlendirme yapılmadı.';
+    case 'sensors': return m.permission === 'denied' ? 'Hareket sensörü izni verilmedi' : m.errorName ? 'Sensör izni alınamadı (' + m.errorName + ')' : typeof m.present === 'number' ? `${m.present} sensör türünden veri alındı${(m.absent || []).length ? ' · veri gelmeyenler: ' + m.absent.join(', ') : ''}${m.geolocation && m.geolocation !== 'skipped' ? ' · konum erişimi: ' + ({ available: 'çalışıyor', denied: 'izin verilmedi', unavailable: 'kullanılamıyor', timeout: 'zaman aşımı' })[m.geolocation] : ''}` : 'Veri alınamadı';
+    case 'battery': return typeof m.levelPercent === 'number' ? `Seviye %${m.levelPercent} · ${m.charging === 'charging' ? 'şarj oluyor' : 'şarj olmuyor'} · kaynak: tarayıcı pil API'si (pil sağlığı ölçülmez)` : 'Pil bilgisi alınamadı';
+    case 'connectivity': return [`Çevrimiçi: ${yn(m.online)}`, m.effectiveType ? 'ağ türü: ' + m.effectiveType : null, typeof m.downlinkMbps === 'number' ? m.downlinkMbps + ' Mb/sn' : null, `site erişimi: ${m.internetReachable === true ? 'çalışıyor' : m.internetReachable === false ? 'erişilemedi' : 'bilinmiyor'}`].filter(Boolean).join(' · ');
+  }
+  return '';
+}
+
+// ---------------------------------------------------------------- yaşam döngüsü: arka plana alınınca donanım akışları kapanır, çalışan test tamamlanmamış sayılır
+function tcwInterrupt() {
+  if (!TCK || tcNative()) return;
+  tcStopCamera(); try { tcwSensorCleanup(); tcwSensorCleanup = () => {}; } catch (e) { /* sessiz */ }
+  if (TCK.busy && TCK.current) {
+    TCK.runId = (TCK.runId || 0) + 1;
+    if (TCK.resolveStage) { const r = TCK.resolveStage; TCK.resolveStage = null; try { r('cancel'); } catch (e) { /* sessiz */ } }
+    TCK.tests[TCK.current] = { status: 'skipped', measured: {}, note: 'Sayfa arka plana alındı; test tamamlanmadı' };
+    tcHideStage(); TCK.busy = false; TCK.current = null; try { tcRender(); } catch (e) { /* sessiz */ }
+  }
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden) tcwInterrupt(); });
+window.addEventListener('pagehide', () => { tcStopCamera(); });
+
+// ---------------------------------------------------------------- misafir: sonuçlar giriş sırasında kaybolmasın (yalnızca durum/ölçüm özeti; medya yok; 24 saat)
+const TCW_DRAFT_KEY = 'tk_tc_web_draft';
+function tcwDraftSave() { try { if (!TCK || tcNative()) return; localStorage.setItem(TCW_DRAFT_KEY, JSON.stringify({ at: Date.now(), startedAt: TCK.startedAt, tests: TCK.tests, applicable: TCK.applicable, notApplicable: TCK.notApplicable, env: TCK.env })); } catch (e) { /* depolama yok */ } }
+function tcwDraftRestore() {
+  try {
+    const d = JSON.parse(localStorage.getItem(TCW_DRAFT_KEY) || 'null'); if (!d) return false;
+    localStorage.removeItem(TCW_DRAFT_KEY);
+    if (!user || !TCK || tcNative() || Date.now() - d.at > 20 * 3600 * 1000 || !d.tests) return false;
+    TCK.startedAt = d.startedAt || TCK.startedAt; TCK.tests = { ...TCK.tests, ...d.tests }; if (d.applicable) { TCK.applicable = d.applicable; TCK.notApplicable = d.notApplicable || []; } if (d.env) { TCK.env = d.env; TCK.profile = tcwProfileOf(d.env); }
+    return true;
+  } catch (e) { return false; }
+}
+
+// ---------------------------------------------------------------- web raporu PDF/yazdırma belgesi (kaynak + güven düzeyi + teknik kapsam açık yazılır)
+function tcwBuildDoc(rep) {
+  const r = rep.report, d = r.device, id = rep.reportId, code = rep.verifyCode, c = rep.counts || tcCountsOf(r.tests);
+  const url = tcqVerifyUrl(id, code); let qr = null; try { qr = tcqEncode(url); } catch (e) { qr = null; }
+  const conf = (t) => t.confidence || tcwDerive({ ...t, userConfirmed: t.userConfirmed === true }).confidence;
+  const rows = r.tests.filter(t => t.note !== TCW_NA_NOTE).map(t => {
+    const def = tcDefOf(t.id), st = tcwStatusLabel(t.status, def.kind, t.userConfirmed === true);
+    return [tcTitleOf(t.id, 'web'), st, tcwDetailText(t.id, t.measured, t.status) + (t.note ? ' · ' + t.note : '') + ' — Kaynak: web tarayıcısı · Güven: ' + (TCW_CONF_LABEL[conf(t)] || '') + ' · Yöntem: ' + (TCW_METHOD[t.id] || ''), tcrTone(st)];
+  });
+  const na = (r.notApplicable || []).map(x => tcTitleOf(x, 'web'));
+  const sections = [
+    { title: 'Bölüm 1 · Sunucu imzalı test sonuçları', badge: 'İMZALI · WEB TARAYICISI', rows },
+    { title: 'Kaynaklar ve güven düzeyi', notes: ['KAYNAK: Bu raporun bütün ölçümleri WEB TARAYICISININ bildirdiği değerlere ve kullanıcı onaylarına dayanır. Android yerel donanım analiziyle (pil sağlığı, şarj döngüsü, cihaz modeli) aynı kapsamda DEĞİLDİR.', 'GÜVEN DÜZEYLERİ: "Tarayıcı bildirdi" = tarayıcı API\'sinin verdiği değer (donanım doğrulaması değil); "Kullanıcı doğruladı" = kullanıcının görsel/işitsel/dokunsal onayı; "Kullanıcı bildirdi" = kullanıcının bildirdiği sorun. Kaynak ve güven düzeyi sunucu tarafından belirlenir, istemci değiştiremez.'] },
+    { title: 'Teknik kapsam', notes: [na.length ? 'Bu cihazda/tarayıcıda uygulanamadığı için SUNULMAYAN testler: ' + na.join(', ') + '.' : 'Bu cihazda sunulabilen bütün testler listelenmiştir.', 'Tarayıcıdan okunamayan ve bu raporda BULUNMAYAN bilgiler: pil sağlığı, pil döngüsü, cihaz modeli, IMEI, seri numarası. Fotoğraf, ses ve konum kaydedilmez ve gönderilmez.'] },
+    { title: 'Sınırlamalar ve imza kapsamı', notes: [TC_LIMITS, 'Dijital imza YALNIZCA bu raporun oluşturulduktan sonra değiştirilmediğini doğrular. Testin fiziksel olarak doğru yapıldığını, cihazın orijinalliğini veya parçalarının değişmediğini garanti ETMEZ.'] },
+    { title: 'Çevrimiçi doğrulama', notes: ['QR kodu okut veya Teknohane → Ana Sayfa → TeknoCheck → Rapor doğrula bölümüne rapor no ve doğrulama kodunu gir.', url] },
+  ];
+  const sumTone = rep.overall === 'completed' ? 'ok' : rep.overall === 'issues' ? 'bad' : 'warn', open = (c.skipped || 0) + (c.untested || 0) + (c.permission_denied || 0) + (c.error || 0) + (c.no_data || 0);
+  return {
+    fileId: id, title: 'TeknoCheck Web Test Raporu', subtitle: TC_OVERALL_LABEL[rep.overall] || '', brand: 'TeknoCheck · Teknohane',
+    meta: [['Rapor no', id], ['Doğrulama kodu', code], ['Platform', 'Web tarayıcısı'], ['Tarayıcı', [d.browserName, d.browserVersion].filter(Boolean).join(' ')], ['İşletim sistemi', [d.osName, d.osVersion].filter(Boolean).join(' ') || '—'], ['Cihaz sınıfı', ({ phone: 'Telefon', tablet: 'Tablet', desktop: 'Masaüstü', unknown: 'Bilinmiyor' })[d.deviceClass] || '—'], ['Ekran', d.screenWidthPx ? `${d.screenWidthPx}×${d.screenHeightPx} px · ${d.pixelRatio}×` : '—'], ['Test tarihi', tcFmtDate(rep.createdAt || r.finishedAt)], ['Sunulan test', String(rows.length)]],
+    sections, summary: { verdict: TC_OVERALL_LABEL[rep.overall] || '', tone: sumTone, counts: [['Başarılı', c.passed || 0, 'ok'], ['Başarısız', c.failed || 0, 'bad'], ['Tamamlanamadı', open, 'warn'], ['Desteklenmiyor', c.unsupported || 0, 'muted']] },
+    qr: qr ? { rows: qr.rows, url, caption: 'Doğrulamak için QR kodu okut' } : null, hasPhotos: false,
+    footer: 'Rapor yalnızca sunucu doğrulamasıyla geçerli sayılır. Web tarayıcısı raporudur; Android yerel donanım analizi içermez.',
+  };
+}
+
+// Durum rozeti: web'de "Kullanıcı tarafından doğrulandı" / "Kullanıcı testi tamamlamadı" gibi ayrıntılı etiketler; Android'de AYNEN eski rozet
+function tcStatusBadge(t, platform) {
+  if (platform !== 'web') return tcBadge(t.status);
+  const kind = tcDefOf(t.id).kind;
+  if (t.status === 'passed' && kind !== 'auto' && t.userConfirmed) return `<span class="tk-badge tk-badge--success">${tcwStatusLabel('passed', kind, true)}</span>`;
+  if (t.status === 'skipped') return `<span class="tk-badge tk-badge--neutral">${tcwStatusLabel('skipped')}</span>`;
+  return tcBadge(t.status);
 }
 
 // ==================================================================== FAZ 9 — TEKNOCHECK İŞLETME YÖNETİMİ: SAF MANTIK (kaynak: teknocheck/isletme.js; uygula.mjs gömer)
