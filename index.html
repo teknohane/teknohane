@@ -1047,6 +1047,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
    (flex-shrink:0). Önceki sürümde rozetler isim span'inin İÇİNDEYDİ — uzun isimlerde CSS tarafından
    görünmez şekilde kesilebiliyordu, "VIP yeterince görünür değil" şikayetinin bir parçası buydu. */
 .mcard-seller-badges{display:flex;align-items:center;gap:3px;flex-shrink:0;}
+.mcard-biz-chip{display:inline-flex;align-items:center;gap:2px;background:rgba(var(--accent-rgb),.16);color:var(--color-accent-text);border:1px solid rgba(var(--accent-rgb),.34);font-size:9px;font-weight:800;padding:2px 6px;border-radius:8px;line-height:1.1;white-space:nowrap;}
 .mcard-vip-chip{display:inline-flex;align-items:center;gap:2px;background:linear-gradient(135deg,#FFD700,#FFA500);color:#3a2600;font-size:9px;font-weight:800;padding:2px 6px;border-radius:8px;line-height:1.35;white-space:nowrap;}
 .mcard-trust-chip{display:inline-flex;align-items:center;gap:2px;background:rgba(var(--success-rgb),.14);color:var(--color-success);border:1px solid rgba(var(--success-rgb),.3);font-size:9px;font-weight:700;padding:2px 6px;border-radius:8px;line-height:1.35;white-space:nowrap;}
 .mcard-qa{display:flex;gap:4px;flex-shrink:0;}
@@ -1232,6 +1233,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .seller-card-lg{background:var(--surf);border:1px solid var(--border2);border-radius:16px;padding:16px;margin:12px 0;}
 .seller-card-lg-top{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
 .seller-card-lg-av{width:56px;height:56px;border-radius:50%;background:var(--cdim);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:var(--cyan);border:1px solid rgba(var(--accent-rgb),.25);flex-shrink:0;object-fit:cover;}
+.seller-biz-chip{display:inline-flex;align-items:center;margin-top:2px;font-size:var(--fs-xs);font-weight:700;color:var(--color-accent-text);}
 .seller-card-lg-name{font-size:15px;font-weight:700;color:var(--text);margin-bottom:3px;}
 .seller-card-lg-stats{font-size:12px;color:var(--text3);}
 .seller-card-lg-badges{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;}
@@ -2552,7 +2554,56 @@ textarea.fi{min-height:96px;}
 @media (min-width:700px){.biz-stats{grid-template-columns:repeat(3,minmax(0,1fr));}.biz-photos{grid-template-columns:repeat(4,minmax(0,1fr));}}
 .biz-meter{height:6px;margin-top:6px;border-radius:3px;background:var(--surf2);overflow:hidden;}
 .biz-meter i{display:block;height:100%;background:var(--cyan);border-radius:3px;}
-.biz-meter i.hot{background:var(--danger);}
+.biz-meter i.hot{background:var(--color-danger);}
+
+/* ============================================================================
+   FAZ 32 — İŞLETME YÖNETİM MERKEZİ (mevcut tasarım belirteçleri; mobil öncelikli). Kaynak: teknocheck/isletme.css
+   ============================================================================ */
+.biz-nav{position:sticky;top:0;z-index:5;display:flex;gap:var(--space-1);overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:var(--space-2) var(--space-3);margin:0 calc(var(--space-3) * -1) var(--space-3);background:var(--bg);border-bottom:var(--bw) solid var(--border2);}
+.biz-nav::-webkit-scrollbar{display:none;}
+.biz-nav-i{flex:none;min-height:36px;padding:0 var(--space-3);border-radius:999px;border:var(--bw) solid var(--border2);background:var(--surf);color:var(--text2);font-size:var(--fs-sm);font-weight:var(--fw-medium);cursor:pointer;white-space:nowrap;}
+.biz-nav-i.on{background:rgba(var(--accent-rgb),.16);border-color:rgba(var(--accent-rgb),.5);color:var(--text);font-weight:var(--fw-semibold);}
+.biz-nav-i:focus-visible{outline:2px solid var(--cyan);outline-offset:2px;}
+.biz-stat--static{cursor:default;}
+.biz-stat .biz-hint{color:var(--text3);}
+.biz-stat.neg b,.biz-neg{color:var(--color-danger-text);}
+.biz-stat.pos b,.biz-pos{color:var(--color-success-text,var(--color-success));}
+.biz-hint{color:var(--text3);font-size:var(--fs-xs);display:block;margin-top:2px;}
+.biz-card{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-3);background:var(--surf);border:var(--bw) solid var(--border2);border-radius:var(--radius-lg);margin:var(--space-3) 0;}
+.biz-card-h{display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-2);}
+.biz-card-h small{color:var(--text2);}
+.biz-bk{display:grid;grid-template-columns:84px 1fr 28px;align-items:center;gap:var(--space-2);font-size:var(--fs-xs);color:var(--text2);}
+.biz-bk .biz-meter{margin-top:0;}
+.biz-bk b{text-align:right;color:var(--text);}
+.biz-empty{display:flex;flex-direction:column;align-items:center;gap:var(--space-2);text-align:center;padding:var(--space-5) var(--space-3);color:var(--text2);background:var(--surf);border:var(--bw) dashed var(--border2);border-radius:var(--radius-lg);}
+.biz-empty b{color:var(--text);font-size:var(--fs-md);}
+.biz-empty-ic{font-size:28px;line-height:1;}
+.biz-chart{display:flex;align-items:flex-end;gap:4px;height:150px;padding:var(--space-2) var(--space-1) 0;border-bottom:var(--bw) solid var(--border2);}
+.biz-col{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;}
+.biz-bars{flex:1;width:100%;display:flex;align-items:flex-end;justify-content:center;gap:2px;}
+.biz-b{display:block;width:45%;max-width:18px;min-height:0;border-radius:3px 3px 0 0;}
+.biz-b--rev{background:var(--cyan);}
+.biz-b--pro{background:var(--color-success);}
+.biz-b--pro.neg{background:var(--color-danger);}
+.biz-col small{font-size:10px;color:var(--text3);}
+.biz-legend{display:flex;flex-wrap:wrap;gap:var(--space-3);margin-top:var(--space-2);font-size:var(--fs-xs);color:var(--text2);}
+.biz-legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px;}
+.biz-cover{position:relative;width:100%;aspect-ratio:3/1;min-height:90px;border-radius:var(--radius-lg);overflow:hidden;background:var(--surf);border:var(--bw) solid var(--border2);margin-bottom:var(--space-3);}
+.biz-cover img{width:100%;height:100%;object-fit:cover;display:block;}
+.biz-cover-ph{display:flex;align-items:center;justify-content:center;width:100%;height:100%;color:var(--text3);font-size:var(--fs-sm);}
+.biz-cover-acts{position:absolute;right:var(--space-2);bottom:var(--space-2);display:flex;gap:var(--space-1);}
+.biz-ver{display:flex;flex-direction:column;align-items:flex-end;gap:2px;margin-left:auto;}
+.biz-hr{display:grid;grid-template-columns:92px auto 1fr 1fr;align-items:center;gap:var(--space-2);margin-bottom:var(--space-2);font-size:var(--fs-sm);}
+.biz-hr .tk-input{min-width:0;}
+.biz-ck{display:flex;align-items:center;gap:4px;font-size:var(--fs-xs);color:var(--text2);white-space:nowrap;}
+.biz-acts{display:flex;flex-wrap:wrap;gap:var(--space-1);justify-content:flex-end;margin-top:var(--space-1);}
+.biz-lst .tcx-row-side,.biz-sale .tcx-row-side{align-items:flex-end;gap:4px;}
+.biz-quick .tk-btn{flex:1 1 auto;}
+@media (max-width:420px){.biz-hr{grid-template-columns:78px auto 1fr 1fr;gap:var(--space-1);}.biz-bk{grid-template-columns:70px 1fr 24px;}}
+@media (min-width:700px){.biz-nav{margin:0 0 var(--space-3);padding-left:0;padding-right:0;}.biz-chart{height:190px;}}
+@media (prefers-reduced-motion:reduce){.biz-nav-i{transition:none;}}
+.biz-chips .tca-chip.on,.biz-chips .tca-chip[aria-pressed="true"]{background:rgba(var(--accent-rgb),.16);border-color:rgba(var(--accent-rgb),.5);color:var(--text);}
+.biz-chips .tca-chip:focus-visible{outline:2px solid var(--cyan);outline-offset:2px;}
 /* TC-CSS-END */
 /* ============================================================================
    C4 — ANA SAYFA YENİDEN TASARIMI (A Net, görsel ağırlıklı). C1/Paket-1 belirteçleri; neon/ağır gölge/süs animasyonu YOK.
@@ -4700,7 +4751,12 @@ function vipEntitlementRemoved(k) {
   return false;
 }
 // Faz 13: sunucu artık içeriksiz günlük özet ÜRETMEZ; eski dönemden kalan "Bugün senin için önemli bir gelişme yok" kayıtları da hiçbir yerde (liste, rozet) görünmez.
-function notifIsEmptyDailySummary(n) { return !!n && n.type === 'daily_summary' && !!n.summaryData && n.summaryData.empty === true; }
+function notifIsEmptyDailySummary(n) {
+  // FAZ 31: içeriği olmayan günlük özet (empty bayrağı, ya da tüm kategorileri boş, ya da özet verisi yok) ASLA gösterilmez/üretilmez; yerine yedek bir metin de çıkarılmaz.
+  if (!n || n.type !== 'daily_summary') return false;
+  const sd = n.summaryData; if (!sd || sd.empty === true) return true;
+  return !Object.values(sd.categories || {}).some((a) => Array.isArray(a) && a.length);
+}
 function notifPurgeEmptySummaries(docs) {
   try {
     const dead = docs.filter(d => notifIsEmptyDailySummary(d.data()));
@@ -5834,7 +5890,8 @@ function sellerLiveStatus(l) {
 }
 function sellerBadgesForListing(l) {
   const st = sellerLiveStatus(l);
-  return sellerVipTrustIconsHTML(st.vip, st.trustedSeller);
+  const biz = l && l.bizId ? `<span class="mcard-biz-chip" title="${escapeHtml(l.bizName || 'İşletme')}">🏢 İşletme</span>` : '';   // Faz 32: işletme ilanı rozeti (sunucuda doğrulanmış alan)
+  return biz + sellerVipTrustIconsHTML(st.vip, st.trustedSeller);
 }
 
 // Gizlilik ayarlarını varsayılan değerlerle birlikte normalize eder (privacy alanı hiç yoksa hepsi açık kabul edilir).
@@ -7989,7 +8046,7 @@ async function toggleNotifyStoreFollows() {
 // gönderim ANINDA okuyup kontrol ediyor.
 // Faz 13 — PUSH tercihleri, uygulama içi bildirim tercihlerinden AYRI: kapalıyken bildirim zilinde görünmeye devam eder, yalnızca telefona push gelmez.
 // Sistem (güvenlik/hesap) push'u kapatılamaz. Alan: teknohane_users/{uid}.pushOffCategories (dizi, yalnızca KAPALI kategoriler; boşsa alan silinir → varsayılan hepsi açık). Worker aynı alanı okur.
-const PUSH_PREF_ROWS = [['messages', '💬 Mesajlar'], ['market', '🛒 Pazar ve favoriler'], ['followers,referrals', '👥 Takipçi ve referanslar'], ['business', '🏢 İşletme']];
+const PUSH_PREF_ROWS = [['messages', '💬 Mesajlar'], ['market', '🛒 Pazar ve favoriler'], ['followers,referrals', '👥 Takipçi ve referanslar'], ['business', '🏢 İşletme'], ['promo', '🎯 Kampanya ve öneriler']];
 function pushPrefRowsHTML() {
   const off = Array.isArray(myProfileData.pushOffCategories) ? myProfileData.pushOffCategories : [];
   return `<div class="psec-sub" style="font-size:11px;color:var(--text3);margin:10px 0 2px">📲 Push (telefon bildirimi) — kapatsan da bildirim zilinde görünür</div>` +
@@ -7997,7 +8054,7 @@ function pushPrefRowsHTML() {
 }
 async function togglePushCategory(csv) {
   if (!user) return;
-  const allowed = ['messages', 'followers', 'referrals', 'market', 'business'];
+  const allowed = ['messages', 'followers', 'referrals', 'market', 'business', 'promo'];
   const cats = String(csv).split(',').filter(c => allowed.includes(c)); if (!cats.length) return;
   const cur = Array.isArray(myProfileData.pushOffCategories) ? myProfileData.pushOffCategories : [];
   const turningOff = !cats.some(c => cur.includes(c));
@@ -8639,6 +8696,21 @@ function markAnnouncementRead(id) {
 // Bir push bildirimi URL'sinden (?listing=/?post=/?profile=/?chat=) hedefi çözüp doğru ekrana yönlendirir.
 // Uygulama soğuk başlatılmışsa (bildirime dokunularak açıldıysa) veri henüz gelmemiş olabilir —
 // bu durumda sınırlı sayıda (sürekli değil) yeniden dener, sonra vazgeçer.
+// FAZ 31 — Bildirim kampanyası ÖLÇÜMÜ: bildirime dokunulunca (bağlantıdaki ncid) "açılma", hedef içeriğe ulaşılınca "tıklanma" kimlik doğrulamalı olarak Worker'a bildirilir.
+// Sunucu yalnızca GERÇEK alıcıdan, kullanıcı+kampanya+tür başına TEK olay sayar. Oturum yoksa kimliksiz olay gönderilmez (ölçülmez). Ölçüm hatası uygulamayı asla etkilemez.
+const NC_EVENT_API = 'https://teknohane-api.yusuf-aykac.workers.dev/ncamp-event';
+const tkNcSent = new Set();
+async function tkNcReport(cid, type, attempt) {
+  try {
+    if (!/^[A-Za-z0-9_-]{6,80}$/.test(String(cid || '')) || !['open', 'click'].includes(type)) return;
+    const key = cid + ':' + type; if (tkNcSent.has(key)) return;
+    attempt = attempt || 0;
+    if (!user) { if (attempt < 10) setTimeout(() => tkNcReport(cid, type, attempt + 1), 1500); return; }
+    tkNcSent.add(key);
+    const idToken = await user.getIdToken();
+    await fetch(NC_EVENT_API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken, cid, type }) }).catch(() => {});
+  } catch (e) { /* ölçüm asla uygulamayı bozmamalı */ }
+}
 function navigateFromNotificationUrl(url, attempt) {
   attempt = attempt || 0;
   if (!url) return;
@@ -8664,6 +8736,8 @@ function navigateFromNotificationUrl(url, attempt) {
     const arenaLeague = u.searchParams.get('arenaLeague');
     const screenTarget = u.searchParams.get('screen');
     const phoneId = u.searchParams.get('phone');
+    const ncid = u.searchParams.get('ncid');   // FAZ 31: kampanya bildirimi ölçümü
+    if (ncid) tkNcReport(ncid, 'open');
     // FAZ 17: oturum gerektiren hedef + oturum yok → bağlantı saklanır, giriş sonrası açılır (auth durumu çözülene dek eski bekleme/yeniden deneme sürer)
     if (!user && tkLinkNeedsAuth(u) && (tkAuthSettled || attempt >= 10)) {
       if (tkPendingLinkSave(u.href)) showToast('🔐', 'rgba(var(--accent-rgb),.15)', 'Giriş gerekli', 'Giriş yaptıktan sonra bu sayfaya yönlendirileceksin.');
@@ -8673,6 +8747,7 @@ function navigateFromNotificationUrl(url, attempt) {
       // openDetail artık kendi tekil-doküman fallback'ini yapıyor (bkz. getListingById) — bellekte
       // hazır olsun olmasın, TEKRARLI SORGULAMA (retry-polling) GEREKMEDEN doğrudan çağrılabilir.
       gt('market'); openDetail(listingId);
+      if (ncid) tkNcReport(ncid, 'click');
     } else if (postId) {
       // Forum kaldırıldı (FORUM_MODULU_AKTIF=false): eski bildirim/paylaşım bağlantısı Ana Sayfa'ya düşer
       if (!FORUM_MODULU_AKTIF) { gt('home'); return; }
@@ -8705,11 +8780,13 @@ function navigateFromNotificationUrl(url, attempt) {
       if (screenTarget === 'arena') openArenaPage();
       else if (['home', 'market', 'profile'].includes(screenTarget) || (screenTarget === 'community' && FORUM_MODULU_AKTIF)) gt(screenTarget);
       else if (screenTarget === 'community') gt('home');
+      if (ncid && screenTarget !== 'home' && screenTarget !== 'community' && screenTarget !== 'arena') tkNcReport(ncid, 'click');
     } else if (phoneId) {
       // Telefon detay derin bağlantısı (?phone=ID) — PHONES dizisi henüz yüklenmemiş olabilir
       // (loadExtraPhones async), diğer dallardaki AYNI "hazır olana kadar kısa aralıklarla tekrar
       // dene" deseni kullanılıyor.
       loadExtraPhones().then(() => openPhoneDetail(phoneId));
+      if (ncid) tkNcReport(ncid, 'click');
     }
   } catch(e) { console.error('Bildirim yönlendirme URL\'si çözülemedi:', e); }
 }
@@ -9917,14 +9994,8 @@ function renderDailySummaryNotifCard(doc) {
     const items = cats[k].map(it => `<div class="dsum-item" ${it.action ? `onclick="event.stopPropagation();handleDailySummaryAction('${it.action.type}','${escapeJsAttr(it.action.id||'')}')"` : ''} style="${it.action?'cursor:pointer':''}">${escapeHtml(it.text)}</div>`).join('');
     return `<div class="dsum-section"><div class="dsum-section-hdr">${meta.ic} ${meta.label}</div>${items}</div>`;
   }).join('');
-  const body = sd.empty || !sectionsHtml
-    ? `<div class="dsum-empty">Bugün senin için önemli bir gelişme yok.</div>
-       <div class="dsum-shortcuts">
-         ${ARENA_MODULU_AKTIF ? `<span onclick="event.stopPropagation();closemo('notif-mo');openArenaPage()">🏆 Arena'ya Katıl</span>` : ''}
-         <span onclick="event.stopPropagation();closemo('notif-mo');gt('market')">🛒 Pazar'ı Keşfet</span>
-         <span onclick="event.stopPropagation();closemo('notif-mo');gt('compare')">📱 Telefon Keşfet</span>
-       </div>`
-    : sectionsHtml;
+  if (sd.empty || !sectionsHtml) return '';   // FAZ 31: içeriksiz özet için kart/yedek metin ÇİZİLMEZ (hiçbir yedek/boş-durum ifadesi üretilmez)
+  const body = sectionsHtml;
   const time = n.createdAt?.toDate ? fd(n.createdAt.toDate().toISOString()) : '';
   const dateParts = sd.date ? sd.date.split('-') : null;
   const dateLabel = dateParts ? `${parseInt(dateParts[2],10)} ${DTP_MONTHS[parseInt(dateParts[1],10)-1]}` : '';
@@ -12606,8 +12677,9 @@ let pendingNewListingPhotoId = null;
 // burada, uygulama açılışında, doğrudan ele alınır — openDetail zaten kendi "bulunamadı" durumunu
 // nazikçe gösteriyor, ayrı bir ön-kontrol/bekleme GEREKMEZ.
 function handleSharedListingLink() {
-  const sharedId = new URLSearchParams(location.search).get('listing');
+  const q0 = new URLSearchParams(location.search), sharedId = q0.get('listing');
   if (!sharedId) return;
+  if (q0.get('ncid')) { tkNcReport(q0.get('ncid'), 'open'); tkNcReport(q0.get('ncid'), 'click'); }   // FAZ 31: kampanya bildirimi → ilan
   gt('market');
   setTimeout(() => openDetail(sharedId), 50);
 }
@@ -12625,6 +12697,7 @@ function handleSharedChatLink(attempt) {
 // FAZ 17 — web'de düz bağlantıyla SOĞUK açılış: ilan/sohbet dışındaki hedefler (profil, konu, Arena, ekran, telefon) de bildirim yönlendiricisiyle AYNI yoldan açılır.
 function handleSharedOtherLinks() {
   const q = new URLSearchParams(location.search);
+  if (q.get('ncid') && !q.get('listing')) tkNcReport(q.get('ncid'), 'open');   // FAZ 31: kampanya bildirimi → ana sayfa/ekran (açılma)
   if (q.get('listing') || q.get('chat')) return;
   if (['profile', 'post', 'arenaLeague', 'screen', 'phone'].some((k) => q.get(k))) navigateFromNotificationUrl('https://www.teknohane.net/' + location.search);
 }
@@ -14688,6 +14761,7 @@ function applyListingWizardDraft(d) {
 
 function newListing() {
   if (!user) { gt('profile'); return; }
+  TK_BIZ_PUBLISH = TK_BIZ_PUBLISH_PENDING || null; TK_BIZ_PUBLISH_PENDING = null;   // Faz 32: işletme adına ilan bağlamı (yoksa bireysel ilan)
   editingListingId = null;
   pendingNewListingPhotoId = db.collection('teknohane_listings').doc().id;
   ensureListingIlOptionsPopulated();
@@ -14718,6 +14792,10 @@ function newListing() {
   document.getElementById('listing-mo').classList.add('wizard-mode');
   document.getElementById('listing-mo').classList.add('on');
   loadExtraPhones();
+  if (TK_BIZ_PUBLISH) {   // Faz 32: işletme ilanı — başlık + cihazdan ön doldurma; eski taslak sorusu atlanır (taslağa dokunulmaz)
+    document.querySelector('#listing-mo .mtit').textContent = 'İşletme İlanı Ver';
+    if (TK_BIZ_PUBLISH.prefill) { listingWizardStep = 1; showListingWizardStep(1); bizPrefillListing(TK_BIZ_PUBLISH.prefill); return; }
+  }
   const draft = loadListingWizardDraftIfAny();
   if (draft) {
     if (confirm('Yarım kalmış bir ilan taslağın var. Kaldığın yerden devam etmek ister misin? (İptal edersen taslak silinir ve sıfırdan başlarsın.)')) {
@@ -14992,6 +15070,7 @@ async function submitListing() {
       // güncellenmez — mevcut ownerName denormalizasyonuyla AYNI, bilinçli kabul edilen sınır.
       data.sellerTrustedSeller = isTrustedSellerActive(myProfileData);
       data.sellerVip = isVipActive(myProfileData);
+      if (TK_BIZ_PUBLISH && !editingListingId) { data.bizId = TK_BIZ_PUBLISH.id; data.bizName = TK_BIZ_PUBLISH.name; }   // Faz 32: işletme ilanı (Rules: yalnızca üyesi olunan işletme + adı birebir)
       data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
       // İlan yaşam döngüsü: her yeni ilan 30 gün sonra otomatik olarak Pazar'dan gizlenir (bkz.
       // isListingExpired/rlistings). Süre dolunca sahibine bildirim gider, tek tuşla yeniden
@@ -15022,6 +15101,7 @@ async function submitListing() {
       assignPazarBoostForNewListing(newListingRef.id);
       showToast('⏳', 'rgba(255,149,0,.15)', 'İlanınız Gönderildi', 'İncelendikten sonra Pazar\'da yayınlanacaktır.');
       tcOfferAfterSave(newListingRef.id, model, category); // C3: isteğe bağlı TeknoCheck raporu bağlama teklifi (sunucu çağrısı yalnızca dokununca)
+      if (typeof bizOnListingCreated === 'function') bizOnListingCreated(newListingRef.id);   // Faz 32: işletme cihazı oluşan ilana bağlanır (bağlam yoksa hiçbir şey yapmaz)
       // SİHİRBAZ 1.0 — ADIM 8 KANCASI: kullanıcı Adım 8'de "yayınlanınca hemen görmek istiyorum"
       // kutusunu işaretlediyse, YENİ bir talep/onay mekanizması İCAT EDİLMEDEN, ilan gerçekten
       // oluştuktan HEMEN sonra zaten var olan openBoostRequestForm(id) doğrudan açılır — o fonksiyon
@@ -15610,7 +15690,7 @@ function renderDetailPage(l) {
     ${mine?`<button class="mark-sold-btn" style="width:100%;padding:12px;margin-top:4px" onclick="toggleSold('${l.id}')">${l.sold?'↺ Satıldı İşaretini Kaldır':'✓ Satıldı Olarak İşaretle'}</button>`:''}
     <div id="det-similar"></div>`;
   document.getElementById('detail-mo').classList.add('on');
-  if (l.uid) loadSellerCard(l.uid, l.ownerName, mine, 'det-seller-card');
+  if (l.uid) loadSellerCard(l.uid, l.ownerName, mine, 'det-seller-card', l.bizName || null);
   renderSimilarListings(l, 'det-similar');
   renderPriceAlertSection(l);
   tcLoadListingSlot(l); // C3: TeknoCheck raporu alanı (sunucu doğrulamalı; ağ yoksa "doğrulanmadı" der)
@@ -22822,6 +22902,247 @@ function bizCustomerHistory(customerId, moves, devicesById) {
   return { moves: mv, boughtFromUs: bought.map(label), soldToUs: sold.map(label) };
 }
 
+// ==================================================================== FAZ 32 — İŞLETME YÖNETİM MERKEZİ: SAF MANTIK (kaynak: teknocheck/isletme3.js; uygula.mjs gömer)
+// Ağ/DOM YOK → birim testlenebilir (tasarim-testleri/f32-mantik.mjs). Tüm rakamlar GERÇEK kayıtlardan hesaplanır; veri yoksa 0/boş döner, uydurma değer üretilmez.
+// Kâr ilkeleri: (1) kâr YALNIZCA gerçekleşen satıştan doğar (stoktaki cihazın "potansiyel kârı" gelir sayılmaz); (2) satış sonradan iade/iptal edildiyse ciro ve kâr düşer, yalnızca iade farkı (kesinti) gelir kalır;
+// (3) cihaz maliyeti = alış + stok girişi + cihaz masrafları; satış anında kâra yansır (alış tutarı ayrıca gider olarak DÜŞÜLMEZ → çift sayım yok); (4) genel gelir/gider defteri brüt kâra eklenerek NET sonuca ulaşılır.
+const BIZ_CATEGORIES = { phone_shop: 'Telefon mağazası', repair: 'Tamir / servis', wholesale: 'Toptan satış', accessory: 'Aksesuar', electronics: 'Teknoloji mağazası', other: 'Diğer' };
+const BIZ_DAYS = [['mon', 'Pazartesi'], ['tue', 'Salı'], ['wed', 'Çarşamba'], ['thu', 'Perşembe'], ['fri', 'Cuma'], ['sat', 'Cumartesi'], ['sun', 'Pazar']];
+const BIZ_PAY_METHODS = { cash: 'Nakit', transfer: 'Havale / EFT', card: 'Kart', other: 'Diğer' };
+const BIZ_COND = { new: 'Sıfır', used: 'İkinci el' };
+const BIZ_LEDGER_EXPENSE = ['Kira', 'Personel / maaş', 'Reklam', 'Fatura', 'Nakliye / kargo', 'Vergi / harç', 'Malzeme', 'Diğer'];
+const BIZ_LEDGER_INCOME = ['Servis geliri', 'Aksesuar satışı', 'Komisyon', 'Diğer'];
+const BIZ_PAYSTATUS = { paid: 'Ödendi', partial: 'Kısmi ödendi', unpaid: 'Ödenmedi', void: 'İade / iptal' };
+const BIZ_LISTING_STATE = { live: 'Yayında', pending: 'Onay bekliyor', rejected: 'Reddedildi', paused_owner: 'Yayından kaldırıldı', paused_admin: 'Yönetici kaldırdı', sold: 'Satıldı', expired: 'Süresi doldu' };
+const bizMs = (t) => { try { if (t == null) return null; if (typeof t === 'number') return t; if (t.toMillis) return t.toMillis(); if (t.toDate) return t.toDate().getTime(); const n = Date.parse(t); return isNaN(n) ? null : n; } catch (e) { return null; } };
+const bizR2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
+
+// ---------------------------------------------------------------- profil yardımcıları
+function bizSafeUrl(raw) {
+  let s = bizText(raw, 300); if (!s) return '';
+  if (/^[a-z][a-z0-9+.-]*:/i.test(s) && !/^https?:\/\//i.test(s)) return '';   // javascript:, data: vb. ASLA
+  if (!/^https?:\/\//i.test(s)) s = 'https://' + s;
+  try { const u = new URL(s); if (!/^https?:$/.test(u.protocol) || !/\./.test(u.hostname) || u.username || u.password) return ''; return u.href; } catch (e) { return ''; }
+}
+function bizInstagram(raw) {   // "@ornek", "ornek", "instagram.com/ornek/" → "ornek"
+  let s = bizText(raw, 200).replace(/^https?:\/\/(www\.)?instagram\.com\//i, '').replace(/^@/, '').replace(/[/?#].*$/, '');
+  return /^[A-Za-z0-9._]{1,30}$/.test(s) ? s : '';
+}
+function bizWhatsapp(raw) {   // yalnızca rakam; 05xx… ve 5xx… Türkiye (90) ile tamamlanır; 10–15 hane
+  let d = String(raw == null ? '' : raw).replace(/\D/g, '');
+  if (/^0\d{10}$/.test(d)) d = '90' + d.slice(1); else if (/^5\d{9}$/.test(d)) d = '90' + d;
+  return /^\d{10,15}$/.test(d) ? d : '';
+}
+function bizHoursParse(v) {   // "09:00-19:00" | "closed" | "" → {closed:true} | {open,close} | null
+  if (v === 'closed') return { closed: true };
+  const m = /^([01]\d|2[0-3]):([0-5]\d)-([01]\d|2[0-3]):([0-5]\d)$/.exec(String(v || '')); return m ? { open: m[1] + ':' + m[2], close: m[3] + ':' + m[4] } : null;
+}
+function bizHoursValue(closed, open, close) { if (closed) return 'closed'; const s = open + '-' + close; return bizHoursParse(s) ? s : ''; }
+// Şu an açık mı? Saat bilgisi yoksa null (bilinmiyor). Gece yarısını aşan aralık (22:00-02:00) desteklenir.
+function bizOpenNow(hours, now) {
+  if (!hours) return null; const d = now instanceof Date ? now : new Date(), key = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][d.getDay()], prev = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][(d.getDay() + 6) % 7];
+  const mins = d.getHours() * 60 + d.getMinutes(), toM = (s) => Number(s.slice(0, 2)) * 60 + Number(s.slice(3));
+  const today = bizHoursParse(hours[key]), yest = bizHoursParse(hours[prev]);
+  if (!today && !yest) return null;
+  if (today && !today.closed) { const o = toM(today.open), c = toM(today.close); if (c > o ? (mins >= o && mins < c) : mins >= o) return true; }
+  if (yest && !yest.closed) { const o = toM(yest.open), c = toM(yest.close); if (c <= o && mins < c) return true; }
+  return false;
+}
+// Profil tamamlama önerisi (ZORLAMAZ): eksik alanları listeler; yüzde yalnızca bilgi içindir.
+function bizProfileCompleteness(biz, hasCover) {
+  const b = biz || {}, has = (x) => typeof x === 'string' && x.trim().length > 0;
+  const items = [
+    ['logo', 'Logo', has(b.logo)], ['cover', 'Kapak görseli', !!hasCover], ['description', 'İşletme açıklaması', has(b.description)], ['category', 'Kategori', has(b.category)],
+    ['phone', 'Telefon', has(b.phone)], ['location', 'İl / ilçe veya adres', has(b.city) || has(b.address)], ['hours', 'Çalışma saatleri', !!b.hours && Object.keys(b.hours).length > 0],
+    ['links', 'Web sitesi veya sosyal medya', has(b.website) || has(b.instagram) || has(b.facebook) || has(b.whatsapp)],
+  ];
+  const done = items.filter((i) => i[2]).length;
+  return { percent: Math.round(done / items.length * 100), done, total: items.length, missing: items.filter((i) => !i[2]).map((i) => ({ key: i[0], label: i[1] })) };
+}
+
+// ---------------------------------------------------------------- satış / ödeme planı
+// Satış planı: bizPlanMove('sale') + ödenen tutar (boş = tamamı ödendi) + ödeme yöntemi. Kalan > 0 ise alacak kaydı gerekir.
+function bizPlanSale(device, input) {
+  const i = input || {}, base = bizPlanMove(device, 'sale', i); if (!base.ok) return base;
+  const amount = base.amount; let paid = amount;
+  if (i.paid !== undefined && i.paid !== null && String(i.paid).trim() !== '') { paid = bizMoney(i.paid); if (paid === null) return { ok: false, error: 'Ödenen tutar geçersiz.' }; }
+  if (paid > amount) return { ok: false, error: 'Ödenen tutar satış tutarından büyük olamaz.' };
+  const method = i.payMethod && BIZ_PAY_METHODS[i.payMethod] ? i.payMethod : (paid > 0 ? 'cash' : null);
+  if (i.payMethod && !BIZ_PAY_METHODS[i.payMethod]) return { ok: false, error: 'Ödeme yöntemi geçersiz.' };
+  const remaining = bizR2(amount - paid);
+  if (remaining > 0 && !(i.customerName && bizText(i.customerName, 80))) return { ok: false, error: 'Kalan tutar için müşteri seçmelisin (alacak kaydı müşteriye bağlanır).' };
+  return { ...base, paid, payMethod: method, remaining, receivable: remaining > 0 };
+}
+// Tahsilat planı (alacağa ek ödeme): 0 < tutar ≤ kalan; tarih geçerli; yöntem geçerli.
+function bizPlanCollect(rec, input) {
+  const i = input || {}; if (!rec) return { ok: false, error: 'Alacak kaydı bulunamadı.' };
+  const remaining = bizR2((rec.total || 0) - (rec.paid || 0)); if (remaining <= 0) return { ok: false, error: 'Bu alacak zaten kapanmış.' };
+  const amount = bizMoney(i.amount); if (amount === null || amount <= 0) return { ok: false, error: 'Tahsilat tutarı gerekli (0\'dan büyük).' };
+  if (amount > remaining) return { ok: false, error: 'Tahsilat kalan tutardan (' + bizTL(remaining) + ') büyük olamaz.' };
+  const date = i.date || bizIsoDay(); if (!bizValidDay(date)) return { ok: false, error: 'Tarih geçersiz (gelecekte olamaz).' };
+  const method = i.method || 'cash'; if (!BIZ_PAY_METHODS[method]) return { ok: false, error: 'Ödeme yöntemi geçersiz.' };
+  return { ok: true, amount, date, method, paidAfter: bizR2((rec.paid || 0) + amount), closes: bizR2(remaining - amount) === 0 };
+}
+// Genel gelir/gider kaydı doğrulaması
+function bizPlanLedger(input) {
+  const i = input || {}; if (i.kind !== 'income' && i.kind !== 'expense') return { ok: false, error: 'Kayıt türü seçilmeli.' };
+  const category = bizText(i.category, 40); if (!category) return { ok: false, error: 'Kategori gerekli.' };
+  const amount = bizMoney(i.amount); if (amount === null || amount <= 0) return { ok: false, error: 'Tutar gerekli (0\'dan büyük).' };
+  const date = i.date || bizIsoDay(); if (!bizValidDay(date)) return { ok: false, error: 'Tarih geçersiz (gelecekte olamaz).' };
+  return { ok: true, entry: { kind: i.kind, category, amount, date, note: bizText(i.note, 300) } };
+}
+// Aynı cihazın mükerrer kaydı uyarısı (engel DEĞİL): aynı IMEI son 4 hane + aynı model stokta zaten var mı
+function bizFindDuplicate(devices, brand, model, tail4) {
+  if (!tail4) return null; const key = bizNorm(brand + model);
+  return (devices || []).find((d) => d.status === 'in_stock' && d.imeiTail4 === tail4 && bizNorm((d.brand || '') + (d.model || '')) === key) || null;
+}
+
+// ---------------------------------------------------------------- hareketler: sıralama ve satış defteri
+function bizSortMoves(moves) {   // kronolojik (tarih, sonra sunucu zamanı, sonra dizi sırası)
+  return (moves || []).map((m, idx) => ({ m, idx })).sort((a, b) => { const da = String(a.m.date || ''), db2 = String(b.m.date || ''); if (da !== db2) return da < db2 ? -1 : 1; const ta = bizMs(a.m.createdAt), tb = bizMs(b.m.createdAt); if (ta != null && tb != null && ta !== tb) return ta - tb; return b.idx - a.idx; }).map((x) => x.m);   // dizi desc geldiği için eşitlikte ters idx
+}
+// Her SATIŞ hareketi için bir satır. amount/paid null ise (tutar görme yetkisi yok) finans alanları null kalır.
+// payStatus: paid | partial | unpaid | void (satış sonradan iade/iptal edildi). Gerçekleşen kâr yalnızca void olmayan satışta; iade farkı (kesinti) void satırda "retained".
+function bizSales(devices, moves, receivables) {
+  const dById = Object.fromEntries((devices || []).map((d) => [d.id, d])), recById = Object.fromEntries((receivables || []).map((r) => [r.id, r]));
+  const byDev = {}; bizSortMoves(moves).forEach((m) => { (byDev[m.deviceId] = byDev[m.deviceId] || []).push(m); });
+  const money = (x) => (typeof x === 'number' && isFinite(x) ? x : null);
+  const rows = [];
+  Object.keys(byDev).forEach((devId) => {
+    const list = byDev[devId], d = dById[devId] || null;
+    const costOf = () => bizR2(list.filter((m) => ['purchase', 'stock_in', 'expense'].includes(m.type)).reduce((a, m) => a + (money(m.amount) || 0), 0));
+    let open = null;   // son aktif satış
+    list.forEach((m) => {
+      if (m.type === 'sale') {
+        const amount = money(m.amount), rec = recById[m.id] || null;
+        const paidTotal = amount === null ? null : (rec ? Math.min(amount, money(rec.paid) || 0) : Math.min(amount, money(m.paid) === null ? amount : money(m.paid)));   // eski satışlarda paid alanı yok → tamamı ödenmiş
+        const row = { moveId: m.id, deviceId: devId, date: m.date, customerId: m.customerId || null, customerName: m.customerName || null, amount, paid: paidTotal, remaining: amount === null ? null : bizR2(amount - paidTotal), voided: false, refund: 0, retained: 0, cost: null, profit: null, revenue: amount, payStatus: null, soldNow: false, byName: m.byName || null };
+        rows.push(row); open = row;
+      } else if (m.type === 'return' && open) {
+        open.voided = true; open.refund = money(m.amount) || 0; open.returnDate = m.date;
+        open.retained = open.amount === null ? null : Math.max(0, bizR2(open.amount - open.refund)); open.revenue = open.retained; open.remaining = 0; open.cost = 0; open.profit = open.retained; open = null;
+      }
+    });
+    if (open && d && d.status === 'sold' && open.amount !== null) { const cost = costOf(); open.cost = cost; open.profit = bizR2(open.amount - cost); open.soldNow = true; }
+  });
+  rows.forEach((r) => { r.payStatus = r.voided ? 'void' : (r.amount === null ? null : (r.remaining <= 0 ? 'paid' : (r.paid > 0 ? 'partial' : 'unpaid'))); });
+  return rows.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));   // yeni → eski
+}
+// Stoktan çıkarma (kayıp/iade dışı) olayları: geri kazanım − maliyet; sonradan stok girişi yapıldıysa sayılmaz.
+function bizRemovals(devices, moves) {
+  const dById = Object.fromEntries((devices || []).map((d) => [d.id, d])), out = [], byDev = {};
+  bizSortMoves(moves).forEach((m) => { (byDev[m.deviceId] = byDev[m.deviceId] || []).push(m); });
+  Object.keys(byDev).forEach((devId) => {
+    const d = dById[devId]; if (!d || d.status !== 'removed') return; const list = byDev[devId];
+    let rem = null; list.forEach((m) => { if (m.type === 'removal') rem = m; else if (m.type === 'stock_in') rem = null; }); if (!rem) return;
+    const num = (x) => (typeof x === 'number' && isFinite(x) ? x : 0), cost = bizR2(list.filter((m) => ['purchase', 'stock_in', 'expense'].includes(m.type)).reduce((a, m) => a + num(m.amount), 0)), recovery = num(rem.amount);
+    out.push({ moveId: rem.id, deviceId: devId, date: rem.date, recovery, cost, profit: bizR2(recovery - cost) });
+  });
+  return out;
+}
+const bizInRange = (day, from, to) => typeof day === 'string' && (!from || day >= from) && (!to || day <= to);
+
+// Dönem raporu: from/to "YYYY-MM-DD" (kapalı aralık; boş = sınırsız). canFin=false ise tutarlar hesaplanmaz.
+function bizPeriodReport(o) {
+  const { devices, moves, receivables, ledger, from, to } = o, sales = bizSales(devices, moves, receivables), removals = bizRemovals(devices, moves);
+  const act = sales.filter((s) => !s.voided && bizInRange(s.date, from, to)), vo = sales.filter((s) => s.voided && bizInRange(s.returnDate || s.date, from, to));
+  const money = (arr, f) => bizR2(arr.reduce((a, x) => a + (typeof f(x) === 'number' ? f(x) : 0), 0));
+  const rm = removals.filter((r) => bizInRange(r.date, from, to)), led = (ledger || []).filter((l) => bizInRange(l.date, from, to));
+  const buy = (moves || []).filter((m) => (m.type === 'purchase' || m.type === 'stock_in') && bizInRange(m.date, from, to));
+  const exp = (moves || []).filter((m) => m.type === 'expense' && bizInRange(m.date, from, to));
+  const gProfit = bizR2(money(act, (s) => s.profit) + money(vo, (s) => s.retained) + money(rm, (r) => r.profit));
+  const gInc = money(led.filter((l) => l.kind === 'income'), (l) => l.amount), gExp = money(led.filter((l) => l.kind === 'expense'), (l) => l.amount);
+  return {
+    from: from || null, to: to || null,
+    salesCount: act.length, salesRevenue: money(act, (s) => s.amount), collected: money(act, (s) => s.paid), openReceivable: money(act, (s) => s.remaining),
+    voidedCount: vo.length, retained: money(vo, (s) => s.retained), refunded: money(vo, (s) => s.refund),
+    purchaseCount: buy.filter((m) => m.type === 'purchase').length, purchaseTotal: money(buy, (m) => m.amount), deviceExpenses: money(exp, (m) => m.amount),
+    removalCount: rm.length, removalResult: money(rm, (r) => r.profit),
+    grossProfit: gProfit, generalIncome: gInc, generalExpense: gExp, netProfit: bizR2(gProfit + gInc - gExp),
+  };
+}
+// Tüm zamanlardaki açık alacak (iade edilmeyen satışların kalanı)
+function bizOpenReceivables(devices, moves, receivables) {
+  const rows = bizSales(devices, moves, receivables).filter((s) => !s.voided && s.remaining > 0);
+  return { count: rows.length, total: bizR2(rows.reduce((a, s) => a + s.remaining, 0)), rows };
+}
+// Aylık seri (eskiden yeniye). nowMs: test için sabitlenebilir. Ay anahtarı "YYYY-MM".
+function bizMonthly(o, months, nowMs) {
+  const now = new Date(nowMs == null ? Date.now() : nowMs), n = months || 12, sales = bizSales(o.devices, o.moves, o.receivables), removals = bizRemovals(o.devices, o.moves);
+  const out = [], TR = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+  for (let k = n - 1; k >= 0; k--) { const d = new Date(now.getFullYear(), now.getMonth() - k, 1); out.push({ ym: d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'), label: TR[d.getMonth()], revenue: 0, profit: 0, count: 0, purchases: 0 }); }
+  const at = (day) => out.find((x) => typeof day === 'string' && day.slice(0, 7) === x.ym);
+  sales.forEach((s) => { const x = at(s.voided ? (s.returnDate || s.date) : s.date); if (!x) return; if (!s.voided) { x.count++; x.revenue = bizR2(x.revenue + (s.amount || 0)); x.profit = bizR2(x.profit + (s.profit || 0)); } else { x.profit = bizR2(x.profit + (s.retained || 0)); } });
+  removals.forEach((r) => { const x = at(r.date); if (x) x.profit = bizR2(x.profit + r.profit); });
+  (o.moves || []).forEach((m) => { if (m.type !== 'purchase') return; const x = at(m.date); if (x) x.purchases = bizR2(x.purchases + (typeof m.amount === 'number' ? m.amount : 0)); });
+  return out;
+}
+// En çok satılan cihazlar (marka + model); yalnızca aktif satışlar
+function bizTopModels(devices, sales, limit) {
+  const dById = Object.fromEntries((devices || []).map((d) => [d.id, d])), g = {};
+  (sales || []).filter((s) => !s.voided).forEach((s) => { const d = dById[s.deviceId]; if (!d) return; const key = bizNorm((d.brand || '') + (d.model || '')), x = g[key] = g[key] || { label: [d.brand, d.model].filter(Boolean).join(' '), count: 0, revenue: 0, profit: 0 }; x.count++; x.revenue = bizR2(x.revenue + (s.amount || 0)); x.profit = bizR2(x.profit + (s.profit || 0)); });
+  return Object.values(g).sort((a, b) => b.count - a.count || b.revenue - a.revenue).slice(0, limit || 5);
+}
+// Stokta bekleme süresi (gün): alış tarihi; yoksa kayıt zamanı
+function bizAging(devices, nowMs) {
+  const now = nowMs == null ? Date.now() : nowMs, rows = (devices || []).filter((d) => d.status === 'in_stock').map((d) => { const t = d.purchaseDate ? Date.parse(d.purchaseDate + 'T12:00:00') : bizMs(d.createdAt); return { device: d, days: t == null || isNaN(t) ? null : Math.max(0, Math.floor((now - t) / 864e5)) }; });
+  const known = rows.filter((r) => r.days !== null), b = [['0–30 gün', 0, 30], ['31–60 gün', 31, 60], ['61–90 gün', 61, 90], ['90+ gün', 91, 1e9]];
+  return { count: rows.length, known: known.length, avgDays: known.length ? Math.round(known.reduce((a, r) => a + r.days, 0) / known.length) : null, maxDays: known.length ? Math.max(...known.map((r) => r.days)) : null, buckets: b.map(([label, lo, hi]) => ({ label, count: known.filter((r) => r.days >= lo && r.days <= hi).length })), oldest: known.sort((a, c) => c.days - a.days).slice(0, 5) };
+}
+// Müşteri özeti: bize satılan/bizden alınan, toplamlar, açık bakiye, son işlem
+function bizCustomerStats(customerId, sales, moves, receivables) {
+  const mine = (sales || []).filter((s) => s.customerId === customerId), act = mine.filter((s) => !s.voided);
+  const buys = (moves || []).filter((m) => m.customerId === customerId && m.type === 'purchase');
+  const days = mine.map((s) => s.date).concat(mine.map((s) => s.returnDate)).concat(buys.map((m) => m.date)).filter(Boolean).sort();   // iade tarihi de müşteriyle yapılan bir işlemdir
+  const sum = (arr, f) => bizR2(arr.reduce((a, x) => a + (typeof f(x) === 'number' ? f(x) : 0), 0));
+  return { boughtCount: act.length, boughtTotal: sum(act, (s) => s.amount), openBalance: sum(act, (s) => s.remaining), soldToUsCount: buys.length, soldToUsTotal: sum(buys, (m) => m.amount), lastDate: days.length ? days[days.length - 1] : null };
+}
+// Müşteri satış listesi satırları (kendi satışları)
+const bizCustomerSales = (customerId, sales) => (sales || []).filter((s) => s.customerId === customerId);
+
+// ---------------------------------------------------------------- Pazar ilanı ile stok tutarlılığı
+function bizListingState(l, nowMs) {
+  if (!l) return null; const now = nowMs == null ? Date.now() : nowMs;
+  if (l.sold) return 'sold'; if (l.rejected) return 'rejected';
+  if (l.paused) return l.pausedBy === 'owner' ? 'paused_owner' : 'paused_admin';
+  if (!l.approved) return 'pending';
+  const exp = bizMs(l.expiresAt); if (exp !== null && exp < now) return 'expired';
+  return 'live';
+}
+const bizListingActive = (st) => st === 'live' || st === 'pending';
+// Cihaz ↔ ilan çelişkileri (kullanıcıya uyarı olarak gösterilir; veriyi sessizce değiştirmez)
+function bizListingConsistency(device, listing, nowMs) {
+  const issues = []; if (!device) return issues;
+  if (device.listingId && !listing) { issues.push('listing_missing'); return issues; }
+  if (!listing) return issues; const st = bizListingState(listing, nowMs);
+  if ((device.status === 'sold' || device.status === 'removed') && bizListingActive(st)) issues.push('device_gone_listing_active');
+  if (device.status === 'in_stock' && st === 'sold') issues.push('device_in_stock_listing_sold');
+  const lp = typeof listing.price === 'number' ? listing.price : parseInt(String(listing.price || '').replace(/[^\d]/g, ''), 10);
+  if (typeof device.listPrice === 'number' && isFinite(lp) && lp > 0 && Math.round(device.listPrice) !== lp) issues.push('price_mismatch');
+  return issues;
+}
+const BIZ_CONSISTENCY_TEXT = { listing_missing: 'Bağlı ilan bulunamadı (silinmiş olabilir).', device_gone_listing_active: 'Cihaz stokta değil ama ilanı hâlâ yayında/onayda — ilanı kaldır veya satıldı işaretle.', device_in_stock_listing_sold: 'İlan "satıldı" ama cihaz hâlâ stokta görünüyor — satışı kaydet.', price_mismatch: 'İlan fiyatı, cihaz kaydındaki liste fiyatından farklı.' };
+
+// ---------------------------------------------------------------- dışa aktarma (CSV; Excel TR: ; ayırıcı, virgül ondalık)
+function bizCsvCell(v) {
+  let s = v === null || v === undefined ? '' : (typeof v === 'number' ? String(v).replace('.', ',') : String(v));
+  if (/^[=+\-@\t\r]/.test(s) && typeof v !== 'number') s = "'" + s;   // formül enjeksiyonuna karşı
+  return /[;"\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+const bizCsv = (headers, rows) => [headers].concat(rows).map((r) => r.map(bizCsvCell).join(';')).join('\r\n');
+// Dönem seçici: kısa adlar → [from,to]
+function bizRange(key, nowMs) {
+  const now = new Date(nowMs == null ? Date.now() : nowMs), iso = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  const ago = (n) => { const d = new Date(now); d.setDate(d.getDate() - n); return d; };
+  switch (key) {
+    case '7d': return [iso(ago(6)), iso(now)]; case '30d': return [iso(ago(29)), iso(now)]; case '90d': return [iso(ago(89)), iso(now)];
+    case 'month': return [iso(new Date(now.getFullYear(), now.getMonth(), 1)), iso(now)];
+    case 'lastmonth': return [iso(new Date(now.getFullYear(), now.getMonth() - 1, 1)), iso(new Date(now.getFullYear(), now.getMonth(), 0))];
+    case 'year': return [iso(new Date(now.getFullYear(), 0, 1)), iso(now)];
+    default: return ['', ''];
+  }
+}
+
 // ==================================================================== FAZ 9 — İŞLETME YÖNETİMİ: VERİ KATMANI + ARAYÜZ (kaynak: teknocheck/isletme2.js; uygula.mjs gömer)
 // Firestore yolları (hepsi YENİ; mevcut koleksiyonlara dokunmaz): business_memberships/{uid}_{bizId}, businesses/{bizId}[/members|restricted|plan|inventory(/sensitive|photos)|movements|movementsFinance|customers].
 // Erişim denetimi Firestore Rules'ta (üyelik + rol); bu arayüz yalnızca yetkiye göre düğmeleri gizler/gösterir — asıl sınır sunucudadır.
@@ -22841,7 +23162,7 @@ function bizEnsureModal() {
   m = document.createElement('div'); m.className = 'mo'; m.id = 'biz-mo';
   m.innerHTML = `<div class="det-sheet" role="dialog" aria-modal="true" aria-labelledby="biz-title"><div class="det-sticky"><div class="det-close" role="button" tabindex="0" aria-label="Geri" id="biz-back" style="order:-1"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></div><div id="biz-title" style="font-size:15px;font-weight:700;color:var(--text2)">İşletme</div><div style="width:34px"></div></div><div class="det-body" id="biz-body"></div></div>`;
   document.body.appendChild(m);
-  m.addEventListener('click', (e) => { if (e.target === m) closemo('biz-mo'); });
+  m.addEventListener('click', (e) => { if (e.target === m) { closemo('biz-mo'); return; } const nv = e.target.closest && e.target.closest('[data-nav]'); if (nv && BIZ && BIZ.id) { BIZ._cq = ''; bizGo(nv.dataset.nav, null, true); } });   // Faz 32: bölüm gezintisi
   const back = m.querySelector('#biz-back'); back.addEventListener('click', () => bizBack());
   back.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); bizBack(); } });
   return m;
@@ -22879,30 +23200,14 @@ async function bizSelect(m) {
   bizGo('home', null, true);
 }
 // Tüm veri tek seferde (sınırlı): işletme, paket, stok, hareketler, (yetkiliyse) tutarlar, müşteriler.
-async function bizLoad() {
-  const bd = await bizDb().collection('businesses').doc(BIZ.id).get();
-  if (!bd.exists) throw Object.assign(new Error('yok'), { code: 'permission-denied' });
-  BIZ.biz = bd.data();
-  try { const p = await bizCol('plan').doc('main').get(); BIZ.plan = p.exists ? p.data() : null; } catch (e) { BIZ.plan = null; }
-  try { const u = await bizCol('plan').doc('usage').get(); BIZ.usage = u.exists ? u.data() : { devices: 0, customers: 0 }; } catch (e) { BIZ.usage = { devices: 0, customers: 0 }; }
-  BIZ.devices = (await bizCol('inventory').orderBy('createdAt', 'desc').limit(500).get()).docs.map((d) => ({ id: d.id, ...d.data() }));
-  BIZ.moves = (await bizCol('movements').orderBy('createdAt', 'desc').limit(1500).get()).docs.map((d) => ({ id: d.id, ...d.data() }));
-  BIZ.fin = null;
-  if (bizCanDo('view_finance')) {
-    const fs = {}; (await bizCol('movementsFinance').limit(1500).get()).docs.forEach((d) => { fs[d.id] = d.data(); });
-    BIZ.moves.forEach((m) => { if (fs[m.id]) m.amount = fs[m.id].amount; });
-    const by = {}; BIZ.moves.forEach((m) => { (by[m.deviceId] = by[m.deviceId] || []).push(m); });
-    BIZ.fin = {}; BIZ.devices.forEach((d) => { BIZ.fin[d.id] = bizDeviceFin(d, by[d.id] || []); });
-  }
-  BIZ.customers = (await bizCol('customers').orderBy('name').limit(500).get()).docs.map((d) => ({ id: d.id, ...d.data() }));
-}
+// (bizLoad: Faz 32'de teknocheck/isletme4.js içine taşındı)
 async function bizReload(view, arg) { bizSpin(); try { await bizLoad(); } catch (e) { return bizFail(e); } bizRender(view || BIZ.stack[BIZ.stack.length - 1].view, arg === undefined ? BIZ.stack[BIZ.stack.length - 1].arg : arg); }
 function bizGo(view, arg, reset) { if (reset) BIZ.stack = []; BIZ.stack.push({ view, arg }); bizRender(view, arg); }
 function bizBack() { if (!BIZ || BIZ.stack.length <= 1) { closemo('biz-mo'); return; } BIZ.stack.pop(); const t = BIZ.stack[BIZ.stack.length - 1]; bizRender(t.view, t.arg); }
 function bizRender(view, arg) {
   const b = bizBody(); if (!b) return;
-  const f = { home: bizViewHome, stock: bizViewStock, add: bizViewAdd, device: bizViewDevice, edit: bizViewEdit, move: bizViewMove, customers: bizViewCustomers, team: bizViewTeam, invites: bizViewInvites, plan: bizViewPlan, customer: bizViewCustomer, customerEdit: bizViewCustomerEdit, profile: bizViewProfile, create: bizViewCreate, choose: bizViewChoose, qr: bizViewQr }[view];
-  if (!f) return; f(b, arg); try { b.scrollTop = 0; document.querySelector('#biz-mo .det-sheet').scrollTop = 0; } catch (e) { /* yok */ }
+  const f = { home: bizViewHome, stock: bizViewStock, add: bizViewAdd, device: bizViewDevice, edit: bizViewEdit, move: bizViewMove, customers: bizViewCustomers, team: bizViewTeam, invites: bizViewInvites, plan: bizViewPlan, customer: bizViewCustomer, customerEdit: bizViewCustomerEdit, profile: bizViewProfile, create: bizViewCreate, choose: bizViewChoose, qr: bizViewQr, listings: bizViewListings, sales: bizViewSales, purchases: bizViewPurchases, finance: bizViewFinance, reports: bizViewReports, tcreports: bizViewTcReports, collect: bizViewCollect }[view];
+  if (!f) return; f(b, arg); try { b.scrollTop = 0; document.querySelector('#biz-mo .det-sheet').scrollTop = 0; const on = b.querySelector('.biz-nav-i.on'); if (on && on.scrollIntoView) on.scrollIntoView({ inline: 'center', block: 'nearest' }); } catch (e) { /* yok */ }
 }
 const bizBind = (b, sel, fn) => b.querySelectorAll(sel).forEach((x) => x.addEventListener('click', (e) => fn(x, e)));
 const bizDevLabel = (d) => [d.brand, d.model, d.storage].filter(Boolean).join(' ');
@@ -22925,6 +23230,8 @@ function bizViewCreate(b) {
     <label class="tcx-lbl" for="bz-name">İşletme adı *</label><input class="tk-input" id="bz-name" maxlength="80" autocomplete="organization">
     <label class="tcx-lbl" for="bz-contact">Yetkili kişi</label><input class="tk-input" id="bz-contact" maxlength="80">
     <label class="tcx-lbl" for="bz-phone">Telefon</label><input class="tk-input" id="bz-phone" maxlength="30" inputmode="tel">
+    <label class="tcx-lbl" for="bz-cat">Kategori <small>(isteğe bağlı)</small></label><select class="tk-input" id="bz-cat"><option value="">Seçilmedi</option>${Object.entries(BIZ_CATEGORIES).map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select>
+    <label class="tcx-lbl" for="bz-city">İl <small>(isteğe bağlı)</small></label><input class="tk-input" id="bz-city" maxlength="60" autocomplete="address-level1">
     <div class="tcr-err" id="bz-err" role="alert"></div>
     <div class="tcx-actions"><button type="button" class="tk-btn tk-btn--primary" id="bz-save">İşletmeyi oluştur</button></div></div>`;
   b.querySelector('#bz-save').addEventListener('click', async (ev) => {
@@ -22932,49 +23239,27 @@ function bizViewCreate(b) {
     if (!name) { err.textContent = 'İşletme adı gerekli.'; return; }
     if (!guardSubmit('biz-create')) return; ev.target.disabled = true;
     try {
-      const ref = bizDb().collection('businesses').doc(), bt = bizDb().batch();
-      bt.set(ref, { name, contactName: bizText(b.querySelector('#bz-contact').value, 80), phone: bizText(b.querySelector('#bz-phone').value, 30), ownerUid: user.uid, createdAt: bizNow(), updatedAt: bizNow(), status: 'active', planId: 'free' });
+      // Faz 32: mükerrer kayıt koruması — bu hesap zaten bir işletmenin SAHİBİYSE yeni işletme kurulmaz, mevcut işletmeye geçilir (çift dokunma, eski sekme, tekrar deneme).
+      const ex = await bizDb().collection('business_memberships').where('uid', '==', user.uid).get(), exm = ex.docs.map((d) => d.data()).filter((m) => m.active !== false), own = exm.find((m) => m.role === 'owner');
+      if (own) { BIZ.memberships = exm; await bizSelect(own); bizToast(true, 'Zaten bir işletmen var', 'Mevcut işletmene geçildi.'); return; }
+      const ref = bizDb().collection('businesses').doc(), bt = bizDb().batch(), cat = b.querySelector('#bz-cat').value, city = bizText(b.querySelector('#bz-city').value, 60);
+      const base = { name, contactName: bizText(b.querySelector('#bz-contact').value, 80), phone: bizText(b.querySelector('#bz-phone').value, 30), ownerUid: user.uid, createdAt: bizNow(), updatedAt: bizNow(), status: 'active', planId: 'free' };
+      if (cat) base.category = cat; if (city) base.city = city;
+      bt.set(ref, base);
+      bt.set(bizDb().collection('business_owners').doc(user.uid), { bizId: ref.id, createdAt: bizNow() });
       bt.set(ref.collection('members').doc(user.uid), { uid: user.uid, role: 'owner', active: true, displayName: bizByName(), createdAt: bizNow() });
       bt.set(bizDb().collection('business_memberships').doc(user.uid + '_' + ref.id), { uid: user.uid, bizId: ref.id, role: 'owner', active: true, createdAt: bizNow() });
       await bt.commit();
       BIZ.memberships = [{ uid: user.uid, bizId: ref.id, role: 'owner', active: true }]; await bizSelect(BIZ.memberships[0]); bizToast(true, 'İşletme oluşturuldu', name);
-    } catch (e) { err.textContent = bizErrText(e); ev.target.disabled = false; } finally { releaseSubmit('biz-create'); }
+    } catch (e) { err.textContent = e && e.code === 'permission-denied' ? 'İşletme oluşturulamadı. Hesabında zaten bir işletme kayıtlı olabilir; sayfayı yenileyip işletmeni seç.' : bizErrText(e); ev.target.disabled = false; } finally { releaseSubmit('biz-create'); }
   });
 }
 
 // ---------------------------------------------------------------- ana gösterge paneli
-function bizViewHome(b) {
-  const t = bizTotals(BIZ.devices, BIZ.fin), fin = !!BIZ.fin, p = BIZ.biz;
-  bizTitle(p.name);
-  const card = (k, l, v) => `<div class="biz-stat" data-k="${k}"><b>${bizE(v)}</b><small>${l}</small></div>`;
-  const recent = BIZ.moves.slice(0, 6).map((m) => { const d = BIZ.devices.find((x) => x.id === m.deviceId); return `<li class="tcx-row"><div class="tcx-row-main"><div class="tcx-row-t">${bizE(BIZ_MOVE[m.type] || m.type)} · ${bizE(d ? bizDevLabel(d) : 'Cihaz')}</div><div class="tcx-row-d">${bizDay(m.date)}${m.customerName ? ' · ' + bizE(m.customerName) : ''}${fin && typeof m.amount === 'number' ? ' · ' + bizTL(m.amount) : ''}</div></div></li>`; }).join('');
-  b.innerHTML = `<div class="tcx" id="biz-home"><div class="biz-head">${p.logo ? `<img class="biz-logo" alt="" src="${bizE(p.logo)}">` : '<div class="biz-logo biz-logo--ph" aria-hidden="true">🏪</div>'}<div><h2 class="tc-info-h" style="margin:0">${bizE(p.name)}</h2><small class="biz-role" data-role="${bizE(BIZ.role)}">${bizE(BIZ_ROLES[BIZ.role] || BIZ.role)}</small></div></div>
-    <div class="biz-stats">${card('stock', 'Stokta', t.stockCount)}${card('sold', 'Satılan', t.soldCount)}${fin ? card('value', 'Stok değeri', bizTL(t.stockValue)) + card('revenue', 'Satış cirosu', bizTL(t.revenue)) + card('profit', 'Brüt kâr / zarar', bizTL(t.profit)) : card('removed', 'Çıkarılan', t.removedCount)}</div>
-    ${BIZ.myInvites && BIZ.myInvites.length ? `<div class="tc-status" role="note" id="biz-invites-banner"><b>${BIZ.myInvites.length} bekleyen işletme davetin var.</b> <button type="button" class="tk-btn tk-btn--outline tk-btn--sm" data-go="invites">Gör</button></div>` : ''}
-    ${fin ? '' : '<div class="tc-status" role="note" id="biz-nofin">Tutar ve kâr bilgileri yalnızca işletme sahibi ve yöneticiye görünür.</div>'}
-    <div class="tcx-actions"><button type="button" class="tk-btn tk-btn--primary" data-go="add">+ Yeni cihaz</button><button type="button" class="tk-btn tk-btn--outline" data-go="stock">Stok listesi</button><button type="button" class="tk-btn tk-btn--outline" data-go="customers">Müşteriler</button>${bizCanDo('view_members') ? '<button type="button" class="tk-btn tk-btn--outline" data-go="team">Ekip</button>' : ''}<button type="button" class="tk-btn tk-btn--outline" data-go="plan">Paket</button><button type="button" class="tk-btn tk-btn--outline" data-go="profile">İşletme</button></div>
-    <h3 class="pd-sec-t">Son işlemler</h3>${recent ? `<ul class="tcx-list">${recent}</ul>` : '<p class="tca-intro">Henüz işlem yok. İlk cihazını ekleyerek başla.</p>'}</div>`;
-  bizBind(b, '[data-go]', (x) => { if (x.dataset.go === 'stock') BIZ.filter = { q: '', status: 'in_stock', brand: '' }; bizGo(x.dataset.go); });
-  bizBind(b, '.biz-stat', (x) => { if (x.dataset.k === 'sold') BIZ.filter.status = 'sold'; else if (x.dataset.k === 'removed') BIZ.filter.status = 'removed'; else BIZ.filter.status = 'in_stock'; bizGo('stock'); });
-}
+// (bizViewHome: Faz 32'de teknocheck/isletme4.js içine taşındı)
 
 // ---------------------------------------------------------------- stok listesi
-function bizViewStock(b) {
-  bizTitle('Stok');
-  const brands = [...new Set(BIZ.devices.map((d) => d.brand).filter(Boolean))].sort();
-  const F = BIZ.filter, list = bizFilter(BIZ.devices, F);
-  b.innerHTML = `<div class="tcx" id="biz-stock"><input class="tk-input" id="bs-q" type="search" placeholder="Marka, model veya IMEI son 4 hane" value="${bizE(F.q)}" aria-label="Ara">
-    <div class="biz-chips" role="group" aria-label="Durum">${[['in_stock', 'Stokta'], ['sold', 'Satıldı'], ['removed', 'Çıkarılan'], ['all', 'Tümü']].map(([k, l]) => `<button type="button" class="tca-chip${F.status === k ? ' on' : ''}" data-st="${k}" aria-pressed="${F.status === k}">${l}</button>`).join('')}</div>
-    <select class="tk-input" id="bs-brand" aria-label="Marka"><option value="">Tüm markalar</option>${brands.map((x) => `<option${F.brand === x ? ' selected' : ''}>${bizE(x)}</option>`).join('')}</select>
-    <div class="tcx-counts" id="bs-count">${list.length} cihaz</div>
-    ${list.length ? `<ul class="tcx-list" id="bs-list">${list.map((d) => { const f = BIZ.fin && BIZ.fin[d.id]; return `<li class="tcx-row biz-dev" data-id="${bizE(d.id)}" role="button" tabindex="0"><div class="tcx-row-main"><div class="tcx-row-t">${bizE(bizDevLabel(d))}${d.color ? ' · ' + bizE(d.color) : ''}</div><div class="tcx-row-d">IMEI ${bizE(bizMaskImei(d.imeiTail4))}${d.report ? ' · TeknoCheck ✓' : ''}${d.batteryHealth ? ' · pil %' + bizE(d.batteryHealth.percent) : ''}</div></div><div class="tcx-row-side">${bizBadge(d.status)}${f ? `<small>${bizTL(f.cost)}</small>` : ''}</div></li>`; }).join('')}</ul>` : '<p class="tca-intro" id="bs-empty">Bu filtreyle cihaz yok.</p>'}
-    <div class="tcx-actions"><button type="button" class="tk-btn tk-btn--primary" data-go="add">+ Yeni cihaz</button></div></div>`;
-  const q = b.querySelector('#bs-q'); q.addEventListener('input', () => { F.q = q.value; clearTimeout(BIZ._qt); BIZ._qt = setTimeout(() => { const pos = q.selectionStart; bizViewStock(b); const n = b.querySelector('#bs-q'); n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) { /* yok */ } }, 200); });
-  b.querySelector('#bs-brand').addEventListener('change', (e) => { F.brand = e.target.value; bizViewStock(b); });
-  bizBind(b, '[data-st]', (x) => { F.status = x.dataset.st; bizViewStock(b); });
-  bizBind(b, '.biz-dev', (x) => bizGo('device', x.dataset.id));
-  bizBind(b, '[data-go="add"]', () => bizGo('add'));
-}
+// (bizViewStock: Faz 32'de teknocheck/isletme4.js içine taşındı)
 
 // ---------------------------------------------------------------- yeni cihaz (kısa akış)
 const BIZ_BRANDS = ['Apple', 'Samsung', 'Xiaomi', 'Redmi', 'POCO', 'OPPO', 'realme', 'vivo', 'HONOR', 'Huawei', 'OnePlus', 'Google', 'Motorola', 'Nokia', 'Reeder', 'TCL', 'Infinix', 'Tecno'];
@@ -22992,6 +23277,7 @@ async function bizViewAdd(b) {
     <label class="tcx-lbl" for="ba-model">Model *</label><input class="tk-input" id="ba-model" maxlength="80" autocomplete="off" placeholder="Örn. Galaxy S24">
     <div class="biz-two"><div><label class="tcx-lbl" for="ba-storage">Depolama</label><select class="tk-input" id="ba-storage"><option value="">—</option>${BIZ_STORAGES.map((x) => `<option>${x}</option>`).join('')}</select></div><div><label class="tcx-lbl" for="ba-color">Renk</label><input class="tk-input" id="ba-color" maxlength="40"></div></div>
     <label class="tcx-lbl" for="ba-price">Alış fiyatı (₺) *</label><input class="tk-input" id="ba-price" inputmode="decimal" autocomplete="off" placeholder="Örn. 12.500">
+    <div class="biz-two"><div><label class="tcx-lbl" for="ba-cond">Sıfır / ikinci el</label><select class="tk-input" id="ba-cond"><option value="">Seçilmedi</option><option value="new">Sıfır</option><option value="used">İkinci el</option></select></div><div><label class="tcx-lbl" for="ba-list">Satış hedefi (₺) <small>(isteğe bağlı)</small></label><input class="tk-input" id="ba-list" inputmode="decimal" autocomplete="off" placeholder="Örn. 16.000"></div></div>
     <label class="tcx-lbl" for="ba-imei">IMEI <small>(isteğe bağlı · yalnızca işletme içinde görünür)</small></label><input class="tk-input" id="ba-imei" inputmode="numeric" maxlength="20" autocomplete="off">
     <label class="tcx-lbl" for="ba-serial">Seri no <small>(isteğe bağlı)</small></label><input class="tk-input" id="ba-serial" maxlength="40" autocomplete="off">
     <label class="tcx-lbl">Kozmetik durum <small>(kendi değerlendirmen)</small></label><div id="ba-grade">${bizGradeChips(null)}</div>
@@ -23011,17 +23297,21 @@ async function bizViewAdd(b) {
     const plan = bizPlanMove(null, 'purchase', { amount: v('ba-price'), date: v('ba-date'), note: v('ba-note'), customerId: cust ? cust.id : null, customerName: seller });
     if (!plan.ok) { err.textContent = plan.error; return; }
     if (imei.value && imei.luhn === false && !(await confirmDialog('Bu IMEI numarasının sağlama basamağı tutmuyor (yazım hatası olabilir). Yine de kaydedeyim mi?', { title: 'IMEI kontrolü', confirmText: 'Yine de kaydet', cancelText: 'Düzelt' }))) return;
+    const listPrice = v('ba-list').trim() ? bizMoney(v('ba-list')) : null; if (v('ba-list').trim() && listPrice === null) { err.textContent = 'Satış hedefi geçersiz.'; return; }
+    const dup = bizFindDuplicate(BIZ.devices, brand, model, imei.value ? imei.value.slice(-4) : '');
+    if (dup && !(await confirmDialog('Stokta aynı model ve aynı IMEI son 4 haneli bir cihaz zaten var. Yine de yeni kayıt açılsın mı?', { title: 'Aynı cihaz olabilir', confirmText: 'Yine de ekle', cancelText: 'Vazgeç' }))) return;
     if (!guardSubmit('biz-add')) return; ev.target.disabled = true;
     try {
       const bt = bizDb().batch(), dref = bizCol('inventory').doc(), mref = bizCol('movements').doc();
       let custId = plan.movement.customerId;
       if (seller && !cust) { const cref = bizCol('customers').doc(); bt.set(cref, { name: seller, createdBy: user.uid, createdAt: bizNow(), updatedAt: bizNow() }); custId = cref.id; }
-      bt.set(dref, { brand, model, color: bizText(v('ba-color'), 40), storage: v('ba-storage'), status: 'in_stock', purchaseDate: plan.movement.date, cosmetic: grade ? { grade, note: '' } : null, imeiTail4: imei.value ? imei.value.slice(-4) : '', report: null, batteryHealth: null, notes: bizText(v('ba-note'), 1000), createdBy: user.uid, createdAt: bizNow(), updatedAt: bizNow() });
+      bt.set(dref, { brand, model, color: bizText(v('ba-color'), 40), storage: v('ba-storage'), status: 'in_stock', purchaseDate: plan.movement.date, condition: v('ba-cond') || null, listPrice, cosmetic: grade ? { grade, note: '' } : null, imeiTail4: imei.value ? imei.value.slice(-4) : '', report: null, batteryHealth: null, notes: bizText(v('ba-note'), 1000), createdBy: user.uid, createdAt: bizNow(), updatedAt: bizNow() });
       if (imei.value || bizSerial(v('ba-serial'))) bt.set(dref.collection('sensitive').doc('ids'), { imei: imei.value, serial: bizSerial(v('ba-serial')), updatedAt: bizNow() });
       bt.set(mref, { deviceId: dref.id, type: 'purchase', date: plan.movement.date, note: plan.movement.note, by: user.uid, byName: bizByName(), customerId: custId, customerName: seller || null, createdAt: bizNow() });
       bt.set(bizCol('movementsFinance').doc(mref.id), { deviceId: dref.id, type: 'purchase', amount: plan.amount, date: plan.movement.date, createdAt: bizNow() });
       bizUsageSet(bt, 1, seller && !cust ? 1 : 0);
       await bt.commit(); await bizLoad(); BIZ.stack.pop(); bizGo('device', dref.id); bizToast(true, 'Cihaz stoğa eklendi', brand + ' ' + model);
+      if (await confirmDialog('Bu cihazı Pazar\'da ilan olarak yayınlamak ister misin? (İlan onaydan sonra yayınlanır.)', { title: 'Pazar\'a ilan ver', confirmText: 'İlan ver', cancelText: 'Şimdi değil' })) bizNewListing(dref.id);
     } catch (e) { err.textContent = bizErrText(e); ev.target.disabled = false; } finally { releaseSubmit('biz-add'); }
   });
 }
@@ -23034,19 +23324,21 @@ function bizViewDevice(b, id) {
   const act = (t, l, cls) => `<button type="button" class="tk-btn tk-btn--${cls || 'outline'}" data-mv="${t}">${l}</button>`;
   const actions = !can ? '' : d.status === 'in_stock' ? act('sale', 'Sat', 'primary') + act('expense', 'Masraf ekle') + act('removal', 'Stoktan çıkar') : d.status === 'sold' ? act('return', 'İade al') : act('stock_in', 'Stok girişi');
   const rp = d.report;
-  b.innerHTML = `<div class="tcx" id="biz-device" data-id="${bizE(id)}" data-status="${d.status}">
+  b.innerHTML = bizNav('stock') + `<div class="tcx" id="biz-device" data-id="${bizE(id)}" data-status="${d.status}">
     <div class="tcx-verdict"><div class="tcx-verdict-t">${bizE(bizDevLabel(d))}${d.color ? ' · ' + bizE(d.color) : ''}</div><div class="tcx-verdict-s">${bizBadge(d.status)} · alış ${bizDay(d.purchaseDate)}${d.cosmetic && d.cosmetic.grade ? ' · kozmetik (beyan): ' + bizE(BIZ_COSMETIC[d.cosmetic.grade]) : ''}</div></div>
     <ul class="tcx-list"><li class="tcx-row"><div class="tcx-row-main"><div class="tcx-row-t">IMEI / Seri no</div><div class="tcx-row-d" id="bd-ids">${bizE(bizMaskImei(d.imeiTail4))}</div><div class="tcx-row-d">Yalnızca işletme kullanıcılarına görünür; paylaşılan rapor, QR ve metinlere eklenmez.</div></div><div class="tcx-row-side"><button type="button" class="tk-btn tk-btn--outline tk-btn--sm" id="bd-reveal">Göster</button></div></li>
     <li class="tcx-row"><div class="tcx-row-main"><div class="tcx-row-t">Pil sağlığı</div><div class="tcx-row-d" id="bd-batt">${d.batteryHealth ? '%' + bizE(d.batteryHealth.percent) + ' · ' + bizE(d.batteryHealth.note || 'TeknoCheck raporundan') : 'Ölçülemedi (rapor yok veya cihaz değeri vermedi)'}</div></div></li>
+    ${d.condition ? `<li class="tcx-row"><div class="tcx-row-main"><div class="tcx-row-t">Durum</div><div class="tcx-row-d" id="bd-cond">${bizE(bizCondText(d.condition))}</div></div></li>` : ''}${typeof d.listPrice === 'number' ? `<li class="tcx-row"><div class="tcx-row-main"><div class="tcx-row-t">Satış hedefi</div><div class="tcx-row-d" id="bd-listprice">${bizTL(d.listPrice)}</div></div></li>` : ''}
     ${d.notes ? `<li class="tcx-row"><div class="tcx-row-main"><div class="tcx-row-t">Açıklama</div><div class="tcx-row-d">${bizE(d.notes)}</div></div></li>` : ''}</ul>
     ${f ? `<h3 class="pd-sec-t">Maliyet ve kâr</h3><ul class="tcx-list" id="bd-fin"><li class="tcx-row"><div class="tcx-row-main">Alış fiyatı</div><div class="tcx-row-side">${bizTL(f.purchase)}</div></li><li class="tcx-row"><div class="tcx-row-main">Tamir ve diğer masraflar</div><div class="tcx-row-side">${bizTL(f.expenses)}</div></li><li class="tcx-row"><div class="tcx-row-main"><b>Toplam maliyet</b></div><div class="tcx-row-side"><b>${bizTL(f.cost)}</b></div></li><li class="tcx-row"><div class="tcx-row-main">Satış (iadeler düşülmüş)</div><div class="tcx-row-side">${f.sales ? bizTL(f.revenue) : '—'}</div></li><li class="tcx-row"><div class="tcx-row-main"><b>Brüt kâr / zarar</b></div><div class="tcx-row-side"><b id="bd-profit">${f.profit === null ? 'Henüz satılmadı' : bizTL(f.profit)}</b></div></li></ul>` : ''}
     <div class="tcx-actions" id="bd-actions">${actions}</div>
+    <h3 class="pd-sec-t">Pazar ilanı</h3><div id="bd-listing"></div>
     <h3 class="pd-sec-t">TeknoCheck raporu</h3>
     <div class="tc-status" role="note" id="bd-report">${rp ? `<b>Rapor bağlı:</b> ${bizE(rp.reportId)} · ${bizE(TC_OVERALL_LABEL[rp.overall] || '')} · ${bizDay(String(rp.createdAt || '').slice(0, 10))}${rp.schemaVersion === 2 ? ' · genişletilmiş imza' : ''}` : 'Bu cihaza henüz rapor bağlanmadı.'}</div>
     <div class="tcx-actions">${can ? '<button type="button" class="tk-btn tk-btn--primary" id="bd-test">TeknoCheck testi başlat</button><button type="button" class="tk-btn tk-btn--outline" id="bd-link">Mevcut raporu bağla</button>' : ''}${rp ? '<button type="button" class="tk-btn tk-btn--outline" id="bd-qr">Müşteriye göster (QR)</button><button type="button" class="tk-btn tk-btn--outline" id="bd-pdf">PDF</button><button type="button" class="tk-btn tk-btn--outline" id="bd-share">Metni paylaş</button>' : ''}</div>
     <h3 class="pd-sec-t">Fotoğraflar <small id="bd-pcount"></small></h3><div id="bd-photos" class="biz-photos"></div>
     ${can ? '<div class="tcx-actions"><button type="button" class="tk-btn tk-btn--outline" id="bd-addph">Fotoğraf ekle</button><button type="button" class="tk-btn tk-btn--outline" id="bd-edit">Bilgileri düzenle</button></div>' : ''}
-    <h3 class="pd-sec-t">İşlem geçmişi</h3>${mv.length ? `<ul class="tcx-list" id="bd-history">${mv.map((m) => `<li class="tcx-row" data-type="${bizE(m.type)}"><div class="tcx-row-main"><div class="tcx-row-t">${bizE(BIZ_MOVE[m.type] || m.type)}</div><div class="tcx-row-d">${bizDay(m.date)}${m.customerName ? ' · ' + bizE(m.customerName) : ''}${m.note ? ' · ' + bizE(m.note) : ''}${m.byName ? ' · ' + bizE(m.byName) : ''}</div></div><div class="tcx-row-side">${BIZ.fin && typeof m.amount === 'number' ? bizTL(m.amount) : ''}</div></li>`).join('')}</ul>` : '<p class="tca-intro">İşlem yok.</p>'}
+    <h3 class="pd-sec-t">İşlem geçmişi</h3>${mv.length ? `<ul class="tcx-list" id="bd-history">${mv.map((m) => `<li class="tcx-row" data-type="${bizE(m.type)}"><div class="tcx-row-main"><div class="tcx-row-t">${bizE(BIZ_MOVE[m.type] || m.type)}</div><div class="tcx-row-d">${bizDay(m.date)}${m.customerName ? ' · ' + bizE(m.customerName) : ''}${m.note ? ' · ' + bizE(m.note) : ''}${m.byName ? ' · ' + bizE(m.byName) : ''}</div></div><div class="tcx-row-side">${BIZ.fin && typeof m.amount === 'number' ? bizTL(m.amount) : ''}${BIZ.fin && m.type === 'sale' && typeof m.amount === 'number' && typeof m.paid === 'number' && m.paid < m.amount ? `<small>ödenen ${bizTL(m.paid)}</small>` : ''}</div></li>`).join('')}</ul>` : '<p class="tca-intro">İşlem yok.</p>'}
     <p class="tca-intro">Geçmiş işlemler değiştirilemez veya silinemez; hata varsa ters işlem eklenir.</p></div>`;
   bizBind(b, '[data-mv]', (x) => bizGo('move', { id, type: x.dataset.mv }));
   const q = (s) => b.querySelector(s), on = (s, fn) => { const e = q(s); if (e) e.addEventListener('click', fn); };
@@ -23054,7 +23346,7 @@ function bizViewDevice(b, id) {
   on('#bd-test', () => bizStartTest(d)); on('#bd-link', () => bizPickReport(d)); on('#bd-qr', () => bizGo('qr', id)); on('#bd-pdf', () => bizReportPdf(d));
   on('#bd-share', () => { const t = bizShareText(d, rp); if (typeof openShareMenu === 'function') openShareMenu('TeknoCheck raporu', t, 'https://www.teknohane.net/'); });
   on('#bd-edit', () => bizGo('edit', id)); on('#bd-addph', () => bizPickPhoto(d));
-  bizLoadPhotos(d);
+  bizLoadPhotos(d); bizDeviceListing(d);
 }
 async function bizLoadPhotos(d) {
   const host = document.getElementById('bd-photos'); if (!host) return;
@@ -23104,6 +23396,7 @@ function bizViewEdit(b, id) {
     <label class="tcx-lbl" for="be-brand">Marka *</label><input class="tk-input" id="be-brand" maxlength="60" value="${bizE(d.brand)}">
     <label class="tcx-lbl" for="be-model">Model *</label><input class="tk-input" id="be-model" maxlength="80" value="${bizE(d.model)}">
     <div class="biz-two"><div><label class="tcx-lbl" for="be-storage">Depolama</label><select class="tk-input" id="be-storage"><option value="">—</option>${BIZ_STORAGES.map((x) => `<option${d.storage === x ? ' selected' : ''}>${x}</option>`).join('')}</select></div><div><label class="tcx-lbl" for="be-color">Renk</label><input class="tk-input" id="be-color" maxlength="40" value="${bizE(d.color || '')}"></div></div>
+    <div class="biz-two"><div><label class="tcx-lbl" for="be-cond">Sıfır / ikinci el</label><select class="tk-input" id="be-cond"><option value="">Seçilmedi</option><option value="new"${d.condition === 'new' ? ' selected' : ''}>Sıfır</option><option value="used"${d.condition === 'used' ? ' selected' : ''}>İkinci el</option></select></div><div><label class="tcx-lbl" for="be-list">Satış hedefi (₺)</label><input class="tk-input" id="be-list" inputmode="decimal" autocomplete="off" value="${typeof d.listPrice === 'number' ? bizE(String(d.listPrice).replace('.', ',')) : ''}"></div></div>
     <label class="tcx-lbl" for="be-imei">IMEI (boş bırakırsan değişmez)</label><input class="tk-input" id="be-imei" inputmode="numeric" maxlength="20" autocomplete="off">
     <label class="tcx-lbl" for="be-serial">Seri no (boş bırakırsan değişmez)</label><input class="tk-input" id="be-serial" maxlength="40" autocomplete="off">
     <label class="tcx-lbl">Kozmetik durum <small>(kendi değerlendirmen)</small></label><div id="be-grade">${bizGradeChips(grade)}</div>
@@ -23115,9 +23408,10 @@ function bizViewEdit(b, id) {
   b.querySelector('#be-save').addEventListener('click', async (ev) => {
     const v = (x) => b.querySelector('#' + x).value, err = b.querySelector('#be-err'), brand = bizText(v('be-brand'), 60), model = bizText(v('be-model'), 80), imei = bizImei(v('be-imei'));
     if (!brand || !model) { err.textContent = 'Marka ve model gerekli.'; return; } if (!imei.ok) { err.textContent = imei.error; return; }
+    const lp = v('be-list').trim() ? bizMoney(v('be-list')) : null; if (v('be-list').trim() && lp === null) { err.textContent = 'Satış hedefi geçersiz.'; return; }
     if (!guardSubmit('biz-edit')) return; ev.target.disabled = true;
     try {
-      const bt = bizDb().batch(), ref = bizCol('inventory').doc(id), upd = { brand, model, color: bizText(v('be-color'), 40), storage: v('be-storage'), cosmetic: grade ? { grade, note: '' } : null, notes: bizText(v('be-note'), 1000), updatedAt: bizNow() };
+      const bt = bizDb().batch(), ref = bizCol('inventory').doc(id), upd = { brand, model, color: bizText(v('be-color'), 40), storage: v('be-storage'), cosmetic: grade ? { grade, note: '' } : null, notes: bizText(v('be-note'), 1000), condition: v('be-cond') || null, listPrice: lp, updatedAt: bizNow() };
       if (imei.value) upd.imeiTail4 = imei.value.slice(-4);
       bt.update(ref, upd);
       if (imei.value || bizSerial(v('be-serial'))) { const s = { updatedAt: bizNow() }; if (imei.value) s.imei = imei.value; if (bizSerial(v('be-serial'))) s.serial = bizSerial(v('be-serial')); bt.set(ref.collection('sensitive').doc('ids'), s, { merge: true }); }
@@ -23128,56 +23422,11 @@ function bizViewEdit(b, id) {
 
 // ---------------------------------------------------------------- stok hareketi (satış, iade, çıkarma, masraf, stok girişi)
 const BIZ_MOVE_HINT = { sale: ['Satış', 'Satış fiyatı (₺) *', true], return: ['İade', 'İade edilen tutar (₺)', true], removal: ['Stoktan çıkarma', 'Geri kazanılan tutar (₺, yoksa boş)', false], expense: ['Masraf', 'Masraf tutarı (₺) *', true], stock_in: ['Stok girişi', 'Maliyet (₺, yoksa boş)', false] };
-function bizViewMove(b, a) {
-  const d = BIZ.devices.find((x) => x.id === a.id); if (!d) { bizBack(); return; }
-  const h = BIZ_MOVE_HINT[a.type]; bizTitle(h[0]); const askCust = a.type === 'sale' || a.type === 'return';
-  b.innerHTML = `<div class="tcx" id="biz-move" data-type="${a.type}"><h2 class="tc-info-h">${h[0]}: ${bizE(bizDevLabel(d))}</h2>
-    <label class="tcx-lbl" for="bm-amount">${h[1]}</label><input class="tk-input" id="bm-amount" inputmode="decimal" autocomplete="off">
-    ${askCust ? `<label class="tcx-lbl" for="bm-cust">Müşteri <small>(isteğe bağlı)</small></label><input class="tk-input" id="bm-cust" list="bm-custs" maxlength="80" autocomplete="off"><datalist id="bm-custs">${BIZ.customers.map((c) => `<option value="${bizE(c.name)}">`).join('')}</datalist>` : ''}
-    <label class="tcx-lbl" for="bm-date">Tarih</label><input class="tk-input" id="bm-date" type="date" value="${bizIsoDay()}">
-    <label class="tcx-lbl" for="bm-note">${a.type === 'expense' ? 'Masraf açıklaması *' : 'Açıklama'}</label><input class="tk-input" id="bm-note" maxlength="300" placeholder="${a.type === 'expense' ? 'Örn. ekran değişimi' : ''}">
-    <div class="tcr-err" id="bm-err" role="alert"></div>
-    <div class="tcx-actions"><button type="button" class="tk-btn tk-btn--primary" id="bm-save">Kaydet</button><button type="button" class="tk-btn tk-btn--outline" id="bm-cancel">Vazgeç</button></div></div>`;
-  b.querySelector('#bm-cancel').addEventListener('click', () => bizBack());
-  b.querySelector('#bm-save').addEventListener('click', async (ev) => {
-    const v = (x) => { const e = b.querySelector('#' + x); return e ? e.value : ''; }, err = b.querySelector('#bm-err');
-    const cname = bizText(v('bm-cust'), 80), cust = cname ? BIZ.customers.find((c) => bizNorm(c.name) === bizNorm(cname)) : null;
-    const plan = bizPlanMove(d, a.type, { amount: v('bm-amount'), date: v('bm-date'), note: v('bm-note'), customerId: cust ? cust.id : null, customerName: cname });
-    if (!plan.ok) { err.textContent = plan.error; return; }
-    if (!guardSubmit('biz-move')) return; ev.target.disabled = true;
-    try {
-      const bt = bizDb().batch(), mref = bizCol('movements').doc(); let custId = plan.movement.customerId;
-      if (cname && !cust) { const cref = bizCol('customers').doc(); bt.set(cref, { name: cname, createdBy: user.uid, createdAt: bizNow(), updatedAt: bizNow() }); custId = cref.id; bizUsageSet(bt, 0, 1); }
-      bt.set(mref, { deviceId: d.id, type: a.type, date: plan.movement.date, note: plan.movement.note, by: user.uid, byName: bizByName(), customerId: custId, customerName: cname || null, createdAt: bizNow() });
-      bt.set(bizCol('movementsFinance').doc(mref.id), { deviceId: d.id, type: a.type, amount: plan.amount === null ? 0 : plan.amount, date: plan.movement.date, createdAt: bizNow() });
-      if (plan.status !== d.status) bt.update(bizCol('inventory').doc(d.id), { status: plan.status, updatedAt: bizNow() });
-      await bt.commit(); await bizLoad(); BIZ.stack.pop(); bizRender('device', d.id); bizToast(true, h[0] + ' kaydedildi', bizDevLabel(d));
-    } catch (e) { err.textContent = bizErrText(e); ev.target.disabled = false; } finally { releaseSubmit('biz-move'); }
-  });
-}
+// (bizViewMove: Faz 32'de teknocheck/isletme4.js içine taşındı)
 
 // ---------------------------------------------------------------- müşteriler
-function bizViewCustomers(b) {
-  bizTitle('Müşteriler'); const q = BIZ._cq || '';
-  const list = BIZ.customers.filter((c) => !q || bizNorm(c.name).includes(bizNorm(q)) || (c.phone || '').replace(/\D/g, '').includes(q.replace(/\D/g, '') || '§'));
-  b.innerHTML = `<div class="tcx" id="biz-customers"><input class="tk-input" id="bc-q" type="search" placeholder="Ad veya telefon ara" value="${bizE(q)}" aria-label="Ara">
-    ${list.length ? `<ul class="tcx-list">${list.map((c) => `<li class="tcx-row biz-cust" data-id="${bizE(c.id)}" role="button" tabindex="0"><div class="tcx-row-main"><div class="tcx-row-t">${bizE(c.name)}</div><div class="tcx-row-d">${bizE(c.phone || 'Telefon yok')}</div></div></li>`).join('')}</ul>` : '<p class="tca-intro" id="bc-empty">Müşteri yok.</p>'}
-    <div class="tcx-actions"><button type="button" class="tk-btn tk-btn--primary" id="bc-add">+ Müşteri ekle</button></div></div>`;
-  const qi = b.querySelector('#bc-q'); qi.addEventListener('input', () => { BIZ._cq = qi.value; clearTimeout(BIZ._ct); BIZ._ct = setTimeout(() => { bizViewCustomers(b); const n = b.querySelector('#bc-q'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); }, 200); });
-  bizBind(b, '.biz-cust', (x) => bizGo('customer', x.dataset.id)); b.querySelector('#bc-add').addEventListener('click', () => bizGo('customerEdit', null));
-}
-function bizViewCustomer(b, id) {
-  const c = BIZ.customers.find((x) => x.id === id); if (!c) { bizBack(); return; }
-  bizTitle(c.name); const byId = Object.fromEntries(BIZ.devices.map((d) => [d.id, d])), h = bizCustomerHistory(id, BIZ.moves, byId);
-  b.innerHTML = `<div class="tcx" id="biz-customer"><div class="tcx-verdict"><div class="tcx-verdict-t">${bizE(c.name)}</div><div class="tcx-verdict-s">${bizE(c.phone || 'Telefon yok')}${c.email ? ' · ' + bizE(c.email) : ''}</div></div>
-    ${c.note ? `<div class="tc-status" role="note">${bizE(c.note)}</div>` : ''}
-    <h3 class="pd-sec-t">Bizden aldığı cihazlar</h3>${h.boughtFromUs.length ? `<ul class="tcx-list">${h.boughtFromUs.map((l) => `<li class="tcx-row"><div class="tcx-row-main">${bizE(l)}</div></li>`).join('')}</ul>` : '<p class="tca-intro">Yok.</p>'}
-    <h3 class="pd-sec-t">Bize sattığı cihazlar</h3>${h.soldToUs.length ? `<ul class="tcx-list">${h.soldToUs.map((l) => `<li class="tcx-row"><div class="tcx-row-main">${bizE(l)}</div></li>`).join('')}</ul>` : '<p class="tca-intro">Yok.</p>'}
-    <h3 class="pd-sec-t">İşlem geçmişi</h3>${h.moves.length ? `<ul class="tcx-list" id="bcu-history">${h.moves.map((m) => `<li class="tcx-row"><div class="tcx-row-main"><div class="tcx-row-t">${bizE(BIZ_MOVE[m.type] || m.type)} · ${bizE(byId[m.deviceId] ? bizDevLabel(byId[m.deviceId]) : 'Cihaz')}</div><div class="tcx-row-d">${bizDay(m.date)}</div></div><div class="tcx-row-side">${BIZ.fin && typeof m.amount === 'number' ? bizTL(m.amount) : ''}</div></li>`).join('')}</ul>` : '<p class="tca-intro">İşlem yok.</p>'}
-    <div class="tcx-actions"><button type="button" class="tk-btn tk-btn--outline" id="bcu-edit">Düzenle</button>${bizCanDo('delete_customer') ? '<button type="button" class="tk-btn tk-btn--ghost" id="bcu-del">Sil</button>' : ''}</div></div>`;
-  b.querySelector('#bcu-edit').addEventListener('click', () => bizGo('customerEdit', id));
-  const del = b.querySelector('#bcu-del'); if (del) del.addEventListener('click', async () => { if (!(await confirmDialog('Müşteri kaydı silinir; geçmiş işlemlerde adı kalır. Emin misin?', { title: 'Müşteriyi sil', confirmText: 'Sil', cancelText: 'Vazgeç' }))) return; try { const bt = bizDb().batch(); bt.delete(bizCol('customers').doc(id)); bizUsageSet(bt, 0, -1); await bt.commit(); await bizLoad(); BIZ.stack.pop(); bizRender('customers'); } catch (e) { bizToast(false, 'Silinemedi', bizErrText(e)); } });
-}
+// (bizViewCustomers: Faz 32'de teknocheck/isletme4.js içine taşındı)
+// (bizViewCustomer: Faz 32'de teknocheck/isletme4.js içine taşındı)
 function bizViewCustomerEdit(b, id) {
   const c = id ? BIZ.customers.find((x) => x.id === id) : null; bizTitle(c ? 'Müşteriyi düzenle' : 'Yeni müşteri');
   b.innerHTML = `<div class="tcx" id="biz-cedit"><label class="tcx-lbl" for="bce-name">Ad soyad *</label><input class="tk-input" id="bce-name" maxlength="80" value="${bizE(c ? c.name : '')}">
@@ -23196,46 +23445,7 @@ function bizViewCustomerEdit(b, id) {
 }
 
 // ---------------------------------------------------------------- işletme profili (düzenleme, vergi bilgisi, üyeler, paket)
-async function bizViewProfile(b) {
-  bizTitle('İşletme'); const p = BIZ.biz, canEdit = bizCanDo('edit_profile'), isOwner = bizCanDo('view_tax'), lim = subBizLimitsC(BIZ.plan, Date.now());
-  let tax = null, members = null;
-  if (isOwner) { try { const s = await bizCol('restricted').doc('tax').get(); tax = s.exists ? s.data() : {}; } catch (e) { tax = null; } }
-  if (bizCanDo('view_members')) { try { members = (await bizCol('members').get()).docs.map((d) => d.data()); } catch (e) { members = null; } }
-  if (!document.getElementById('biz-body') || BIZ.stack[BIZ.stack.length - 1].view !== 'profile') return;
-  const dis = canEdit ? '' : ' disabled';
-  b.innerHTML = `<div class="tcx" id="biz-profile"><h2 class="tc-info-h">İşletme profili</h2>
-    <div class="biz-head">${p.logo ? `<img class="biz-logo" id="bp-logo-img" alt="" src="${bizE(p.logo)}">` : '<div class="biz-logo biz-logo--ph" id="bp-logo-img" aria-hidden="true">🏪</div>'}${canEdit ? '<button type="button" class="tk-btn tk-btn--outline tk-btn--sm" id="bp-logo">Logo seç</button>' : ''}</div>
-    <label class="tcx-lbl" for="bp-name">İşletme adı *</label><input class="tk-input" id="bp-name" maxlength="80" value="${bizE(p.name)}"${dis}>
-    <label class="tcx-lbl" for="bp-contact">Yetkili kişi</label><input class="tk-input" id="bp-contact" maxlength="80" value="${bizE(p.contactName || '')}"${dis}>
-    <label class="tcx-lbl" for="bp-phone">Telefon</label><input class="tk-input" id="bp-phone" maxlength="30" inputmode="tel" value="${bizE(p.phone || '')}"${dis}>
-    <label class="tcx-lbl" for="bp-email">E-posta</label><input class="tk-input" id="bp-email" maxlength="120" value="${bizE(p.email || '')}"${dis}>
-    <label class="tcx-lbl" for="bp-addr">Adres</label><textarea class="tk-input" id="bp-addr" rows="2" maxlength="300"${dis}>${bizE(p.address || '')}</textarea>
-    ${isOwner ? `<h3 class="pd-sec-t">Vergi bilgileri <small>(isteğe bağlı · yalnızca işletme sahibi görür)</small></h3>
-    <label class="tcx-lbl" for="bp-legal">Ticari unvan</label><input class="tk-input" id="bp-legal" maxlength="120" value="${bizE(tax ? tax.legalName || '' : '')}">
-    <label class="tcx-lbl" for="bp-taxno">Vergi no</label><input class="tk-input" id="bp-taxno" maxlength="20" inputmode="numeric" value="${bizE(tax ? tax.taxNo || '' : '')}">
-    <label class="tcx-lbl" for="bp-taxoff">Vergi dairesi</label><input class="tk-input" id="bp-taxoff" maxlength="80" value="${bizE(tax ? tax.taxOffice || '' : '')}">` : ''}
-    <div class="tcr-err" id="bp-err" role="alert"></div>
-    ${canEdit ? '<div class="tcx-actions"><button type="button" class="tk-btn tk-btn--primary" id="bp-save">Kaydet</button></div>' : '<div class="tc-status" role="note">Profili yalnızca işletme sahibi ve yönetici düzenleyebilir.</div>'}
-    ${members ? `<h3 class="pd-sec-t">Kullanıcılar</h3><ul class="tcx-list" id="bp-members">${members.map((m) => `<li class="tcx-row"><div class="tcx-row-main"><div class="tcx-row-t">${bizE(m.displayName || m.uid.slice(0, 6) + '…')}</div></div><div class="tcx-row-side">${bizE(BIZ_ROLES[m.role] || m.role)}${m.active === false ? ' · pasif' : ''}</div></li>`).join('')}</ul><div class="tcx-actions"><button type="button" class="tk-btn tk-btn--outline" id="bp-team">Ekibi yönet</button></div>` : ''}
-    <h3 class="pd-sec-t">Paket</h3><p class="tca-intro" id="bp-plan">${bizE(subSummaryC(BIZ.plan, Date.now(), 'İşletme paketi'))} · cihaz limiti ${lim.devices} · kullanıcı limiti ${lim.members} · müşteri limiti ${lim.customers}</p><div class="tcx-actions"><button type="button" class="tk-btn tk-btn--outline" id="bp-plan-go">Paketi yönet</button></div></div>`;
-  const q = (s) => b.querySelector(s);
-  const tm = q('#bp-team'); if (tm) tm.addEventListener('click', () => bizGo('team'));
-  q('#bp-plan-go').addEventListener('click', () => bizGo('plan'));
-  if (canEdit) {
-    let logo = p.logo || null;
-    q('#bp-logo').addEventListener('click', () => { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.onchange = async () => { const f = inp.files && inp.files[0]; if (!f) return; try { const r = await bizCompress(f, 256, 120000); logo = r.dataUrl; const im = q('#bp-logo-img'); if (im) im.outerHTML = `<img class="biz-logo" id="bp-logo-img" alt="" src="${r.dataUrl}">`; } catch (e) { q('#bp-err').textContent = e.code === 'not_image' ? 'Bu dosya bir fotoğraf değil.' : 'Logo işlenemedi.'; } }; inp.click(); });
-    q('#bp-save').addEventListener('click', async (ev) => {
-      const v = (x) => { const e = q('#' + x); return e ? e.value : ''; }, name = bizText(v('bp-name'), 80); if (!name) { q('#bp-err').textContent = 'İşletme adı gerekli.'; return; }
-      if (!guardSubmit('biz-prof')) return; ev.target.disabled = true;
-      try {
-        const bt = bizDb().batch(), ref = bizDb().collection('businesses').doc(BIZ.id);
-        bt.set(ref, { name, logo: logo || null, contactName: bizText(v('bp-contact'), 80), phone: bizText(v('bp-phone'), 30), email: bizText(v('bp-email'), 120), address: bizText(v('bp-addr'), 300), ownerUid: p.ownerUid, createdAt: p.createdAt, updatedAt: bizNow(), status: p.status, planId: p.planId });
-        if (isOwner) bt.set(ref.collection('restricted').doc('tax'), { legalName: bizText(v('bp-legal'), 120), taxNo: bizText(v('bp-taxno'), 20), taxOffice: bizText(v('bp-taxoff'), 80), updatedAt: bizNow() });
-        await bt.commit(); await bizLoad(); BIZ.stack.pop(); bizGo('home', null, true); bizToast(true, 'Profil güncellendi', name);
-      } catch (e) { q('#bp-err').textContent = bizErrText(e); ev.target.disabled = false; } finally { releaseSubmit('biz-prof'); }
-    });
-  }
-}
+// (bizViewProfile: Faz 32'de teknocheck/isletme4.js içine taşındı)
 
 // ---------------------------------------------------------------- TeknoCheck entegrasyonu (mevcut bireysel akış değişmez; yalnızca rapor envantere BAĞLANIR)
 function bizStartTest(d) {
@@ -23403,6 +23613,494 @@ async function bizViewPlan(b) {
   on('bpl-buy', () => { if (typeof payOpen === 'function') payOpen('business', BIZ.id); });
   on('bpl-trial', () => run('trial', 'Deneme başladı')); on('bpl-cancel', () => run('cancel', 'Abonelik iptal edildi', 'Yenilenmez; dönem sonuna kadar paket özellikleri sürer. İptal edilsin mi?'));
   on('bpl-down', () => run('downgrade', 'Ücretsiz pakete geçildi', 'Ücretsiz pakete HEMEN geçilir; kalan süre kaybolur ve limitler düşer. Emin misin?'));
+}
+
+// ==================================================================== FAZ 32 — İŞLETME YÖNETİM MERKEZİ: VERİ KATMANI + ARAYÜZ (kaynak: teknocheck/isletme4.js; uygula.mjs gömer)
+// Hesaplar teknocheck/isletme3.js'te (saf, testli). Burada: sayfalı/eksiksiz veri yükleme (sessiz kesme YOK), bölüm gezintisi, Genel Bakış, İlanlarım, Stok, Satışlar, Alışlar, Müşteriler, Gelir-Gider,
+// Raporlar, TeknoCheck, İşletme profili ve Pazar ilanı bağlantısı. Yetki UI'da yalnızca düğmeleri gizler; asıl sınır Firestore Rules'tadır. Hiçbir rakam uydurulmaz: veri yoksa 0 / boş durum gösterilir.
+let TK_BIZ_PUBLISH = null, TK_BIZ_PUBLISH_PENDING = null;   // Pazar ilan formu bağlamı: { id, name, deviceId, prefill }
+const BIZ_CAP = { devices: 5000, moves: 20000, customers: 10000, ledger: 5000, receivables: 5000 };
+const BIZ_NAV = [['home', 'Genel Bakış'], ['listings', 'İlanlarım'], ['stock', 'Stok'], ['sales', 'Satışlar'], ['purchases', 'Alışlar'], ['customers', 'Müşteriler'], ['finance', 'Gelir-Gider', 'fin'], ['reports', 'Raporlar', 'fin'], ['tcreports', 'TeknoCheck'], ['profile', 'İşletme']];
+const BIZ_NAV_OF = { device: 'stock', add: 'stock', edit: 'stock', move: 'stock', qr: 'stock', customer: 'customers', customerEdit: 'customers', collect: 'sales', team: 'profile', plan: 'profile', invites: 'home', choose: 'home' };
+const bizNum = (n) => (typeof n === 'number' && isFinite(n) ? n.toLocaleString('tr-TR') : '—');
+const bizFin = () => !!BIZ && !!BIZ.fin;
+const bizDevById = () => Object.fromEntries(BIZ.devices.map((d) => [d.id, d]));
+const bizCust = (name) => { const n = bizText(name, 80); return n ? BIZ.customers.find((c) => bizNorm(c.name) === bizNorm(n)) || null : null; };
+
+// ---------------------------------------------------------------- eksiksiz (sayfalı) veri yükleme
+async function bizPage(ref, order, cap) {
+  const out = [], size = 400; let last = null;
+  while (out.length < cap) {
+    let q = ref.orderBy(order[0], order[1] || 'asc').limit(Math.min(size, cap - out.length)); if (last) q = q.startAfter(last);
+    const s = await q.get(); out.push(...s.docs); if (s.size < size) break; last = s.docs[s.docs.length - 1];
+  }
+  return out;
+}
+async function bizLoadListings() {
+  const L = bizDb().collection('teknohane_listings'), out = {};
+  const run = async (q) => { try { (await q.limit(200).get()).docs.forEach((d) => { out[d.id] = { id: d.id, ...d.data() }; }); return true; } catch (e) { return false; } };
+  const r = await Promise.all([run(L.where('bizId', '==', BIZ.id).where('approved', '==', true)), run(L.where('uid', '==', user.uid).where('bizId', '==', BIZ.id))]);
+  BIZ.listingsOk = r.some(Boolean);
+  BIZ.listings = Object.values(out).sort((a, b) => (bizMs(b.createdAt) || 0) - (bizMs(a.createdAt) || 0));
+}
+async function bizLoad() {
+  const bd = await bizDb().collection('businesses').doc(BIZ.id).get();
+  if (!bd.exists) throw Object.assign(new Error('yok'), { code: 'permission-denied' });
+  BIZ.biz = bd.data();
+  const fin = bizCanDo('view_finance'), DID = firebase.firestore.FieldPath.documentId(), safe = (p, f) => Promise.resolve(p).catch(() => f);
+  const [plan, usage, dDocs, mDocs, fDocs, cDocs, rDocs, lDocs, cover, ver] = await Promise.all([
+    safe(bizCol('plan').doc('main').get(), null), safe(bizCol('plan').doc('usage').get(), null),
+    bizPage(bizCol('inventory'), ['createdAt', 'desc'], BIZ_CAP.devices), bizPage(bizCol('movements'), ['createdAt', 'desc'], BIZ_CAP.moves),
+    fin ? bizPage(bizCol('movementsFinance'), [DID, 'asc'], BIZ_CAP.moves) : Promise.resolve([]), bizPage(bizCol('customers'), ['name', 'asc'], BIZ_CAP.customers),
+    fin ? safe(bizPage(bizCol('receivables'), [DID, 'asc'], BIZ_CAP.receivables), []) : Promise.resolve([]), fin ? safe(bizPage(bizCol('ledger'), ['createdAt', 'desc'], BIZ_CAP.ledger), []) : Promise.resolve([]),
+    safe(bizCol('media').doc('cover').get(), null), safe(bizCol('verification').doc('main').get(), null),
+  ]);
+  BIZ.plan = plan && plan.exists ? plan.data() : null; BIZ.usage = usage && usage.exists ? usage.data() : { devices: 0, customers: 0 };
+  BIZ.cover = cover && cover.exists ? cover.data().data || null : null; BIZ.verification = ver && ver.exists ? ver.data() : null;
+  BIZ.devices = dDocs.map((d) => ({ id: d.id, ...d.data() })); BIZ.moves = mDocs.map((d) => ({ id: d.id, ...d.data() })); BIZ.customers = cDocs.map((d) => ({ id: d.id, ...d.data() }));
+  BIZ.truncated = { devices: dDocs.length >= BIZ_CAP.devices, moves: mDocs.length >= BIZ_CAP.moves, customers: cDocs.length >= BIZ_CAP.customers };
+  BIZ.fin = null; BIZ.receivables = rDocs.map((d) => ({ id: d.id, ...d.data() })); BIZ.ledger = lDocs.map((d) => ({ id: d.id, ...d.data() }));
+  if (fin) {
+    const fs = {}; fDocs.forEach((d) => { fs[d.id] = d.data(); });
+    BIZ.moves.forEach((m) => { const f = fs[m.id]; if (f) { m.amount = f.amount; if (typeof f.paid === 'number') m.paid = f.paid; if (f.payMethod) m.payMethod = f.payMethod; } });
+    const by = {}; BIZ.moves.forEach((m) => { (by[m.deviceId] = by[m.deviceId] || []).push(m); });
+    BIZ.fin = {}; BIZ.devices.forEach((d) => { BIZ.fin[d.id] = bizDeviceFin(d, by[d.id] || []); });
+  }
+  BIZ.sales = bizSales(BIZ.devices, BIZ.moves, BIZ.receivables);
+  await bizLoadListings();
+}
+
+// ---------------------------------------------------------------- gezinti + ortak parçalar
+function bizNav(active) {
+  const fin = bizFin();
+  return `<nav class="biz-nav" id="biz-nav" aria-label="İşletme bölümleri">${BIZ_NAV.filter((x) => !x[2] || fin).map(([k, l]) => `<button type="button" class="biz-nav-i${k === active ? ' on' : ''}" data-nav="${k}" aria-current="${k === active ? 'page' : 'false'}">${l}</button>`).join('')}</nav>`;
+}
+const bizEmpty = (icon, title, text, action) => `<div class="biz-empty"><div class="biz-empty-ic" aria-hidden="true">${icon}</div><b>${bizE(title)}</b><span>${bizE(text)}</span>${action || ''}</div>`;
+const bizPayBadge = (st) => st ? `<span class="tk-badge tk-badge--${st === 'paid' ? 'success' : st === 'void' ? 'neutral' : st === 'partial' ? 'warning' : 'danger'}">${BIZ_PAYSTATUS[st]}</span>` : '';
+const bizListBadge = (st) => `<span class="tk-badge tk-badge--${st === 'live' ? 'success' : st === 'sold' ? 'info' : st === 'pending' ? 'warning' : st === 'rejected' || st === 'paused_admin' ? 'danger' : 'neutral'}">${BIZ_LISTING_STATE[st] || ''}</span>`;
+const bizCondText = (c) => BIZ_COND[c] || '';
+function bizPeriodState(key) { const k = '_p_' + key; if (!BIZ[k]) { const r = bizRange('30d'); BIZ[k] = { key: '30d', from: r[0], to: r[1] }; } return BIZ[k]; }
+function bizPeriodHtml(st) {
+  const chips = [['7d', '7 gün'], ['30d', '30 gün'], ['month', 'Bu ay'], ['lastmonth', 'Geçen ay'], ['year', 'Bu yıl'], ['all', 'Tümü'], ['custom', 'Özel']];
+  return `<div class="biz-chips" role="group" aria-label="Dönem">${chips.map(([k, l]) => `<button type="button" class="tca-chip${st.key === k ? ' on' : ''}" data-per="${k}" aria-pressed="${st.key === k}">${l}</button>`).join('')}</div>${st.key === 'custom' ? `<div class="biz-two"><div><label class="tcx-lbl" for="bp-from">Başlangıç</label><input class="tk-input" id="bp-from" type="date" value="${bizE(st.from)}"></div><div><label class="tcx-lbl" for="bp-to">Bitiş</label><input class="tk-input" id="bp-to" type="date" value="${bizE(st.to)}"></div></div>` : ''}<div class="tcx-counts" id="bp-range">${st.from || st.to ? bizE(bizDay(st.from) + ' – ' + bizDay(st.to)) : 'Tüm zamanlar'}</div>`;
+}
+function bizPeriodBind(b, st, redraw) {
+  bizBind(b, '[data-per]', (x) => { const k = x.dataset.per; st.key = k; if (k === 'all') { st.from = ''; st.to = ''; } else if (k !== 'custom') { const r = bizRange(k); st.from = r[0]; st.to = r[1]; } redraw(); });
+  const f = b.querySelector('#bp-from'), t = b.querySelector('#bp-to');
+  [f, t].forEach((e) => { if (e) e.addEventListener('change', () => { st.from = f.value; st.to = t.value; redraw(); }); });
+}
+function bizBars(series, mode) {   // mode 'money' (ciro + kâr) | 'count'
+  const max = Math.max(1, ...series.map((x) => mode === 'count' ? x.count : Math.max(x.revenue, Math.abs(x.profit))));
+  if (!series.some((x) => (mode === 'count' ? x.count : x.revenue || x.profit))) return '';
+  return `<div class="biz-chart" role="img" aria-label="Aylık satış grafiği">${series.map((x) => {
+    const h = (v) => Math.max(v > 0 ? 3 : 0, Math.round(Math.abs(v) / max * 100)), tip = mode === 'count' ? `${x.label}: ${x.count} satış` : `${x.label}: ciro ${bizTL(x.revenue)}, kâr ${bizTL(x.profit)}, ${x.count} satış`;
+    return `<div class="biz-col" title="${bizE(tip)}"><div class="biz-bars">${mode === 'count' ? `<i class="biz-b biz-b--rev" style="height:${h(x.count)}%"></i>` : `<i class="biz-b biz-b--rev" style="height:${h(x.revenue)}%"></i><i class="biz-b biz-b--pro${x.profit < 0 ? ' neg' : ''}" style="height:${h(x.profit)}%"></i>`}</div><small>${x.label}</small></div>`; }).join('')}</div>${mode === 'count' ? '' : '<div class="biz-legend"><span><i class="biz-b--rev"></i> Satış cirosu</span><span><i class="biz-b--pro"></i> Gerçekleşen kâr</span><span><i class="biz-b--pro neg"></i> Zarar</span></div>'}`;
+}
+// Dosya olarak dışa aktarma: Android'de Filesystem+Share (mevcut kanıtlanmış yol), webde indirme; hiçbiri yoksa panoya kopyalar.
+async function bizExportFile(name, text) {
+  const data = '﻿' + text;
+  try {
+    if (typeof isNativeApp === 'function' && isNativeApp() && window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.Share && Capacitor.Plugins.Filesystem) {
+      const b64 = btoa(unescape(encodeURIComponent(data))); await Capacitor.Plugins.Filesystem.writeFile({ path: name, data: b64, directory: 'CACHE' });
+      const { uri } = await Capacitor.Plugins.Filesystem.getUri({ path: name, directory: 'CACHE' }); await Capacitor.Plugins.Share.share({ title: name, url: uri, dialogTitle: 'Dışa aktar' }); return true;
+    }
+    const blob = new Blob([data], { type: 'text/csv;charset=utf-8' }), url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000); return true;
+  } catch (e) { try { await navigator.clipboard.writeText(text); bizToast(true, 'Panoya kopyalandı', 'Dosya oluşturulamadı; içerik panoda, Excel\'e yapıştırabilirsin.'); return true; } catch (e2) { bizToast(false, 'Dışa aktarılamadı', ''); return false; } }
+}
+
+// ---------------------------------------------------------------- Genel Bakış
+function bizViewHome(b) {
+  const p = BIZ.biz, fin = bizFin(), t = bizTotals(BIZ.devices, BIZ.fin), act = BIZ.sales.filter((s) => !s.voided);
+  bizTitle(p.name);
+  const all = fin ? bizPeriodReport({ devices: BIZ.devices, moves: BIZ.moves, receivables: BIZ.receivables, ledger: BIZ.ledger, from: '', to: '' }) : null, rec = fin ? bizOpenReceivables(BIZ.devices, BIZ.moves, BIZ.receivables) : null;
+  const liveCount = BIZ.listingsOk ? BIZ.listings.filter((l) => bizListingActive(bizListingState(l))).length : null;
+  const card = (k, l, v, hint) => `<div class="biz-stat" data-k="${k}" role="button" tabindex="0"><b>${bizE(v)}</b><small>${l}</small>${hint ? `<small class="biz-hint">${bizE(hint)}</small>` : ''}</div>`;
+  const cards = card('listings', 'Aktif ilan', liveCount === null ? '—' : liveCount) + card('stock', 'Stokta', t.stockCount) + card('sold', 'Satılan cihaz', act.length)
+    + (fin ? card('value', 'Stok değeri', bizTL(t.stockValue)) + card('revenue', 'Toplam satış tutarı', bizTL(all.salesRevenue)) + card('profit', 'Gerçekleşen brüt kâr', bizTL(all.grossProfit), 'yalnızca satılanlar') + card('receivable', 'Açık alacak', bizTL(rec.total), rec.count ? rec.count + ' satış' : '') : card('removed', 'Çıkarılan', t.removedCount));
+  const series = bizMonthly({ devices: BIZ.devices, moves: BIZ.moves, receivables: BIZ.receivables }, 12), chart = bizBars(series, fin ? 'money' : 'count');
+  const top = bizTopModels(BIZ.devices, BIZ.sales, 5), ag = bizAging(BIZ.devices);
+  const comp = bizCanDo('edit_profile') ? bizProfileCompleteness(p, !!BIZ.cover) : null;
+  const recent = BIZ.moves.slice(0, 6).map((m) => { const d = BIZ.devices.find((x) => x.id === m.deviceId); return `<li class="tcx-row"><div class="tcx-row-main"><div class="tcx-row-t">${bizE(BIZ_MOVE[m.type] || m.type)} · ${bizE(d ? bizDevLabel(d) : 'Cihaz')}</div><div class="tcx-row-d">${bizDay(m.date)}${m.customerName ? ' · ' + bizE(m.customerName) : ''}${fin && typeof m.amount === 'number' ? ' · ' + bizTL(m.amount) : ''}</div></div></li>`; }).join('');
+  const trunc = BIZ.truncated && Object.values(BIZ.truncated).some(Boolean);
+  b.innerHTML = bizNav('home') + `<div class="tcx" id="biz-home"><div class="biz-head">${p.logo ? `<img class="biz-logo" alt="" src="${bizE(p.logo)}">` : '<div class="biz-logo biz-logo--ph" aria-hidden="true">🏪</div>'}<div><h2 class="tc-info-h" style="margin:0">${bizE(p.name)}${bizVerifiedBadge()}</h2><small class="biz-role" data-role="${bizE(BIZ.role)}">${bizE(BIZ_ROLES[BIZ.role] || BIZ.role)}${p.category && BIZ_CATEGORIES[p.category] ? ' · ' + bizE(BIZ_CATEGORIES[p.category]) : ''}</small></div></div>
+    ${trunc ? '<div class="tc-status" role="alert" id="biz-trunc"><b>Çok sayıda kayıt var:</b> yalnızca ilk kayıtlar yüklendi; bazı toplamlar eksik olabilir.</div>' : ''}
+    ${BIZ.myInvites && BIZ.myInvites.length ? `<div class="tc-status" role="note" id="biz-invites-banner"><b>${BIZ.myInvites.length} bekleyen işletme davetin var.</b> <button type="button" class="tk-btn tk-btn--outline tk-btn--sm" data-go="invites">Gör</button></div>` : ''}
+    <div class="tcx-actions biz-quick"><button type="button" class="tk-btn tk-btn--primary" data-go="add">+ Yeni alış</button><button type="button" class="tk-btn tk-btn--outline" data-go="stock">Stok listesi</button><button type="button" class="tk-btn tk-btn--outline" data-newlisting="1">+ Yeni ilan</button><button type="button" class="tk-btn tk-btn--outline" data-go="customerEdit">+ Müşteri</button></div>
+    <div class="tcx-actions biz-quick biz-quick--sec">${bizCanDo('view_members') ? '<button type="button" class="tk-btn tk-btn--ghost tk-btn--sm" data-go="team">Ekip</button>' : ''}<button type="button" class="tk-btn tk-btn--ghost tk-btn--sm" data-go="plan">Paket</button></div>
+    <div class="biz-stats">${cards}</div>
+    ${fin ? '' : '<div class="tc-status" role="note" id="biz-nofin">Tutar ve kâr bilgileri yalnızca işletme sahibi ve yöneticiye görünür.</div>'}
+    ${comp && comp.percent < 100 ? `<div class="biz-card" id="biz-complete"><div class="biz-card-h"><b>Profilini tamamla</b><small>%${comp.percent}</small></div><div class="biz-meter"><i style="width:${comp.percent}%"></i></div><small class="biz-hint">Eksik: ${comp.missing.map((x) => bizE(x.label)).join(', ')}. İstediğin zaman tamamlayabilirsin.</small><div class="tcx-actions"><button type="button" class="tk-btn tk-btn--outline tk-btn--sm" data-go="profile">Profili düzenle</button></div></div>` : ''}
+    <h3 class="pd-sec-t">Aylık satışlar <small>(son 12 ay)</small></h3>${chart || bizEmpty('📈', 'Henüz satış yok', 'İlk satışını kaydettiğinde aylık grafik burada görünür.')}
+    <h3 class="pd-sec-t">En çok satılan cihazlar</h3>${top.length ? `<ul class="tcx-list" id="biz-top">${top.map((x) => `<li class="tcx-row"><div class="tcx-row-main"><div class="tcx-row-t">${bizE(x.label)}</div><div class="tcx-row-d">${x.count} adet${fin ? ' · ciro ' + bizTL(x.revenue) : ''}</div></div>${fin ? `<div class="tcx-row-side"><b>${bizTL(x.profit)}</b><small>kâr</small></div>` : ''}</li>`).join('')}</ul>` : '<p class="tca-intro">Satılan cihaz yok.</p>'}
+    <h3 class="pd-sec-t">Stokta bekleme süresi</h3>${ag.count ? `<div class="biz-card" id="biz-aging"><div class="biz-card-h"><b>Ortalama ${ag.avgDays === null ? '—' : ag.avgDays + ' gün'}</b><small>en uzun ${ag.maxDays === null ? '—' : ag.maxDays + ' gün'}</small></div>${ag.buckets.map((k) => `<div class="biz-bk"><span>${k.label}</span><div class="biz-meter"><i class="${k.label === '90+ gün' && k.count ? 'hot' : ''}" style="width:${ag.known ? Math.round(k.count / ag.known * 100) : 0}%"></i></div><b>${k.count}</b></div>`).join('')}</div>` : '<p class="tca-intro">Stokta cihaz yok.</p>'}
+    <h3 class="pd-sec-t">Son işlemler</h3>${recent ? `<ul class="tcx-list">${recent}</ul>` : bizEmpty('📦', 'Henüz işlem yok', 'İlk cihazını ekleyerek başla.', '<button type="button" class="tk-btn tk-btn--primary" data-go="add">+ Yeni alış</button>')}</div>`;
+  bizBind(b, '[data-go]', (x) => { const g = x.dataset.go; if (g === 'stock') BIZ.filter = { q: '', status: 'in_stock', brand: '', sort: 'new' }; if (g === 'customerEdit') return bizGo('customerEdit', null); bizGo(g); });
+  bizBind(b, '[data-newlisting]', () => bizNewListing(null));
+  bizBind(b, '.biz-stat', (x) => { const k = x.dataset.k; if (k === 'listings') return bizGo('listings', null, true); if (k === 'receivable') return bizGo('sales', null, true); BIZ.filter = { q: '', status: k === 'sold' ? 'sold' : k === 'removed' ? 'removed' : 'in_stock', brand: '', sort: 'new' }; if (k === 'revenue' || k === 'profit') return bizGo('reports', null, true); bizGo('stock', null, true); });
+}
+function bizVerifiedBadge() {
+  const v = BIZ.verification && BIZ.verification.status;
+  return v === 'verified' ? ' <span class="tk-badge tk-badge--success biz-vbadge" title="Teknohane tarafından doğrulandı">✓ Doğrulandı</span>' : '';
+}
+
+// ---------------------------------------------------------------- Stok
+function bizViewStock(b) {
+  bizTitle('Stok'); BIZ.filter = Object.assign({ q: '', status: 'in_stock', brand: '', sort: 'new' }, BIZ.filter || {});
+  const F = BIZ.filter, brands = [...new Set(BIZ.devices.map((d) => d.brand).filter(Boolean))].sort(), now = Date.now(), fin = bizFin();
+  const ageOf = (d) => { const t = d.purchaseDate ? Date.parse(d.purchaseDate + 'T12:00:00') : bizMs(d.createdAt); return t == null || isNaN(t) ? null : Math.max(0, Math.floor((now - t) / 864e5)); };
+  let list = bizFilter(BIZ.devices, F);
+  if (F.sort === 'age') list = list.slice().sort((a, c) => (ageOf(c) || 0) - (ageOf(a) || 0)); else if (F.sort === 'name') list = list.slice().sort((a, c) => bizDevLabel(a).localeCompare(bizDevLabel(c), 'tr')); else if (F.sort === 'cost' && fin) list = list.slice().sort((a, c) => ((BIZ.fin[c.id] || {}).cost || 0) - ((BIZ.fin[a.id] || {}).cost || 0));
+  const counts = { in_stock: 0, sold: 0, removed: 0 }; BIZ.devices.forEach((d) => { counts[d.status] = (counts[d.status] || 0) + 1; });
+  b.innerHTML = bizNav('stock') + `<div class="tcx" id="biz-stock"><input class="tk-input" id="bs-q" type="search" placeholder="Marka, model veya IMEI son 4 hane" value="${bizE(F.q)}" aria-label="Ara">
+    <div class="biz-chips" role="group" aria-label="Durum">${[['in_stock', 'Stokta'], ['sold', 'Satıldı'], ['removed', 'Çıkarılan'], ['all', 'Tümü']].map(([k, l]) => `<button type="button" class="tca-chip${F.status === k ? ' on' : ''}" data-st="${k}" aria-pressed="${F.status === k}">${l}${k !== 'all' ? ' · ' + (counts[k] || 0) : ''}</button>`).join('')}</div>
+    <div class="biz-two"><select class="tk-input" id="bs-brand" aria-label="Marka"><option value="">Tüm markalar</option>${brands.map((x) => `<option${F.brand === x ? ' selected' : ''}>${bizE(x)}</option>`).join('')}</select>
+    <select class="tk-input" id="bs-sort" aria-label="Sırala"><option value="new"${F.sort === 'new' ? ' selected' : ''}>En yeni</option><option value="age"${F.sort === 'age' ? ' selected' : ''}>Bekleme süresi (uzun → kısa)</option><option value="name"${F.sort === 'name' ? ' selected' : ''}>Ada göre</option>${fin ? `<option value="cost"${F.sort === 'cost' ? ' selected' : ''}>Maliyet (yüksek → düşük)</option>` : ''}</select></div>
+    <div class="tcx-counts" id="bs-count">${list.length} cihaz</div>
+    ${list.length ? `<ul class="tcx-list" id="bs-list">${list.map((d) => { const f = fin && BIZ.fin[d.id], a = d.status === 'in_stock' ? ageOf(d) : null; return `<li class="tcx-row biz-dev" data-id="${bizE(d.id)}" role="button" tabindex="0"><div class="tcx-row-main"><div class="tcx-row-t">${bizE(bizDevLabel(d))}${d.color ? ' · ' + bizE(d.color) : ''}</div><div class="tcx-row-d">${d.condition ? bizE(bizCondText(d.condition)) + ' · ' : ''}IMEI ${bizE(bizMaskImei(d.imeiTail4))}${d.report ? ' · TeknoCheck ✓' : ''}${d.batteryHealth ? ' · pil %' + bizE(d.batteryHealth.percent) : ''}${d.listingId ? ' · 📣 ilanda' : ''}${a !== null ? ' · ' + a + ' gündür stokta' : ''}</div></div><div class="tcx-row-side">${bizBadge(d.status)}${f ? `<small>${bizTL(f.cost)}</small>` : ''}</div></li>`; }).join('')}</ul>` : (BIZ.devices.length ? bizEmpty('🔎', 'Bu filtreyle cihaz yok', 'Durum veya marka filtresini değiştir.') : bizEmpty('📱', 'Stokta cihaz yok', 'İlk alımını kaydederek envanterini oluştur.', '<button type="button" class="tk-btn tk-btn--primary" data-go="add">+ Yeni alış</button>'))}
+    <div class="tcx-actions"><button type="button" class="tk-btn tk-btn--primary" data-go="add">+ Yeni alış</button>${fin && BIZ.devices.length ? '<button type="button" class="tk-btn tk-btn--outline" id="bs-csv">Stok listesini indir (CSV)</button>' : ''}</div></div>`;
+  const q = b.querySelector('#bs-q'); q.addEventListener('input', () => { F.q = q.value; clearTimeout(BIZ._qt); BIZ._qt = setTimeout(() => { const pos = q.selectionStart; bizViewStock(b); const n = b.querySelector('#bs-q'); n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) { /* yok */ } }, 200); });
+  b.querySelector('#bs-brand').addEventListener('change', (e) => { F.brand = e.target.value; bizViewStock(b); }); b.querySelector('#bs-sort').addEventListener('change', (e) => { F.sort = e.target.value; bizViewStock(b); });
+  bizBind(b, '[data-st]', (x) => { F.status = x.dataset.st; bizViewStock(b); }); bizBind(b, '.biz-dev', (x) => bizGo('device', x.dataset.id)); bizBind(b, '[data-go="add"]', () => bizGo('add'));
+  const csv = b.querySelector('#bs-csv'); if (csv) csv.addEventListener('click', () => bizExportFile('stok-' + bizIsoDay() + '.csv', bizCsv(['Marka', 'Model', 'Depolama', 'Renk', 'Durum', 'Sıfır/İkinci el', 'IMEI son 4', 'Alış tarihi', 'Maliyet', 'Liste fiyatı'], BIZ.devices.map((d) => [d.brand, d.model, d.storage || '', d.color || '', BIZ_STATUS[d.status] || d.status, bizCondText(d.condition), d.imeiTail4 || '', d.purchaseDate || '', BIZ.fin[d.id] ? BIZ.fin[d.id].cost : '', typeof d.listPrice === 'number' ? d.listPrice : '']))));
+}
+
+// ---------------------------------------------------------------- Satışlar
+function bizViewSales(b) {
+  bizTitle('Satışlar'); const F = BIZ._sf = Object.assign({ q: '', st: 'all' }, BIZ._sf || {}), per = bizPeriodState('sales'), fin = bizFin(), dById = bizDevById();
+  const rows = BIZ.sales.filter((s) => bizInRange(s.date, per.from, per.to) && (F.st === 'all' || s.payStatus === F.st)).filter((s) => { if (!F.q) return true; const d = dById[s.deviceId], q = bizNorm(F.q); return bizNorm(d ? bizDevLabel(d) : '').includes(q) || bizNorm(s.customerName || '').includes(q); });
+  const act = rows.filter((s) => !s.voided), sum = (a, f) => Math.round(a.reduce((x, s) => x + (typeof f(s) === 'number' ? f(s) : 0), 0) * 100) / 100;
+  b.innerHTML = bizNav('sales') + `<div class="tcx" id="biz-sales">${bizPeriodHtml(per)}
+    <input class="tk-input" id="bsl-q" type="search" placeholder="Cihaz veya müşteri ara" value="${bizE(F.q)}" aria-label="Ara">
+    ${fin ? `<div class="biz-chips" role="group" aria-label="Ödeme durumu">${[['all', 'Tümü'], ['unpaid', 'Ödenmedi'], ['partial', 'Kısmi'], ['paid', 'Ödendi'], ['void', 'İade / iptal']].map(([k, l]) => `<button type="button" class="tca-chip${F.st === k ? ' on' : ''}" data-pst="${k}" aria-pressed="${F.st === k}">${l}</button>`).join('')}</div>` : ''}
+    <div class="tcx-counts" id="bsl-count">${rows.length} satış${fin ? ' · ciro ' + bizTL(sum(act, (s) => s.amount)) + ' · tahsil edilen ' + bizTL(sum(act, (s) => s.paid)) + ' · açık alacak ' + bizTL(sum(act, (s) => s.remaining)) : ''}</div>
+    ${rows.length ? `<ul class="tcx-list" id="bsl-list">${rows.map((s) => { const d = dById[s.deviceId]; return `<li class="tcx-row biz-sale" data-dev="${bizE(s.deviceId)}" data-move="${bizE(s.moveId)}" role="button" tabindex="0"><div class="tcx-row-main"><div class="tcx-row-t">${bizE(d ? bizDevLabel(d) : 'Cihaz')}</div><div class="tcx-row-d">${bizDay(s.date)}${s.customerName ? ' · ' + bizE(s.customerName) : ''}${s.voided ? ' · iade ' + bizDay(s.returnDate) : ''}${fin && !s.voided && s.remaining > 0 ? ' · kalan ' + bizTL(s.remaining) : ''}</div></div><div class="tcx-row-side">${fin ? `<b>${bizTL(s.amount)}</b>${bizPayBadge(s.payStatus)}` : (s.voided ? bizPayBadge('void') : '<span class="tk-badge tk-badge--info">Satıldı</span>')}${fin && !s.voided && s.remaining > 0 ? `<button type="button" class="tk-btn tk-btn--outline tk-btn--sm" data-collect="${bizE(s.moveId)}">Tahsilat</button>` : ''}</div></li>`; }).join('')}</ul>` : (BIZ.sales.length ? bizEmpty('🔎', 'Bu dönemde satış yok', 'Dönemi veya filtreyi değiştir.') : bizEmpty('🧾', 'Henüz satış yok', 'Stoktaki bir cihazı açıp "Sat" ile ilk satışını kaydet.', '<button type="button" class="tk-btn tk-btn--primary" data-gostock="1">Stoğa git</button>'))}
+    ${fin && rows.length ? '<div class="tcx-actions"><button type="button" class="tk-btn tk-btn--outline" id="bsl-csv">Satışları indir (CSV)</button></div>' : ''}</div>`;
+  bizPeriodBind(b, per, () => bizViewSales(b));
+  const q = b.querySelector('#bsl-q'); q.addEventListener('input', () => { F.q = q.value; clearTimeout(BIZ._qt); BIZ._qt = setTimeout(() => { const pos = q.selectionStart; bizViewSales(b); const n = b.querySelector('#bsl-q'); n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) { /* yok */ } }, 200); });
+  bizBind(b, '[data-pst]', (x) => { F.st = x.dataset.pst; bizViewSales(b); });
+  bizBind(b, '[data-collect]', (x, e) => { e.stopPropagation(); bizGo('collect', { id: x.dataset.collect }); });
+  bizBind(b, '.biz-sale', (x) => bizGo('device', x.dataset.dev)); bizBind(b, '[data-gostock]', () => { BIZ.filter = { q: '', status: 'in_stock', brand: '', sort: 'new' }; bizGo('stock', null, true); });
+  const csv = b.querySelector('#bsl-csv'); if (csv) csv.addEventListener('click', () => bizExportFile('satislar-' + bizIsoDay() + '.csv', bizCsv(['Tarih', 'Cihaz', 'Müşteri', 'Tutar', 'Ödenen', 'Kalan', 'Ödeme durumu', 'Maliyet', 'Kâr', 'İade tarihi'], rows.map((s) => { const d = dById[s.deviceId]; return [s.date, d ? bizDevLabel(d) : '', s.customerName || '', s.amount, s.paid, s.remaining, BIZ_PAYSTATUS[s.payStatus] || '', s.cost, s.profit, s.returnDate || '']; }))));
+}
+
+// ---------------------------------------------------------------- Alışlar
+function bizViewPurchases(b) {
+  bizTitle('Alışlar'); const F = BIZ._pf = Object.assign({ q: '' }, BIZ._pf || {}), per = bizPeriodState('purchases'), fin = bizFin(), dById = bizDevById();
+  const rows = BIZ.moves.filter((m) => (m.type === 'purchase' || m.type === 'stock_in') && bizInRange(m.date, per.from, per.to)).filter((m) => { if (!F.q) return true; const d = dById[m.deviceId], q = bizNorm(F.q); return bizNorm(d ? bizDevLabel(d) : '').includes(q) || bizNorm(m.customerName || '').includes(q); })
+    .sort((a, c) => (a.date < c.date ? 1 : a.date > c.date ? -1 : (bizMs(c.createdAt) || 0) - (bizMs(a.createdAt) || 0)));
+  const total = Math.round(rows.reduce((a, m) => a + (typeof m.amount === 'number' ? m.amount : 0), 0) * 100) / 100;
+  b.innerHTML = bizNav('purchases') + `<div class="tcx" id="biz-purchases">${bizPeriodHtml(per)}<input class="tk-input" id="bpu-q" type="search" placeholder="Cihaz veya kimden alındığı" value="${bizE(F.q)}" aria-label="Ara">
+    <div class="tcx-counts" id="bpu-count">${rows.length} alış${fin ? ' · toplam ' + bizTL(total) : ''}</div>
+    ${rows.length ? `<ul class="tcx-list" id="bpu-list">${rows.map((m) => { const d = dById[m.deviceId]; return `<li class="tcx-row biz-pur" data-dev="${bizE(m.deviceId)}" role="button" tabindex="0"><div class="tcx-row-main"><div class="tcx-row-t">${bizE(d ? bizDevLabel(d) : 'Cihaz')}${m.type === 'stock_in' ? ' · stok girişi' : ''}</div><div class="tcx-row-d">${bizDay(m.date)}${m.customerName ? ' · ' + bizE(m.customerName) : ''}${m.byName ? ' · ' + bizE(m.byName) : ''}</div></div><div class="tcx-row-side">${fin ? `<b>${bizTL(m.amount)}</b>` : ''}${d ? bizBadge(d.status) : ''}</div></li>`; }).join('')}</ul>` : bizEmpty('📥', BIZ.moves.some((m) => m.type === 'purchase') ? 'Bu dönemde alış yok' : 'Henüz alış kaydı yok', 'Yeni bir cihaz aldığında alış fiyatıyla birlikte kaydet.')}
+    <div class="tcx-actions"><button type="button" class="tk-btn tk-btn--primary" data-go="add">+ Yeni alış</button>${fin && rows.length ? '<button type="button" class="tk-btn tk-btn--outline" id="bpu-csv">Alışları indir (CSV)</button>' : ''}</div></div>`;
+  bizPeriodBind(b, per, () => bizViewPurchases(b));
+  const q = b.querySelector('#bpu-q'); q.addEventListener('input', () => { F.q = q.value; clearTimeout(BIZ._qt); BIZ._qt = setTimeout(() => { const pos = q.selectionStart; bizViewPurchases(b); const n = b.querySelector('#bpu-q'); n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) { /* yok */ } }, 200); });
+  bizBind(b, '.biz-pur', (x) => bizGo('device', x.dataset.dev)); bizBind(b, '[data-go="add"]', () => bizGo('add'));
+  const csv = b.querySelector('#bpu-csv'); if (csv) csv.addEventListener('click', () => bizExportFile('alislar-' + bizIsoDay() + '.csv', bizCsv(['Tarih', 'Cihaz', 'Kimden', 'Tutar', 'Kaydeden'], rows.map((m) => { const d = dById[m.deviceId]; return [m.date, d ? bizDevLabel(d) : '', m.customerName || '', m.amount, m.byName || '']; }))));
+}
+
+// ---------------------------------------------------------------- Müşteriler
+function bizViewCustomers(b) {
+  bizTitle('Müşteriler'); const q = BIZ._cq || '', fin = bizFin(), bal = {};
+  if (fin) BIZ.sales.filter((s) => !s.voided && s.remaining > 0 && s.customerId).forEach((s) => { bal[s.customerId] = (bal[s.customerId] || 0) + s.remaining; });
+  const list = BIZ.customers.filter((c) => !q || bizNorm(c.name).includes(bizNorm(q)) || (c.phone || '').replace(/\D/g, '').includes(q.replace(/\D/g, '') || '§'));
+  b.innerHTML = bizNav('customers') + `<div class="tcx" id="biz-customers"><input class="tk-input" id="bc-q" type="search" placeholder="Ad veya telefon ara" value="${bizE(q)}" aria-label="Ara">
+    <div class="tcx-counts" id="bc-count">${list.length} müşteri</div>
+    ${list.length ? `<ul class="tcx-list">${list.map((c) => `<li class="tcx-row biz-cust" data-id="${bizE(c.id)}" role="button" tabindex="0"><div class="tcx-row-main"><div class="tcx-row-t">${bizE(c.name)}</div><div class="tcx-row-d">${bizE(c.phone || 'Telefon yok')}</div></div>${bal[c.id] ? `<div class="tcx-row-side"><span class="tk-badge tk-badge--warning">Alacak ${bizTL(bal[c.id])}</span></div>` : ''}</li>`).join('')}</ul>` : bizEmpty('👥', BIZ.customers.length ? 'Aramayla eşleşen müşteri yok' : 'Henüz müşteri yok', BIZ.customers.length ? '' : 'Satış veya alış yaparken müşteri otomatik eklenir; istersen elle de ekleyebilirsin.')}
+    <div class="tcx-actions"><button type="button" class="tk-btn tk-btn--primary" id="bc-add">+ Müşteri ekle</button></div></div>`;
+  const qi = b.querySelector('#bc-q'); qi.addEventListener('input', () => { BIZ._cq = qi.value; clearTimeout(BIZ._ct); BIZ._ct = setTimeout(() => { bizViewCustomers(b); const n = b.querySelector('#bc-q'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); }, 200); });
+  bizBind(b, '.biz-cust', (x) => bizGo('customer', x.dataset.id)); b.querySelector('#bc-add').addEventListener('click', () => bizGo('customerEdit', null));
+}
+function bizViewCustomer(b, id) {
+  const c = BIZ.customers.find((x) => x.id === id); if (!c) { bizBack(); return; }
+  bizTitle(c.name); const fin = bizFin(), byId = bizDevById(), st = bizCustomerStats(id, BIZ.sales, BIZ.moves, BIZ.receivables), mySales = bizCustomerSales(id, BIZ.sales), buys = BIZ.moves.filter((m) => m.customerId === id && m.type === 'purchase');
+  b.innerHTML = bizNav('customers') + `<div class="tcx" id="biz-customer"><div class="tcx-verdict"><div class="tcx-verdict-t">${bizE(c.name)}</div><div class="tcx-verdict-s">${bizE(c.phone || 'Telefon yok')}${c.email ? ' · ' + bizE(c.email) : ''}</div></div>
+    ${c.note ? `<div class="tc-status" role="note">${bizE(c.note)}</div>` : ''}
+    <div class="biz-stats" id="bcu-stats"><div class="biz-stat"><b>${st.boughtCount}</b><small>Bizden aldığı cihaz</small></div>${fin ? `<div class="biz-stat"><b>${bizTL(st.boughtTotal)}</b><small>Toplam alışverişi</small></div><div class="biz-stat"><b>${bizTL(st.openBalance)}</b><small>Açık bakiye</small></div>` : ''}<div class="biz-stat"><b>${st.soldToUsCount}</b><small>Bize sattığı cihaz</small></div><div class="biz-stat"><b>${st.lastDate ? bizDay(st.lastDate) : '—'}</b><small>Son işlem</small></div></div>
+    <h3 class="pd-sec-t">Bizden aldığı cihazlar</h3>${mySales.length ? `<ul class="tcx-list" id="bcu-sales">${mySales.map((s) => `<li class="tcx-row biz-sale" data-dev="${bizE(s.deviceId)}" role="button" tabindex="0"><div class="tcx-row-main"><div class="tcx-row-t">${bizE(byId[s.deviceId] ? bizDevLabel(byId[s.deviceId]) : 'Silinmiş kayıt')}</div><div class="tcx-row-d">${bizDay(s.date)}${s.voided ? ' · iade edildi' : ''}${fin && !s.voided && s.remaining > 0 ? ' · kalan ' + bizTL(s.remaining) : ''}</div></div><div class="tcx-row-side">${fin ? `<b>${bizTL(s.amount)}</b>${bizPayBadge(s.payStatus)}` : ''}${fin && !s.voided && s.remaining > 0 ? `<button type="button" class="tk-btn tk-btn--outline tk-btn--sm" data-collect="${bizE(s.moveId)}">Tahsilat</button>` : ''}</div></li>`).join('')}</ul>` : '<p class="tca-intro">Yok.</p>'}
+    <h3 class="pd-sec-t">Bize sattığı cihazlar</h3>${buys.length ? `<ul class="tcx-list">${buys.map((m) => `<li class="tcx-row biz-pur" data-dev="${bizE(m.deviceId)}" role="button" tabindex="0"><div class="tcx-row-main"><div class="tcx-row-t">${bizE(byId[m.deviceId] ? bizDevLabel(byId[m.deviceId]) : 'Silinmiş kayıt')}</div><div class="tcx-row-d">${bizDay(m.date)}</div></div><div class="tcx-row-side">${fin && typeof m.amount === 'number' ? `<b>${bizTL(m.amount)}</b>` : ''}</div></li>`).join('')}</ul>` : '<p class="tca-intro">Yok.</p>'}
+    <div class="tcx-actions"><button type="button" class="tk-btn tk-btn--outline" id="bcu-edit">Düzenle</button>${bizCanDo('delete_customer') ? '<button type="button" class="tk-btn tk-btn--ghost" id="bcu-del">Sil</button>' : ''}</div><p class="tca-intro">Müşteri bilgileri yalnızca işletme kullanıcılarına görünür; paylaşılan rapor, QR ve metinlere eklenmez.</p></div>`;
+  b.querySelector('#bcu-edit').addEventListener('click', () => bizGo('customerEdit', id));
+  bizBind(b, '.biz-sale,.biz-pur', (x) => bizGo('device', x.dataset.dev)); bizBind(b, '[data-collect]', (x, e) => { e.stopPropagation(); bizGo('collect', { id: x.dataset.collect }); });
+  const del = b.querySelector('#bcu-del'); if (del) del.addEventListener('click', async () => { if (!(await confirmDialog('Müşteri kaydı silinir; geçmiş işlemlerde adı kalır. Emin misin?', { title: 'Müşteriyi sil', confirmText: 'Sil', cancelText: 'Vazgeç' }))) return; try { const bt = bizDb().batch(); bt.delete(bizCol('customers').doc(id)); bizUsageSet(bt, 0, -1); await bt.commit(); await bizLoad(); BIZ.stack.pop(); bizRender('customers'); } catch (e) { bizToast(false, 'Silinemedi', bizErrText(e)); } });
+}
+
+// ---------------------------------------------------------------- Tahsilat (alacağa ödeme)
+function bizViewCollect(b, a) {
+  const s = BIZ.sales.find((x) => x.moveId === a.id), rec = BIZ.receivables.find((r) => r.id === a.id), d = s && bizDevById()[s.deviceId];
+  if (!s || !rec || !bizFin()) { bizBack(); return; }
+  bizTitle('Tahsilat'); const remaining = Math.round((rec.total - rec.paid) * 100) / 100;
+  b.innerHTML = bizNav('sales') + `<div class="tcx" id="biz-collect"><h2 class="tc-info-h">Tahsilat: ${bizE(d ? bizDevLabel(d) : 'Satış')}</h2>
+    <div class="tcx-verdict"><div class="tcx-verdict-t">${bizE(s.customerName || 'Müşteri belirtilmemiş')}</div><div class="tcx-verdict-s">Satış ${bizDay(s.date)} · toplam ${bizTL(rec.total)} · ödenen ${bizTL(rec.paid)} · <b id="bcl-rem">kalan ${bizTL(remaining)}</b></div></div>
+    ${(rec.payments || []).length ? `<h3 class="pd-sec-t">Önceki tahsilatlar</h3><ul class="tcx-list" id="bcl-hist">${rec.payments.map((p) => `<li class="tcx-row"><div class="tcx-row-main"><div class="tcx-row-t">${bizDay(p.date)}</div><div class="tcx-row-d">${bizE(BIZ_PAY_METHODS[p.method] || '')}</div></div><div class="tcx-row-side"><b>${bizTL(p.amount)}</b></div></li>`).join('')}</ul>` : ''}
+    ${remaining > 0 ? `<label class="tcx-lbl" for="bcl-amount">Tahsil edilen tutar (₺) *</label><input class="tk-input" id="bcl-amount" inputmode="decimal" autocomplete="off" value="${bizE(String(remaining).replace('.', ','))}">
+    <label class="tcx-lbl" for="bcl-method">Ödeme yöntemi</label><select class="tk-input" id="bcl-method">${Object.entries(BIZ_PAY_METHODS).map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select>
+    <label class="tcx-lbl" for="bcl-date">Tarih</label><input class="tk-input" id="bcl-date" type="date" value="${bizIsoDay()}">
+    <div class="tcr-err" id="bcl-err" role="alert"></div><div class="tcx-actions"><button type="button" class="tk-btn tk-btn--primary" id="bcl-save">Tahsilatı kaydet</button><button type="button" class="tk-btn tk-btn--outline" id="bcl-cancel">Vazgeç</button></div>` : '<div class="tc-status" role="note">Bu alacak tamamen kapanmış.</div>'}</div>`;
+  const cn = b.querySelector('#bcl-cancel'); if (cn) cn.addEventListener('click', () => bizBack());
+  const sv = b.querySelector('#bcl-save'); if (!sv) return;
+  sv.addEventListener('click', async (ev) => {
+    const err = b.querySelector('#bcl-err'), v = (x) => b.querySelector('#' + x).value;
+    const plan = bizPlanCollect(rec, { amount: v('bcl-amount'), method: v('bcl-method'), date: v('bcl-date') }); if (!plan.ok) { err.textContent = plan.error; return; }
+    if (!guardSubmit('biz-collect')) return; ev.target.disabled = true;
+    try {
+      const ref = bizCol('receivables').doc(a.id);
+      await bizDb().runTransaction(async (tx) => {   // eşzamanlı iki tahsilat birbirini ezemez: güncel kayıt üzerinden yeniden hesaplanır
+        const snap = await tx.get(ref); if (!snap.exists) throw Object.assign(new Error('yok'), { biz: 'Alacak kaydı bulunamadı.' });
+        const cur = snap.data(), p2 = bizPlanCollect(cur, { amount: v('bcl-amount'), method: v('bcl-method'), date: v('bcl-date') }); if (!p2.ok) throw Object.assign(new Error('x'), { biz: p2.error });
+        tx.update(ref, { paid: p2.paidAfter, payments: (cur.payments || []).concat([{ amount: p2.amount, date: p2.date, method: p2.method, by: user.uid }]), updatedAt: bizNow() });
+      });
+      await bizLoad(); BIZ.stack.pop(); bizRender(BIZ.stack[BIZ.stack.length - 1].view, BIZ.stack[BIZ.stack.length - 1].arg); bizToast(true, 'Tahsilat kaydedildi', bizTL(plan.amount));
+    } catch (e) { err.textContent = e && e.biz ? e.biz : bizErrText(e); ev.target.disabled = false; } finally { releaseSubmit('biz-collect'); }
+  });
+}
+
+// ---------------------------------------------------------------- Gelir – Gider (yalnızca sahip/yönetici)
+function bizViewFinance(b) {
+  if (!bizFin()) { bizGo('home', null, true); return; }
+  bizTitle('Gelir – Gider'); const per = bizPeriodState('finance'), rep = bizPeriodReport({ devices: BIZ.devices, moves: BIZ.moves, receivables: BIZ.receivables, ledger: BIZ.ledger, from: per.from, to: per.to });
+  const led = BIZ.ledger.filter((l) => bizInRange(l.date, per.from, per.to)).sort((a, c) => (a.date < c.date ? 1 : a.date > c.date ? -1 : 0)), open = bizOpenReceivables(BIZ.devices, BIZ.moves, BIZ.receivables), dById = bizDevById();
+  const card = (k, l, v, cls) => `<div class="biz-stat biz-stat--static ${cls || ''}" data-k="${k}"><b>${bizE(v)}</b><small>${l}</small></div>`;
+  b.innerHTML = bizNav('finance') + `<div class="tcx" id="biz-finance">${bizPeriodHtml(per)}
+    <div class="biz-stats" id="bf-cards">${card('revenue', 'Satış cirosu', bizTL(rep.salesRevenue))}${card('collected', 'Tahsil edilen', bizTL(rep.collected))}${card('receivable', 'Açık alacak (dönem)', bizTL(rep.openReceivable))}${card('gross', 'Gerçekleşen brüt kâr', bizTL(rep.grossProfit), rep.grossProfit < 0 ? 'neg' : '')}${card('gincome', 'Genel gelir', bizTL(rep.generalIncome))}${card('gexpense', 'Genel gider', bizTL(rep.generalExpense))}${card('net', 'Net kâr / zarar', bizTL(rep.netProfit), rep.netProfit < 0 ? 'neg' : 'pos')}${card('purchases', 'Alış tutarı (bilgi)', bizTL(rep.purchaseTotal))}</div>
+    <p class="tca-intro" id="bf-note">Kâr yalnızca <b>satılan</b> cihazlardan doğar; stoktaki cihazın potansiyel kârı gelir sayılmaz. Alış tutarı cihaz satıldığında maliyet olarak kâra yansır (ayrıca gider düşülmez). Net sonuç = brüt kâr + genel gelir − genel gider.${rep.voidedCount ? ' Dönemde ' + rep.voidedCount + ' satış iade/iptal edildi.' : ''}</p>
+    <h3 class="pd-sec-t">Açık alacaklar <small>(tüm zamanlar: ${bizTL(open.total)})</small></h3>${open.rows.length ? `<ul class="tcx-list" id="bf-recs">${open.rows.map((s) => `<li class="tcx-row"><div class="tcx-row-main"><div class="tcx-row-t">${bizE(dById[s.deviceId] ? bizDevLabel(dById[s.deviceId]) : 'Cihaz')}</div><div class="tcx-row-d">${bizE(s.customerName || 'Müşteri yok')} · ${bizDay(s.date)} · ödenen ${bizTL(s.paid)} / ${bizTL(s.amount)}</div></div><div class="tcx-row-side"><b>${bizTL(s.remaining)}</b><button type="button" class="tk-btn tk-btn--outline tk-btn--sm" data-collect="${bizE(s.moveId)}">Tahsilat</button></div></li>`).join('')}</ul>` : '<p class="tca-intro">Açık alacak yok.</p>'}
+    <h3 class="pd-sec-t">Genel gelir / gider kayıtları</h3>
+    <div class="tcx-actions"><button type="button" class="tk-btn tk-btn--primary" id="bf-add">+ Gider ekle</button><button type="button" class="tk-btn tk-btn--outline" id="bf-add-in">+ Gelir ekle</button></div>
+    <div id="bf-form"></div>
+    ${led.length ? `<ul class="tcx-list" id="bf-ledger">${led.map((l) => `<li class="tcx-row" data-kind="${bizE(l.kind)}"><div class="tcx-row-main"><div class="tcx-row-t">${bizE(l.category)}</div><div class="tcx-row-d">${bizDay(l.date)}${l.note ? ' · ' + bizE(l.note) : ''}${l.byName ? ' · ' + bizE(l.byName) : ''}</div></div><div class="tcx-row-side"><b class="${l.kind === 'expense' ? 'biz-neg' : 'biz-pos'}">${l.kind === 'expense' ? '−' : '+'}${bizTL(l.amount)}</b></div></li>`).join('')}</ul>` : bizEmpty('🧮', 'Bu dönemde kayıt yok', 'Kira, maaş, reklam gibi cihaza bağlı olmayan giderleri ve servis geliri gibi gelirleri buradan ekle.')}
+    <p class="tca-intro">Kayıtlar değiştirilemez veya silinemez; hata varsa ters bir kayıt ekle.</p></div>`;
+  bizPeriodBind(b, per, () => bizViewFinance(b)); bizBind(b, '[data-collect]', (x) => bizGo('collect', { id: x.dataset.collect }));
+  const form = (kind) => {
+    const host = b.querySelector('#bf-form'), cats = kind === 'expense' ? BIZ_LEDGER_EXPENSE : BIZ_LEDGER_INCOME;
+    host.innerHTML = `<div class="biz-card" id="bf-formcard"><b>${kind === 'expense' ? 'Gider ekle' : 'Gelir ekle'}</b><label class="tcx-lbl" for="bfl-cat">Kategori</label><select class="tk-input" id="bfl-cat">${cats.map((x) => `<option>${bizE(x)}</option>`).join('')}</select>
+      <label class="tcx-lbl" for="bfl-amount">Tutar (₺) *</label><input class="tk-input" id="bfl-amount" inputmode="decimal" autocomplete="off"><label class="tcx-lbl" for="bfl-date">Tarih</label><input class="tk-input" id="bfl-date" type="date" value="${bizIsoDay()}">
+      <label class="tcx-lbl" for="bfl-note">Açıklama</label><input class="tk-input" id="bfl-note" maxlength="300"><div class="tcr-err" id="bfl-err" role="alert"></div>
+      <div class="tcx-actions"><button type="button" class="tk-btn tk-btn--primary" id="bfl-save">Kaydet</button><button type="button" class="tk-btn tk-btn--outline" id="bfl-cancel">Vazgeç</button></div></div>`;
+    host.querySelector('#bfl-cancel').addEventListener('click', () => { host.innerHTML = ''; });
+    host.querySelector('#bfl-save').addEventListener('click', async (ev) => {
+      const v = (x) => host.querySelector('#' + x).value, err = host.querySelector('#bfl-err'), plan = bizPlanLedger({ kind, category: v('bfl-cat'), amount: v('bfl-amount'), date: v('bfl-date'), note: v('bfl-note') }); if (!plan.ok) { err.textContent = plan.error; return; }
+      if (!guardSubmit('biz-ledger')) return; ev.target.disabled = true;
+      try { await bizCol('ledger').doc().set({ ...plan.entry, by: user.uid, byName: bizByName(), createdAt: bizNow() }); await bizLoad(); bizRender('finance'); bizToast(true, 'Kayıt eklendi', bizTL(plan.entry.amount)); }
+      catch (e) { err.textContent = bizErrText(e); ev.target.disabled = false; } finally { releaseSubmit('biz-ledger'); }
+    });
+  };
+  b.querySelector('#bf-add').addEventListener('click', () => form('expense')); b.querySelector('#bf-add-in').addEventListener('click', () => form('income'));
+}
+
+// ---------------------------------------------------------------- Raporlar (yalnızca sahip/yönetici)
+function bizViewReports(b) {
+  if (!bizFin()) { bizGo('home', null, true); return; }
+  bizTitle('Raporlar'); const per = bizPeriodState('reports'), o = { devices: BIZ.devices, moves: BIZ.moves, receivables: BIZ.receivables, ledger: BIZ.ledger };
+  const rep = bizPeriodReport({ ...o, from: per.from, to: per.to }), series = bizMonthly(o, 12), sales = BIZ.sales.filter((s) => bizInRange(s.date, per.from, per.to)), top = bizTopModels(BIZ.devices, sales, 5), dById = bizDevById();
+  const row = (l, v, cls) => `<li class="tcx-row"><div class="tcx-row-main">${l}</div><div class="tcx-row-side"><b class="${cls || ''}">${v}</b></div></li>`;
+  b.innerHTML = bizNav('reports') + `<div class="tcx" id="biz-reports">${bizPeriodHtml(per)}
+    <ul class="tcx-list" id="br-table">${row('Satılan cihaz', rep.salesCount)}${row('Satış cirosu', bizTL(rep.salesRevenue))}${row('Tahsil edilen', bizTL(rep.collected))}${row('Açık alacak', bizTL(rep.openReceivable))}${row('İade / iptal edilen satış', rep.voidedCount + (rep.voidedCount ? ' · iade ' + bizTL(rep.refunded) : ''))}${row('Alınan cihaz', rep.purchaseCount + ' · ' + bizTL(rep.purchaseTotal))}${row('Cihaz masrafları', bizTL(rep.deviceExpenses))}${rep.removalCount ? row('Stoktan çıkarma sonucu', bizTL(rep.removalResult), rep.removalResult < 0 ? 'biz-neg' : '') : ''}${row('<b>Gerçekleşen brüt kâr / zarar</b>', bizTL(rep.grossProfit), rep.grossProfit < 0 ? 'biz-neg' : 'biz-pos')}${row('Genel gelir', bizTL(rep.generalIncome))}${row('Genel gider', bizTL(rep.generalExpense))}${row('<b>Net kâr / zarar</b>', bizTL(rep.netProfit), rep.netProfit < 0 ? 'biz-neg' : 'biz-pos')}</ul>
+    <h3 class="pd-sec-t">Aylık satış ve kâr <small>(son 12 ay)</small></h3>${bizBars(series, 'money') || bizEmpty('📈', 'Henüz satış yok', 'Satış kaydettikçe grafik oluşur.')}
+    <h3 class="pd-sec-t">En çok satılanlar <small>(seçili dönem)</small></h3>${top.length ? `<ul class="tcx-list">${top.map((x) => `<li class="tcx-row"><div class="tcx-row-main"><div class="tcx-row-t">${bizE(x.label)}</div><div class="tcx-row-d">${x.count} adet · ciro ${bizTL(x.revenue)}</div></div><div class="tcx-row-side"><b>${bizTL(x.profit)}</b><small>kâr</small></div></li>`).join('')}</ul>` : '<p class="tca-intro">Bu dönemde satış yok.</p>'}
+    <h3 class="pd-sec-t">Dışa aktar</h3><div class="tcx-actions" id="br-export"><button type="button" class="tk-btn tk-btn--outline" data-exp="sales">Satışlar (CSV)</button><button type="button" class="tk-btn tk-btn--outline" data-exp="purchases">Alışlar (CSV)</button><button type="button" class="tk-btn tk-btn--outline" data-exp="ledger">Gelir-gider (CSV)</button><button type="button" class="tk-btn tk-btn--outline" data-exp="summary">Özet (CSV)</button></div>
+    <p class="tca-intro">Raporlar yalnızca kayıtlı gerçek işlemlerden hesaplanır. Seçili dönem: ${per.from || per.to ? bizE(bizDay(per.from) + ' – ' + bizDay(per.to)) : 'tüm zamanlar'}.</p></div>`;
+  bizPeriodBind(b, per, () => bizViewReports(b));
+  bizBind(b, '[data-exp]', (x) => {
+    const k = x.dataset.exp, d = (id) => (dById[id] ? bizDevLabel(dById[id]) : ''), tag = (per.from || 'baslangic') + '_' + (per.to || 'bugun');
+    if (k === 'sales') bizExportFile('satislar-' + tag + '.csv', bizCsv(['Tarih', 'Cihaz', 'Müşteri', 'Tutar', 'Ödenen', 'Kalan', 'Ödeme durumu', 'Maliyet', 'Kâr'], sales.map((s) => [s.date, d(s.deviceId), s.customerName || '', s.amount, s.paid, s.remaining, BIZ_PAYSTATUS[s.payStatus] || '', s.cost, s.profit])));
+    else if (k === 'purchases') bizExportFile('alislar-' + tag + '.csv', bizCsv(['Tarih', 'Cihaz', 'Kimden', 'Tutar'], BIZ.moves.filter((m) => (m.type === 'purchase' || m.type === 'stock_in') && bizInRange(m.date, per.from, per.to)).map((m) => [m.date, d(m.deviceId), m.customerName || '', m.amount])));
+    else if (k === 'ledger') bizExportFile('gelir-gider-' + tag + '.csv', bizCsv(['Tarih', 'Tür', 'Kategori', 'Tutar', 'Açıklama'], BIZ.ledger.filter((l) => bizInRange(l.date, per.from, per.to)).map((l) => [l.date, l.kind === 'income' ? 'Gelir' : 'Gider', l.category, l.amount, l.note || ''])));
+    else bizExportFile('ozet-' + tag + '.csv', bizCsv(['Kalem', 'Değer'], [['Dönem', (per.from || '') + ' / ' + (per.to || '')], ['Satılan cihaz', rep.salesCount], ['Satış cirosu', rep.salesRevenue], ['Tahsil edilen', rep.collected], ['Açık alacak', rep.openReceivable], ['Alış tutarı', rep.purchaseTotal], ['Brüt kâr', rep.grossProfit], ['Genel gelir', rep.generalIncome], ['Genel gider', rep.generalExpense], ['Net kâr', rep.netProfit]]));
+  });
+}
+
+// ---------------------------------------------------------------- TeknoCheck rapor geçmişi
+function bizViewTcReports(b) {
+  bizTitle('TeknoCheck'); const withRep = BIZ.devices.filter((d) => d.report).sort((a, c) => String((c.report || {}).createdAt || '').localeCompare(String((a.report || {}).createdAt || ''))), without = BIZ.devices.filter((d) => !d.report && d.status === 'in_stock'), can = bizCanDo('record_movement');
+  b.innerHTML = bizNav('tcreports') + `<div class="tcx" id="biz-tcreports"><div class="biz-stats"><div class="biz-stat biz-stat--static"><b>${withRep.length}</b><small>Raporu olan cihaz</small></div><div class="biz-stat biz-stat--static"><b>${without.length}</b><small>Raporu olmayan stok</small></div></div>
+    <div class="tcx-actions"><button type="button" class="tk-btn tk-btn--outline" id="btc-verify">Rapor doğrula</button></div>
+    <h3 class="pd-sec-t">Rapor geçmişi</h3>${withRep.length ? `<ul class="tcx-list" id="btc-list">${withRep.map((d) => { const r = d.report; return `<li class="tcx-row biz-dev" data-id="${bizE(d.id)}" role="button" tabindex="0"><div class="tcx-row-main"><div class="tcx-row-t">${bizE(bizDevLabel(d))}</div><div class="tcx-row-d">${bizE(r.reportId)} · ${bizE(TC_OVERALL_LABEL[r.overall] || '')} · ${bizDay(String(r.createdAt || '').slice(0, 10))}${d.batteryHealth ? ' · pil %' + bizE(d.batteryHealth.percent) : ''}</div></div><div class="tcx-row-side">${bizBadge(d.status)}</div></li>`; }).join('')}</ul>` : bizEmpty('🧪', 'Henüz bağlı rapor yok', 'Bir cihazı açıp TeknoCheck testi başlat veya mevcut raporunu cihaza bağla. Müşteriye QR ile gösterebilirsin.')}
+    ${without.length ? `<h3 class="pd-sec-t">Raporu olmayan stok</h3><ul class="tcx-list" id="btc-missing">${without.slice(0, 20).map((d) => `<li class="tcx-row biz-dev" data-id="${bizE(d.id)}" role="button" tabindex="0"><div class="tcx-row-main"><div class="tcx-row-t">${bizE(bizDevLabel(d))}</div><div class="tcx-row-d">${can ? 'Cihazı açıp test başlatabilirsin' : 'Rapor bağlanmamış'}</div></div></li>`).join('')}</ul>` : ''}
+    <p class="tca-intro">TeknoCheck raporu cihazın orijinal veya kusursuz olduğunu kanıtlamaz; imza yalnızca raporun sonradan değişmediğini gösterir. IMEI, seri no ve fiyat rapora/QR'a eklenmez. Testi yalnızca Android uygulamasında yapabilirsin.</p></div>`;
+  bizBind(b, '.biz-dev', (x) => bizGo('device', x.dataset.id));
+  b.querySelector('#btc-verify').addEventListener('click', () => { if (typeof tcOpenVerify === 'function') { closemo('biz-mo'); tcOpenVerify({}); } });
+}
+
+// ---------------------------------------------------------------- İlanlarım (Pazar ilanları ↔ stok)
+function bizViewListings(b) {
+  bizTitle('İlanlarım'); const F = BIZ._lf = Object.assign({ st: 'all' }, BIZ._lf || {}), now = Date.now(), dev = BIZ.devices, byListing = {}; dev.forEach((d) => { if (d.listingId) byListing[d.listingId] = d; });
+  const all = (BIZ.listings || []).map((l) => ({ l, st: bizListingState(l, now) })), rows = all.filter((x) => F.st === 'all' || (F.st === 'other' ? !['live', 'pending', 'sold'].includes(x.st) : x.st === F.st));
+  const warn = []; all.forEach((x) => { const d = byListing[x.l.id]; if (d) bizListingConsistency(d, x.l, now).forEach((c) => warn.push(bizDevLabel(d) + ': ' + BIZ_CONSISTENCY_TEXT[c])); });
+  const cnt = (k) => all.filter((x) => (k === 'other' ? !['live', 'pending', 'sold'].includes(x.st) : x.st === k)).length;
+  b.innerHTML = bizNav('listings') + `<div class="tcx" id="biz-listings">
+    ${BIZ.listingsOk === false ? '<div class="tc-status" role="alert">İlanlar yüklenemedi. Bağlantını kontrol edip sayfayı yenile.</div>' : ''}
+    <div class="biz-chips" role="group" aria-label="İlan durumu">${[['all', 'Tümü · ' + all.length], ['live', 'Yayında · ' + cnt('live')], ['pending', 'Onay bekliyor · ' + cnt('pending')], ['sold', 'Satıldı · ' + cnt('sold')], ['other', 'Diğer · ' + cnt('other')]].map(([k, l]) => `<button type="button" class="tca-chip${F.st === k ? ' on' : ''}" data-lst="${k}" aria-pressed="${F.st === k}">${l}</button>`).join('')}</div>
+    ${warn.length ? `<div class="tc-status" role="alert" id="bl-warn"><b>Stok ve ilan tutarsızlığı:</b><ul>${warn.map((w) => `<li>${bizE(w)}</li>`).join('')}</ul></div>` : ''}
+    ${rows.length ? `<ul class="tcx-list" id="bl-list">${rows.map(({ l, st }) => { const d = byListing[l.id], mine = l.uid === user.uid, price = parseInt(String(l.price || '').replace(/[^\d]/g, ''), 10); return `<li class="tcx-row biz-lst" data-id="${bizE(l.id)}"><div class="tcx-row-main" data-open="${bizE(l.id)}" role="button" tabindex="0"><div class="tcx-row-t">${bizE([l.brand, l.model].filter(Boolean).join(' ') || 'İlan')}</div><div class="tcx-row-d">${isFinite(price) && price > 0 ? bizTL(price) + ' · ' : ''}${bizE(l.ownerName || '')}${mine ? ' (sen)' : ''}${d ? ' · stok: ' + bizE(bizDevLabel(d)) : ' · stokla eşleşmemiş'}</div></div><div class="tcx-row-side">${bizListBadge(st)}${mine ? `<div class="biz-acts">${st === 'live' ? `<button type="button" class="tk-btn tk-btn--outline tk-btn--sm" data-act="pause" data-id="${bizE(l.id)}">Yayından kaldır</button>` : ''}${st === 'paused_owner' ? `<button type="button" class="tk-btn tk-btn--outline tk-btn--sm" data-act="resume" data-id="${bizE(l.id)}">Yeniden yayınla</button>` : ''}${st === 'live' || st === 'pending' || st === 'expired' ? `<button type="button" class="tk-btn tk-btn--outline tk-btn--sm" data-act="sold" data-id="${bizE(l.id)}">Satıldı</button>` : ''}${st === 'sold' ? `<button type="button" class="tk-btn tk-btn--outline tk-btn--sm" data-act="unsold" data-id="${bizE(l.id)}">Geri al</button>` : ''}${!d ? `<button type="button" class="tk-btn tk-btn--outline tk-btn--sm" data-act="link" data-id="${bizE(l.id)}">Stokla eşle</button>` : ''}</div>` : ''}</div></li>`; }).join('')}</ul>` : bizEmpty('📣', all.length ? 'Bu durumda ilan yok' : 'Henüz işletme ilanın yok', all.length ? 'Başka bir durum seç.' : 'Stoktaki bir cihazı Pazar\'a ilan vererek satışa çıkar. İlanlar onaydan sonra yayınlanır.')}
+    <div class="tcx-actions"><button type="button" class="tk-btn tk-btn--primary" id="bl-new">+ Yeni ilan ver</button></div>
+    <p class="tca-intro">İşletme ilanları Pazar'da "🏢 İşletme" rozetiyle görünür. Yayından kaldırma, silme değildir: sohbetler ve geçmiş korunur. Bu listede yalnızca bu işletme adına verilen ilanlar yer alır; kişisel ilanların etkilenmez.</p></div>`;
+  bizBind(b, '[data-lst]', (x) => { F.st = x.dataset.lst; bizViewListings(b); }); b.querySelector('#bl-new').addEventListener('click', () => bizNewListing(null));
+  bizBind(b, '[data-open]', (x) => { const id = x.dataset.open; closemo('biz-mo'); if (typeof gt === 'function') gt('market'); if (typeof openDetail === 'function') openDetail(id); });
+  bizBind(b, '[data-act]', (x, e) => { e.stopPropagation(); bizListingAct(x.dataset.act, x.dataset.id, b); });
+}
+async function bizListingAct(act, id, b) {
+  const l = (BIZ.listings || []).find((x) => x.id === id); if (!l || l.uid !== user.uid) return;
+  const done = async (msg) => { await bizLoadListings(); if (typeof marketInvalidateFullSet === 'function') marketInvalidateFullSet(); bizRender('listings'); bizToast(true, msg, ''); };
+  try {
+    if (act === 'pause') { if (!(await confirmDialog('İlan Pazar\'dan kalkar; sohbetlerin ve geçmişin korunur. İstediğin zaman yeniden yayına alabilirsin.', { title: 'Yayından kaldır', confirmText: 'Yayından kaldır', cancelText: 'Vazgeç' }))) return; await db.collection('teknohane_listings').doc(id).update({ paused: true, pausedBy: 'owner' }); await done('İlan yayından kaldırıldı'); }
+    else if (act === 'resume') { await db.collection('teknohane_listings').doc(id).update({ paused: false, pausedBy: firebase.firestore.FieldValue.delete() }); await done('İlan yeniden yayında'); }
+    else if (act === 'sold' || act === 'unsold') {
+      await toggleSold(id, true); await bizLoadListings(); bizRender('listings');
+      const d = BIZ.devices.find((x) => x.listingId === id);
+      if (act === 'sold' && d && d.status === 'in_stock' && (await confirmDialog('Bu ilanın cihazı stokta görünüyor. Satışı da kaydedeyim mi?', { title: 'Satışı kaydet', confirmText: 'Satışı kaydet', cancelText: 'Şimdi değil' }))) bizGo('move', { id: d.id, type: 'sale' });
+    } else if (act === 'link') {
+      const free = BIZ.devices.filter((d) => d.status === 'in_stock' && !d.listingId); if (!free.length) { bizToast(false, 'Eşleşecek stok yok', 'Önce cihazı stoğa ekle.'); return; }
+      b.insertAdjacentHTML('beforeend', `<div class="mo on" id="bl-linkmo"><div class="det-sheet" role="dialog" aria-modal="true"><div class="det-body"><div class="tcx"><h2 class="tc-info-h">Stok kaydı seç</h2><select class="tk-input" id="bl-linksel">${free.map((d) => `<option value="${bizE(d.id)}">${bizE(bizDevLabel(d) + (d.color ? ' · ' + d.color : ''))}</option>`).join('')}</select><div class="tcx-actions"><button type="button" class="tk-btn tk-btn--primary" id="bl-linkok">Eşle</button><button type="button" class="tk-btn tk-btn--outline" id="bl-linkno">Vazgeç</button></div></div></div></div></div>`);
+      const close = () => { const m = document.getElementById('bl-linkmo'); if (m) m.remove(); };
+      document.getElementById('bl-linkno').addEventListener('click', close);
+      document.getElementById('bl-linkok').addEventListener('click', async () => { const did = document.getElementById('bl-linksel').value; close(); try { await bizCol('inventory').doc(did).update({ listingId: id, updatedAt: bizNow() }); await bizLoad(); bizRender('listings'); bizToast(true, 'İlan stokla eşleştirildi', ''); } catch (e) { bizToast(false, 'Eşleştirilemedi', bizErrText(e)); } });
+    }
+  } catch (e) { bizToast(false, 'İşlem tamamlanamadı', e && e.code === 'permission-denied' ? 'Bu ilan için yetkin yok veya ilan durumu uygun değil.' : 'Tekrar dene.'); }
+}
+// Pazar'a işletme adına ilan: mevcut ilan sihirbazı kullanılır; bağlam (işletme + cihaz) forma taşınır, gönderimde bizId/bizName eklenir (Rules işletme üyeliğini ve adı doğrular).
+function bizNewListing(deviceId) {
+  if (typeof newListing !== 'function' || !BIZ || !BIZ.id) return;
+  const d = deviceId ? BIZ.devices.find((x) => x.id === deviceId) : null;
+  TK_BIZ_PUBLISH_PENDING = { id: BIZ.id, name: BIZ.biz.name, deviceId: d ? d.id : null, prefill: d ? { brand: d.brand, model: d.model, storage: d.storage || '', color: d.color || '', price: typeof d.listPrice === 'number' ? d.listPrice : null, condition: d.condition || null } : null };
+  closemo('biz-mo'); newListing();
+}
+function bizPrefillListing(pf) {
+  try {
+    const set = (id, v) => { const e = document.getElementById(id); if (e && v !== null && v !== undefined && v !== '') e.value = v; };
+    if (pf.brand && typeof setListingBrandValue === 'function') setListingBrandValue(pf.brand);
+    set('l-model', pf.model); set('l-storage', pf.storage); set('l-color', pf.color); set('l-price', pf.price);
+    if (pf.condition) { set('l-cond', pf.condition === 'new' ? 'Sıfır' : 'İkinci El'); if (typeof syncPickerTriggerLabel === 'function') syncPickerTriggerLabel('l-cond'); }
+    if (typeof listingFormOnChange === 'function') listingFormOnChange();
+  } catch (e) { /* ön doldurma başarısız olursa form boş açılır */ }
+}
+// İlan oluştuktan sonra cihazı ilana bağlar (yalnızca cihazdan başlatıldıysa)
+async function bizOnListingCreated(listingId) {
+  const c = TK_BIZ_PUBLISH; TK_BIZ_PUBLISH = null; if (!c || !c.deviceId) return;
+  try { await bizDb().collection('businesses').doc(c.id).collection('inventory').doc(c.deviceId).update({ listingId, updatedAt: bizNow() }); } catch (e) { /* bağ kurulamazsa ilan yine de yayında; "Stokla eşle" ile sonradan eşleştirilir */ }
+}
+// Cihaz sayfasındaki ilan bölümü
+async function bizDeviceListing(d) {
+  const host = document.getElementById('bd-listing'); if (!host) return; const can = bizCanDo('record_movement');
+  const newBtn = d.status === 'in_stock' && can ? '<button type="button" class="tk-btn tk-btn--primary" id="bd-newlist">Pazar\'a ilan ver</button>' : '';
+  if (!d.listingId) { host.innerHTML = `<p class="tca-intro" id="bd-nolist">Bu cihaz için bağlı bir Pazar ilanı yok.</p><div class="tcx-actions">${newBtn}</div>`; const nb = host.querySelector('#bd-newlist'); if (nb) nb.addEventListener('click', () => bizNewListing(d.id)); return; }
+  host.innerHTML = '<p class="tca-intro">İlan bilgisi yükleniyor…</p>'; let l = (BIZ.listings || []).find((x) => x.id === d.listingId) || null;
+  if (!l) { try { const s = await db.collection('teknohane_listings').doc(d.listingId).get(); l = s.exists ? { id: s.id, ...s.data() } : null; } catch (e) { if (!document.getElementById('bd-listing')) return; host.innerHTML = '<p class="tca-intro" id="bd-listerr">İlan bilgisi okunamadı (ilan başka bir kullanıcıya ait ve henüz yayında değil olabilir).</p>'; return; } }
+  if (!document.getElementById('bd-listing')) return; const st = bizListingState(l), issues = bizListingConsistency(d, l);
+  host.innerHTML = l ? `<div class="tc-status" role="note" id="bd-listinfo"><b>${bizE([l.brand, l.model].filter(Boolean).join(' '))}</b> ${bizListBadge(st)}${issues.length ? `<ul>${issues.map((c) => `<li>${bizE(BIZ_CONSISTENCY_TEXT[c])}</li>`).join('')}</ul>` : ''}</div><div class="tcx-actions"><button type="button" class="tk-btn tk-btn--outline" id="bd-openlist">İlanı aç</button>${can ? '<button type="button" class="tk-btn tk-btn--ghost" id="bd-unlink">Bağlantıyı kaldır</button>' : ''}</div>`
+    : `<div class="tc-status" role="alert" id="bd-listinfo">${bizE(BIZ_CONSISTENCY_TEXT.listing_missing)}</div><div class="tcx-actions">${can ? '<button type="button" class="tk-btn tk-btn--outline" id="bd-unlink">Bağlantıyı kaldır</button>' : ''}${newBtn}</div>`;
+  const op = host.querySelector('#bd-openlist'); if (op) op.addEventListener('click', () => { closemo('biz-mo'); if (typeof gt === 'function') gt('market'); openDetail(l.id); });
+  const un = host.querySelector('#bd-unlink'); if (un) un.addEventListener('click', async () => { try { await bizCol('inventory').doc(d.id).update({ listingId: firebase.firestore.FieldValue.delete(), updatedAt: bizNow() }); await bizLoad(); bizRender('device', d.id); } catch (e) { bizToast(false, 'Kaldırılamadı', bizErrText(e)); } });
+  const nb = host.querySelector('#bd-newlist'); if (nb) nb.addEventListener('click', () => bizNewListing(d.id));
+}
+
+// ---------------------------------------------------------------- İşletme profili
+const bizSocialLink = (k, v) => k === 'instagram' ? 'https://instagram.com/' + v : k === 'whatsapp' ? 'https://wa.me/' + bizWhatsapp(v) : v;
+async function bizViewProfile(b) {
+  bizTitle('İşletme'); const p = BIZ.biz, canEdit = bizCanDo('edit_profile'), isOwner = bizCanDo('view_tax'), lim = subBizLimitsC(BIZ.plan, Date.now());
+  let tax = null, members = null;
+  if (isOwner) { try { const s = await bizCol('restricted').doc('tax').get(); tax = s.exists ? s.data() : {}; } catch (e) { tax = null; } }
+  if (bizCanDo('view_members')) { try { members = (await bizCol('members').get()).docs.map((d) => d.data()); } catch (e) { members = null; } }
+  if (!document.getElementById('biz-body') || BIZ.stack[BIZ.stack.length - 1].view !== 'profile') return;
+  const dis = canEdit ? '' : ' disabled', comp = bizProfileCompleteness(p, !!BIZ.cover), hours = p.hours || {}, ver = BIZ.verification && BIZ.verification.status;
+  const open = bizOpenNow(p.hours);
+  const verHtml = ver === 'verified' ? '<span class="tk-badge tk-badge--success" id="bp-ver">✓ Doğrulandı</span>' : ver === 'pending' ? '<span class="tk-badge tk-badge--warning" id="bp-ver">İnceleniyor</span>' : ver === 'rejected' ? '<span class="tk-badge tk-badge--danger" id="bp-ver">Doğrulanamadı</span>' : '<span class="tk-badge tk-badge--neutral" id="bp-ver">Doğrulanmadı</span>';
+  b.innerHTML = bizNav('profile') + `<div class="tcx" id="biz-profile"><h2 class="tc-info-h">İşletme profili</h2>
+    <div class="biz-cover" id="bp-cover">${BIZ.cover ? `<img alt="Kapak görseli" id="bp-cover-img" src="${bizE(BIZ.cover)}">` : '<div class="biz-cover-ph" id="bp-cover-img">Kapak görseli yok</div>'}${canEdit ? '<div class="biz-cover-acts"><button type="button" class="tk-btn tk-btn--outline tk-btn--sm" id="bp-cover-pick">Kapak seç</button><button type="button" class="tk-btn tk-btn--ghost tk-btn--sm" id="bp-cover-del"' + (BIZ.cover ? '' : ' hidden') + '>Kaldır</button></div>' : ''}</div>
+    <div class="biz-head">${p.logo ? `<img class="biz-logo" id="bp-logo-img" alt="" src="${bizE(p.logo)}">` : '<div class="biz-logo biz-logo--ph" id="bp-logo-img" aria-hidden="true">🏪</div>'}${canEdit ? '<button type="button" class="tk-btn tk-btn--outline tk-btn--sm" id="bp-logo">Logo seç</button>' : ''}<div class="biz-ver">${verHtml}${open === null ? '' : `<small class="biz-hint">${open ? 'Şu an açık' : 'Şu an kapalı'}</small>`}</div></div>
+    <p class="tca-intro" id="bp-vernote">${ver === 'verified' ? 'İşletmen Teknohane tarafından doğrulandı.' : ver === 'pending' ? 'Doğrulama başvurun inceleniyor.' : ver === 'rejected' ? 'Doğrulama tamamlanamadı' + (BIZ.verification && BIZ.verification.note ? ': ' + bizE(BIZ.verification.note) : '') + '.' : 'Doğrulama Teknohane yönetimi tarafından yapılır. Vergi ve iletişim bilgilerini eksiksiz tutman sürece yardımcı olur.'}</p>
+    <div class="biz-card" id="bp-complete"><div class="biz-card-h"><b>Profil tamamlama</b><small>%${comp.percent}</small></div><div class="biz-meter"><i style="width:${comp.percent}%"></i></div>${comp.missing.length ? `<small class="biz-hint">Eksik: ${comp.missing.map((x) => bizE(x.label)).join(', ')} — zorunlu değil, istediğinde tamamla.</small>` : '<small class="biz-hint">Profilin tam.</small>'}</div>
+    <label class="tcx-lbl" for="bp-name">İşletme adı *</label><input class="tk-input" id="bp-name" maxlength="80" value="${bizE(p.name)}"${dis}>
+    <label class="tcx-lbl" for="bp-cat">Kategori</label><select class="tk-input" id="bp-cat"${dis}><option value="">Seçilmedi</option>${Object.entries(BIZ_CATEGORIES).map(([k, l]) => `<option value="${k}"${p.category === k ? ' selected' : ''}>${l}</option>`).join('')}</select>
+    <label class="tcx-lbl" for="bp-desc">Açıklama <small>(en çok 600 karakter)</small></label><textarea class="tk-input" id="bp-desc" rows="3" maxlength="600"${dis}>${bizE(p.description || '')}</textarea>
+    <label class="tcx-lbl" for="bp-contact">Yetkili kişi</label><input class="tk-input" id="bp-contact" maxlength="80" value="${bizE(p.contactName || '')}"${dis}>
+    <div class="biz-two"><div><label class="tcx-lbl" for="bp-phone">Telefon</label><input class="tk-input" id="bp-phone" maxlength="30" inputmode="tel" value="${bizE(p.phone || '')}"${dis}></div><div><label class="tcx-lbl" for="bp-wa">WhatsApp</label><input class="tk-input" id="bp-wa" maxlength="30" inputmode="tel" value="${bizE(p.whatsapp || '')}"${dis}></div></div>
+    <label class="tcx-lbl" for="bp-email">E-posta</label><input class="tk-input" id="bp-email" maxlength="120" value="${bizE(p.email || '')}"${dis}>
+    <div class="biz-two"><div><label class="tcx-lbl" for="bp-city">İl</label><input class="tk-input" id="bp-city" maxlength="60" value="${bizE(p.city || '')}"${dis}></div><div><label class="tcx-lbl" for="bp-district">İlçe</label><input class="tk-input" id="bp-district" maxlength="60" value="${bizE(p.district || '')}"${dis}></div></div>
+    <label class="tcx-lbl" for="bp-addr">Açık adres</label><textarea class="tk-input" id="bp-addr" rows="2" maxlength="300"${dis}>${bizE(p.address || '')}</textarea>
+    <label class="tcx-lbl" for="bp-map">Harita bağlantısı <small>(isteğe bağlı; Google/Apple Haritalar paylaşım bağlantısı)</small></label><input class="tk-input" id="bp-map" maxlength="300" value="${bizE(p.mapUrl || '')}"${dis}>
+    <h3 class="pd-sec-t">Çalışma saatleri</h3><div id="bp-hours">${BIZ_DAYS.map(([k, l]) => { const h = bizHoursParse(hours[k]) || {}; return `<div class="biz-hr" data-day="${k}"><span>${l}</span><label class="biz-ck"><input type="checkbox" class="bh-closed"${h.closed ? ' checked' : ''}${dis}> Kapalı</label><input type="time" class="tk-input bh-open" value="${bizE(h.open || '')}"${dis}><input type="time" class="tk-input bh-close" value="${bizE(h.close || '')}"${dis}></div>`; }).join('')}</div>
+    <h3 class="pd-sec-t">Web ve sosyal medya</h3>
+    <label class="tcx-lbl" for="bp-web">Web sitesi</label><input class="tk-input" id="bp-web" maxlength="200" inputmode="url" value="${bizE(p.website || '')}"${dis}>
+    <div class="biz-two"><div><label class="tcx-lbl" for="bp-ig">Instagram</label><input class="tk-input" id="bp-ig" maxlength="120" placeholder="@kullanici" value="${bizE(p.instagram || '')}"${dis}></div><div><label class="tcx-lbl" for="bp-fb">Facebook</label><input class="tk-input" id="bp-fb" maxlength="200" value="${bizE(p.facebook || '')}"${dis}></div></div>
+    ${isOwner ? `<h3 class="pd-sec-t">Vergi bilgileri <small>(isteğe bağlı · yalnızca işletme sahibi görür)</small></h3>
+    <label class="tcx-lbl" for="bp-legal">Ticari unvan</label><input class="tk-input" id="bp-legal" maxlength="120" value="${bizE(tax ? tax.legalName || '' : '')}">
+    <label class="tcx-lbl" for="bp-taxno">Vergi no</label><input class="tk-input" id="bp-taxno" maxlength="20" inputmode="numeric" value="${bizE(tax ? tax.taxNo || '' : '')}">
+    <label class="tcx-lbl" for="bp-taxoff">Vergi dairesi</label><input class="tk-input" id="bp-taxoff" maxlength="80" value="${bizE(tax ? tax.taxOffice || '' : '')}">` : ''}
+    <div class="tcr-err" id="bp-err" role="alert"></div>
+    ${canEdit ? '<div class="tcx-actions"><button type="button" class="tk-btn tk-btn--primary" id="bp-save">Kaydet</button></div>' : '<div class="tc-status" role="note">Profili yalnızca işletme sahibi ve yönetici düzenleyebilir.</div>'}
+    ${members ? `<h3 class="pd-sec-t">Kullanıcılar</h3><ul class="tcx-list" id="bp-members">${members.map((m) => `<li class="tcx-row"><div class="tcx-row-main"><div class="tcx-row-t">${bizE(m.displayName || m.uid.slice(0, 6) + '…')}</div></div><div class="tcx-row-side">${bizE(BIZ_ROLES[m.role] || m.role)}${m.active === false ? ' · pasif' : ''}</div></li>`).join('')}</ul><div class="tcx-actions"><button type="button" class="tk-btn tk-btn--outline" id="bp-team">Ekibi yönet</button></div>` : ''}
+    <h3 class="pd-sec-t">Paket</h3><p class="tca-intro" id="bp-plan">${bizE(subSummaryC(BIZ.plan, Date.now(), 'İşletme paketi'))} · cihaz limiti ${lim.devices} · kullanıcı limiti ${lim.members} · müşteri limiti ${lim.customers}</p><div class="tcx-actions"><button type="button" class="tk-btn tk-btn--outline" id="bp-plan-go">Paketi yönet</button></div></div>`;
+  const q = (s) => b.querySelector(s); const tm = q('#bp-team'); if (tm) tm.addEventListener('click', () => bizGo('team')); q('#bp-plan-go').addEventListener('click', () => bizGo('plan'));
+  if (!canEdit) return;
+  let logo = p.logo || null, cover = BIZ.cover || null;
+  q('#bp-logo').addEventListener('click', () => { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.onchange = async () => { const f = inp.files && inp.files[0]; if (!f) return; try { const r = await bizCompress(f, 256, 120000); logo = r.dataUrl; const im = q('#bp-logo-img'); if (im) im.outerHTML = `<img class="biz-logo" id="bp-logo-img" alt="" src="${r.dataUrl}">`; } catch (e) { q('#bp-err').textContent = e.code === 'not_image' ? 'Bu dosya bir fotoğraf değil.' : 'Logo işlenemedi.'; } }; inp.click(); });
+  q('#bp-cover-pick').addEventListener('click', () => { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.onchange = async () => { const f = inp.files && inp.files[0]; if (!f) return; try { const r = await bizCompress(f, 1000, 300000); cover = r.dataUrl; const im = q('#bp-cover-img'); if (im) im.outerHTML = `<img alt="Kapak görseli" id="bp-cover-img" src="${r.dataUrl}">`; q('#bp-cover-del').hidden = false; } catch (e) { q('#bp-err').textContent = e.code === 'not_image' ? 'Bu dosya bir fotoğraf değil.' : 'Kapak görseli işlenemedi (çok büyük olabilir).'; } }; inp.click(); });
+  q('#bp-cover-del').addEventListener('click', () => { cover = null; const im = q('#bp-cover-img'); if (im) im.outerHTML = '<div class="biz-cover-ph" id="bp-cover-img">Kapak görseli yok</div>'; q('#bp-cover-del').hidden = true; });
+  q('#bp-save').addEventListener('click', async (ev) => {
+    const v = (x) => { const e = q('#' + x); return e ? e.value : ''; }, err = q('#bp-err'), name = bizText(v('bp-name'), 80); if (!name) { err.textContent = 'İşletme adı gerekli.'; return; }
+    const web = v('bp-web').trim() ? bizSafeUrl(v('bp-web')) : '', fb = v('bp-fb').trim() ? bizSafeUrl(v('bp-fb')) : '', map = v('bp-map').trim() ? bizSafeUrl(v('bp-map')) : '', ig = v('bp-ig').trim() ? bizInstagram(v('bp-ig')) : '', wa = v('bp-wa').trim() ? bizWhatsapp(v('bp-wa')) : '';
+    if (v('bp-web').trim() && !web) { err.textContent = 'Web sitesi adresi geçersiz (örn. ornek.com).'; return; } if (v('bp-fb').trim() && !fb) { err.textContent = 'Facebook bağlantısı geçersiz.'; return; } if (v('bp-map').trim() && !map) { err.textContent = 'Harita bağlantısı geçersiz.'; return; }
+    if (v('bp-ig').trim() && !ig) { err.textContent = 'Instagram kullanıcı adı geçersiz.'; return; } if (v('bp-wa').trim() && !wa) { err.textContent = 'WhatsApp numarası geçersiz (alan kodu ile, örn. 0555 123 45 67).'; return; }
+    const hmap = {}; let hbad = false; b.querySelectorAll('.biz-hr').forEach((r) => { const closed = r.querySelector('.bh-closed').checked, o = r.querySelector('.bh-open').value, c = r.querySelector('.bh-close').value; if (!closed && !o && !c) return; const val = bizHoursValue(closed, o, c); if (!val) { hbad = true; return; } hmap[r.dataset.day] = val; });
+    if (hbad) { err.textContent = 'Çalışma saatlerinde açılış ve kapanış saatini birlikte gir veya "Kapalı" işaretle.'; return; }
+    if (!guardSubmit('biz-prof')) return; ev.target.disabled = true; const nul = (s) => (s ? s : null);
+    try {
+      const bt = bizDb().batch(), ref = bizDb().collection('businesses').doc(BIZ.id);
+      bt.set(ref, { name, logo: logo || null, contactName: bizText(v('bp-contact'), 80), phone: bizText(v('bp-phone'), 30), email: bizText(v('bp-email'), 120), address: bizText(v('bp-addr'), 300), ownerUid: p.ownerUid, createdAt: p.createdAt, updatedAt: bizNow(), status: p.status, planId: p.planId,
+        description: nul(bizText(v('bp-desc'), 600)), category: v('bp-cat') || null, city: nul(bizText(v('bp-city'), 60)), district: nul(bizText(v('bp-district'), 60)), website: nul(web), instagram: nul(ig), facebook: nul(fb), whatsapp: nul(wa), mapUrl: nul(map), hours: Object.keys(hmap).length ? hmap : null });
+      if (isOwner) bt.set(ref.collection('restricted').doc('tax'), { legalName: bizText(v('bp-legal'), 120), taxNo: bizText(v('bp-taxno'), 20), taxOffice: bizText(v('bp-taxoff'), 80), updatedAt: bizNow() });
+      if (cover !== (BIZ.cover || null)) { if (cover) bt.set(ref.collection('media').doc('cover'), { data: cover, w: 0, h: 0, updatedAt: bizNow() }); else bt.delete(ref.collection('media').doc('cover')); }
+      await bt.commit(); await bizLoad(); BIZ.stack.pop(); bizGo('home', null, true); bizToast(true, 'Profil güncellendi', name);
+    } catch (e) { q('#bp-err').textContent = bizErrText(e); ev.target.disabled = false; } finally { releaseSubmit('biz-prof'); }
+  });
+}
+
+// ==================================================================== FAZ 32 — STOK HAREKETİ (satış, iade, çıkarma, masraf, stok girişi) — sunucu kurallarıyla uyumlu atomik yazım (kaynak: teknocheck/isletme5.js)
+// Durum değiştiren her hareket AYNI toplu yazımda: hareket + finans (+ alacak) + envanter güncellemesi (lastMoveId). Rules cihazın GÜNCEL durumunu denetler → aynı cihaz iki kez satılamaz; çakışmada kullanıcı bilgilendirilir.
+const BIZ_STATUS_MOVES = ['sale', 'return', 'removal', 'stock_in'];
+function bizViewMove(b, a) {
+  const d = BIZ.devices.find((x) => x.id === a.id); if (!d) { bizBack(); return; }
+  const h = BIZ_MOVE_HINT[a.type]; bizTitle(h[0]); const isSale = a.type === 'sale', askCust = isSale || a.type === 'return', fin = bizFin();
+  const lastSale = a.type === 'return' ? BIZ.sales.find((s) => s.deviceId === d.id && !s.voided) : null;
+  b.innerHTML = `<div class="tcx" id="biz-move" data-type="${a.type}"><h2 class="tc-info-h">${h[0]}: ${bizE(bizDevLabel(d))}</h2>
+    <label class="tcx-lbl" for="bm-amount">${h[1]}</label><input class="tk-input" id="bm-amount" inputmode="decimal" autocomplete="off"${lastSale && lastSale.amount ? ` value="${bizE(String(lastSale.amount).replace('.', ','))}"` : ''}>
+    ${isSale ? `<label class="tcx-lbl" for="bm-paid">Şimdi ödenen tutar (₺) <small>(boş bırakırsan tamamı ödenmiş sayılır)</small></label><input class="tk-input" id="bm-paid" inputmode="decimal" autocomplete="off" placeholder="Örn. 5.000">
+    <label class="tcx-lbl" for="bm-method">Ödeme yöntemi</label><select class="tk-input" id="bm-method">${Object.entries(BIZ_PAY_METHODS).map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select>` : ''}
+    ${askCust ? `<label class="tcx-lbl" for="bm-cust">Müşteri <small>(${isSale ? 'kalan tutar varsa zorunlu' : 'isteğe bağlı'})</small></label><input class="tk-input" id="bm-cust" list="bm-custs" maxlength="80" autocomplete="off"${lastSale && lastSale.customerName ? ` value="${bizE(lastSale.customerName)}"` : ''}><datalist id="bm-custs">${BIZ.customers.map((c) => `<option value="${bizE(c.name)}">`).join('')}</datalist>` : ''}
+    <label class="tcx-lbl" for="bm-date">Tarih</label><input class="tk-input" id="bm-date" type="date" value="${bizIsoDay()}">
+    <label class="tcx-lbl" for="bm-note">${a.type === 'expense' ? 'Masraf açıklaması *' : 'Açıklama'}</label><input class="tk-input" id="bm-note" maxlength="300" placeholder="${a.type === 'expense' ? 'Örn. ekran değişimi' : ''}">
+    ${a.type === 'return' ? '<p class="tca-intro" id="bm-retnote">İade/iptal: satış geçersiz sayılır, cihaz stoğa döner. İade edilen tutar satış tutarından azsa aradaki fark (kesinti) gelir olarak kalır.</p>' : ''}
+    <div class="tcr-err" id="bm-err" role="alert"></div>
+    <div class="tcx-actions"><button type="button" class="tk-btn tk-btn--primary" id="bm-save">Kaydet</button><button type="button" class="tk-btn tk-btn--outline" id="bm-cancel">Vazgeç</button></div></div>`;
+  b.querySelector('#bm-cancel').addEventListener('click', () => bizBack());
+  b.querySelector('#bm-save').addEventListener('click', async (ev) => {
+    const v = (x) => { const e = b.querySelector('#' + x); return e ? e.value : ''; }, err = b.querySelector('#bm-err');
+    const cname = bizText(v('bm-cust'), 80), cust = bizCust(cname), inp = { amount: v('bm-amount'), date: v('bm-date'), note: v('bm-note'), customerId: cust ? cust.id : null, customerName: cname };
+    const plan = isSale ? bizPlanSale(d, { ...inp, paid: v('bm-paid'), payMethod: v('bm-method') }) : bizPlanMove(d, a.type, inp);
+    if (!plan.ok) { err.textContent = plan.error; return; }
+    if (!guardSubmit('biz-move')) return; ev.target.disabled = true;
+    try {
+      const bt = bizDb().batch(), mref = bizCol('movements').doc(); let custId = plan.movement.customerId;
+      if (cname && !cust) { const cref = bizCol('customers').doc(); bt.set(cref, { name: cname, createdBy: user.uid, createdAt: bizNow(), updatedAt: bizNow() }); custId = cref.id; bizUsageSet(bt, 0, 1); }
+      bt.set(mref, { deviceId: d.id, type: a.type, date: plan.movement.date, note: plan.movement.note, by: user.uid, byName: bizByName(), customerId: custId, customerName: cname || null, createdAt: bizNow() });
+      const finDoc = { deviceId: d.id, type: a.type, amount: plan.amount === null ? 0 : plan.amount, date: plan.movement.date, createdAt: bizNow() };
+      if (isSale) { finDoc.paid = plan.paid; if (plan.payMethod) finDoc.payMethod = plan.payMethod; }
+      bt.set(bizCol('movementsFinance').doc(mref.id), finDoc);
+      if (plan.status !== d.status) bt.update(bizCol('inventory').doc(d.id), { status: plan.status, lastMoveId: mref.id, updatedAt: bizNow() });
+      if (isSale && plan.receivable) bt.set(bizCol('receivables').doc(mref.id), { deviceId: d.id, customerId: custId || null, customerName: cname, total: plan.amount, paid: plan.paid, payments: [], createdAt: bizNow(), updatedAt: bizNow() });
+      await bt.commit(); await bizLoad(); BIZ.stack.pop(); bizRender('device', d.id); bizToast(true, h[0] + ' kaydedildi', bizDevLabel(d));
+      if (isSale) { const l = (BIZ.listings || []).find((x) => x.id === d.listingId), st = l ? bizListingState(l) : null; if (l && bizListingActive(st)) bizToast(true, 'İlanı kaldırmayı unutma', 'Bu cihazın Pazar ilanı hâlâ yayında/onayda.'); }
+    } catch (e) {
+      ev.target.disabled = false;
+      if (e && e.code === 'permission-denied' && BIZ_STATUS_MOVES.includes(a.type)) {   // başka kullanıcı/cihaz aynı cihazı değiştirmiş olabilir: güncel veriyi çek ve açıkça söyle
+        try { await bizLoad(); } catch (e2) { /* yenileme başarısız olursa mevcut ekran kalır */ }
+        const nd = BIZ.devices.find((x) => x.id === d.id), same = nd && nd.status === d.status;
+        err.textContent = same ? bizErrText(e) : 'Bu cihazın durumu başka biri tarafından değiştirilmiş (şimdi: ' + ((nd && BIZ_STATUS[nd.status]) || 'bilinmiyor') + '). Veriler yenilendi; durumu kontrol edip gerekirse tekrar dene.';
+        if (!same) { BIZ.stack.pop(); bizRender('device', d.id); bizToast(false, 'Cihaz durumu değişmiş', 'İşlem yapılmadı; güncel durum gösteriliyor.'); }
+      } else err.textContent = bizErrText(e);
+    } finally { releaseSubmit('biz-move'); }
+  });
 }
 
 // ==================================================================== FAZ 10 — VIP VE İŞLETME ABONELİĞİ: İSTEMCİ (kaynak: teknocheck/abonelik.js; uygula.mjs gömer)
@@ -26523,7 +27221,7 @@ function accountAgeLabel(createdAt) {
   if (months < 12) return `${months} aydır`;
   return `${Math.floor(days / 365)} yıldır`;
 }
-async function loadSellerCard(sellerUid, ownerName, mine, containerId) {
+async function loadSellerCard(sellerUid, ownerName, mine, containerId, bizName) {
   const el = document.getElementById(containerId);
   if (!el) return;
   const safeName = escapeJsAttr(ownerName||'?');
@@ -26532,7 +27230,7 @@ async function loadSellerCard(sellerUid, ownerName, mine, containerId) {
       <div class="seller-card-lg-top" ${!mine?`onclick="openPublicProfile('${sellerUid}','${safeName}');exitDetailPage(false)" style="cursor:pointer"`:''}>
         <div class="seller-card-lg-av">${(ownerName||'?')[0].toUpperCase()}</div>
         <div style="flex:1;min-width:0">
-          <div class="seller-card-lg-name">${escapeHtml(ownerName)||'Kullanıcı'}${mine?' (Ben)':''}</div>
+          <div class="seller-card-lg-name">${escapeHtml(ownerName)||'Kullanıcı'}${mine?' (Ben)':''}</div>${bizName?`<div class="seller-biz-chip" id="det-biz-chip">🏢 ${escapeHtml(bizName)} · İşletme</div>`:''}
           <div class="seller-card-lg-stats" id="${containerId}-stats">Yükleniyor…</div>
         </div>
       </div>
