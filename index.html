@@ -2604,6 +2604,14 @@ textarea.fi{min-height:96px;}
 @media (prefers-reduced-motion:reduce){.biz-nav-i{transition:none;}}
 .biz-chips .tca-chip.on,.biz-chips .tca-chip[aria-pressed="true"]{background:rgba(var(--accent-rgb),.16);border-color:rgba(var(--accent-rgb),.5);color:var(--text);}
 .biz-chips .tca-chip:focus-visible{outline:2px solid var(--cyan);outline-offset:2px;}
+
+/* Faz 33 — işletmeyi sil */
+.biz-danger{margin-top:var(--space-6);padding-top:var(--space-4);border-top:1px solid rgba(var(--danger-rgb),.25);}
+.biz-danger-btn{color:var(--red);border-color:rgba(var(--danger-rgb),.45);}
+.biz-danger-btn:disabled{opacity:.45;}
+.biz-del-ul{margin:0 0 var(--space-3) 0;padding-left:20px;font-size:13.5px;line-height:1.55;color:var(--text2);}
+.biz-del-ck{display:flex;gap:10px;align-items:flex-start;margin:var(--space-3) 0;font-size:13px;line-height:1.45;color:var(--text2);}
+.biz-del-ck input{margin-top:3px;flex:none;}
 /* TC-CSS-END */
 /* ============================================================================
    C4 — ANA SAYFA YENİDEN TASARIMI (A Net, görsel ağırlıklı). C1/Paket-1 belirteçleri; neon/ağır gölge/süs animasyonu YOK.
@@ -6693,10 +6701,10 @@ async function acctWaitGone(ms) {
   return false;
 }
 // Yeniden doğrulama: şifreli hesapta şifre, Google hesabında Google penceresi. Başarısız/iptal → { ok:false } ve silme isteği HİÇ gönderilmez.
-async function acctReauth() {
+async function acctReauth(pwId) {
   const ids = (user.providerData || []).map(p => p.providerId);
   if (ids.includes('password')) {
-    const pw = document.getElementById('acct-del-pass')?.value || '';
+    const pw = document.getElementById(pwId || 'acct-del-pass')?.value || '';
     if (!pw) return { ok: false, msg: 'Şifreni gir.' };
     try { await user.reauthenticateWithCredential(firebase.auth.EmailAuthProvider.credential(user.email, pw)); return { ok: true }; }
     catch (e) { return { ok: false, msg: /wrong-password|invalid-credential|invalid-login/.test(e.code || '') ? 'Şifre hatalı.' : (firebaseErrorToTurkish(e) || 'Doğrulama yapılamadı.') }; }
@@ -23206,7 +23214,7 @@ function bizGo(view, arg, reset) { if (reset) BIZ.stack = []; BIZ.stack.push({ v
 function bizBack() { if (!BIZ || BIZ.stack.length <= 1) { closemo('biz-mo'); return; } BIZ.stack.pop(); const t = BIZ.stack[BIZ.stack.length - 1]; bizRender(t.view, t.arg); }
 function bizRender(view, arg) {
   const b = bizBody(); if (!b) return;
-  const f = { home: bizViewHome, stock: bizViewStock, add: bizViewAdd, device: bizViewDevice, edit: bizViewEdit, move: bizViewMove, customers: bizViewCustomers, team: bizViewTeam, invites: bizViewInvites, plan: bizViewPlan, customer: bizViewCustomer, customerEdit: bizViewCustomerEdit, profile: bizViewProfile, create: bizViewCreate, choose: bizViewChoose, qr: bizViewQr, listings: bizViewListings, sales: bizViewSales, purchases: bizViewPurchases, finance: bizViewFinance, reports: bizViewReports, tcreports: bizViewTcReports, collect: bizViewCollect }[view];
+  const f = { home: bizViewHome, stock: bizViewStock, add: bizViewAdd, device: bizViewDevice, edit: bizViewEdit, move: bizViewMove, customers: bizViewCustomers, team: bizViewTeam, invites: bizViewInvites, plan: bizViewPlan, customer: bizViewCustomer, customerEdit: bizViewCustomerEdit, profile: bizViewProfile, create: bizViewCreate, choose: bizViewChoose, qr: bizViewQr, listings: bizViewListings, sales: bizViewSales, purchases: bizViewPurchases, finance: bizViewFinance, reports: bizViewReports, tcreports: bizViewTcReports, collect: bizViewCollect, delete: bizViewDelete }[view];
   if (!f) return; f(b, arg); try { b.scrollTop = 0; document.querySelector('#biz-mo .det-sheet').scrollTop = 0; const on = b.querySelector('.biz-nav-i.on'); if (on && on.scrollIntoView) on.scrollIntoView({ inline: 'center', block: 'nearest' }); } catch (e) { /* yok */ }
 }
 const bizBind = (b, sel, fn) => b.querySelectorAll(sel).forEach((x) => x.addEventListener('click', (e) => fn(x, e)));
@@ -23621,7 +23629,7 @@ async function bizViewPlan(b) {
 let TK_BIZ_PUBLISH = null, TK_BIZ_PUBLISH_PENDING = null;   // Pazar ilan formu bağlamı: { id, name, deviceId, prefill }
 const BIZ_CAP = { devices: 5000, moves: 20000, customers: 10000, ledger: 5000, receivables: 5000 };
 const BIZ_NAV = [['home', 'Genel Bakış'], ['listings', 'İlanlarım'], ['stock', 'Stok'], ['sales', 'Satışlar'], ['purchases', 'Alışlar'], ['customers', 'Müşteriler'], ['finance', 'Gelir-Gider', 'fin'], ['reports', 'Raporlar', 'fin'], ['tcreports', 'TeknoCheck'], ['profile', 'İşletme']];
-const BIZ_NAV_OF = { device: 'stock', add: 'stock', edit: 'stock', move: 'stock', qr: 'stock', customer: 'customers', customerEdit: 'customers', collect: 'sales', team: 'profile', plan: 'profile', invites: 'home', choose: 'home' };
+const BIZ_NAV_OF = { device: 'stock', add: 'stock', edit: 'stock', move: 'stock', qr: 'stock', customer: 'customers', customerEdit: 'customers', collect: 'sales', delete: 'profile', team: 'profile', plan: 'profile', invites: 'home', choose: 'home' };
 const bizNum = (n) => (typeof n === 'number' && isFinite(n) ? n.toLocaleString('tr-TR') : '—');
 const bizFin = () => !!BIZ && !!BIZ.fin;
 const bizDevById = () => Object.fromEntries(BIZ.devices.map((d) => [d.id, d]));
@@ -23734,6 +23742,7 @@ function bizViewHome(b) {
     <h3 class="pd-sec-t">En çok satılan cihazlar</h3>${top.length ? `<ul class="tcx-list" id="biz-top">${top.map((x) => `<li class="tcx-row"><div class="tcx-row-main"><div class="tcx-row-t">${bizE(x.label)}</div><div class="tcx-row-d">${x.count} adet${fin ? ' · ciro ' + bizTL(x.revenue) : ''}</div></div>${fin ? `<div class="tcx-row-side"><b>${bizTL(x.profit)}</b><small>kâr</small></div>` : ''}</li>`).join('')}</ul>` : '<p class="tca-intro">Satılan cihaz yok.</p>'}
     <h3 class="pd-sec-t">Stokta bekleme süresi</h3>${ag.count ? `<div class="biz-card" id="biz-aging"><div class="biz-card-h"><b>Ortalama ${ag.avgDays === null ? '—' : ag.avgDays + ' gün'}</b><small>en uzun ${ag.maxDays === null ? '—' : ag.maxDays + ' gün'}</small></div>${ag.buckets.map((k) => `<div class="biz-bk"><span>${k.label}</span><div class="biz-meter"><i class="${k.label === '90+ gün' && k.count ? 'hot' : ''}" style="width:${ag.known ? Math.round(k.count / ag.known * 100) : 0}%"></i></div><b>${k.count}</b></div>`).join('')}</div>` : '<p class="tca-intro">Stokta cihaz yok.</p>'}
     <h3 class="pd-sec-t">Son işlemler</h3>${recent ? `<ul class="tcx-list">${recent}</ul>` : bizEmpty('📦', 'Henüz işlem yok', 'İlk cihazını ekleyerek başla.', '<button type="button" class="tk-btn tk-btn--primary" data-go="add">+ Yeni alış</button>')}</div>`;
+  bizMistakeInit(b);
   bizBind(b, '[data-go]', (x) => { const g = x.dataset.go; if (g === 'stock') BIZ.filter = { q: '', status: 'in_stock', brand: '', sort: 'new' }; if (g === 'customerEdit') return bizGo('customerEdit', null); bizGo(g); });
   bizBind(b, '[data-newlisting]', () => bizNewListing(null));
   bizBind(b, '.biz-stat', (x) => { const k = x.dataset.k; if (k === 'listings') return bizGo('listings', null, true); if (k === 'receivable') return bizGo('sales', null, true); BIZ.filter = { q: '', status: k === 'sold' ? 'sold' : k === 'removed' ? 'removed' : 'in_stock', brand: '', sort: 'new' }; if (k === 'revenue' || k === 'profit') return bizGo('reports', null, true); bizGo('stock', null, true); });
@@ -24031,6 +24040,7 @@ async function bizViewProfile(b) {
     ${canEdit ? '<div class="tcx-actions"><button type="button" class="tk-btn tk-btn--primary" id="bp-save">Kaydet</button></div>' : '<div class="tc-status" role="note">Profili yalnızca işletme sahibi ve yönetici düzenleyebilir.</div>'}
     ${members ? `<h3 class="pd-sec-t">Kullanıcılar</h3><ul class="tcx-list" id="bp-members">${members.map((m) => `<li class="tcx-row"><div class="tcx-row-main"><div class="tcx-row-t">${bizE(m.displayName || m.uid.slice(0, 6) + '…')}</div></div><div class="tcx-row-side">${bizE(BIZ_ROLES[m.role] || m.role)}${m.active === false ? ' · pasif' : ''}</div></li>`).join('')}</ul><div class="tcx-actions"><button type="button" class="tk-btn tk-btn--outline" id="bp-team">Ekibi yönet</button></div>` : ''}
     <h3 class="pd-sec-t">Paket</h3><p class="tca-intro" id="bp-plan">${bizE(subSummaryC(BIZ.plan, Date.now(), 'İşletme paketi'))} · cihaz limiti ${lim.devices} · kullanıcı limiti ${lim.members} · müşteri limiti ${lim.customers}</p><div class="tcx-actions"><button type="button" class="tk-btn tk-btn--outline" id="bp-plan-go">Paketi yönet</button></div></div>`;
+  bizDangerInit(b, isOwner);
   const q = (s) => b.querySelector(s); const tm = q('#bp-team'); if (tm) tm.addEventListener('click', () => bizGo('team')); q('#bp-plan-go').addEventListener('click', () => bizGo('plan'));
   if (!canEdit) return;
   let logo = p.logo || null, cover = BIZ.cover || null;
@@ -24101,6 +24111,103 @@ function bizViewMove(b, a) {
       } else err.textContent = bizErrText(e);
     } finally { releaseSubmit('biz-move'); }
   });
+}
+
+// ==================================================================== FAZ 33 — İŞLETMEYİ SİL (yalnızca işletme sahibi) — silme YALNIZCA sunucuda (bizteam-delete); Rules istemciden silmeyi kapalı tutar.
+// Akış: İşletme profili → "Tehlikeli bölge" → onay ekranı (neler silinir/silinmez, şifre, işletme adını yazma, onay kutusu) → sunucu (taze giriş + ad + engel yok) → uzun işlerde 202 more_work: aynı istek tekrarlanır.
+const BIZ_DEL_ERR = {
+  confirm_required: 'İşletme adını doğru yazmalısın.', reauth_required: 'Güvenlik için şifreni doğru girip tekrar dene.', in_progress: 'Silme işlemi sürüyor. Birkaç saniye sonra tekrar dene.', forbidden: 'Bu işlem yalnızca işletme sahibi tarafından yapılabilir.',
+  more_work: 'Silme işlemi tamamlanamadı. Tekrar dene; kaldığı yerden devam eder.', rate_limited: 'Çok fazla deneme yaptın. Bir süre sonra tekrar dene.', network: 'Sunucuya ulaşılamadı. Bağlantını kontrol et; işlem yarıda kaldıysa tekrar dene.',
+  invalid_session: 'Oturum süresi dolmuş. Çıkış yapıp tekrar giriş yap.', account_banned: 'Hesabın kısıtlı.', internal_error: 'Sunucu hatası. Biraz sonra tekrar dene.',
+};
+const BIZ_DEL_BLOCK = {
+  business_has_team: 'İşletmede senden başka aktif kullanıcı var. Önce "İşletme › Kullanıcılar › Ekip" bölümünden onları çıkar.',
+  active_subscription: 'Aktif ücretli İşletme paketin var. Önce "Paket" bölümünden iptal et.',
+};
+// İşletme BOŞ mu? Sunucu (bdIsEmpty) aynı koşulu kendisi denetler; bu yalnızca arayüzde kolay yolu göstermek içindir.
+const bizIsEmpty = () => !!BIZ && BIZ.devices.length === 0 && BIZ.moves.length === 0 && BIZ.customers.length === 0 && (BIZ.ledger || []).length === 0 && (BIZ.receivables || []).length === 0 && !(BIZ.verification && BIZ.verification.status === 'verified');
+const bizDelNorm = (s) => String(s == null ? '' : s).trim().toLocaleLowerCase('tr-TR');
+// İşletme profili sayfasının sonuna (yalnızca sahip) "Tehlikeli bölge" kartı ekler.
+function bizDangerInit(b, isOwner) {
+  if (!isOwner) return; const host = b.querySelector('#biz-profile'); if (!host || host.querySelector('#bp-danger')) return;
+  host.insertAdjacentHTML('beforeend', bizIsEmpty() ? '<div class="biz-danger" id="bp-danger"><h3 class="pd-sec-t">İşletmeyi sil</h3><p class="tca-intro">İşletmende hiç kayıt yok. Yanlışlıkla oluşturduysan tek adımda silebilirsin.</p><button type="button" class="tk-btn tk-btn--outline biz-danger-btn" id="bp-delete">İşletmeyi sil</button></div>' : '<div class="biz-danger" id="bp-danger"><h3 class="pd-sec-t">Tehlikeli bölge</h3><p class="tca-intro">İşletmeni ve tüm kayıtlarını kalıcı olarak silebilirsin. Bu işlem geri alınamaz.</p><button type="button" class="tk-btn tk-btn--outline biz-danger-btn" id="bp-delete">İşletmeyi sil</button></div>');
+  b.querySelector('#bp-delete').addEventListener('click', () => bizGo('delete'));
+}
+function bizViewDelete(b) {
+  if (!bizCanDo('view_tax')) { bizBack(); return; }   // view_tax = yalnızca sahip
+  bizTitle('İşletmeyi sil'); if (bizIsEmpty()) return bizViewDeleteEasy(b);
+  const p = BIZ.biz, ids = (user.providerData || []).map((x) => x.providerId), isPw = ids.includes('password'), isGoogle = ids.includes('google.com');
+  const googleNative = !isPw && isGoogle && typeof isNativeApp === 'function' && isNativeApp(), noReauth = !isPw && !isGoogle;
+  const nDev = BIZ.devices.length, nCust = BIZ.customers.length, nSale = (BIZ.sales || []).filter((s) => !s.voided).length;
+  b.innerHTML = `<div class="tcx" id="biz-delete"><h2 class="tc-info-h">İşletmeyi sil</h2>
+    <div class="tc-status" role="alert"><b>Bu işlem GERİ ALINAMAZ.</b> "${bizE(p.name)}" işletmesi ve tüm kayıtları kalıcı olarak silinir; sonradan kurtarılamaz.</div>
+    <h3 class="pd-sec-t">Silinecekler</h3>
+    <ul class="biz-del-ul" id="bdel-list"><li>Stok ve cihaz kayıtları (${nDev} cihaz), IMEI/seri bilgileri ve cihaz fotoğrafları</li><li>Alış, satış, iade ve masraf hareketleri (${nSale} satış) ile tüm tutarlar</li><li>Müşteri kayıtları (${nCust} müşteri), alacaklar ve gelir-gider defteri</li><li>İşletme profili, logo, kapak, vergi bilgileri ve doğrulama durumu</li><li>Ekip, davet, paket ve denetim kayıtları</li></ul>
+    <h3 class="pd-sec-t">Silinmeyecekler</h3>
+    <ul class="biz-del-ul"><li>Pazar'daki ilanların kalır; yalnızca "İşletme" bağlantısı/rozeti kalkar</li><li>Bireysel TeknoCheck raporların ve hesabın</li><li>Ödeme ve abonelik kayıtları (yasal saklama)</li></ul>
+    <div class="tc-status" role="note"><b>Silmeden önce yedek al:</b> <button type="button" class="tk-btn tk-btn--ghost tk-btn--sm" data-bk="stock">Stok listesi (CSV)</button> <button type="button" class="tk-btn tk-btn--ghost tk-btn--sm" data-bk="sales">Satışlar (CSV)</button> <button type="button" class="tk-btn tk-btn--ghost tk-btn--sm" data-bk="reports">Raporlar</button></div>
+    <p class="tca-intro">Silebilmek için işletmede başka aktif kullanıcı bulunmamalı ve ücretli paket aktif olmamalı.</p>
+    ${isPw ? '<label class="tcx-lbl" for="bdel-pass">Şifren</label><input class="tk-input" id="bdel-pass" type="password" autocomplete="current-password" placeholder="••••••••">'
+      : googleNative ? '<div class="tc-status" role="note" id="bdel-note">Google ile giriş yaptıysan bu işlemi web sürümünden (teknohane.net) yap.</div>'
+      : isGoogle ? '<div class="tc-status" role="note" id="bdel-note">Güvenlik için silmeden önce Google hesabınla yeniden doğrulaman istenecek.</div>'
+      : '<div class="tc-status" role="note" id="bdel-note">Güvenlik için çıkış yapıp yeniden giriş yaptıktan hemen sonra bu işlemi tekrar başlat.</div>'}
+    <label class="tcx-lbl" for="bdel-name">Onaylamak için işletme adını yaz: <b>${bizE(p.name)}</b></label><input class="tk-input" id="bdel-name" autocomplete="off" maxlength="80">
+    <label class="biz-del-ck"><input type="checkbox" id="bdel-ok"> Bu işlemin geri alınamayacağını ve tüm işletme kayıtlarının silineceğini anlıyorum.</label>
+    <div class="tcr-err" id="bdel-err" role="alert"></div>
+    <div class="tcx-actions"><button type="button" class="tk-btn tk-btn--outline biz-danger-btn" id="bdel-go" disabled>İşletmeyi kalıcı olarak sil</button><button type="button" class="tk-btn tk-btn--ghost" id="bdel-cancel">Vazgeç</button></div></div>`;
+  const q = (s) => b.querySelector(s), upd = () => { q('#bdel-go').disabled = googleNative || noReauth || !(bizDelNorm(q('#bdel-name').value) === bizDelNorm(p.name) && q('#bdel-ok').checked); };
+  q('#bdel-name').addEventListener('input', upd); q('#bdel-ok').addEventListener('change', upd); q('#bdel-cancel').addEventListener('click', () => bizBack());
+  b.querySelectorAll('[data-bk]').forEach((x) => x.addEventListener('click', () => { BIZ.filter = { q: '', status: x.dataset.bk === 'stock' ? 'all' : 'in_stock', brand: '', sort: 'new' }; bizGo(x.dataset.bk, null, true); }));
+  q('#bdel-go').addEventListener('click', () => bizDoDelete(b));
+}
+// Kolay yol (yanlışlıkla oluşturulmuş, kayıt yok): şifre/ad yazma yok; tek onay. Sunucu işletmenin gerçekten boş olduğunu kendisi doğrular.
+function bizViewDeleteEasy(b) {
+  const p = BIZ.biz;
+  b.innerHTML = `<div class="tcx" id="biz-delete" data-easy="1"><h2 class="tc-info-h">İşletmeyi sil</h2>
+    <div class="tc-status" role="note">"${bizE(p.name)}" işletmesinde hiç kayıt yok (stok, satış, müşteri, gelir-gider). Yanlışlıkla oluşturduysan şimdi silebilirsin; istediğin zaman yenisini kurabilirsin.</div>
+    <div class="tcr-err" id="bdel-err" role="alert"></div>
+    <div class="tcx-actions"><button type="button" class="tk-btn tk-btn--outline biz-danger-btn" id="bdel-easy">İşletmeyi sil</button><button type="button" class="tk-btn tk-btn--ghost" id="bdel-cancel">Vazgeç</button></div></div>`;
+  b.querySelector('#bdel-cancel').addEventListener('click', () => bizBack());
+  b.querySelector('#bdel-easy').addEventListener('click', () => bizQuickDelete(b));
+}
+async function bizQuickDelete(b) {
+  const err = b && b.querySelector ? b.querySelector('#bdel-err') : null, bizId = BIZ.id, name = BIZ.biz.name;
+  if (!(await confirmDialog('"' + name + '" işletmesi silinsin mi? Hiç kayıt olmadığı için kaybedeceğin bir veri yok.', { title: 'İşletmeyi sil', confirmText: 'Sil', cancelText: 'Vazgeç' }))) return;
+  if (!guardSubmit('biz-del')) return;
+  try {
+    const r = await bizTeamCall('delete', { bizId, confirm: 'SIL', mistake: true });
+    if (!r.success) {
+      const m = r.error === 'not_empty' ? 'İşletmede kayıt var; bu yüzden hızlı silme yapılamaz. Profil sayfasından tam silmeyi kullan.' : r.error === 'blocked' && Array.isArray(r.blockers) ? r.blockers.map((x) => BIZ_DEL_BLOCK[x.code] || 'İşletme şu an silinemiyor.').join(' ') : (BIZ_DEL_ERR[r.error] || 'İşletme silinemedi. Tekrar dene.');
+      if (err) err.textContent = m; else bizToast(false, 'Silinemedi', m); return;
+    }
+    try { localStorage.removeItem('tk_biz_last'); } catch (e) { /* yok */ }
+    BIZ = null; closemo('biz-mo');
+    showToast('✅', 'var(--surf2)', 'İşletme silindi', 'İşletmen silindi. İstersen yeniden oluşturabilirsin.');
+  } finally { releaseSubmit('biz-del'); }
+}
+// Genel Bakış'ın üstünde (yalnızca sahip + işletme BOŞSA): yanlışlıkla oluşturmaya karşı görünür kısayol.
+function bizMistakeInit(b) {
+  const host = b.querySelector('#biz-home'); if (!host || !bizCanDo('view_tax') || !bizIsEmpty() || host.querySelector('#bh-mistake')) return;
+  host.insertAdjacentHTML('afterbegin', '<div class="tc-status biz-mistake" role="note" id="bh-mistake"><b>Yanlışlıkla mı oluşturdun?</b> Hiç kayıt eklemediysen işletmeni tek dokunuşla silebilirsin. <button type="button" class="tk-btn tk-btn--outline tk-btn--sm biz-danger-btn" id="bh-mistake-del">İşletmeyi sil</button></div>');
+  b.querySelector('#bh-mistake-del').addEventListener('click', () => bizQuickDelete(b));
+}
+async function bizDoDelete(b) {
+  const q = (s) => b.querySelector(s), err = q('#bdel-err'), btn = q('#bdel-go'), typed = q('#bdel-name').value, bizId = BIZ.id;
+  const fail = (m) => { err.textContent = m; };
+  err.textContent = ''; if (!guardSubmit('biz-del')) return; btn.disabled = true; btn.textContent = 'Doğrulanıyor…';
+  try {
+    const ra = await acctReauth('bdel-pass'); if (!ra.ok) { fail(ra.msg); return; }
+    btn.textContent = 'Siliniyor…'; let r = { success: false, error: 'network' };
+    for (let round = 0; round < 25; round++) {   // sunucu her turda sınırlı iş yapar (more_work); aynı istek güvenle tekrarlanır
+      r = await bizTeamCall('delete', { bizId, confirm: 'SIL', confirmName: typed });
+      if (r.success || r.error !== 'more_work') break; btn.textContent = 'Siliniyor… (' + (round + 2) + '. adım)';
+    }
+    if (!r.success && r.error === 'blocked' && Array.isArray(r.blockers)) { fail(r.blockers.map((x) => BIZ_DEL_BLOCK[x.code] || 'İşletme şu an silinemiyor.').join(' ')); return; }
+    if (!r.success) { fail(BIZ_DEL_ERR[r.error] || 'İşletme silinemedi. Tekrar dene.'); return; }
+    try { localStorage.removeItem('tk_biz_last'); } catch (e) { /* yok */ }
+    BIZ = null; closemo('biz-mo');
+    showToast('✅', 'var(--surf2)', 'İşletme silindi', 'İşletmen ve tüm kayıtları kalıcı olarak silindi.');
+  } finally { releaseSubmit('biz-del'); if (BIZ && document.getElementById('bdel-go')) { const g = document.getElementById('bdel-go'); g.textContent = 'İşletmeyi kalıcı olarak sil'; g.disabled = !(bizDelNorm(typed) === bizDelNorm(BIZ.biz.name) && document.getElementById('bdel-ok').checked); } }
 }
 
 // ==================================================================== FAZ 10 — VIP VE İŞLETME ABONELİĞİ: İSTEMCİ (kaynak: teknocheck/abonelik.js; uygula.mjs gömer)
