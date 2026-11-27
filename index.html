@@ -4790,9 +4790,14 @@ let myProfileData = {};
 const CLIENT_ERROR_LOG_MAX_PER_SESSION = 15;
 let clientErrorLogCount = 0;
 const clientErrorLogSeen = new Set();
+// Bilgi taşımayan ya da uygulama kodundan kaynaklanmayan tarayıcı gürültüsü (2026-11-27 kayıt incelemesi):
+// - "Script error." + boş kaynak: çapraz köken betik (tarayıcının / uygulama içi tarayıcının enjekte ettiği kod); ayrıntı tarayıcı tarafından gizlenir, düzeltilecek bir şey yoktur.
+// - Safari IndexedDB "without an in-progress transaction": Firestore çevrimdışı önbelleği arka plandan dönüşte; SDK ağ üzerinden devam eder.
+const CLIENT_ERROR_NOISE = [/^Script error\.?$/, /without an in-progress transaction/];
 function logClientError(message, stack, source) {
   try {
     if (clientErrorLogCount >= CLIENT_ERROR_LOG_MAX_PER_SESSION) return;
+    if (CLIENT_ERROR_NOISE.some((r) => r.test(String(message || ''))) && !String(stack || '').trim()) return;
     const sig = String(message || '').slice(0, 120) + '@' + String(source || '');
     if (clientErrorLogSeen.has(sig)) return;
     clientErrorLogSeen.add(sig);
@@ -7516,6 +7521,10 @@ async function showForumPermissionError(e, postId) {
   }
 }
 
+// Oluşturma yazımı "reddedildi" dönse bile belge sunucuda bu kullanıcıya ait olarak var mı? (yeniden gönderim sonrası yanlış alarmı ayırt eder)
+async function listingExistsForMe(ref) {
+  try { const s = await ref.get({ source: 'server' }); return !!(s.exists && user && s.data().uid === user.uid); } catch (_) { return false; }
+}
 async function writeWithPermissionRetry(writeFn) {
   try {
     return await writeFn();
@@ -15086,12 +15095,19 @@ async function submitListing() {
       data.expiresAt = firebase.firestore.Timestamp.fromDate(new Date(tkNow() + 30*24*60*60*1000));
       // PAKET 5.1B: ilan + telefon numarası TEK atomik toplu yazımda (numara herkese açık ilan belgesine değil özel koleksiyona gider).
       const newListingRef = db.collection('teknohane_listings').doc();
-      await writeWithPermissionRetry(() => {
-        const b = db.batch();
-        b.set(newListingRef, data);
-        b.set(db.collection('teknohane_listing_contacts').doc(newListingRef.id), { uid: user.uid, phone, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-        return b.commit();
-      });
+      try {
+        await writeWithPermissionRetry(() => {
+          const b = db.batch();
+          b.set(newListingRef, data);
+          b.set(db.collection('teknohane_listing_contacts').doc(newListingRef.id), { uid: user.uid, phone, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+          return b.commit();
+        });
+      } catch (e) {
+        // HATA KAYDI DÜZELTMESİ (2026-11-27, canlı kayıt: ilan 19:53:04'te OLUŞTU, 3 sn sonra "permission-denied" gösterildi): zayıf bağlantıda
+        // SDK aynı toplu yazımı yeniden gönderir; ilki sunucuda işlendiyse ikincisi "güncelleme" sayılır ve kurallarca reddedilir — ilan aslında
+        // oluşmuştur. Reddi gerçek kabul etmeden önce sunucudan doğrula; ilan bu kullanıcıya aitse işlem başarılıdır (kullanıcı tekrar denemez, mükerrer ilan oluşmaz).
+        if (!(e && e.code === 'permission-denied' && await listingExistsForMe(newListingRef))) throw e;
+      }
       // DENORMALİZASYON (Genel Performans): admin kullanıcı listesi artık ilan sayısını TÜM
       // koleksiyonu tarayarak değil (bkz. rAdminUsers), bu sayaçtan okuyor. NOT (dürüstlük): bu alan
       // eklenmeden ÖNCE oluşturulmuş ilanlar sayılmaz — geriye dönük taşıma bu oturumun kapsamı dışında.
@@ -16178,8 +16194,10 @@ function escapeHtml(str) {
 // özniteliğinin içine güvenle gömmek için. escapeHtml() burada YETMEZ: tarayıcı özniteliği JS olarak
 // çalıştırmadan önce HTML varlıklarını geri çözer, yani &#39; yine ham tek tırnağa döner ve string'i
 // kırar. Burada hem JS string sınırı (') kaçışlanır hem öznitelik sınırı (") HTML varlığına çevrilir.
+// HATA KAYDI DÜZELTMESİ (2026-11-27): satır sonu (\n, \r) ve U+2028/U+2029 kaçışlanmıyordu → açıklama/paylaşım metni satır sonu içerince
+// satır içi işleyici derlenemiyor ("SyntaxError: Unexpected EOF" / "Invalid or unexpected token"); ör. ilan paylaşımında "Linki Kopyala" ve "Diğer" hiç çalışmıyordu.
 function escapeJsAttr(str) {
-  return String(str||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(str||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\r/g,'\\r').replace(/\n/g,'\\n').replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 // Bir gönderi/yorum metnini GÜVENLİ şekilde biçimlendirir: önce escapeHtml() ile kaçışlanır (XSS
@@ -31581,7 +31599,7 @@ if (!isNativeApp()) {
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState !== 'visible' || Date.now() - tkLastShellCheck < 15 * 60000) return;
     tkLastShellCheck = Date.now(); tkPwaMaybeShow();
-    try { window.__tkSwReg && window.__tkSwReg.update(); navigator.serviceWorker && navigator.serviceWorker.controller && navigator.serviceWorker.controller.postMessage({ tip: 'kabuk-denetle' }); } catch (e) { /* sessiz */ }
+    try { window.__tkSwReg && Promise.resolve(window.__tkSwReg.update()).catch(() => { /* çevrimdışı: sonraki görünürlükte yeniden denenir */ }); navigator.serviceWorker && navigator.serviceWorker.controller && navigator.serviceWorker.controller.postMessage({ tip: 'kabuk-denetle' }); } catch (e) { /* sessiz */ }
   });
   // Klavye açılınca odaklı alan görünür kalsın (iOS ana ekran uygulaması)
   document.addEventListener('focusin', (e) => {
